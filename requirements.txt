@@ -1,0 +1,5 @@
+# 运行本程序不需要安装第三方 pip 包。
+# 代码只使用 Python 标准库；Everything 访问依赖程序目录中的 everything-SDK\dll\*.dll。
+#
+# 可选打包工具：
+# pyinstaller>=6.0
