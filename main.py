@@ -17,6 +17,7 @@ import heapq
 APP_NAME = "Python 智能磁盘分析工具"
 MAX_FILES_PER_DIR = 50
 DEFAULT_EVERYTHING_STARTUP_TIMEOUT_SECONDS = 20
+DEFAULT_EVERYTHING_STARTUP_ARGS = ["-startup"]
 
 def get_app_dir():
     """源码运行时返回脚本目录；PyInstaller 打包后返回 exe 所在目录。"""
@@ -491,6 +492,19 @@ def wait_for_everything_ipc(
         sleep(0.5)
     return is_ipc_ready(dll_path)
 
+def _normalize_startup_args(raw_args):
+    """规范化 config 中的 everything_startup_args。
+
+    只接受“非空且元素全为 str 的 list”；其余脏数据（None、非 list、
+    空列表、含非字符串元素等）一律回退到默认 ["-startup"]，绝不因
+    脏配置导致启动失败或崩溃。
+    """
+    if not isinstance(raw_args, list):
+        return list(DEFAULT_EVERYTHING_STARTUP_ARGS)
+    if not raw_args or not all(isinstance(arg, str) for arg in raw_args):
+        return list(DEFAULT_EVERYTHING_STARTUP_ARGS)
+    return list(raw_args)
+
 def ensure_everything_running(
     dll_path=None,
     exe_path=None,
@@ -527,10 +541,14 @@ def ensure_everything_running(
         log("❌ 无法定位 Everything.exe。请确认 Everything 已安装，或将 Everything.exe 放在本程序目录/PATH 中。")
         sys.exit(1)
 
-    launch_attempts = [
-        [str(exe_path), "-startup"],
-        [str(exe_path)],
-    ]
+    # 启动参数优先级：config 缓存的 everything_startup_args（非空 str list）→
+    # 默认 ["-startup"] → 无参数兜底；重复命令自动去重。
+    startup_args = _normalize_startup_args(config.get("everything_startup_args"))
+    launch_attempts = []
+    for candidate_args in (startup_args, DEFAULT_EVERYTHING_STARTUP_ARGS, []):
+        command = [str(exe_path)] + list(candidate_args)
+        if command not in launch_attempts:
+            launch_attempts.append(command)
     for index, command in enumerate(launch_attempts, 1):
         try:
             proc = popen(command,
@@ -545,7 +563,7 @@ def ensure_everything_running(
         if wait_for_everything_ipc(DLL_PATH, is_ipc_ready, sleep, timeout_seconds):
             config["everything_exe"] = str(exe_path)
             config["everything_dll"] = str(DLL_PATH)
-            config.setdefault("everything_startup_args", ["-startup"])
+            config["everything_startup_args"] = command[1:]
             save_config(config, config_path)
             log(f"💾 已更新配置缓存: {Path(config_path)}")
             log("✅ Everything IPC 已就绪。")
