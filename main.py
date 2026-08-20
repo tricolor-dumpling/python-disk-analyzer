@@ -741,13 +741,17 @@ def interactive_ui(root_path, sizes, contents, driver_name):
         if key in (b'\xe0', b'\x00'):
             key = msvcrt.getch()
             if key == b'H':   # 上
-                selected_idx = max(0, selected_idx - 1)
+                if items:
+                    selected_idx = max(0, selected_idx - 1)
             elif key == b'P': # 下
-                selected_idx = min(len(items) - 1, selected_idx + 1)
+                if items:
+                    selected_idx = min(len(items) - 1, selected_idx + 1)
         elif key in (b'w', b'W'):
-            selected_idx = max(0, selected_idx - 1)
+            if items:
+                selected_idx = max(0, selected_idx - 1)
         elif key in (b's', b'S'):
-            selected_idx = min(len(items) - 1, selected_idx + 1)
+            if items:
+                selected_idx = min(len(items) - 1, selected_idx + 1)
         elif key == b'\r':  # Enter
             if items and items[selected_idx][1]:
                 current_path = current_path / items[selected_idx][0]
