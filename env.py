@@ -333,7 +333,7 @@ def init_windows_job_sandbox():
             ctypes.sizeof(info)
         )
     except Exception as e:
-        print(f"⚠️ [SRE 警告] 内核沙盒初始化失败: {e}")
+        log(f"⚠️ [SRE 警告] 内核沙盒初始化失败: {e}")
 
 
 def bind_pid_to_job_sandbox(pid):

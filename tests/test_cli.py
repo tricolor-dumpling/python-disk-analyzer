@@ -25,17 +25,19 @@ from pathlib import Path
 from unittest import mock
 
 import cli
+import utils
 from exceptions import EverythingEnvironmentError, MsvcrtUnavailableError
 
 
 class CliMainTests(unittest.TestCase):
     """cli.main 的致命与成功路径。"""
 
-    def _run_main(self, inputs, ensure_error=None, scan_error=None, ui_error=None):
-        """打桩运行 cli.main(argv=[])，返回 (ret, exc, 输出, ensure, scan, ui)。
+    def _run_main(self, inputs, ensure_error=None, scan_error=None, ui_error=None, argv=None):
+        """打桩运行 cli.main(argv)，返回 (ret, exc, 输出, ensure, scan, ui)。
 
         默认 ensure 成功、scan 成功返回空结果、interactive 返回 quit。
-        argv 显式传空列表：不依赖测试发现模式下被污染的 sys.argv（见模块 docstring）。
+        argv 缺省显式传空列表：不依赖测试发现模式下被污染的 sys.argv（见模块 docstring）；
+        交互模式用例可通过 argv=... 传入要解析的命令行参数（如 ['--quiet']）。
         """
         buf = io.StringIO()
         with contextlib.ExitStack() as stack:
@@ -58,7 +60,7 @@ class CliMainTests(unittest.TestCase):
                 exc = None
                 ret = None
                 try:
-                    ret = cli.main(argv=[])
+                    ret = cli.main(argv=argv if argv is not None else [])
                 except SystemExit as e:
                     exc = e
         return ret, exc, buf.getvalue(), ensure, scan, ui
@@ -118,6 +120,17 @@ class CliMainTests(unittest.TestCase):
         scan.assert_called_once()
         self.assertEqual(ui.call_args[0][0], resolved, "传给 UI 的根路径应为解析后路径")
 
+    def test_interactive_quiet_ignored(self):
+        """只给 --quiet、无 target 时进入交互模式，--quiet 同 --top 一样被忽略，输出与不带它逐字一致。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            ret_plain, exc_plain, output_plain, _, _, _ = self._run_main([tmp])
+            ret_quiet, exc_quiet, output_quiet, _, _, _ = self._run_main([tmp], argv=["--quiet"])
+        self.assertIsNone(exc_plain)
+        self.assertIsNone(exc_quiet)
+        self.assertIsNone(ret_quiet)
+        self.assertNotEqual(output_plain, "")
+        self.assertEqual(output_quiet, output_plain, "--quiet 在交互模式下不得改变任何输出")
+
 
 class CliHeadlessTests(unittest.TestCase):
     """cli.main 的非交互 Top-N 模式：提供 target 即触发，不进入 TUI。
@@ -126,6 +139,12 @@ class CliHeadlessTests(unittest.TestCase):
     cli.ensure_everything_running / cli.scan_via_everything_sdk / cli.interactive_ui
     均打桩，全程不触达真实 Everything。
     """
+
+    def setUp(self):
+        # --quiet 会把进程内 utils.VERBOSE 置 False（global 副作用），每个用例
+        # 结束后恢复原值，避免影响同进程内后续用例（如非 quiet 用例的日志断言）。
+        self._orig_verbose = utils.VERBOSE
+        self.addCleanup(setattr, utils, "VERBOSE", self._orig_verbose)
 
     def _run_main(self, argv, sizes=None, ensure_error=None, scan_error=None):
         """打桩运行 cli.main(argv)，返回 (ret, exc, 输出, ensure, scan, ui)。
@@ -234,6 +253,80 @@ class CliHeadlessTests(unittest.TestCase):
         self.assertIsNone(ret)
         self.assertEqual(exc.code, 1)
         self.assertIn("扫描失败: 测试扫描失败", output)
+        ui.assert_not_called()
+
+    def test_headless_quiet_report_only_no_logs(self):
+        """--quiet：stdout 只有报告（表头/排行/合计），无 🚀/🧩 等日志字符、无 \r 进度行。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            sizes = {root: 1500, root / "a": 800, root / "b": 400, root / "c": 200}
+            ret, exc, output, _, _, ui = self._run_main([tmp, "--quiet"], sizes=sizes)
+        self.assertIsNone(ret)
+        self.assertIsNone(exc)
+        lines = [ln for ln in output.splitlines() if ln]
+        self.assertEqual("Top 10 目录占用排行:", lines[0], "启动日志被抑制，报告表头成为第一行")
+        self.assertEqual(f"{cli.human_size(800):>12}  {root / 'a'}", lines[1])
+        self.assertEqual(f"{cli.human_size(1500):>12}  合计: 共 3 个目录", lines[-1])
+        self.assertNotIn("🚀", output)
+        self.assertNotIn("🧩", output)
+        self.assertNotIn("⏳", output)
+        self.assertNotIn("📈", output)
+        self.assertNotIn("\r", output)
+        self.assertNotIn("处理中", output)
+        ui.assert_not_called()
+
+    def test_headless_quiet_scan_failure_keeps_error(self):
+        """--quiet + 扫描失败：错误文案完整（简洁无 ❌）、日志被抑制、退码 1。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            ret, exc, output, _, _, ui = self._run_main(
+                [tmp, "--quiet"], scan_error=RuntimeError("测试扫描失败"),
+            )
+        self.assertIsNone(ret)
+        self.assertEqual(exc.code, 1)
+        self.assertIn("扫描失败: 测试扫描失败", output)
+        self.assertNotIn("🚀", output)
+        self.assertNotIn("❌", output)
+        ui.assert_not_called()
+
+    def test_headless_quiet_ensure_error_keeps_fatal(self):
+        """--quiet + 环境错误：_fatal 的 ❌ 错误输出保留（错误永不静默）、日志被抑制、退码 1。"""
+        error = EverythingEnvironmentError("Everything 环境检查失败：测试注入")
+        with tempfile.TemporaryDirectory() as tmp:
+            ret, exc, output, _, _, ui = self._run_main([tmp, "--quiet"], ensure_error=error)
+        self.assertIsNone(ret)
+        self.assertEqual(exc.code, 1)
+        self.assertIn("Everything 环境检查失败：测试注入", output)
+        self.assertIn("❌", output)
+        self.assertNotIn("🚀", output)
+        self.assertNotIn("🧩", output)
+        ui.assert_not_called()
+
+    def test_headless_quiet_missing_path_keeps_fatal(self):
+        """--quiet + target 不存在：_fatal 的 ❌ 错误输出保留。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = str(Path(tmp) / "missing_dir")
+            ret, exc, output, ensure, scan, ui = self._run_main([missing, "--quiet"])
+        self.assertIsNone(ret)
+        self.assertEqual(exc.code, 1)
+        self.assertIn("指定的扫描路径不存在", output)
+        self.assertIn("❌", output)
+        self.assertNotIn("🚀", output)
+        ensure.assert_not_called()
+        scan.assert_not_called()
+        ui.assert_not_called()
+
+    def test_headless_no_quiet_logs_unchanged(self):
+        """无 --quiet 的 headless 与 D1 行为一致：🚀 启动日志仍在、报告完整（等价回归锚点）。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            sizes = {root: 1200, root / "x": 700}
+            ret, exc, output, _, _, ui = self._run_main([tmp], sizes=sizes)
+        self.assertIsNone(ret)
+        self.assertIsNone(exc)
+        lines = [ln for ln in output.splitlines() if ln]
+        self.assertIn("🚀", output, "非 quiet 时启动日志必须保留")
+        self.assertEqual(lines[1], "Top 10 目录占用排行:")
+        self.assertEqual(f"{cli.human_size(1200):>12}  合计: 共 1 个目录", lines[-1])
         ui.assert_not_called()
 
     def test_invalid_top_exits_nonzero(self):

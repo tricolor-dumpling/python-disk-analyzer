@@ -6,7 +6,9 @@
 
 VERBOSE 为模块级可变全局，本模块的 log() 直接读取；其他模块如需关闭/恢复
 日志输出，请通过「utils.VERBOSE = ...」写回（main 命名空间已动态转发到此处）。
-本模块不依赖任何项目内其他模块。
+_reconfigure_std_streams() 为 UTF-8 流重配置助手，由 cli.main() 在启动最早处调用
+（不在 import 时调用，避免测试/嵌入方接管的流在导入期被改动）；本模块不依赖
+任何项目内其他模块。
 """
 
 import os
@@ -17,6 +19,32 @@ from pathlib import Path
 APP_NAME = "Python 智能磁盘分析工具"
 
 VERBOSE = True
+
+
+def _reconfigure_std_streams():
+    """把 stdout/stderr 重配置为 UTF-8 输出（errors='replace'），全程防御、绝不抛异常。
+
+    覆盖场景：
+    - 真实 TextIOWrapper（控制台/重定向管道/文件）→ reconfigure 生效，编码切到 utf-8，
+      GBK 代码页下 print 中文/emoji 不再抛 UnicodeEncodeError；
+    - 测试或嵌入调用方接管的流（StringIO 等无 reconfigure 属性）→ 静默跳过；
+    - 二进制流、自定义流、已关闭流、sys.stdout/stderr 为 None → 静默跳过。
+
+    不 spawn 任何子进程（不使用 chcp 65001），零进程开销、零额外失败面。Windows
+    真实控制台的渲染走 WriteConsoleW（UTF-16），与代码页无关；emoji 在旧式点阵字体
+    下显示为方块属显示层问题，不影响管道/文件输出的字节正确性（UTF-8）。
+    """
+    for name in ("stdout", "stderr"):
+        stream = getattr(sys, name, None)
+        if stream is None:
+            continue
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
 
 
 def get_app_dir():

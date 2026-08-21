@@ -1,7 +1,9 @@
 """程序入口与兼容层（C3 拆分 main.py 后保留的骨架）。
 
 1. 入口：python main.py 直接运行（调用 cli.main(sys.argv[1:])；无参数时流程与
-   拆分前逐字一致，提供 target 时进入非交互 Top-N 报告模式）；
+   拆分前逐字一致，提供 target 时进入非交互 Top-N 报告模式，--quiet 可抑制该
+   模式下的过程日志与进度行，仅保留报告与错误；stdout/stderr 在 main 最早处
+   被重配置为 UTF-8，GBK 控制台/管道下中文与 emoji 输出不抛编码异常）；
 2. 兼容层：此前各任务/审查测试脚本均按「import main 后访问 main.<名字>」的
    方式使用全部公共/下划线 API（main.human_size/main._dir_sort_key/
    main.LazyContents/main.ensure_everything_running/main.interactive_ui/

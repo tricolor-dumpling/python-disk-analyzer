@@ -10,14 +10,17 @@
 """
 
 import ctypes
+import io
 import os
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
 import sdk
 from scan import (
     MAX_FILES_PER_DIR,
+    SCAN_PROGRESS_REFRESH_INTERVAL,
     LazyContents,
     _build_lazy_contents,
     _dir_sort_key,
@@ -433,6 +436,29 @@ class ScanViaEverythingSdkTests(unittest.TestCase):
         fake_load.assert_called_once_with("C:\\fake\\Everything64.dll", include_result_functions=True)
         self.assertEqual(sizes, {})
         self.assertEqual(contents, {})
+
+    def test_all_logs_and_progress_suppressed_when_verbose_false(self):
+        """VERBOSE=False（--quiet 生效的等价条件）时 scan 的全部 log（含 \r 进度行）静默。
+
+        不 patch scan.log：用真实 log 走 stdout，验证 VERBOSE 门控对 🧩/📥/🌲 等
+        过程日志与 \r 处理中进度行的抑制；同时校验记录确实被处理（合计大小），
+        保证「无输出」断言不是空转。
+        """
+        rows = [
+            ("file", f"C:\\Users\\Test\\Docs\\f{i:05d}.txt", i + 1)
+            for i in range(SCAN_PROGRESS_REFRESH_INTERVAL + 1)
+        ]
+        fake = FakeEverythingSDK(rows)
+        buf = io.StringIO()
+        with mock.patch("utils.VERBOSE", False), \
+                mock.patch.object(sdk, "load_everything_sdk", return_value=fake), \
+                mock.patch.object(sdk, "DLL_PATH", "C:\\fake\\Everything64.dll"), \
+                redirect_stdout(buf):
+            sizes, contents = scan_via_everything_sdk(Path("C:\\Users\\Test"))
+        self.assertEqual(buf.getvalue(), "", "VERBOSE=False 时任何 log/进度行都不得进入 stdout")
+        # 每一行文件各计入 根+Docs 两处（聚合链路走通：无输出断言非空转）
+        self.assertEqual(sum(sizes.values()), 2 * sum(range(1, len(rows) + 1)))
+        self.assertTrue(any(name == "GetNumResults" for name, *_ in fake.calls))
 
 
 if __name__ == "__main__":

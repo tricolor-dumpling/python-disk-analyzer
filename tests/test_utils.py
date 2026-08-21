@@ -1,7 +1,9 @@
-"""utils 模块单元测试：human_size 大小格式化与 log 的 VERBOSE 开关行为。
+"""utils 模块单元测试：human_size 大小格式化、log 的 VERBOSE 开关行为与
+_reconfigure_std_streams 的 UTF-8 流重配置防御性。
 
 全部为纯函数/模块级开关测试，不涉及真实环境；log 测试通过内置 print
-打桩与 VERBOSE 全局的读写/恢复保证独立性与可重复性。
+打桩与 VERBOSE 全局的读写/恢复保证独立性与可重复性。流重配置测试只对
+mock.patch 出来的临时流生效，绝不触碰测试进程的真实 stdout/stderr。
 """
 
 import io
@@ -9,7 +11,7 @@ import unittest
 from contextlib import redirect_stdout
 from unittest import mock
 
-from utils import VERBOSE, human_size, log
+from utils import VERBOSE, _reconfigure_std_streams, human_size, log
 
 
 class HumanSizeTests(unittest.TestCase):
@@ -103,6 +105,80 @@ class LogVerboseTests(unittest.TestCase):
         with redirect_stdout(buf):
             log("silent line")
         self.assertEqual(buf.getvalue(), "")
+
+
+class StdStreamReconfigureTests(unittest.TestCase):
+    """_reconfigure_std_streams：四类接管场景都不抛异常，TextIOWrapper 类生效。
+
+    全部通过 mock.patch 替换 sys.stdout/sys.stderr（退出即恢复），真实测试
+    进程的输出流不被触碰。覆盖：真实 TextIOWrapper（生效）、StringIO（无
+    reconfigure 跳过）、二进制流（跳过）、已关闭流（异常被吞）、None（跳过）、
+    reconfigure 属性本身抛异常的自定义流（跳过）。
+    """
+
+    def test_textiowrapper_reconfigured_to_utf8(self):
+        """真实 TextIOWrapper：reconfigure 后 encoding=utf-8、errors=replace（stdout 与 stderr 均生效）。"""
+        out = io.TextIOWrapper(io.BytesIO())
+        err = io.TextIOWrapper(io.BytesIO())
+        self.addCleanup(out.close)
+        self.addCleanup(err.close)
+        with mock.patch("sys.stdout", out), mock.patch("sys.stderr", err):
+            _reconfigure_std_streams()
+        self.assertEqual(out.encoding, "utf-8")
+        self.assertEqual(out.errors, "replace")
+        self.assertEqual(err.encoding, "utf-8")
+        self.assertEqual(err.errors, "replace")
+
+    def test_stringio_taken_over_skipped(self):
+        """StringIO 接管（测试/嵌入场景）：无 reconfigure，静默跳过且流未被破坏。"""
+        out = io.StringIO()
+        with mock.patch("sys.stdout", out), mock.patch("sys.stderr", io.StringIO()):
+            _reconfigure_std_streams()
+        self.assertFalse(hasattr(out, "reconfigure"))
+        out.write("仍然可用\n")
+        self.assertEqual(out.getvalue(), "仍然可用\n")
+
+    def test_binary_stream_skipped(self):
+        """二进制流接管：BytesIO 无 reconfigure，静默跳过。"""
+        with mock.patch("sys.stdout", io.BytesIO()), mock.patch("sys.stderr", io.BytesIO()):
+            _reconfigure_std_streams()  # 不抛异常即为通过
+
+    def test_none_streams_skipped(self):
+        """sys.stdout/stderr 为 None（嵌入/无控制台场景）：静默跳过。"""
+        with mock.patch("sys.stdout", None), mock.patch("sys.stderr", None):
+            _reconfigure_std_streams()  # 不抛异常即为通过
+
+    def test_closed_stream_exception_swallowed(self):
+        """已关闭的 TextIOWrapper：reconfigure 抛出的异常被吞掉，不向外传播。"""
+        closed_out = io.TextIOWrapper(io.BytesIO())
+        closed_out.close()
+        closed_err = io.TextIOWrapper(io.BytesIO())
+        closed_err.close()
+        with mock.patch("sys.stdout", closed_out), mock.patch("sys.stderr", closed_err):
+            _reconfigure_std_streams()  # 不抛异常即为通过
+
+    def test_broken_reconfigure_swallowed(self):
+        """reconfigure 属性存在但其调用抛异常的自定义流：异常被吞掉。"""
+
+        class _BrokenStream:
+            def reconfigure(self, **kwargs):
+                raise RuntimeError("boom")
+
+        with mock.patch("sys.stdout", _BrokenStream()), mock.patch("sys.stderr", _BrokenStream()):
+            _reconfigure_std_streams()  # 不抛异常即为通过
+
+    def test_helper_never_raises_in_any_combination(self):
+        """组合兜底：真实 TextIOWrapper + StringIO + None 混合配对，两两组合都不抛异常。"""
+        combos = [
+            (io.TextIOWrapper(io.BytesIO()), io.StringIO()),
+            (io.StringIO(), io.TextIOWrapper(io.BytesIO())),
+            (None, io.TextIOWrapper(io.BytesIO())),
+            (io.TextIOWrapper(io.BytesIO()), None),
+        ]
+        for out, err in combos:
+            with self.subTest(stdout=type(out).__name__, stderr=type(err).__name__):
+                with mock.patch("sys.stdout", out), mock.patch("sys.stderr", err):
+                    _reconfigure_std_streams()  # 不抛异常即为通过
 
 
 if __name__ == "__main__":
