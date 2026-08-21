@@ -137,6 +137,54 @@ D:\
 - `C`：切换扫描路径，按提示输入新路径（例如 `C:\` 或 `D:\Downloads`），路径有效则重新扫描并进入
 - `Q`：退出程序
 
+### 非交互模式：命令行参数
+
+提供扫描路径 `TARGET` 位置参数即进入非交互模式：扫描后打印 Top-N 目录占用报告并
+退出，不进入交互界面。（交互模式下下列参数一律被忽略。）
+
+```powershell
+python <project PATH>\main.py D:\
+python <project PATH>\main.py D:\ --top 20
+python <project PATH>\main.py D:\ --quiet
+python <project PATH>\main.py D:\ --export csv
+python <project PATH>\main.py D:\ --export json --output D:\reports\disk_20260821.json
+```
+
+| 参数 | 说明 |
+|---|---|
+| `TARGET` | 可选扫描路径（如 `D:\`、`C:\Users`）；提供后进入非交互模式，缺省进入交互模式 |
+| `--top N` | 非交互模式下屏幕 Top-N 报告的目录条数，1-200，默认 10；交互模式下忽略 |
+| `--quiet` | 非交互模式下仅输出 Top-N 报告与错误信息，抑制 🚀/🧩 等过程日志与扫描进度行（\r），便于下游脚本逐行解析；交互模式下忽略 |
+| `--export {csv,json}` | 把目录占用报告导出到文件：csv 或 json。导出**全部目录**（含扫描根与各级子目录）的聚合占用大小，不受 `--top` 限制；仅目录级聚合大小，不含文件明细；`--quiet` 不影响导出文件生成，屏幕 Top-N 报告照常打印。交互模式下忽略 |
+| `--output PATH` | 导出文件路径，需与 `--export` 搭配使用；未指定时在当前目录自动命名 `disk_report_YYYYMMDD_HHMMSS.<后缀>`，格式后缀跟随 `--export`（csv 或 json）。交互模式下忽略 |
+
+退出码约定：
+
+- `0`：扫描完成（含按需导出），正常结束；
+- `1`：致命错误——扫描路径不存在、Everything 环境未就绪、扫描失败、或导出文件写入失败；
+- `2`：命令行参数错误（例如非法的 `--top` / `--export` 取值，或 headless 下单独给出 `--output` 未搭配 `--export`）。
+
+CSV 导出格式：首行表头 `路径,大小(字节),大小(可读)`，其后每行一个目录（含扫描
+根），按聚合大小降序；文件以 UTF-8 BOM（utf-8-sig）编码，Excel 可直接打开且中文
+不乱码；路径中的逗号、引号按 CSV 规范自动转义，可原样读回。
+
+JSON 导出格式：
+
+```json
+{
+  "scan_root": "D:\\",
+  "exported_at": "2026-08-21T15:30:00",
+  "total_size_bytes": 123456789,
+  "directories": [
+    {"path": "D:\\a", "size_bytes": 100, "size_human": "100.00 B"}
+  ]
+}
+```
+
+`exported_at` 为 ISO 8601 格式的本地时间；`total_size_bytes` 为扫描根的聚合总大小；
+`directories` 为目录级明细（`path` / `size_bytes` / `size_human`），按聚合大小降序
+排列，含扫描根自身。
+
 ## 项目结构
 
 代码按职责拆分为多个模块（由最初的单文件 `main.py` 演进而来，`main.py`
@@ -165,8 +213,8 @@ tui.py           终端交互界面：msvcrt 受保护导入与统一按键读�
 utils.py         通用工具：应用名、日志开关、human_size、致命错误出口、
                  应用目录与配置路径
 exceptions.py    公共异常：MsvcrtUnavailableError、EverythingEnvironmentError
-tests/           单元测试：test_cli / test_env / test_scan / test_sdk / test_tui /
-                 test_utils，共 121 个用例
+tests/           单元测试：test_cli / test_env / test_export / test_scan / test_sdk / test_tui /
+                 test_utils，共 161 个用例
 everything-SDK/  Everything SDK DLL（dll\ 下为 Everything32.dll、Everything64.dll）
 ```
 
@@ -235,7 +283,7 @@ Everything SDK DLL（程序按「exe 目录\everything-SDK\dll\ → exe 目录\�
 
 ## 开发验证
 
-运行全部单元测试（121 个用例）：
+运行全部单元测试（161 个用例）：
 
 ```powershell
 python -m unittest discover -s tests -v
