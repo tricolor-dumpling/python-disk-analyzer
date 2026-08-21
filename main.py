@@ -22,6 +22,12 @@ except ImportError:  # 非 Windows 平台没有 msvcrt，仅交互界面按键�
 class MsvcrtUnavailableError(RuntimeError):
     """非 Windows 环境缺少 msvcrt（终端按键读取）时的专用异常，提示语为中文。"""
 
+class EverythingEnvironmentError(RuntimeError):
+    """Everything 运行环境异常（SDK DLL 解析失败、IPC/数据库超时、无法定位可执行文件），提示语为中文。
+
+    由 ensure_everything_running 抛出、main 统一捕获打印后退出；嵌入/测试场景可自行捕获处理。
+    """
+
 def _getch():
     """统一按键读取封装：interactive_ui 与 main 中所有按键读取均改走本函数。
 
@@ -36,7 +42,11 @@ def _getch():
 
 def _exit_with_error(e):
     """打印致命交互错误并立即退出（msvcrt 不可用等统一走这里）。"""
-    print(f"❌ {e}")
+    _fatal(str(e))
+
+def _fatal(msg):
+    """致命错误统一出口：打印（带 ❌ 前缀）并立即以退出码 1 结束进程。"""
+    print(f"❌ {msg}")
     sys.exit(1)
 
 # =================【全局配置与提示】=================
@@ -567,8 +577,7 @@ def ensure_everything_running(
     try:
         DLL_PATH = Path(dll_path) if dll_path else resolve_everything_dll(config=config)
     except FileNotFoundError as e:
-        log(f"❌ 错误：{e}")
-        sys.exit(1)
+        raise EverythingEnvironmentError(f"错误：{e}") from e
 
     log(f"🔌 SDK DLL 已就绪: {DLL_PATH}")
     log("🔎 正在检查 Everything 进程和数据库状态...")
@@ -577,14 +586,16 @@ def ensure_everything_running(
         if wait_for_everything_ipc(DLL_PATH, is_ipc_ready, sleep, timeout_seconds):
             log("✅ Everything 已运行，IPC 和数据库均已就绪。")
             return True
-        log("❌ Everything 已运行，但 IPC/数据库在等待超时后仍不可用。建议手动打开 Everything，确认可以正常搜索后再运行本工具。")
-        sys.exit(1)
+        raise EverythingEnvironmentError(
+            "Everything 已运行，但 IPC/数据库在等待超时后仍不可用。建议手动打开 Everything，确认可以正常搜索后再运行本工具。"
+        )
 
     log("⚠️ Everything.exe 未运行，正在尝试自动启动...")
     exe_path = Path(exe_path) if exe_path else find_everything_exe(config=config)
     if not exe_path:
-        log("❌ 无法定位 Everything.exe。请确认 Everything 已安装，或将 Everything.exe 放在本程序目录/PATH 中。")
-        sys.exit(1)
+        raise EverythingEnvironmentError(
+            "无法定位 Everything.exe。请确认 Everything 已安装，或将 Everything.exe 放在本程序目录/PATH 中。"
+        )
 
     # 启动参数优先级：config 缓存的 everything_startup_args（非空 str list）→
     # 默认 ["-startup"] → 无参数兜底；重复命令自动去重。
@@ -614,8 +625,9 @@ def ensure_everything_running(
             log("✅ Everything IPC 已就绪。")
             return True
 
-    log("❌ Everything 已启动，但 SDK IPC/数据库在等待超时后仍不可用。建议先手动打开 Everything，待其可正常搜索后再运行本工具。")
-    sys.exit(1)
+    raise EverythingEnvironmentError(
+        "Everything 已启动，但 SDK IPC/数据库在等待超时后仍不可用。建议先手动打开 Everything，待其可正常搜索后再运行本工具。"
+    )
 
 # =================【核心扫描：Everything SDK】=================
 def _dir_sort_key(p):
@@ -995,12 +1007,14 @@ def main():
     log(f"🚀 {APP_NAME}启动中...")
     target_drive = prompt_target_drive()
     init_windows_job_sandbox()
-    ensure_everything_running()  # 确保 Everything 已启动
+    try:
+        ensure_everything_running()  # 确保 Everything 已启动
+    except EverythingEnvironmentError as e:
+        _fatal(str(e))
 
     root_path_obj = Path(target_drive).resolve()
     if not root_path_obj.exists():
-        print(f"❌ 错误: 指定的扫描路径不存在: {root_path_obj}")
-        sys.exit(1)
+        _fatal(f"错误: 指定的扫描路径不存在: {root_path_obj}")
 
     driver_label = "Everything SDK (高速总线版)"
     dir_sizes = None
