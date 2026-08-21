@@ -1,6 +1,5 @@
 import os
 import sys
-import msvcrt
 import shutil
 import ctypes
 import subprocess
@@ -12,6 +11,32 @@ import json
 from pathlib import Path
 from collections import defaultdict
 import heapq
+
+# =================【受保护导入：msvcrt 仅 Windows 可用】=================
+try:
+    import msvcrt
+except ImportError:  # 非 Windows 平台没有 msvcrt，仅交互界面按键读取依赖它
+    msvcrt = None
+
+class MsvcrtUnavailableError(RuntimeError):
+    """非 Windows 环境缺少 msvcrt（终端按键读取）时的专用异常，提示语为中文。"""
+
+def _getch():
+    """统一按键读取封装：interactive_ui 与 main 中所有按键读取均改走本函数。
+
+    msvcrt 仅在 Windows 上存在；缺失（如 Linux/macOS）时抛出带清晰中文说明的
+    异常，由上层捕获后优雅退出，绝不静默崩溃。
+    """
+    if msvcrt is None:
+        raise MsvcrtUnavailableError(
+            "本程序交互界面依赖 Windows 的 msvcrt 模块，请在 Windows 上运行"
+        )
+    return msvcrt.getch()
+
+def _exit_with_error(e):
+    """打印致命交互错误并立即退出（msvcrt 不可用等统一走这里）。"""
+    print(f"❌ {e}")
+    sys.exit(1)
 
 # =================【全局配置与提示】=================
 APP_NAME = "Python 智能磁盘分析工具"
@@ -737,9 +762,9 @@ def interactive_ui(root_path, sizes, contents, driver_name):
         print("-" * 75)
         print("操作指引: [W/S] 或 [↑/↓] 移动光标 | [Enter] 进入目录 | [Backspace] 返回上级 | [C] 切换扫描路径 | [Q] 退出")
 
-        key = msvcrt.getch()
+        key = _getch()
         if key in (b'\xe0', b'\x00'):
-            key = msvcrt.getch()
+            key = _getch()
             if key == b'H':   # 上
                 if items:
                     selected_idx = max(0, selected_idx - 1)
@@ -774,10 +799,12 @@ def interactive_ui(root_path, sizes, contents, driver_name):
                         return ('change', str(p))
                     else:
                         print(f"路径不存在: {p}，按任意键继续...")
-                        msvcrt.getch()
+                        _getch()
+                except MsvcrtUnavailableError:
+                    raise  # 非 Windows：透传 main() 统一处理，避免误报“无效路径”
                 except Exception as e:
                     print(f"无效路径: {e}，按任意键继续...")
-                    msvcrt.getch()
+                    _getch()
             # 如果取消或无效，回到UI继续
 
 # =================【主控制流入口】=================
@@ -815,7 +842,10 @@ def main():
             sys.exit(1)
 
         print("✅ 扫描数据准备完成，正在进入交互界面。")
-        action, result = interactive_ui(root_path_obj, dir_sizes, dir_contents, driver_label)
+        try:
+            action, result = interactive_ui(root_path_obj, dir_sizes, dir_contents, driver_label)
+        except MsvcrtUnavailableError as e:
+            _exit_with_error(e)
         if action == 'quit':
             os.system('cls')
             print(f"已安全退出 {APP_NAME}。")
@@ -829,7 +859,10 @@ def main():
                 # 继续循环，重新扫描
             else:
                 print(f"❌ 路径无效: {new_path_str}，按任意键返回...")
-                msvcrt.getch()
+                try:
+                    _getch()
+                except MsvcrtUnavailableError as e:
+                    _exit_with_error(e)
                 # 继续使用旧路径
         else:
             break
