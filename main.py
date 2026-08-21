@@ -598,6 +598,20 @@ def ensure_everything_running(
     sys.exit(1)
 
 # =================【核心扫描：Everything SDK】=================
+def _dir_sort_key(p):
+    """目录深度排序键：返回严格单调的深度度量（路径组件越多 ⇒ 深度越深）。
+
+    不能只用反斜杠数量排序：盘符根 C:\\ 与一级子目录 C:\\Users 的反斜杠数
+    相同（都是 1），无法保证父目录严格排在子目录之前；而 len(Path(p).parts)
+    按路径组件计数，C:\\ 深度为 1、C:\\Users 深度为 2、C:\\Users\\a 深度为 3，
+    UNC 根 \\\\server\\share 计为 1 个组件，其子目录同样逐层 +1。
+    对任意合法目录 d，os.path.dirname(d) 恰好剥掉最后一个组件，父目录的
+    parts 数严格少 1，因此本键严格单调：按它从深到浅（reverse=True）排序即
+    严格拓扑序——任何目录 d 被处理时，其全部后代（parts 数更大）均已先处理
+    并累加进 sizes[d]。
+    """
+    return len(Path(p).parts)
+
 def scan_via_everything_sdk(root_path_obj):
     """使用 Everything SDK 高速扫描指定路径，返回 (sizes, contents)"""
     global DLL_PATH
@@ -698,7 +712,7 @@ def scan_via_everything_sdk(root_path_obj):
 
     # 第三阶段：自底向上汇总，使父目录大小包含全部子目录。
     log("🧮 正在汇总父目录占用...")
-    sorted_dirs = sorted(all_dirs, key=lambda p: p.count("\\"), reverse=True)
+    sorted_dirs = sorted(all_dirs, key=_dir_sort_key, reverse=True)
     for d in sorted_dirs:
         parent = os.path.dirname(d)
         if parent != d:
