@@ -44,6 +44,8 @@ APP_NAME = "Python 智能磁盘分析工具"
 MAX_FILES_PER_DIR = 50
 DEFAULT_EVERYTHING_STARTUP_TIMEOUT_SECONDS = 20
 DEFAULT_EVERYTHING_STARTUP_ARGS = ["-startup"]
+# Everything 扫描进度刷新间隔（按处理的记录条数计）
+SCAN_PROGRESS_REFRESH_INTERVAL = 10000
 
 def get_app_dir():
     """源码运行时返回脚本目录；PyInstaller 打包后返回 exe 所在目录。"""
@@ -59,6 +61,15 @@ VERBOSE = True
 
 BOOL = ctypes.c_int
 DWORD = ctypes.c_uint32
+# Windows API (Win32) 常量：作业对象限额、进程访问权限、控制台与 Toolhelp 快照
+JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000  # 作业对象关闭时强制终止其全部子进程（防孤儿）
+JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9  # SetInformationJobObject 的扩展限额信息类
+PROCESS_SET_QUOTA = 0x0100  # 进程访问权限：允许设置进程内存配额
+PROCESS_TERMINATE = 0x0001  # 进程访问权限：允许终止进程
+STD_OUTPUT_HANDLE = -11  # GetStdHandle：标准输出句柄标识
+ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004  # 控制台模式：启用 ANSI/VT 转义序列
+TH32CS_SNAPPROCESS = 0x00000002  # Toolhelp 快照标志：枚举系统进程
+INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value  # 无效句柄哨兵值
 
 # Everything SDK Win32 常量
 EVERYTHING_REQUEST_FILE_NAME = 0x00000001
@@ -67,6 +78,8 @@ EVERYTHING_REQUEST_SIZE = 0x00000010
 EVERYTHING_ERROR_MEMORY = 1
 EVERYTHING_ERROR_IPC = 2
 EVERYTHING_REQUEST_FULL_PATH_AND_FILE_NAME = 0x00000004
+# Everything_GetResultFullPathNameW 的结果路径缓冲区字符数（含结尾 \0）
+FULL_PATH_BUFFER_CHARS = 32768
 
 try:
     import winreg
@@ -119,11 +132,11 @@ def init_windows_job_sandbox():
             ]
 
         info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
-        info.BasicLimitInformation.LimitFlags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
 
         kernel32.SetInformationJobObject(
             _GLOBAL_JOB_HANDLE,
-            9,  # JobObjectExtendedLimitInformation
+            JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
             ctypes.byref(info),
             ctypes.sizeof(info)
         )
@@ -137,8 +150,6 @@ def bind_pid_to_job_sandbox(pid):
         return
     try:
         kernel32 = ctypes.windll.kernel32
-        PROCESS_SET_QUOTA = 0x0100
-        PROCESS_TERMINATE = 0x0001
         h_process = kernel32.OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, False, pid)
         if h_process:
             kernel32.AssignProcessToJobObject(_GLOBAL_JOB_HANDLE, h_process)
@@ -358,8 +369,6 @@ def iter_process_ids_by_name(process_name):
         return []
 
     kernel32 = ctypes.windll.kernel32
-    TH32CS_SNAPPROCESS = 0x00000002
-    INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
 
     class PROCESSENTRY32W(ctypes.Structure):
         _fields_ = [
@@ -738,11 +747,11 @@ def scan_via_everything_sdk(root_path_obj):
     folder_files = defaultdict(list)
     folder_subdirs = defaultdict(set)
 
-    buffer = ctypes.create_unicode_buffer(32768)
+    buffer = ctypes.create_unicode_buffer(FULL_PATH_BUFFER_CHARS)
     file_size = ctypes.c_ulonglong()
 
     processed = 0
-    refresh_interval = 10000
+    refresh_interval = SCAN_PROGRESS_REFRESH_INTERVAL
     last_refresh = 0
 
     # 第一阶段：收集文件大小，同时为每个目录保留最大的若干文件，避免 UI 占用过多内存。
@@ -756,7 +765,7 @@ def scan_via_everything_sdk(root_path_obj):
         if everything.Everything_IsFolderResult(i) or everything.Everything_IsVolumeResult(i):
             continue
 
-        if not everything.Everything_GetResultFullPathNameW(i, buffer, 32768):
+        if not everything.Everything_GetResultFullPathNameW(i, buffer, FULL_PATH_BUFFER_CHARS):
             continue
 
         full_path = buffer.value
@@ -852,12 +861,10 @@ def _enable_vt_processing():
         kernel32.GetConsoleMode.restype = BOOL
         kernel32.SetConsoleMode.argtypes = [ctypes.c_void_p, DWORD]
         kernel32.SetConsoleMode.restype = BOOL
-        STD_OUTPUT_HANDLE = -11
         handle = kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
         mode = DWORD()
         if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
             return False
-        ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
         return bool(kernel32.SetConsoleMode(
             handle, mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
     except Exception:
