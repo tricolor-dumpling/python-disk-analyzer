@@ -5,47 +5,63 @@
 ## 功能特点
 
 - 使用 Everything SDK 查询文件信息，避免 Python 逐目录慢速遍历。
-- 自动按当前 Python 架构选择 `Everything32.dll`、`Everything64.dll`、`EverythingARM.dll` 或 `EverythingARM64.dll`。
-- 自动检测 Everything 是否运行；未运行时尝试启动。
-- 支持 Everything 安装在非默认目录。
+- 自动按当前 Python 架构选择 `Everything32.dll`、`Everything64.dll`、`EverythingARM.dll` 或 `EverythingARM64.dll`（`everything-SDK\dll` 已自带 32/64 位两个，ARM 变体按需放入即可自动识别）。
+- 自动检测 Everything 是否运行；未运行时尝试自动启动并等待数据库就绪。
+- 支持 Everything 安装在非默认目录（注册表 / PATH / 常见安装目录均可发现）。
 - 自动生成 `config.json` 缓存 Everything 路径，后续启动无需每次查注册表。
 - `config.json` 不存在、损坏或路径失效时会自动回退到重新探测。
 - 每个目录默认只缓存最大的 50 个文件条目，降低大磁盘扫描时的内存占用。
+- 目录条目按需构建并只缓存最近访问的少量目录（有界缓存，上限 128 个目录），进一步降低扫描后的内存峰值。
+- 目录大小自底向上汇总，父目录包含全部子目录；汇总止于扫描根，不向扫描根之上的路径传播。
 - 终端交互式浏览目录占用，支持切换扫描路径。
+- 启动 Everything 的子进程被绑定到 Windows 作业对象（`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`），程序退出时不会残留孤儿进程。
 
 ## 运行环境
 
-- Windows
+- Windows（本程序仅支持 Windows，见下方「已知边界」）
 - Python 3.9 或更高版本
 - Everything 1.4.x
 - Everything SDK DLL
 
-当前项目已包含 `everything-SDK` 目录时，推荐目录结构如下：
+当前项目已包含 `everything-SDK` 目录，目录结构如下：
 
 ```text
 文件大小扫描/
   main.py
+  cli.py
+  env.py
+  exceptions.py
+  sdk.py
+  scan.py
+  tui.py
+  utils.py
+  tests/
   requirements.txt
   README.md
   everything-SDK/
     dll/
       Everything32.dll
       Everything64.dll
-      EverythingARM.dll
-      EverythingARM64.dll
 ```
+
+ARM/ARM64 版 `EverythingARM.dll`、`EverythingARM64.dll` 按需放入
+`everything-SDK\dll` 后，程序会自动按当前 Python 架构选择对应的 DLL。
+
+### 已知边界
+
+本程序仅面向 Windows 运行：
+
+- Everything SDK 通过 `ctypes` 加载调用，Everything 服务本身是 Windows 专属程序。
+- 自动启动 Everything 时使用 Windows 作业对象（Job Object）沙盒，程序退出即终止由其启动的子进程，避免孤儿进程残留。
+- 交互界面按键读取依赖 `msvcrt`：该导入是受保护的（`try/except ImportError`），非 Windows 平台 `import main` 不会崩溃，但进入交互界面时会抛出 `MsvcrtUnavailableError`（中文提示「请在 Windows 上运行」），由上层统一捕获后优雅退出。
+- Everything.exe 注册表定位依赖 `winreg`：同样是受保护导入，非 Windows 平台自动跳过注册表候选路径。
 
 ## pip 依赖
 
 本程序运行不需要安装第三方 pip 包，代码只使用 Python 标准库。
 
-可以执行下面命令确认依赖文件：
-
-```powershell
-pip install -r requirements.txt
-```
-
-如果只运行源码，这条命令不会安装必需依赖。`requirements.txt` 中的 `pyinstaller` 只是可选打包工具。
+`requirements.txt` 目前只包含说明注释，`pip install -r requirements.txt`
+不会安装任何必需依赖；其中的 `pyinstaller` 只是可选打包工具的提示。
 
 ## Everything 安装要求
 
@@ -84,6 +100,10 @@ pip install -r requirements.txt
 - 如果 JSON 损坏或路径失效，程序会忽略缓存并重新探测。
 - 启动失败时不会写入配置，避免缓存错误路径。
 - 为避免 DLL 劫持风险，`everything_dll` 只有位于程序目录内时才会被采纳；指向外部目录的 DLL 路径会被忽略并重新按架构选择 SDK DLL。
+- `everything_startup_args` 是自动启动 Everything 时使用的命令行参数，现已真正生效：
+  - 仅接受「非空且元素全为字符串的数组」；其余脏数据（`null`、非数组、空数组、含非字符串元素等）一律回退到默认 `["-startup"]`，绝不因脏配置导致启动失败；
+  - 自动启动时会依次尝试「配置参数 → 默认 `["-startup"]` → 不带参数」，重复的命令自动去重；
+  - 启动成功后，会把本次实际使用的参数回写进 `config.json`，下次启动沿用它。
 
 ## 使用方法
 
@@ -111,25 +131,43 @@ D:\
 
 进入交互界面后：
 
-- `W/S` 或方向键上下移动
-- `Enter` 进入目录
-- `Backspace` 返回上级
-- `C` 切换扫描路径
-- `Q` 退出
+- `W` / `S` 或 `↑` / `↓` 方向键：上下移动光标
+- `Enter`：进入选中的目录（仅对目录项生效，文件项不响应）
+- `Backspace`：返回上级目录（不能高于扫描根）
+- `C`：切换扫描路径，按提示输入新路径（例如 `C:\` 或 `D:\Downloads`），路径有效则重新扫描并进入
+- `Q`：退出程序
 
-## 项目目录
+## 项目结构
+
+代码按职责拆分为多个模块（由最初的单文件 `main.py` 演进而来，`main.py`
+仅保留入口与兼容层）：
 
 ```text
-文件大小扫描/
-  main.py                         # 主程序
-  test_everything_environment.py  # 环境检测相关单元测试
-  README.md
-  requirements.txt
-  everything-SDK/                 # Everything SDK，源码运行和打包分发都会用到
-  packaging/pyinstaller/          # PyInstaller spec 文件
-  scripts/build_min.ps1           # 最小分发包构建脚本
-  releases/latest/                # 最新最小分发目录
-  releases/file-size-scanner-min.zip
+main.py          程序入口与兼容层：运行 python main.py 时调用 cli.main()；
+                 同时把拆分后各模块的公共/下划线名字全量导回 main 命名空间，
+                 并动态转发可变全局（DLL_PATH / VERBOSE / _ANSI_AVAILABLE /
+                 _GLOBAL_JOB_HANDLE / _getch / msvcrt / winreg 等），保证旧脚本
+                 import main 后按 main.<名字> 使用 API 的写法不变
+cli.py           命令行装配层：主控制流——提示输入扫描路径、初始化作业对象沙盒、
+                 确保 Everything 运行环境就绪、执行 SDK 扫描、进入交互界面并处理
+                 切换路径/退出；不定义业务状态，main.py 仅从这里取 main
+env.py           运行环境协调：config.json 读写、Everything.exe 定位（注册表 /
+                 PATH / 程序目录 / 常见安装目录）、进程与会话判定（识别 Session 0
+                 后台进程）、Windows 作业对象防孤儿沙盒、Everything 启动与
+                 IPC/数据库就绪等待（默认 20 秒超时）
+sdk.py           Everything SDK 封装与 Win32 常量：DLL 架构选择（32/64/ARM/ARM64）、
+                 SDK 函数签名声明、IPC/数据库健康检查；DLL_PATH 模块级全局在此
+scan.py          高速扫描：三阶段扫描主流程（文件收集 + 每目录最大 50 文件、
+                 目录树构建、自底向上汇总）、扫描根判定（汇总止于扫描根）、
+                 LazyContents 按需构建的有界缓存
+tui.py           终端交互界面：msvcrt 受保护导入与统一按键读取 _getch、ANSI/VT
+                 渲染（不可用时回退 os.system('cls')）、交互主循环
+utils.py         通用工具：应用名、日志开关、human_size、致命错误出口、
+                 应用目录与配置路径
+exceptions.py    公共异常：MsvcrtUnavailableError、EverythingEnvironmentError
+tests/           单元测试：test_cli / test_env / test_scan / test_sdk / test_tui /
+                 test_utils，共 121 个用例
+everything-SDK/  Everything SDK DLL（dll\ 下为 Everything32.dll、Everything64.dll）
 ```
 
 `config.json` 是本机运行时缓存，会自动生成。项目迁移或分发时可以删除它，程序会重新探测并生成。
@@ -140,7 +178,7 @@ D:\
 
 1. 安装 Python 3.9+。
 2. 安装 Everything。
-3. 将 `main.py`、`requirements.txt`、`README.md` 和 `everything-SDK` 放在同一目录。
+3. 将全部 `.py` 模块（`main.py`、`cli.py`、`env.py`、`sdk.py`、`scan.py`、`tui.py`、`utils.py`、`exceptions.py`）、`requirements.txt`、`README.md` 和 `everything-SDK` 放在同一目录。
 4. 运行：
 
 ```powershell
@@ -149,34 +187,20 @@ python main.py
 
 ### 可选：打包为 exe
 
-如需打包，可以安装 PyInstaller：
+仓库当前不附带打包脚本与预构建产物（`PyInstaller` 仅为可选工具），如需
+打包可自行安装：
 
 ```powershell
 pip install pyinstaller
 ```
 
-示例打包命令：
-
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\build_min.ps1
+pyinstaller main.py
 ```
 
-脚本会生成：
-
-```text
-releases/latest/
-  file-size-scanner.exe
-  README.md
-  requirements.txt
-  everything-SDK/
-    dll/
-      Everything32.dll
-      Everything64.dll
-
-releases/file-size-scanner-min.zip
-```
-
-打包后仍需确保 `everything-SDK\dll` 或匹配架构的 Everything DLL 能被程序找到。最小分发包已经把 32 位和 64 位 DLL 放在 exe 同级目录下。
+打包后需确保 exe 同级目录存在 `everything-SDK\dll` 或与当前架构匹配的
+Everything SDK DLL（程序按「exe 目录\everything-SDK\dll\ → exe 目录\」
+顺序查找，打包后程序目录即 exe 所在目录）。
 
 ## 常见问题
 
@@ -211,14 +235,14 @@ releases/file-size-scanner-min.zip
 
 ## 开发验证
 
-运行单元测试：
+运行全部单元测试（121 个用例）：
 
 ```powershell
-python -m unittest test_everything_environment.py
+python -m unittest discover -s tests -v
 ```
 
 检查语法：
 
 ```powershell
-python -m py_compile main.py test_everything_environment.py
+python -m py_compile main.py cli.py env.py sdk.py scan.py tui.py utils.py exceptions.py
 ```
