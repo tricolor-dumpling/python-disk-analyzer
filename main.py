@@ -636,6 +636,71 @@ def _is_scan_root(d, root_path_obj):
     """
     return Path(d) == root_path_obj
 
+class LazyContents(dict):
+    """按需构建的惰性 contents 映射（键为 Path，值为目录条目列表）。
+
+    与旧的全量预构建字典对外行为完全一致：interactive_ui 通过
+    contents.get(path, []) 访问，命中目录时按需构建并返回条目列表，未知目录
+    返回 []（与旧实现缺失键返回默认值 [] 一致），绝不抛 KeyError。
+    区别在于：条目列表只在被访问时才构建，且只缓存最近访问过的少量目录
+    （有界缓存，超出上限时整体清空），任意时刻驻留的条目列表数量有上限，
+    大磁盘扫描的内存峰值因此大幅下降。
+    """
+
+    def __init__(self, builder, max_cached=128):
+        super().__init__()
+        self._builder = builder
+        self._max_cached = max_cached
+
+    def __missing__(self, key):
+        items = self._builder(key)
+        if len(self) >= self._max_cached:
+            self.clear()  # 有界缓存：超出上限即整体清空，保证驻留条目数有界
+        self[key] = items
+        return items
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    @property
+    def cache_size(self):
+        """当前缓存的目录条目数量（只读，供测试与内存观测）。"""
+        return len(self)
+
+def _build_lazy_contents(dir_sizes, folder_files, folder_subdirs):
+    """构建惰性 contents：目录条目按需生成并缓存，取代旧的全量预构建。
+
+    与旧算法对单个目录执行的步骤逐字一致：先追加子目录 (subdir, True, size)
+    （size 取自 dir_sizes，缺失为 0），再按大小倒序追加文件 (filename, False,
+    size)，最后整体 items.sort(key=lambda x: x[2], reverse=True) 稳定排序——
+    稳定排序保证同 size 时后加入的记录不越过先加入的，因此同 size 的子目录
+    （先加入）必然排在文件（后加入）之前，与旧 contents 完全一致。
+
+    关键点：folder_files/folder_subdirs/sizes 的键是 Everything 原样返回的
+    str 路径，大小写可能与用户输入不同，直接按 str 键查找会大小写失配；
+    这里统一把键转换为 Path（Path 相等大小写不敏感、折叠尾随分隔符）后再用，
+    子目录 child 以 folder / subdir 构造后查 dir_sizes。
+    不在任何结构里的未知目录返回 []，与旧实现缺失键 .get() 返回 [] 一致。
+    """
+
+    path_files = {Path(k): v for k, v in folder_files.items()}
+    path_subdirs = {Path(k): v for k, v in folder_subdirs.items()}
+
+    def builder(folder):
+        items = []
+        for subdir in path_subdirs.get(folder, ()):
+            child = folder / subdir
+            items.append((subdir, True, dir_sizes.get(child, 0)))
+        for size, filename in sorted(path_files.get(folder, ()), reverse=True):
+            items.append((filename, False, size))
+        items.sort(key=lambda x: x[2], reverse=True)
+        return items
+
+    return LazyContents(builder)
+
 def scan_via_everything_sdk(root_path_obj):
     """使用 Everything SDK 高速扫描指定路径，返回 (sizes, contents)"""
     global DLL_PATH
@@ -750,20 +815,12 @@ def scan_via_everything_sdk(root_path_obj):
     cached_files = sum(len(v) for v in folder_files.values())
     log(f"📦 UI缓存文件数: {cached_files:,}")
 
-    # 构建 contents 字典，供 TUI 逐级浏览时快速读取。
-    log("🧱 正在准备交互界面数据...")
-    contents = {}
-    for folder in all_dirs:
-        items = []
-        for subdir in folder_subdirs[folder]:
-            child = os.path.join(folder, subdir)
-            items.append((subdir, True, sizes.get(child, 0)))
-        for size, filename in sorted(folder_files[folder], reverse=True):
-            items.append((filename, False, size))
-        items.sort(key=lambda x: x[2], reverse=True)
-        contents[Path(folder)] = items
-
+    # 惰性 contents：不再为所有目录预构建条目列表（条目元组与 folder_files/
+    # folder_subdirs 数据重复驻留是大磁盘扫描后的内存大头），改为按需构建 +
+    # 有界缓存：交互界面逐级浏览时只按需构建并缓存当前目录的条目。
+    log("🧱 正在准备交互界面数据（惰性模式：按需构建）...")
     final_sizes = {Path(k): v for k, v in sizes.items()}
+    contents = _build_lazy_contents(final_sizes, folder_files, folder_subdirs)
     return final_sizes, contents
 
 # =================【TUI 终端交互式界面模块】=================
