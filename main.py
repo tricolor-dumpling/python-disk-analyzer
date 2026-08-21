@@ -612,6 +612,19 @@ def _dir_sort_key(p):
     """
     return len(Path(p).parts)
 
+def _is_scan_root(d, root_path_obj):
+    """判断路径 d（str，Everything 原样返回或 os.path.dirname 的产物）是否为扫描根本身。
+
+    用 Path 相等比较（本程序仅运行于 Windows，Path 即 WindowsPath）：
+    - 大小写不敏感：Path('C:/Users') == Path('c:/users') 成立；
+    - 自动折叠尾随分隔符：Path('//srv/share/') 与 Path('//srv/share') 相等且 hash 相同，
+      可同时覆盖 Everything 返回路径带/不带尾随反斜杠与 dirname 产物相反的两种形态；
+    - 盘符根 C:/ 的 dirname 自映射为自身，也能被正确识别；
+    - 普通子目录不会误判：根为 C:/Users 时，C:/Users/a 与之不相等。
+    注意：d 只能是 Everything 返回的完整绝对路径（本函数仅接收该类路径）。
+    """
+    return Path(d) == root_path_obj
+
 def scan_via_everything_sdk(root_path_obj):
     """使用 Everything SDK 高速扫描指定路径，返回 (sizes, contents)"""
     global DLL_PATH
@@ -714,6 +727,11 @@ def scan_via_everything_sdk(root_path_obj):
     log("🧮 正在汇总父目录占用...")
     sorted_dirs = sorted(all_dirs, key=_dir_sort_key, reverse=True)
     for d in sorted_dirs:
+        # 扫描根不向其之上传播：若 d 即根本身则跳过向上累加，避免在 sizes 中
+        # 凭空创建扫描根之上的祖先键（如根为 C:\Users 时不再出现 C:\ 键）。
+        # 根目录自身仍保留在 sizes/contents 中，仅禁止向更上层汇总。
+        if _is_scan_root(d, root_path_obj):
+            continue
         parent = os.path.dirname(d)
         if parent != d:
             sizes[parent] += sizes[d]
