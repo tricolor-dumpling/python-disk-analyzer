@@ -1,6 +1,7 @@
 """程序入口与兼容层（C3 拆分 main.py 后保留的骨架）。
 
-1. 入口：python main.py 直接运行（调用 cli.main()，流程与拆分前逐字一致）；
+1. 入口：python main.py 直接运行（调用 cli.main(sys.argv[1:])；无参数时流程与
+   拆分前逐字一致，提供 target 时进入非交互 Top-N 报告模式）；
 2. 兼容层：此前各任务/审查测试脚本均按「import main 后访问 main.<名字>」的
    方式使用全部公共/下划线 API（main.human_size/main._dir_sort_key/
    main.LazyContents/main.ensure_everything_running/main.interactive_ui/
@@ -179,4 +180,4 @@ sys.modules[__name__].__class__ = _MainModule
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
