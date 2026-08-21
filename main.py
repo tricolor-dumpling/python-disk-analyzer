@@ -767,11 +767,83 @@ def scan_via_everything_sdk(root_path_obj):
     return final_sizes, contents
 
 # =================【TUI 终端交互式界面模块】=================
+# ------------【ANSI 终端渲染：清屏与光标管理（替代逐帧 cls 子进程）】------------
+# Windows 10 1607 起的内置控制台与 Windows Terminal 原生支持 ANSI/VT 转义；
+# 更老的控制台（Win10 早期 conhost）默认关闭 VT，程序启动时用 SetConsoleMode
+# 显式开启；开启失败或非 Windows 时自动回退 os.system('cls') 兜底，保证任何
+# 环境下交互界面都能正常刷新，绝不因 ANSI 不可用而崩溃。
+ANSI_CLEAR_SCREEN = "\x1b[2J\x1b[H"  # 清屏并归位（ED2 + CUP 1;1），替代逐帧 cls 子进程
+ANSI_HIDE_CURSOR = "\x1b[?25l"       # 隐藏光标（DECTCEM），进入交互界面时发送
+ANSI_SHOW_CURSOR = "\x1b[?25h"       # 恢复显示光标（DECTCEM），退出交互界面时发送
+
+def _enable_vt_processing():
+    """尝试开启 Windows 控制台 VT 处理（ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004）。
+
+    返回 True 表示 ANSI 序列可用；非 Windows、取不到控制台句柄或
+    SetConsoleMode 失败时返回 False，上层渲染回退到 os.system('cls')，绝不崩溃。
+    """
+    if os.name != 'nt':
+        return False
+    try:
+        kernel32 = ctypes.windll.kernel32
+        # 显式声明 Win32 函数的参数/返回类型：控制台句柄按 c_void_p 完整传递，
+        # 避免 64 位进程里默认 c_int 截断句柄，导致 SetConsoleMode 静默失败、
+        # 明明支持 ANSI 却误回退到逐帧 cls。
+        kernel32.GetStdHandle.argtypes = [DWORD]
+        kernel32.GetStdHandle.restype = ctypes.c_void_p
+        kernel32.GetConsoleMode.argtypes = [ctypes.c_void_p, ctypes.POINTER(DWORD)]
+        kernel32.GetConsoleMode.restype = BOOL
+        kernel32.SetConsoleMode.argtypes = [ctypes.c_void_p, DWORD]
+        kernel32.SetConsoleMode.restype = BOOL
+        STD_OUTPUT_HANDLE = -11
+        handle = kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
+        mode = DWORD()
+        if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+        return bool(kernel32.SetConsoleMode(
+            handle, mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+    except Exception:
+        return False
+
+# 模块加载时探测一次并缓存；回退/降级测试可通过改写本标志模拟环境。
+_ANSI_AVAILABLE = _enable_vt_processing()
+
+def _write_ansi(code):
+    """向 stdout 写入 ANSI 序列并立即刷新（ANSI 不可用时为无操作）。"""
+    if _ANSI_AVAILABLE:
+        sys.stdout.write(code)
+        sys.stdout.flush()
+
+def _clear_screen():
+    """整屏清屏：ANSI 可用时发送清屏码，否则回退到平台默认的 cls 兜底。"""
+    if _ANSI_AVAILABLE:
+        _write_ansi(ANSI_CLEAR_SCREEN)
+    else:
+        os.system('cls')
+
+def _hide_cursor():
+    """隐藏光标（仅 ANSI 模式生效；回退模式下为无操作，光标保持可见）。"""
+    _write_ansi(ANSI_HIDE_CURSOR)
+
+def _show_cursor():
+    """恢复显示光标（仅 ANSI 模式生效；回退模式下为无操作）。"""
+    _write_ansi(ANSI_SHOW_CURSOR)
+
 def interactive_ui(root_path, sizes, contents, driver_name):
     """
     显示终端交互式界面，返回用户操作。
     返回: ('quit', None) 或 ('change', new_path_str)
     """
+    _hide_cursor()
+    try:
+        return _interactive_ui_loop(root_path, sizes, contents, driver_name)
+    finally:
+        _show_cursor()
+
+
+def _interactive_ui_loop(root_path, sizes, contents, driver_name):
+    """交互主循环本体（由 interactive_ui 的 try/finally 保证退出时恢复光标）。"""
     current_path = root_path
     selected_idx = 0
 
@@ -779,7 +851,7 @@ def interactive_ui(root_path, sizes, contents, driver_name):
         term_height = shutil.get_terminal_size().lines
         list_height = max(5, term_height - 7)
 
-        os.system('cls')
+        _clear_screen()
         print(f"=== {APP_NAME} ===")
         print(f"内核驱动: {driver_name}")
         print(f"当前路径: {current_path}")
@@ -831,10 +903,14 @@ def interactive_ui(root_path, sizes, contents, driver_name):
         elif key in (b'q', b'Q'):
             return ('quit', None)
         elif key in (b'c', b'C'):
-            # 切换路径
-            os.system('cls')
+            # 切换路径（input() 输入期间恢复光标可见，结束后重新隐藏）
+            _clear_screen()
             print("请输入新的扫描路径 (例如 C:\\ 或 D:\\Downloads):")
-            new_path = input().strip()
+            try:
+                _show_cursor()
+                new_path = input().strip()
+            finally:
+                _hide_cursor()
             if new_path:
                 try:
                     p = Path(new_path).resolve()
@@ -890,7 +966,7 @@ def main():
         except MsvcrtUnavailableError as e:
             _exit_with_error(e)
         if action == 'quit':
-            os.system('cls')
+            _clear_screen()
             print(f"已安全退出 {APP_NAME}。")
             break
         elif action == 'change':
