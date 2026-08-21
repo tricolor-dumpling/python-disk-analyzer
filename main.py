@@ -2,6 +2,7 @@ import os
 import sys
 import shutil
 import ctypes
+import functools
 import subprocess
 import time
 import gc
@@ -469,7 +470,17 @@ def configure_everything_sdk(everything, include_result_functions=False):
     return everything
 
 def load_everything_sdk(dll_path, include_result_functions=False):
-    everything = ctypes.WinDLL(str(dll_path))
+    """加载并配置 Everything SDK DLL，按 (归一化路径, include_result_functions) 缓存复用句柄。
+
+    dll_path 先统一归一化为 str 再作为 lru_cache 键，避免同一路径的 Path 与
+    str 形式被视作两个缓存键；缓存强引用 DLL 实例，天然维持 LoadLibrary 的
+    引用计数，IPC 轮询与多次扫描不再重复加载 DLL。
+    """
+    return _load_everything_sdk_cached(str(dll_path), include_result_functions)
+
+@functools.lru_cache(maxsize=None)
+def _load_everything_sdk_cached(dll_path, include_result_functions=False):
+    everything = ctypes.WinDLL(dll_path)
     return configure_everything_sdk(everything, include_result_functions)
 
 def is_everything_query_ready(query_ok, last_error):
