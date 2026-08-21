@@ -1,1068 +1,181 @@
-import os
-import sys
-import shutil
-import ctypes
-import functools
-import subprocess
-import time
-import gc
-import platform
-import re
-import json
-from pathlib import Path
-from collections import defaultdict
-import heapq
+"""程序入口与兼容层（C3 拆分 main.py 后保留的骨架）。
 
-# =================【受保护导入：msvcrt 仅 Windows 可用】=================
-try:
-    import msvcrt
-except ImportError:  # 非 Windows 平台没有 msvcrt，仅交互界面按键读取依赖它
-    msvcrt = None
+1. 入口：python main.py 直接运行（调用 cli.main()，流程与拆分前逐字一致）；
+2. 兼容层：此前各任务/审查测试脚本均按「import main 后访问 main.<名字>」的
+   方式使用全部公共/下划线 API（main.human_size/main._dir_sort_key/
+   main.LazyContents/main.ensure_everything_running/main.interactive_ui/
+   main.MsvcrtUnavailableError 等），这里把拆到 utils/sdk/env/scan/tui/exceptions
+   里的所有顶层名字全量导回 main 命名空间，保证 import main 的可用名字集合
+   与拆分前完全一致；
+3. 可变全局与补丁敏感函数动态转发：DLL_PATH/VERBOSE/_ANSI_AVAILABLE/
+   _GLOBAL_JOB_HANDLE/_getch/msvcrt/winreg，以及 env 装配层在函数体内从模块
+   全局查找的 resolve_everything_dll/find_everything_exe/load_config/
+   save_config/wait_for_everything_ipc/bind_pid_to_job_sandbox，采用自定义
+   模块类型（__getattr__/__setattr__/__dir__）动态转发到其归属模块，而不是
+   from-import 拷贝——拷贝会在赋值后断掉共享（例如 main._getch = 桩 必须
+   真正落到 tui._getch 才会被 interactive_ui 读到；main.resolve_everything_dll
+   = 桩 必须落到 env 才会被 ensure_everything_running 读到）。完整归属关系见
+   下方 _LIVE_FORWARD 表。
+"""
 
-class MsvcrtUnavailableError(RuntimeError):
-    """非 Windows 环境缺少 msvcrt（终端按键读取）时的专用异常，提示语为中文。"""
+import os  # noqa: F401  # 兼容性保留：拆分前 import main 的顶层命名空间含这些标准库名字
+import sys  # noqa: F401
+import shutil  # noqa: F401
+import ctypes  # noqa: F401
+import functools  # noqa: F401
+import subprocess  # noqa: F401
+import time  # noqa: F401
+import gc  # noqa: F401
+import platform  # noqa: F401
+import re  # noqa: F401
+import json  # noqa: F401
+import heapq  # noqa: F401
+import types  # 用于自定义模块类型（可变全局动态转发）
+from pathlib import Path  # noqa: F401
+from collections import defaultdict  # noqa: F401
 
-class EverythingEnvironmentError(RuntimeError):
-    """Everything 运行环境异常（SDK DLL 解析失败、IPC/数据库超时、无法定位可执行文件），提示语为中文。
+# =================【入口】=================
+# cli 是装配层，不反向依赖 main（main → cli 单向）；此处先导入保证入口可用。
+from cli import main, prompt_target_drive  # noqa: F401,E402
 
-    由 ensure_everything_running 抛出、main 统一捕获打印后退出；嵌入/测试场景可自行捕获处理。
+# =================【兼容性 re-export（静态拷贝）】=================
+# 以下名字在拆分前后都不会被重新赋值，直接 from-import 拷贝即可保持等价。
+from exceptions import MsvcrtUnavailableError, EverythingEnvironmentError  # noqa: F401
+from utils import (  # noqa: F401
+    APP_NAME,
+    CONFIG_PATH,
+    SCRIPT_DIR,
+    _exit_with_error,
+    _fatal,
+    get_app_dir,
+    human_size,
+    log,
+)
+from sdk import (  # noqa: F401
+    BOOL,
+    DWORD,
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING,
+    EVERYTHING_ERROR_IPC,
+    EVERYTHING_ERROR_MEMORY,
+    EVERYTHING_REQUEST_FILE_NAME,
+    EVERYTHING_REQUEST_FULL_PATH_AND_FILE_NAME,
+    EVERYTHING_REQUEST_PATH,
+    EVERYTHING_REQUEST_SIZE,
+    FULL_PATH_BUFFER_CHARS,
+    INVALID_HANDLE_VALUE,
+    JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
+    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    PROCESS_SET_QUOTA,
+    PROCESS_TERMINATE,
+    STD_OUTPUT_HANDLE,
+    TH32CS_SNAPPROCESS,
+    _everything_dll_name,
+    _is_path_inside,
+    _load_everything_sdk_cached,
+    _valid_file_from_config,
+    configure_everything_sdk,
+    is_everything_ipc_ready,
+    is_everything_query_ready,
+    is_everything_ready,
+    load_everything_sdk,
+)
+from env import (  # noqa: F401
+    DEFAULT_EVERYTHING_STARTUP_ARGS,
+    DEFAULT_EVERYTHING_STARTUP_TIMEOUT_SECONDS,
+    _expand_everything_exe_candidates,
+    _normalize_startup_args,
+    _registry_everything_locations,
+    ensure_everything_running,
+    get_current_session_id,
+    get_process_session_id,
+    init_windows_job_sandbox,
+    is_everything_process_running,
+    is_everything_process_running_legacy,
+    iter_process_ids_by_name,
+    list_everything_process_sessions,
+)
+from scan import (  # noqa: F401
+    MAX_FILES_PER_DIR,
+    SCAN_PROGRESS_REFRESH_INTERVAL,
+    LazyContents,
+    _build_lazy_contents,
+    _dir_sort_key,
+    _is_scan_root,
+    scan_via_everything_sdk,
+)
+from tui import (  # noqa: F401
+    ANSI_CLEAR_SCREEN,
+    ANSI_HIDE_CURSOR,
+    ANSI_SHOW_CURSOR,
+    _clear_screen,
+    _enable_vt_processing,
+    _hide_cursor,
+    _interactive_ui_loop,
+    _show_cursor,
+    _write_ansi,
+    interactive_ui,
+)
+
+# =================【可变全局与补丁敏感函数的动态转发】=================
+# 前一类（DLL_PATH/VERBOSE/_ANSI_AVAILABLE/_GLOBAL_JOB_HANDLE/_getch/msvcrt/
+# winreg）是“运行时会被读写或桩替换”的模块全局；后一类（env 装配层在函数体内
+# 从模块全局查找的 resolver/finder/io 函数）在拆分前都在 main 命名空间，旧测试
+# 通过 main.<函数> = 桩 注入。这里统一采用自定义模块类型（__getattr__/
+# __setattr__/__dir__）动态转发到其归属模块，而不是 from-import 拷贝——拷贝会在
+# 赋值后断掉共享（例如 main._getch = 桩 必须真正落到 tui._getch 才会被
+# interactive_ui 读到；main.resolve_everything_dll = 桩 必须落到 env 才会被
+# ensure_everything_running 读到）。归属关系：
+# DLL_PATH→sdk、VERBOSE→utils、_ANSI_AVAILABLE→tui、_GLOBAL_JOB_HANDLE→env、
+# _getch/msvcrt→tui、winreg→env、resolve_everything_dll/find_everything_exe/
+# load_config/save_config/wait_for_everything_ipc/bind_pid_to_job_sandbox→env。
+_LIVE_FORWARD = {
+    "DLL_PATH": ("sdk", "DLL_PATH"),
+    "VERBOSE": ("utils", "VERBOSE"),
+    "_ANSI_AVAILABLE": ("tui", "_ANSI_AVAILABLE"),
+    "_GLOBAL_JOB_HANDLE": ("env", "_GLOBAL_JOB_HANDLE"),
+    "_getch": ("tui", "_getch"),
+    "msvcrt": ("tui", "msvcrt"),
+    "winreg": ("env", "winreg"),
+    "resolve_everything_dll": ("env", "resolve_everything_dll"),
+    "find_everything_exe": ("env", "find_everything_exe"),
+    "load_config": ("env", "load_config"),
+    "save_config": ("env", "save_config"),
+    "wait_for_everything_ipc": ("env", "wait_for_everything_ipc"),
+    "bind_pid_to_job_sandbox": ("env", "bind_pid_to_job_sandbox"),
+}
+
+
+class _MainModule(types.ModuleType):
+    """main 模块的自定义类型：把上表可变全局动态转发到归属模块。
+
+    - main.DLL_PATH 读取 ⇒ sdk.DLL_PATH 当前值（ensure_everything_running 回填
+      后立即可见，不会读到导入时的旧拷贝）；
+    - main.DLL_PATH = 路径 ⇒ 写入 sdk.DLL_PATH（scan/ensure 读到的就是它）；
+    - main._getch = 桩 ⇒ 写入 tui._getch（interactive_ui 内部从 tui 命名空间
+      调用 _getch，桩立即生效）；
+    - dir(main) 同样包含这些名字，保证旧测试的“名字可用”检查不受影响。
     """
 
-def _getch():
-    """统一按键读取封装：interactive_ui 与 main 中所有按键读取均改走本函数。
+    def __getattr__(self, name):
+        if name in _LIVE_FORWARD:
+            mod_name, attr = _LIVE_FORWARD[name]
+            return getattr(sys.modules[mod_name], attr)
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
-    msvcrt 仅在 Windows 上存在；缺失（如 Linux/macOS）时抛出带清晰中文说明的
-    异常，由上层捕获后优雅退出，绝不静默崩溃。
-    """
-    if msvcrt is None:
-        raise MsvcrtUnavailableError(
-            "本程序交互界面依赖 Windows 的 msvcrt 模块，请在 Windows 上运行"
-        )
-    return msvcrt.getch()
-
-def _exit_with_error(e):
-    """打印致命交互错误并立即退出（msvcrt 不可用等统一走这里）。"""
-    _fatal(str(e))
-
-def _fatal(msg):
-    """致命错误统一出口：打印（带 ❌ 前缀）并立即以退出码 1 结束进程。"""
-    print(f"❌ {msg}")
-    sys.exit(1)
-
-# =================【全局配置与提示】=================
-APP_NAME = "Python 智能磁盘分析工具"
-MAX_FILES_PER_DIR = 50
-DEFAULT_EVERYTHING_STARTUP_TIMEOUT_SECONDS = 20
-DEFAULT_EVERYTHING_STARTUP_ARGS = ["-startup"]
-# Everything 扫描进度刷新间隔（按处理的记录条数计）
-SCAN_PROGRESS_REFRESH_INTERVAL = 10000
-
-def get_app_dir():
-    """源码运行时返回脚本目录；PyInstaller 打包后返回 exe 所在目录。"""
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent
-    return Path(__file__).resolve().parent
-
-SCRIPT_DIR = get_app_dir()
-# config.json 是启动加速缓存：路径存在才使用，失效时会自动重新探测。
-CONFIG_PATH = SCRIPT_DIR / "config.json"
-DLL_PATH = None
-VERBOSE = True
-
-BOOL = ctypes.c_int
-DWORD = ctypes.c_uint32
-# Windows API (Win32) 常量：作业对象限额、进程访问权限、控制台与 Toolhelp 快照
-JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000  # 作业对象关闭时强制终止其全部子进程（防孤儿）
-JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9  # SetInformationJobObject 的扩展限额信息类
-PROCESS_SET_QUOTA = 0x0100  # 进程访问权限：允许设置进程内存配额
-PROCESS_TERMINATE = 0x0001  # 进程访问权限：允许终止进程
-STD_OUTPUT_HANDLE = -11  # GetStdHandle：标准输出句柄标识
-ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004  # 控制台模式：启用 ANSI/VT 转义序列
-TH32CS_SNAPPROCESS = 0x00000002  # Toolhelp 快照标志：枚举系统进程
-INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value  # 无效句柄哨兵值
-
-# Everything SDK Win32 常量
-EVERYTHING_REQUEST_FILE_NAME = 0x00000001
-EVERYTHING_REQUEST_PATH = 0x00000002
-EVERYTHING_REQUEST_SIZE = 0x00000010
-EVERYTHING_ERROR_MEMORY = 1
-EVERYTHING_ERROR_IPC = 2
-EVERYTHING_REQUEST_FULL_PATH_AND_FILE_NAME = 0x00000004
-# Everything_GetResultFullPathNameW 的结果路径缓冲区字符数（含结尾 \0）
-FULL_PATH_BUFFER_CHARS = 32768
-
-try:
-    import winreg
-except ImportError:
-    winreg = None
-
-# =================【Windows 作业对象 (Job Object) 内核级防孤儿防线】=================
-_GLOBAL_JOB_HANDLE = None
-
-def init_windows_job_sandbox():
-    """初始化内核级作业对象沙盒，配置“进程同生共死”限额标志位。"""
-    global _GLOBAL_JOB_HANDLE
-    if os.name != 'nt':
-        return
-
-    try:
-        kernel32 = ctypes.windll.kernel32
-        _GLOBAL_JOB_HANDLE = kernel32.CreateJobObjectW(None, None)
-        if not _GLOBAL_JOB_HANDLE:
+    def __setattr__(self, name, value):
+        if name in _LIVE_FORWARD:
+            mod_name, attr = _LIVE_FORWARD[name]
+            setattr(sys.modules[mod_name], attr, value)
             return
+        super().__setattr__(name, value)
 
-        class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
-            _fields_ = [
-                ("PerProcessUserTimeLimit", ctypes.c_int64),
-                ("PerJobUserTimeLimit", ctypes.c_int64),
-                ("LimitFlags", ctypes.c_uint32),
-                ("MinimumWorkingSetSize", ctypes.c_size_t),
-                ("MaximumWorkingSetSize", ctypes.c_size_t),
-                ("ActiveProcessLimit", ctypes.c_uint32),
-                ("Affinity", ctypes.c_void_p),
-                ("PriorityClass", ctypes.c_uint32),
-                ("SchedulingClass", ctypes.c_uint32),
-            ]
+    def __dir__(self):
+        return sorted(set(super().__dir__()) | set(_LIVE_FORWARD))
 
-        class IO_COUNTERS(ctypes.Structure):
-            _fields_ = [
-                ("ReadOperationCount", ctypes.c_uint64), ("WriteOperationCount", ctypes.c_uint64),
-                ("OtherOperationCount", ctypes.c_uint64), ("ReadTransferCount", ctypes.c_uint64),
-                ("WriteTransferCount", ctypes.c_uint64), ("OtherTransferCount", ctypes.c_uint64)
-            ]
 
-        class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
-            _fields_ = [
-                ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
-                ("IoInfo", IO_COUNTERS),
-                ("ProcessMemoryLimit", ctypes.c_size_t),
-                ("JobMemoryLimit", ctypes.c_size_t),
-                ("PeakProcessMemoryUsed", ctypes.c_size_t),
-                ("PeakJobMemoryUsed", ctypes.c_size_t),
-            ]
-
-        info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
-        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-
-        kernel32.SetInformationJobObject(
-            _GLOBAL_JOB_HANDLE,
-            JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
-            ctypes.byref(info),
-            ctypes.sizeof(info)
-        )
-    except Exception as e:
-        print(f"⚠️ [SRE 警告] 内核沙盒初始化失败: {e}")
-
-def bind_pid_to_job_sandbox(pid):
-    """将指定 PID 的外部子进程强行捕获并锁入作业沙盒中"""
-    global _GLOBAL_JOB_HANDLE
-    if not _GLOBAL_JOB_HANDLE:
-        return
-    try:
-        kernel32 = ctypes.windll.kernel32
-        h_process = kernel32.OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, False, pid)
-        if h_process:
-            kernel32.AssignProcessToJobObject(_GLOBAL_JOB_HANDLE, h_process)
-            kernel32.CloseHandle(h_process)
-    except Exception:
-        pass
-
-def human_size(n: int) -> str:
-    """人类可读的文件大小格式化"""
-    for unit in ("B", "KB", "MB", "GB", "TB"):
-        if n < 1024:
-            return f"{n:.2f} {unit}"
-        n /= 1024
-    return f"{n:.2f} PB"
-
-def log(message="", *, end="\n", flush=False, verbose=None):
-    """统一状态输出入口，测试或嵌入调用时可关闭 verbose。"""
-    enabled = VERBOSE if verbose is None else verbose
-    if enabled:
-        print(message, end=end, flush=flush)
-
-def prompt_target_drive():
-    """运行入口处再询问扫描路径，避免 import main 时阻塞测试或复用。"""
-    return input("请输入扫描的目标路径 (例如 C:\\Users 或 D:\\): ").strip()
-
-# =================【Everything 环境自检与启动】=================
-def load_config(config_path=CONFIG_PATH):
-    """读取本地配置。配置不存在或损坏时返回空配置。"""
-    try:
-        path = Path(config_path)
-        if not path.exists():
-            return {}
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else {}
-    except (OSError, json.JSONDecodeError):
-        return {}
-
-def save_config(config, config_path=CONFIG_PATH):
-    """保存本地配置，失败时不影响主流程。"""
-    try:
-        path = Path(config_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            json.dumps(config, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-        return True
-    except OSError:
-        return False
-
-def _is_path_inside(path, base_dir):
-    try:
-        path.resolve().relative_to(Path(base_dir).resolve())
-        return True
-    except (OSError, ValueError):
-        return False
-
-def _valid_file_from_config(config, key, base_dir=None):
-    """只接受真实存在的缓存路径，避免错误 JSON 卡死启动流程。"""
-    value = config.get(key) if isinstance(config, dict) else None
-    if not value:
-        return None
-    try:
-        path = Path(os.path.expandvars(str(value))).expanduser()
-        if path.exists():
-            if base_dir is not None and not _is_path_inside(path, base_dir):
-                return None
-            return path
-    except OSError:
-        return None
-    return None
-
-def _everything_dll_name(machine=None, pointer_bits=None):
-    machine = (machine or platform.machine() or "").upper()
-    pointer_bits = pointer_bits or (ctypes.sizeof(ctypes.c_void_p) * 8)
-    if "ARM" in machine:
-        return "EverythingARM64.dll" if pointer_bits == 64 else "EverythingARM.dll"
-    return "Everything64.dll" if pointer_bits == 64 else "Everything32.dll"
-
-def resolve_everything_dll(script_dir=SCRIPT_DIR, machine=None, pointer_bits=None, config=None):
-    """根据当前 Python 进程架构自动选择 Everything SDK DLL。"""
-    script_dir = Path(script_dir)
-    config_dll = _valid_file_from_config(config or {}, "everything_dll", base_dir=script_dir)
-    if config_dll:
-        log(f"ℹ️ 使用配置缓存中的 SDK DLL: {config_dll}")
-        return config_dll
-
-    dll_name = _everything_dll_name(machine, pointer_bits)
-    log(f"🔎 正在按 Python 架构选择 Everything SDK DLL: {dll_name}")
-    candidates = [
-        script_dir / "everything-SDK" / "dll" / dll_name,
-        script_dir / dll_name,
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    searched = "\n  - ".join(str(p) for p in candidates)
-    raise FileNotFoundError(f"未找到匹配当前 Python 架构的 Everything SDK DLL：{dll_name}\n已检查：\n  - {searched}")
-
-def _registry_everything_locations():
-    """从注册表读取 Everything 的安装目录，覆盖非默认安装路径。"""
-    if winreg is None:
-        return []
-
-    locations = []
-    registry_keys = [
-        (winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\App Paths\Everything.exe"),
-        (winreg.HKEY_LOCAL_MACHINE, r"Software\Microsoft\Windows\CurrentVersion\App Paths\Everything.exe"),
-        (winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Everything"),
-        (winreg.HKEY_LOCAL_MACHINE, r"Software\Microsoft\Windows\CurrentVersion\Uninstall\Everything"),
-        (winreg.HKEY_LOCAL_MACHINE, r"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Everything"),
-    ]
-
-    for hive, key_path in registry_keys:
-        try:
-            with winreg.OpenKey(hive, key_path) as key:
-                for value_name in ("", "InstallLocation", "DisplayIcon"):
-                    try:
-                        value, _ = winreg.QueryValueEx(key, value_name)
-                    except OSError:
-                        continue
-                    locations.append(str(value))
-        except OSError:
-            continue
-    return locations
-
-def _expand_everything_exe_candidates(value):
-    """将注册表/PATH/目录值展开为可能的 Everything.exe 路径。"""
-    if not value:
-        return []
-
-    raw = os.path.expandvars(str(value)).strip()
-    candidates = []
-
-    quoted_exe = re.search(r'"([^"]*Everything\.exe)"', raw, re.IGNORECASE)
-    if quoted_exe:
-        candidates.append(Path(quoted_exe.group(1)))
-    else:
-        exe_index = raw.lower().find("everything.exe")
-        if exe_index >= 0:
-            exe_end = exe_index + len("everything.exe")
-            candidates.append(Path(raw[:exe_end].strip().strip('"')))
-
-    cleaned = raw.strip().strip('"')
-    if cleaned:
-        path = Path(cleaned)
-        if path.name.lower() == "everything.exe":
-            candidates.append(path)
-        else:
-            candidates.append(path / "Everything.exe")
-
-    return candidates
-
-def find_everything_exe(script_dir=SCRIPT_DIR, registry_install_locations=None, path_dirs=None, config=None):
-    """查找 Everything.exe，支持注册表、PATH、当前目录和常见安装目录。"""
-    script_dir = Path(script_dir)
-    registry_install_locations = (
-        _registry_everything_locations()
-        if registry_install_locations is None
-        else registry_install_locations
-    )
-    path_dirs = (
-        os.environ.get("PATH", "").split(os.pathsep)
-        if path_dirs is None
-        else path_dirs
-    )
-
-    candidates = []
-    config_exe = _valid_file_from_config(config or {}, "everything_exe")
-    if config_exe:
-        log(f"ℹ️ 使用配置缓存中的 Everything.exe: {config_exe}")
-        candidates.append(config_exe)
-    candidates.append(script_dir / "Everything.exe")
-    for value in registry_install_locations:
-        candidates.extend(_expand_everything_exe_candidates(value))
-    for value in path_dirs:
-        candidates.extend(_expand_everything_exe_candidates(value))
-    candidates.extend([
-        Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Everything" / "Everything.exe",
-        Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")) / "Everything" / "Everything.exe",
-    ])
-
-    seen = set()
-    for candidate in candidates:
-        try:
-            resolved_key = str(candidate).lower()
-            if resolved_key in seen:
-                continue
-            seen.add(resolved_key)
-            if candidate.exists():
-                return candidate
-        except OSError:
-            continue
-    return None
-
-def get_process_session_id(pid):
-    """返回指定 PID 所在的 Windows SessionId。"""
-    if os.name != "nt":
-        return None
-    try:
-        session_id = DWORD()
-        ok = ctypes.windll.kernel32.ProcessIdToSessionId(
-            DWORD(pid),
-            ctypes.byref(session_id),
-        )
-        return int(session_id.value) if ok else None
-    except Exception:
-        return None
-
-def get_current_session_id():
-    """返回当前 Python 进程所在的 Windows SessionId。"""
-    return get_process_session_id(os.getpid())
-
-def iter_process_ids_by_name(process_name):
-    """使用 Toolhelp 快照枚举指定进程名的 PID，避免解析本地化 tasklist 文本。"""
-    if os.name != "nt":
-        return []
-
-    kernel32 = ctypes.windll.kernel32
-
-    class PROCESSENTRY32W(ctypes.Structure):
-        _fields_ = [
-            ("dwSize", DWORD),
-            ("cntUsage", DWORD),
-            ("th32ProcessID", DWORD),
-            ("th32DefaultHeapID", ctypes.c_void_p),
-            ("th32ModuleID", DWORD),
-            ("cntThreads", DWORD),
-            ("th32ParentProcessID", DWORD),
-            ("pcPriClassBase", ctypes.c_long),
-            ("dwFlags", DWORD),
-            ("szExeFile", ctypes.c_wchar * 260),
-        ]
-
-    snapshot = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
-    if snapshot == INVALID_HANDLE_VALUE:
-        return []
-
-    try:
-        entry = PROCESSENTRY32W()
-        entry.dwSize = ctypes.sizeof(PROCESSENTRY32W)
-        pids = []
-        if not kernel32.Process32FirstW(snapshot, ctypes.byref(entry)):
-            return []
-        target = process_name.lower()
-        while True:
-            if entry.szExeFile.lower() == target:
-                pids.append(int(entry.th32ProcessID))
-            if not kernel32.Process32NextW(snapshot, ctypes.byref(entry)):
-                break
-        return pids
-    finally:
-        kernel32.CloseHandle(snapshot)
-
-def list_everything_process_sessions():
-    """列出所有 Everything.exe 所在的 SessionId。"""
-    sessions = []
-    for pid in iter_process_ids_by_name("Everything.exe"):
-        session_id = get_process_session_id(pid)
-        if session_id is not None:
-            sessions.append(session_id)
-    return sessions
-
-def is_everything_process_running(current_session_id=None, process_sessions=None):
-    """仅当当前用户会话中存在 Everything.exe 时，才认为客户端已运行。"""
-    if current_session_id is None:
-        current_session_id = get_current_session_id()
-    if current_session_id is None:
-        return False
-
-    if process_sessions is None:
-        process_sessions = list_everything_process_sessions()
-    return any(session_id == current_session_id for session_id in process_sessions)
-
-def is_everything_process_running_legacy():
-    """旧版兜底：只检查进程名。保留给调试，不参与主流程。"""
-    try:
-        res = subprocess.run(
-            ["tasklist", "/FI", "IMAGENAME eq Everything.exe"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="ignore",
-        )
-        if "Everything.exe" in res.stdout:
-            return True
-    except Exception:
-        pass
-    return False
-
-def configure_everything_sdk(everything, include_result_functions=False):
-    """集中声明 Everything SDK 函数签名，避免扫描和健康检查各自维护一份。"""
-    everything.Everything_SetSearchW.argtypes = [ctypes.c_wchar_p]
-    everything.Everything_SetSearchW.restype = None
-
-    everything.Everything_QueryW.argtypes = [BOOL]
-    everything.Everything_QueryW.restype = BOOL
-
-    everything.Everything_GetLastError.restype = DWORD
-
-    try:
-        everything.Everything_IsDBLoaded.restype = BOOL
-    except AttributeError:
-        pass
-
-    if not include_result_functions:
-        return everything
-
-    everything.Everything_SetRequestFlags.argtypes = [DWORD]
-    everything.Everything_SetRequestFlags.restype = None
-    everything.Everything_GetNumResults.restype = DWORD
-    everything.Everything_GetResultFullPathNameW.argtypes = [
-        DWORD,
-        ctypes.c_wchar_p,
-        DWORD,
-    ]
-    everything.Everything_GetResultFullPathNameW.restype = DWORD
-    everything.Everything_GetResultSize.argtypes = [
-        DWORD,
-        ctypes.POINTER(ctypes.c_ulonglong),
-    ]
-    everything.Everything_GetResultSize.restype = BOOL
-    everything.Everything_IsFolderResult.argtypes = [DWORD]
-    everything.Everything_IsFolderResult.restype = BOOL
-    everything.Everything_IsVolumeResult.argtypes = [DWORD]
-    everything.Everything_IsVolumeResult.restype = BOOL
-    return everything
-
-def load_everything_sdk(dll_path, include_result_functions=False):
-    """加载并配置 Everything SDK DLL，按 (归一化路径, include_result_functions) 缓存复用句柄。
-
-    dll_path 先统一归一化为 str 再作为 lru_cache 键，避免同一路径的 Path 与
-    str 形式被视作两个缓存键；缓存强引用 DLL 实例，天然维持 LoadLibrary 的
-    引用计数，IPC 轮询与多次扫描不再重复加载 DLL。
-    """
-    return _load_everything_sdk_cached(str(dll_path), include_result_functions)
-
-@functools.lru_cache(maxsize=None)
-def _load_everything_sdk_cached(dll_path, include_result_functions=False):
-    everything = ctypes.WinDLL(dll_path)
-    return configure_everything_sdk(everything, include_result_functions)
-
-def is_everything_query_ready(query_ok, last_error):
-    """Everything SDK 查询成功，或失败原因不是 IPC 未连接时，才认为 IPC 可用。"""
-    return bool(query_ok) or last_error != EVERYTHING_ERROR_IPC
-
-def is_everything_ready(query_ok, last_error, is_db_loaded=True):
-    """Everything IPC 可用且数据库已加载时，才认为可以执行阻塞扫描。"""
-    return is_everything_query_ready(query_ok, last_error) and bool(is_db_loaded)
-
-def is_everything_ipc_ready(dll_path):
-    """通过 SDK IPC 查询确认 Everything 服务和数据库已经可用。"""
-    try:
-        everything = load_everything_sdk(dll_path)
-
-        everything.Everything_SetSearchW("")
-        query_ok = everything.Everything_QueryW(False)
-        try:
-            # Everything 刚启动时 IPC 可能已可用，但数据库仍在加载；此时同步扫描会长时间阻塞。
-            is_db_loaded = bool(everything.Everything_IsDBLoaded())
-        except AttributeError:
-            is_db_loaded = True
-        return is_everything_ready(query_ok, everything.Everything_GetLastError(), is_db_loaded)
-    except Exception:
-        return False
-
-def wait_for_everything_ipc(
-    dll_path,
-    is_ipc_ready=is_everything_ipc_ready,
-    sleep=time.sleep,
-    timeout_seconds=DEFAULT_EVERYTHING_STARTUP_TIMEOUT_SECONDS,
-    progress_interval_seconds=5,
-):
-    """等待 Everything IPC 和数据库加载完成。"""
-    deadline = time.monotonic() + timeout_seconds
-    next_progress = time.monotonic() + progress_interval_seconds
-    while time.monotonic() < deadline:
-        if is_ipc_ready(dll_path):
-            return True
-        now = time.monotonic()
-        if now >= next_progress:
-            remaining = max(0, int(deadline - now))
-            log(f"⏳ Everything 数据库仍在加载，最多再等待 {remaining} 秒...")
-            next_progress = now + progress_interval_seconds
-        sleep(0.5)
-    return is_ipc_ready(dll_path)
-
-def _normalize_startup_args(raw_args):
-    """规范化 config 中的 everything_startup_args。
-
-    只接受“非空且元素全为 str 的 list”；其余脏数据（None、非 list、
-    空列表、含非字符串元素等）一律回退到默认 ["-startup"]，绝不因
-    脏配置导致启动失败或崩溃。
-    """
-    if not isinstance(raw_args, list):
-        return list(DEFAULT_EVERYTHING_STARTUP_ARGS)
-    if not raw_args or not all(isinstance(arg, str) for arg in raw_args):
-        return list(DEFAULT_EVERYTHING_STARTUP_ARGS)
-    return list(raw_args)
-
-def ensure_everything_running(
-    dll_path=None,
-    exe_path=None,
-    config_path=CONFIG_PATH,
-    is_running=is_everything_process_running,
-    is_ipc_ready=is_everything_ipc_ready,
-    popen=subprocess.Popen,
-    sleep=time.sleep,
-    timeout_seconds=DEFAULT_EVERYTHING_STARTUP_TIMEOUT_SECONDS,
-):
-    """检查 Everything 是否运行，若未运行则尝试启动，失败则退出。"""
-    global DLL_PATH
-    config = load_config(config_path)
-    log(f"🧭 正在检查 Everything 运行环境，配置文件: {Path(config_path)}")
-    try:
-        DLL_PATH = Path(dll_path) if dll_path else resolve_everything_dll(config=config)
-    except FileNotFoundError as e:
-        raise EverythingEnvironmentError(f"错误：{e}") from e
-
-    log(f"🔌 SDK DLL 已就绪: {DLL_PATH}")
-    log("🔎 正在检查 Everything 进程和数据库状态...")
-    running = is_running()
-    if running:
-        if wait_for_everything_ipc(DLL_PATH, is_ipc_ready, sleep, timeout_seconds):
-            log("✅ Everything 已运行，IPC 和数据库均已就绪。")
-            return True
-        raise EverythingEnvironmentError(
-            "Everything 已运行，但 IPC/数据库在等待超时后仍不可用。建议手动打开 Everything，确认可以正常搜索后再运行本工具。"
-        )
-
-    log("⚠️ Everything.exe 未运行，正在尝试自动启动...")
-    exe_path = Path(exe_path) if exe_path else find_everything_exe(config=config)
-    if not exe_path:
-        raise EverythingEnvironmentError(
-            "无法定位 Everything.exe。请确认 Everything 已安装，或将 Everything.exe 放在本程序目录/PATH 中。"
-        )
-
-    # 启动参数优先级：config 缓存的 everything_startup_args（非空 str list）→
-    # 默认 ["-startup"] → 无参数兜底；重复命令自动去重。
-    startup_args = _normalize_startup_args(config.get("everything_startup_args"))
-    launch_attempts = []
-    for candidate_args in (startup_args, DEFAULT_EVERYTHING_STARTUP_ARGS, []):
-        command = [str(exe_path)] + list(candidate_args)
-        if command not in launch_attempts:
-            launch_attempts.append(command)
-    for index, command in enumerate(launch_attempts, 1):
-        try:
-            proc = popen(command,
-                         stdout=subprocess.DEVNULL,
-                         stderr=subprocess.DEVNULL)
-            bind_pid_to_job_sandbox(proc.pid)
-            log(f"✅ 已尝试启动 Everything：{' '.join(command)}")
-        except Exception as e:
-            log(f"⚠️ 第 {index} 次启动 Everything 失败 ({' '.join(command)}): {e}")
-            continue
-
-        if wait_for_everything_ipc(DLL_PATH, is_ipc_ready, sleep, timeout_seconds):
-            config["everything_exe"] = str(exe_path)
-            config["everything_dll"] = str(DLL_PATH)
-            config["everything_startup_args"] = command[1:]
-            save_config(config, config_path)
-            log(f"💾 已更新配置缓存: {Path(config_path)}")
-            log("✅ Everything IPC 已就绪。")
-            return True
-
-    raise EverythingEnvironmentError(
-        "Everything 已启动，但 SDK IPC/数据库在等待超时后仍不可用。建议先手动打开 Everything，待其可正常搜索后再运行本工具。"
-    )
-
-# =================【核心扫描：Everything SDK】=================
-def _dir_sort_key(p):
-    """目录深度排序键：返回严格单调的深度度量（路径组件越多 ⇒ 深度越深）。
-
-    不能只用反斜杠数量排序：盘符根 C:\\ 与一级子目录 C:\\Users 的反斜杠数
-    相同（都是 1），无法保证父目录严格排在子目录之前；而 len(Path(p).parts)
-    按路径组件计数，C:\\ 深度为 1、C:\\Users 深度为 2、C:\\Users\\a 深度为 3，
-    UNC 根 \\\\server\\share 计为 1 个组件，其子目录同样逐层 +1。
-    对任意合法目录 d，os.path.dirname(d) 恰好剥掉最后一个组件，父目录的
-    parts 数严格少 1，因此本键严格单调：按它从深到浅（reverse=True）排序即
-    严格拓扑序——任何目录 d 被处理时，其全部后代（parts 数更大）均已先处理
-    并累加进 sizes[d]。
-    """
-    return len(Path(p).parts)
-
-def _is_scan_root(d, root_path_obj):
-    """判断路径 d（str，Everything 原样返回或 os.path.dirname 的产物）是否为扫描根本身。
-
-    用 Path 相等比较（本程序仅运行于 Windows，Path 即 WindowsPath）：
-    - 大小写不敏感：Path('C:/Users') == Path('c:/users') 成立；
-    - 自动折叠尾随分隔符：Path('//srv/share/') 与 Path('//srv/share') 相等且 hash 相同，
-      可同时覆盖 Everything 返回路径带/不带尾随反斜杠与 dirname 产物相反的两种形态；
-    - 盘符根 C:/ 的 dirname 自映射为自身，也能被正确识别；
-    - 普通子目录不会误判：根为 C:/Users 时，C:/Users/a 与之不相等。
-    注意：d 只能是 Everything 返回的完整绝对路径（本函数仅接收该类路径）。
-    """
-    return Path(d) == root_path_obj
-
-class LazyContents(dict):
-    """按需构建的惰性 contents 映射（键为 Path，值为目录条目列表）。
-
-    与旧的全量预构建字典对外行为完全一致：interactive_ui 通过
-    contents.get(path, []) 访问，命中目录时按需构建并返回条目列表，未知目录
-    返回 []（与旧实现缺失键返回默认值 [] 一致），绝不抛 KeyError。
-    区别在于：条目列表只在被访问时才构建，且只缓存最近访问过的少量目录
-    （有界缓存，超出上限时整体清空），任意时刻驻留的条目列表数量有上限，
-    大磁盘扫描的内存峰值因此大幅下降。
-    """
-
-    def __init__(self, builder, max_cached=128):
-        super().__init__()
-        self._builder = builder
-        self._max_cached = max_cached
-
-    def __missing__(self, key):
-        items = self._builder(key)
-        if len(self) >= self._max_cached:
-            self.clear()  # 有界缓存：超出上限即整体清空，保证驻留条目数有界
-        self[key] = items
-        return items
-
-    def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            return default
-
-    @property
-    def cache_size(self):
-        """当前缓存的目录条目数量（只读，供测试与内存观测）。"""
-        return len(self)
-
-def _build_lazy_contents(dir_sizes, folder_files, folder_subdirs):
-    """构建惰性 contents：目录条目按需生成并缓存，取代旧的全量预构建。
-
-    与旧算法对单个目录执行的步骤逐字一致：先追加子目录 (subdir, True, size)
-    （size 取自 dir_sizes，缺失为 0），再按大小倒序追加文件 (filename, False,
-    size)，最后整体 items.sort(key=lambda x: x[2], reverse=True) 稳定排序——
-    稳定排序保证同 size 时后加入的记录不越过先加入的，因此同 size 的子目录
-    （先加入）必然排在文件（后加入）之前，与旧 contents 完全一致。
-
-    关键点：folder_files/folder_subdirs/sizes 的键是 Everything 原样返回的
-    str 路径，大小写可能与用户输入不同，直接按 str 键查找会大小写失配；
-    这里统一把键转换为 Path（Path 相等大小写不敏感、折叠尾随分隔符）后再用，
-    子目录 child 以 folder / subdir 构造后查 dir_sizes。
-    不在任何结构里的未知目录返回 []，与旧实现缺失键 .get() 返回 [] 一致。
-    """
-
-    path_files = {Path(k): v for k, v in folder_files.items()}
-    path_subdirs = {Path(k): v for k, v in folder_subdirs.items()}
-
-    def builder(folder):
-        items = []
-        for subdir in path_subdirs.get(folder, ()):
-            child = folder / subdir
-            items.append((subdir, True, dir_sizes.get(child, 0)))
-        for size, filename in sorted(path_files.get(folder, ()), reverse=True):
-            items.append((filename, False, size))
-        items.sort(key=lambda x: x[2], reverse=True)
-        return items
-
-    return LazyContents(builder)
-
-def scan_via_everything_sdk(root_path_obj):
-    """使用 Everything SDK 高速扫描指定路径，返回 (sizes, contents)"""
-    global DLL_PATH
-    if DLL_PATH is None:
-        DLL_PATH = resolve_everything_dll()
-    everything = load_everything_sdk(DLL_PATH, include_result_functions=True)
-    log(f"🧩 正在加载 Everything SDK: {DLL_PATH}")
-
-    raw_path = str(root_path_obj)
-    if not raw_path.endswith("\\"):
-        raw_path += "\\"
-
-    log(f"📝 正在设置 Everything 查询条件: path:\"{raw_path}\"")
-    everything.Everything_SetSearchW(f'path:"{raw_path}"')
-    everything.Everything_SetRequestFlags(
-        EVERYTHING_REQUEST_FULL_PATH_AND_FILE_NAME |
-        EVERYTHING_REQUEST_SIZE
-    )
-
-    log("⏳ 正在等待 Everything 返回查询结果...")
-    if not everything.Everything_QueryW(True):
-        raise RuntimeError(f"Everything查询失败: {everything.Everything_GetLastError()}")
-
-    num_results = everything.Everything_GetNumResults()
-    log(f"📈 Everything 返回 {num_results:,} 条记录")
-
-    if num_results == 0:
-        return {}, {}
-
-    root_str = str(root_path_obj).rstrip("\\")
-    root_lower = root_str.lower()
-    root_prefix = root_lower + "\\"
-
-    sizes = defaultdict(int)
-    folder_files = defaultdict(list)
-    folder_subdirs = defaultdict(set)
-
-    buffer = ctypes.create_unicode_buffer(FULL_PATH_BUFFER_CHARS)
-    file_size = ctypes.c_ulonglong()
-
-    processed = 0
-    refresh_interval = SCAN_PROGRESS_REFRESH_INTERVAL
-    last_refresh = 0
-
-    # 第一阶段：收集文件大小，同时为每个目录保留最大的若干文件，避免 UI 占用过多内存。
-    log("📥 正在读取文件结果并统计目录直接占用...")
-    for i in range(num_results):
-        if i - last_refresh >= refresh_interval:
-            percent = i * 100 // num_results
-            log(f"\r处理中 {percent:3d}% ({i:,}/{num_results:,})", end="", flush=True)
-            last_refresh = i
-
-        if everything.Everything_IsFolderResult(i) or everything.Everything_IsVolumeResult(i):
-            continue
-
-        if not everything.Everything_GetResultFullPathNameW(i, buffer, FULL_PATH_BUFFER_CHARS):
-            continue
-
-        full_path = buffer.value
-        if not full_path:
-            continue
-
-        full_path_lower = full_path.lower()
-        if full_path_lower != root_lower and not full_path_lower.startswith(root_prefix):
-            continue
-
-        everything.Everything_GetResultSize(i, file_size)
-        size = file_size.value
-        if size <= 0:
-            continue
-
-        parent_dir = os.path.dirname(full_path)
-        sizes[parent_dir] += size
-
-        heap = folder_files[parent_dir]
-        item = (size, os.path.basename(full_path))
-        if len(heap) < MAX_FILES_PER_DIR:
-            heapq.heappush(heap, item)
-        elif size > heap[0][0]:
-            heapq.heapreplace(heap, item)
-
-        processed += 1
-
-    log(f"\r处理中 100% ({num_results:,}/{num_results:,})")
-
-    # 第二阶段：根据文件所在目录补全父子目录关系。
-    log("🌲 正在构建目录树...")
-    all_dirs = set(sizes.keys())
-    for d in list(all_dirs):
-        current = d
-        while True:
-            parent = os.path.dirname(current)
-            if parent == current or current.lower() == root_lower:
-                break
-            folder_subdirs[parent].add(os.path.basename(current))
-            all_dirs.add(parent)
-            current = parent
-
-    # 第三阶段：自底向上汇总，使父目录大小包含全部子目录。
-    log("🧮 正在汇总父目录占用...")
-    sorted_dirs = sorted(all_dirs, key=_dir_sort_key, reverse=True)
-    for d in sorted_dirs:
-        # 扫描根不向其之上传播：若 d 即根本身则跳过向上累加，避免在 sizes 中
-        # 凭空创建扫描根之上的祖先键（如根为 C:\Users 时不再出现 C:\ 键）。
-        # 根目录自身仍保留在 sizes/contents 中，仅禁止向更上层汇总。
-        if _is_scan_root(d, root_path_obj):
-            continue
-        parent = os.path.dirname(d)
-        if parent != d:
-            sizes[parent] += sizes[d]
-
-    cached_files = sum(len(v) for v in folder_files.values())
-    log(f"📦 UI缓存文件数: {cached_files:,}")
-
-    # 惰性 contents：不再为所有目录预构建条目列表（条目元组与 folder_files/
-    # folder_subdirs 数据重复驻留是大磁盘扫描后的内存大头），改为按需构建 +
-    # 有界缓存：交互界面逐级浏览时只按需构建并缓存当前目录的条目。
-    log("🧱 正在准备交互界面数据（惰性模式：按需构建）...")
-    final_sizes = {Path(k): v for k, v in sizes.items()}
-    contents = _build_lazy_contents(final_sizes, folder_files, folder_subdirs)
-    return final_sizes, contents
-
-# =================【TUI 终端交互式界面模块】=================
-# ------------【ANSI 终端渲染：清屏与光标管理（替代逐帧 cls 子进程）】------------
-# Windows 10 1607 起的内置控制台与 Windows Terminal 原生支持 ANSI/VT 转义；
-# 更老的控制台（Win10 早期 conhost）默认关闭 VT，程序启动时用 SetConsoleMode
-# 显式开启；开启失败或非 Windows 时自动回退 os.system('cls') 兜底，保证任何
-# 环境下交互界面都能正常刷新，绝不因 ANSI 不可用而崩溃。
-ANSI_CLEAR_SCREEN = "\x1b[2J\x1b[H"  # 清屏并归位（ED2 + CUP 1;1），替代逐帧 cls 子进程
-ANSI_HIDE_CURSOR = "\x1b[?25l"       # 隐藏光标（DECTCEM），进入交互界面时发送
-ANSI_SHOW_CURSOR = "\x1b[?25h"       # 恢复显示光标（DECTCEM），退出交互界面时发送
-
-def _enable_vt_processing():
-    """尝试开启 Windows 控制台 VT 处理（ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004）。
-
-    返回 True 表示 ANSI 序列可用；非 Windows、取不到控制台句柄或
-    SetConsoleMode 失败时返回 False，上层渲染回退到 os.system('cls')，绝不崩溃。
-    """
-    if os.name != 'nt':
-        return False
-    try:
-        kernel32 = ctypes.windll.kernel32
-        # 显式声明 Win32 函数的参数/返回类型：控制台句柄按 c_void_p 完整传递，
-        # 避免 64 位进程里默认 c_int 截断句柄，导致 SetConsoleMode 静默失败、
-        # 明明支持 ANSI 却误回退到逐帧 cls。
-        kernel32.GetStdHandle.argtypes = [DWORD]
-        kernel32.GetStdHandle.restype = ctypes.c_void_p
-        kernel32.GetConsoleMode.argtypes = [ctypes.c_void_p, ctypes.POINTER(DWORD)]
-        kernel32.GetConsoleMode.restype = BOOL
-        kernel32.SetConsoleMode.argtypes = [ctypes.c_void_p, DWORD]
-        kernel32.SetConsoleMode.restype = BOOL
-        handle = kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
-        mode = DWORD()
-        if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
-            return False
-        return bool(kernel32.SetConsoleMode(
-            handle, mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
-    except Exception:
-        return False
-
-# 模块加载时探测一次并缓存；回退/降级测试可通过改写本标志模拟环境。
-_ANSI_AVAILABLE = _enable_vt_processing()
-
-def _write_ansi(code):
-    """向 stdout 写入 ANSI 序列并立即刷新（ANSI 不可用时为无操作）。"""
-    if _ANSI_AVAILABLE:
-        sys.stdout.write(code)
-        sys.stdout.flush()
-
-def _clear_screen():
-    """整屏清屏：ANSI 可用时发送清屏码，否则回退到平台默认的 cls 兜底。"""
-    if _ANSI_AVAILABLE:
-        _write_ansi(ANSI_CLEAR_SCREEN)
-    else:
-        os.system('cls')
-
-def _hide_cursor():
-    """隐藏光标（仅 ANSI 模式生效；回退模式下为无操作，光标保持可见）。"""
-    _write_ansi(ANSI_HIDE_CURSOR)
-
-def _show_cursor():
-    """恢复显示光标（仅 ANSI 模式生效；回退模式下为无操作）。"""
-    _write_ansi(ANSI_SHOW_CURSOR)
-
-def interactive_ui(root_path, sizes, contents, driver_name):
-    """
-    显示终端交互式界面，返回用户操作。
-    返回: ('quit', None) 或 ('change', new_path_str)
-    """
-    _hide_cursor()
-    try:
-        return _interactive_ui_loop(root_path, sizes, contents, driver_name)
-    finally:
-        _show_cursor()
-
-
-def _interactive_ui_loop(root_path, sizes, contents, driver_name):
-    """交互主循环本体（由 interactive_ui 的 try/finally 保证退出时恢复光标）。"""
-    current_path = root_path
-    selected_idx = 0
-
-    while True:
-        term_height = shutil.get_terminal_size().lines
-        list_height = max(5, term_height - 7)
-
-        _clear_screen()
-        print(f"=== {APP_NAME} ===")
-        print(f"内核驱动: {driver_name}")
-        print(f"当前路径: {current_path}")
-        print(f"当前目录总计: {human_size(sizes.get(current_path, 0))}")
-        print("-" * 75)
-
-        items = contents.get(current_path, [])
-        if not items:
-            print("  (空文件夹，或该驱动内核已启用系统安全裁剪拦截)")
-        else:
-            start_idx = max(0, selected_idx - list_height // 2)
-            end_idx = min(len(items), start_idx + list_height)
-            if end_idx - start_idx < list_height and len(items) > list_height:
-                start_idx = len(items) - list_height
-
-            for i in range(start_idx, end_idx):
-                name, is_dir, size = items[i]
-                prefix = " > " if i == selected_idx else "   "
-                type_indicator = "[目录]" if is_dir else "[文件]"
-                display_name = name if len(name) < 45 else name[:42] + "..."
-                print(f"{prefix}{type_indicator:^6} {human_size(size):>10}  | {display_name}")
-
-        print("-" * 75)
-        print("操作指引: [W/S] 或 [↑/↓] 移动光标 | [Enter] 进入目录 | [Backspace] 返回上级 | [C] 切换扫描路径 | [Q] 退出")
-
-        key = _getch()
-        if key in (b'\xe0', b'\x00'):
-            key = _getch()
-            if key == b'H':   # 上
-                if items:
-                    selected_idx = max(0, selected_idx - 1)
-            elif key == b'P': # 下
-                if items:
-                    selected_idx = min(len(items) - 1, selected_idx + 1)
-        elif key in (b'w', b'W'):
-            if items:
-                selected_idx = max(0, selected_idx - 1)
-        elif key in (b's', b'S'):
-            if items:
-                selected_idx = min(len(items) - 1, selected_idx + 1)
-        elif key == b'\r':  # Enter
-            if items and items[selected_idx][1]:
-                current_path = current_path / items[selected_idx][0]
-                selected_idx = 0
-        elif key == b'\x08':  # Backspace
-            if current_path != root_path:
-                current_path = current_path.parent
-                selected_idx = 0
-        elif key in (b'q', b'Q'):
-            return ('quit', None)
-        elif key in (b'c', b'C'):
-            # 切换路径（input() 输入期间恢复光标可见，结束后重新隐藏）
-            _clear_screen()
-            print("请输入新的扫描路径 (例如 C:\\ 或 D:\\Downloads):")
-            try:
-                _show_cursor()
-                new_path = input().strip()
-            finally:
-                _hide_cursor()
-            if new_path:
-                try:
-                    p = Path(new_path).resolve()
-                    if p.exists():
-                        return ('change', str(p))
-                    else:
-                        print(f"路径不存在: {p}，按任意键继续...")
-                        _getch()
-                except MsvcrtUnavailableError:
-                    raise  # 非 Windows：透传 main() 统一处理，避免误报“无效路径”
-                except Exception as e:
-                    print(f"无效路径: {e}，按任意键继续...")
-                    _getch()
-            # 如果取消或无效，回到UI继续
-
-# =================【主控制流入口】=================
-def main():
-    log(f"🚀 {APP_NAME}启动中...")
-    target_drive = prompt_target_drive()
-    init_windows_job_sandbox()
-    try:
-        ensure_everything_running()  # 确保 Everything 已启动
-    except EverythingEnvironmentError as e:
-        _fatal(str(e))
-
-    root_path_obj = Path(target_drive).resolve()
-    if not root_path_obj.exists():
-        _fatal(f"错误: 指定的扫描路径不存在: {root_path_obj}")
-
-    driver_label = "Everything SDK (高速总线版)"
-    dir_sizes = None
-    dir_contents = None
-
-    # 主循环，支持切换路径
-    while True:
-        # 释放旧资源
-        if dir_sizes is not None:
-            del dir_sizes
-        if dir_contents is not None:
-            del dir_contents
-        gc.collect()  # 强制回收
-
-        print(f"\n🔍 开始扫描: {root_path_obj}")
-        try:
-            dir_sizes, dir_contents = scan_via_everything_sdk(root_path_obj)
-        except Exception as e:
-            print(f"❌ 扫描失败: {e}")
-            print("请检查 Everything 是否正常运行，或尝试切换路径。")
-            input("按任意键退出...")
-            sys.exit(1)
-
-        print("✅ 扫描数据准备完成，正在进入交互界面。")
-        try:
-            action, result = interactive_ui(root_path_obj, dir_sizes, dir_contents, driver_label)
-        except MsvcrtUnavailableError as e:
-            _exit_with_error(e)
-        if action == 'quit':
-            _clear_screen()
-            print(f"已安全退出 {APP_NAME}。")
-            break
-        elif action == 'change':
-            new_path_str = result
-            new_path = Path(new_path_str).resolve()
-            if new_path.exists():
-                root_path_obj = new_path
-                print(f"✅ 已切换到新路径: {root_path_obj}")
-                # 继续循环，重新扫描
-            else:
-                print(f"❌ 路径无效: {new_path_str}，按任意键返回...")
-                try:
-                    _getch()
-                except MsvcrtUnavailableError as e:
-                    _exit_with_error(e)
-                # 继续使用旧路径
-        else:
-            break
+# 将当前模块实例的类型替换为 _MainModule（types.ModuleType 的直接子类，
+# 实例布局兼容，CPython 支持模块实例的 __class__ 替换）。
+sys.modules[__name__].__class__ = _MainModule
 
 
 if __name__ == "__main__":
