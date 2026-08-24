@@ -10,7 +10,15 @@
    main.MsvcrtUnavailableError 等），这里把拆到 utils/sdk/env/scan/tui/exceptions
    里的所有顶层名字全量导回 main 命名空间，保证 import main 的可用名字集合
    与拆分前完全一致；
-3. 可变全局与补丁敏感函数动态转发：DLL_PATH/VERBOSE/_ANSI_AVAILABLE/
+3. D9 兼容层增量：snapshots（save_snapshot/load_snapshot/list_snapshots/
+   get_snapshot_dir/should_auto_save/常量与异常）、compare（compare_snapshots/
+   top_growth/diff_from_current/format_row/CompareError）、dispatcher
+   （EverythingQueryDispatcher/DispatcherError）、keyrouter（key_to_action/
+   help_text/ACT_*）、messages（render_message/list_template_ids/
+   BANNER_TEMPLATES）与 scan 新增（compute_fingerprint/light_refresh/
+   deep_refresh/ScanCancelledError/clear_fingerprint_cache 等）同样静态
+   from-import 回拷，旧脚本按 main.<名字> 使用不受影响；
+4. 可变全局与补丁敏感函数动态转发：DLL_PATH/VERBOSE/_ANSI_AVAILABLE/
    _GLOBAL_JOB_HANDLE/_getch/msvcrt/winreg，以及 env 装配层在函数体内从模块
    全局查找的 resolve_everything_dll/find_everything_exe/load_config/
    save_config/wait_for_everything_ipc/bind_pid_to_job_sandbox，采用自定义
@@ -44,6 +52,7 @@ from cli import main, prompt_target_drive  # noqa: F401,E402
 # =================【兼容性 re-export（静态拷贝）】=================
 # 以下名字在拆分前后都不会被重新赋值，直接 from-import 拷贝即可保持等价。
 from exceptions import MsvcrtUnavailableError, EverythingEnvironmentError  # noqa: F401
+from datadir import ensure_data_dir, get_data_dir, get_exports_dir, get_snapshots_dir, wipe_data  # noqa: F401
 from utils import (  # noqa: F401
     APP_NAME,
     CONFIG_PATH,
@@ -101,9 +110,16 @@ from scan import (  # noqa: F401
     MAX_FILES_PER_DIR,
     SCAN_PROGRESS_REFRESH_INTERVAL,
     LazyContents,
+    ScanCancelledError,
     _build_lazy_contents,
     _dir_sort_key,
     _is_scan_root,
+    clear_fingerprint_cache,
+    compute_fingerprint,
+    deep_refresh,
+    fingerprint_key,
+    fingerprints_equal,
+    light_refresh,
     scan_via_everything_sdk,
 )
 from tui import (  # noqa: F401
@@ -117,6 +133,77 @@ from tui import (  # noqa: F401
     _show_cursor,
     _write_ansi,
     interactive_ui,
+)
+
+# =================【D9 兼容层增量：snapshots/compare/dispatcher/keyrouter/messages】=================
+# 以下模块在 D6-D8 批次新增；顶层公共 API 全部静态 from-import 回拷（这些名字
+# 拆分前后都不会被重新赋值，拷贝等价），保持旧脚本「import main 后按
+# main.<名字> 使用」的习惯不变。
+from snapshots import (  # noqa: F401
+    AUTO_MAX_PER_ROOT_PER_DAY,
+    KEEP_AUTO,
+    KEEP_EXPLICIT,
+    MAX_BYTES_PER_DAY,
+    MAX_ROWS,
+    REASON_ALREADY_SAVED_TODAY,
+    REASON_DIRTY,
+    REASON_FINGERPRINT_UNCHANGED,
+    REASON_NOT_TREE_COMPLETE,
+    REASON_OK,
+    SNAPSHOT_FORMAT_VERSION,
+    SnapshotBusyError,
+    SnapshotCorruptError,
+    SnapshotError,
+    day_write_budget_ok,
+    default_snapshot_dir,
+    get_machine_guid,
+    get_snapshot_dir,
+    is_snapshot_disabled,
+    list_snapshots,
+    load_ledger,
+    load_snapshot,
+    record_day_writes,
+    save_ledger,
+    save_snapshot,
+    scan_snapshot_dir,
+    should_auto_save,
+    update_ledger_after_save,
+)
+from compare import (  # noqa: F401
+    MIN_GROWTH_BASE_BYTES,
+    CompareError,
+    compare_snapshots,
+    diff_from_current,
+    format_row,
+    top_growth,
+)
+from dispatcher import DispatcherError, EverythingQueryDispatcher  # noqa: F401
+from keyrouter import (  # noqa: F401
+    ACT_BACK,
+    ACT_CHANGE_ROOT,
+    ACT_ENTER,
+    ACT_HELP,
+    ACT_HISTORY,
+    ACT_MOVE_DOWN,
+    ACT_MOVE_UP,
+    ACT_NONE,
+    ACT_PATH_JUMP,
+    ACT_QUIT,
+    ACT_REFRESH_DEEP,
+    ACT_REFRESH_LIGHT,
+    ACT_SAVE_SNAPSHOT,
+    FORBIDDEN_KEYS,
+    KEY_BINDINGS,
+    help_text,
+    key_to_action,
+)
+from messages import (  # noqa: F401
+    BANNER_ERROR,
+    BANNER_INFO,
+    BANNER_TEMPLATES,
+    BANNER_WARN,
+    list_template_ids,
+    render_message,
 )
 
 # =================【可变全局与补丁敏感函数的动态转发】=================

@@ -1,6 +1,6 @@
 # Python 智能磁盘分析工具
 
-这是一个基于 Everything SDK 的 Windows 终端磁盘占用分析工具。程序通过 Everything 的索引高速读取文件路径和大小，然后在终端里按目录展示空间占用，支持进入目录、返回上级和切换扫描路径。
+这是一个基于 Everything SDK 的 Windows 终端磁盘占用分析工具。程序通过 Everything 的索引高速读取文件路径和大小，然后在终端里按目录展示空间占用，支持进入目录、返回上级、两级刷新、路径跳转、快照保存与历史对比。
 
 ## 功能特点
 
@@ -14,6 +14,9 @@
 - 目录条目按需构建并只缓存最近访问的少量目录（有界缓存，上限 128 个目录），进一步降低扫描后的内存峰值。
 - 目录大小自底向上汇总，父目录包含全部子目录；汇总止于扫描根，不向扫描根之上的路径传播。
 - 终端交互式浏览目录占用，支持切换扫描路径。
+- 两级刷新：`r` 轻刷当前目录、`R` 深刷全量重建；根目录轻刷走**指纹门**（`compute_fingerprint`，60 秒冷却缓存）——数据未变毫秒级返回「数据未变」，内容变化或探测失败自动升级为深刷；深刷有 60 秒冷却，在途可 `Esc` 取消。
+- `/` 路径跳转：根内任意路径直接跳转、不触发重扫，自带最近 16 条跳转历史。
+- 快照与历史对比：交互模式干净退出自动保存快照（gzip JSONL + 台账），支持 `--snapshot-dir` 自定义目录、`--no-snapshot` 禁用；非交互模式用 `--baseline` 与基线快照对比并打印 Top-N 变化。`S` 保存快照 / `H` 历史对比 / `h` 帮助键位已注册。
 - 启动 Everything 的子进程被绑定到 Windows 作业对象（`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`），程序退出时不会残留孤儿进程。
 
 ## 运行环境
@@ -22,6 +25,7 @@
 - Python 3.9 或更高版本
 - Everything 1.4.x
 - Everything SDK DLL
+- 交互界面终端窗口高度建议至少 12 行（低于约 12 行时列表区被压缩、横幅提示「终端过小」）
 
 当前项目已包含 `everything-SDK` 目录，目录结构如下：
 
@@ -35,6 +39,11 @@
   scan.py
   tui.py
   utils.py
+  keyrouter.py
+  messages.py
+  dispatcher.py
+  snapshots.py
+  compare.py
   tests/
   requirements.txt
   README.md
@@ -129,18 +138,31 @@ python <project PATH>\main.py
 D:\
 ```
 
-进入交互界面后：
+进入交互界面后（键位与界面底部「操作指引」行同源，由 `keyrouter` 注册表自动生成）：
 
-- `W` / `S` 或 `↑` / `↓` 方向键：上下移动光标
+- `W` / `↑`：向上移动光标；`s` / `↓`：向下移动光标（方向键与 Alt+方向键均支持）
 - `Enter`：进入选中的目录（仅对目录项生效，文件项不响应）
 - `Backspace`：返回上级目录（不能高于扫描根）
 - `C`：切换扫描路径，按提示输入新路径（例如 `C:\` 或 `D:\Downloads`），路径有效则重新扫描并进入
-- `Q`：退出程序
+- `r`：轻刷当前目录（只刷新当前目录的直接子项，不重建整棵树）
+- `R`：深刷全量重建（重新执行完整扫描；60 秒冷却，冷却期间按 `R` 只提示不执行；在途深扫按 `Esc` 取消）
+- `/`：路径跳转（在扫描根内输入任意路径直接跳转，不触发重扫；支持最近 16 条跳转历史）
+- `S`：保存快照（键位已注册，见「快照与自动保存」）
+- `H`：历史对比（键位已注册，现阶段命令行入口为 `--baseline`，见「历史对比」）
+- `h`：帮助（键位已注册）
+- `Q`：退出程序（干净退出会自动保存快照，见「快照与自动保存」）
+
+### 终端要求
+
+交互界面采用 ANSI/VT 渲染（不可用时自动回退逐帧 `cls`）。终端窗口高度建议
+**至少 12 行**：低于该下限时列表可视区被压缩，界面横幅会提示「终端过小」；
+终端较窄时目录名会截断显示（超长部分以 `...` 省略）。
 
 ### 非交互模式：命令行参数
 
 提供扫描路径 `TARGET` 位置参数即进入非交互模式：扫描后打印 Top-N 目录占用报告并
-退出，不进入交互界面。（交互模式下下列参数一律被忽略。）
+退出，不进入交互界面。（交互模式下 `--top/--quiet/--export/--output/--baseline`
+一律被忽略；`--snapshot-dir` 与 `--no-snapshot` 两种模式都生效。）
 
 ```powershell
 python <project PATH>\main.py D:\
@@ -148,6 +170,9 @@ python <project PATH>\main.py D:\ --top 20
 python <project PATH>\main.py D:\ --quiet
 python <project PATH>\main.py D:\ --export csv
 python <project PATH>\main.py D:\ --export json --output D:\reports\disk_20260821.json
+python <project PATH>\main.py --snapshot-dir D:\snapshots
+python <project PATH>\main.py --no-snapshot
+python <project PATH>\main.py D:\ --baseline D:\snapshots\data_20260821_153000_auto_1a2b3c4d.snap.gz
 ```
 
 | 参数 | 说明 |
@@ -157,11 +182,14 @@ python <project PATH>\main.py D:\ --export json --output D:\reports\disk_2026082
 | `--quiet` | 非交互模式下仅输出 Top-N 报告与错误信息，抑制 🚀/🧩 等过程日志与扫描进度行（\r），便于下游脚本逐行解析；交互模式下忽略 |
 | `--export {csv,json}` | 把目录占用报告导出到文件：csv 或 json。导出**全部目录**（含扫描根与各级子目录）的聚合占用大小，不受 `--top` 限制；仅目录级聚合大小，不含文件明细；`--quiet` 不影响导出文件生成，屏幕 Top-N 报告照常打印。交互模式下忽略 |
 | `--output PATH` | 导出文件路径，需与 `--export` 搭配使用；未指定时在当前目录自动命名 `disk_report_YYYYMMDD_HHMMSS.<后缀>`，格式后缀跟随 `--export`（csv 或 json）。交互模式下忽略 |
+| `--snapshot-dir PATH` | 覆盖快照存储目录（等效设置环境变量 `DSA_SNAPSHOT_DIR`）；交互与非交互模式都生效。不指定时用默认目录（见「快照存储位置」） |
+| `--no-snapshot` | 禁用快照自动保存（等效设置 `DSA_NO_SNAPSHOT=1`）：交互模式干净退出不再自动落盘退出快照；显式保存同样被禁用 |
+| `--baseline PATH` | 非交互模式下指定基线快照文件（`.snap.gz`）：加载该快照并与本次扫描结果对比，按变化量打印 Top-N 对比报告（`compare.format_row` 版式）；基线文件缺失/损坏 → 中文提示 + 退出码 1。交互模式下忽略 |
 
 退出码约定：
 
-- `0`：扫描完成（含按需导出），正常结束；
-- `1`：致命错误——扫描路径不存在、Everything 环境未就绪、扫描失败、或导出文件写入失败；
+- `0`：扫描完成（含按需导出/对比），正常结束；
+- `1`：致命错误——扫描路径不存在、Everything 环境未就绪、扫描失败、导出文件写入失败、`--baseline` 文件缺失或损坏、对比失败（跨盘/跨根）；
 - `2`：命令行参数错误（例如非法的 `--top` / `--export` 取值，或 headless 下单独给出 `--output` 未搭配 `--export`）。
 
 CSV 导出格式：首行表头 `路径,大小(字节),大小(可读)`，其后每行一个目录（含扫描
@@ -185,6 +213,76 @@ JSON 导出格式：
 `directories` 为目录级明细（`path` / `size_bytes` / `size_human`），按聚合大小降序
 排列，含扫描根自身。
 
+## 快照与自动保存
+
+快照是磁盘扫描树的可持久化副本，用于历史对比。一套快照 = 一份 gzip 压缩的
+JSONL 文件（首行头部 JSON，其后每行一个 `{"p": 路径, "s": 大小}` 目录记录）。
+
+### 保存触发
+
+- **干净退出自动保存**：交互模式正常退出（`Q` 或主流程正常结束）时自动保存一次，
+  条件为「自动保存未禁用 且 本会话完成过 ≥1 次完整扫描」，并经过**四原子谓词**
+  判定（任一不满足即不落盘）：
+  1. 完整树（`tree_complete`）：本次扫描是完整扫描树（刷新/跳转/中断产生的
+     不完整树永不落盘）；
+  2. 非脏（`dirty`）：扫描期间无脏标记；
+  3. 指纹变化（`fingerprint`）：根目录指纹（`scan.compute_fingerprint`，文件数/
+     目录数/根 mtime）与台账中该根上次记录不同（无台账视为变化）；
+  4. 当日未落（`date`）：同一根当天尚未自动落盘过（每根每日最多 1 份自动快照）。
+- **显式保存**：`S` 键位已注册（显式保存入口随交互界面批次接线）；显式保存
+  不做当日配额，滚动保留最新 30 份。
+
+### 快照存储位置
+
+按以下优先级解析：
+
+1. `--snapshot-dir PATH` 命令行参数（写入环境变量 `DSA_SNAPSHOT_DIR`）；
+2. 环境变量 `DSA_SNAPSHOT_DIR`；
+3. 默认目录：`%LOCALAPPDATA%\PythonDiskScanner\snapshots`；若程序目录存在
+   `portable.flag` 便携标记，则改为跟随程序目录 `<程序目录>\snapshots`。
+
+禁用：`--no-snapshot` 或环境变量 `DSA_NO_SNAPSHOT`（非空且非 `'0'`）会关闭一切
+快照落盘（自动保存与显式保存都被禁用）。
+
+### 文件格式与命名
+
+- 文件名：`{根名}_{YYYYMMDD_HHMMSS}_{auto|explicit}_{机器标识前8位}.snap.gz`
+  （根名取扫描路径 basename，非法字符净化为 `_`）；
+- 头部（首行 JSON）：`format`（版本 1）/ `machine_guid`（机器标识）/ `root`
+  （扫描根绝对路径）/ `created_at` / `auto`（是否自动保存），附字段序 CRC 校验；
+- 其后每行一个目录记录：`{"p": "D:\\data", "s": 1048576}`；
+- 写入流程：临时文件 → gzip 逐行写 → 一次 `flush + fsync` → `os.replace` 原子
+  替换；并发写用锁文件互斥，冲突抛「另一个快照保存正在进行」类提示；
+- 大小上限：单份不超过 50 万行；写盘前检查当日全局写量（默认 102.4 MiB/天）。
+
+### 台账与滚动保留
+
+快照目录下维护 `ledger.json` 台账：记录每个根的「最后指纹 / 末次自动保存日期 /
+当日自动次数」，是四原子谓词第 3、4 条的判定依据；自动保存落盘成功后账目顺带
+更新。同根同模式的旧快照按时间滚动清理：自动快照保留最新 10 份、显式快照保留
+最新 30 份。
+
+## 历史对比
+
+`--baseline PATH` 在非交互模式把**本次扫描结果**（不落盘）与基线快照做 diff：
+按变化量（`delta`）绝对值降序取前 `--top N` 条，每行由 `compare.format_row`
+渲染（右对齐带符号变化大小 + 增速列 + 路径；增幅列仅对基线 ≥ 1 MiB 的目录
+计算，小基数显示 `-`）。删除的目录标负 delta，新增目录标正 delta。
+
+示例输出（Top 3）：
+
+```text
+与基线快照对比 Top 3（基线: D:\snapshots\data_20260821_153000_auto_1a2b3c4d.snap.gz）:
+   +12.34 MB      +5.00%  D:\data
+   -8.10 MB      -2.00%  D:\old
+   +1.00 KB         -    D:\new
+           合计变化 | 基线 1.20 GB → 当前 1.21 GB（共 4 条差异）
+```
+
+约束与口径：对比要求快照格式版本一致；root 由两域路径集合的公共前缀推导，
+跨盘（如基线在 `C:`、扫描在 `D:`）拒绝并提示；行数据不携带机器信息，严格
+机器一致性校验由 `load_snapshot` 在加载基线时完成。
+
 ## 项目结构
 
 代码按职责拆分为多个模块（由最初的单文件 `main.py` 演进而来，`main.py`
@@ -192,13 +290,17 @@ JSON 导出格式：
 
 ```text
 main.py          程序入口与兼容层：运行 python main.py 时调用 cli.main()；
-                 同时把拆分后各模块的公共/下划线名字全量导回 main 命名空间，
-                 并动态转发可变全局（DLL_PATH / VERBOSE / _ANSI_AVAILABLE /
-                 _GLOBAL_JOB_HANDLE / _getch / msvcrt / winreg 等），保证旧脚本
-                 import main 后按 main.<名字> 使用 API 的写法不变
-cli.py           命令行装配层：主控制流——提示输入扫描路径、初始化作业对象沙盒、
-                 确保 Everything 运行环境就绪、执行 SDK 扫描、进入交互界面并处理
-                 切换路径/退出；不定义业务状态，main.py 仅从这里取 main
+                 同时把拆分后各模块的公共/下划线名字全量导回 main 命名空间
+                 （含 snapshots/compare/dispatcher/keyrouter/messages 与 scan
+                 的新增 API），并动态转发可变全局（DLL_PATH / VERBOSE /
+                 _ANSI_AVAILABLE / _GLOBAL_JOB_HANDLE / _getch / msvcrt /
+                 winreg 等），保证旧脚本 import main 后按 main.<名字> 使用
+                 API 的写法不变
+cli.py           命令行装配层：主控制流——提示输入扫描路径、初始化作业对象
+                 沙盒、确保 Everything 运行环境就绪、执行 SDK 扫描、进入
+                 交互界面并处理切换路径/退出；D9 起提供 --snapshot-dir /
+                 --no-snapshot / --baseline 参数，交互正常退出统一归口
+                 干净退出自动保存（_auto_save_on_exit）
 env.py           运行环境协调：config.json 读写、Everything.exe 定位（注册表 /
                  PATH / 程序目录 / 常见安装目录）、进程与会话判定（识别 Session 0
                  后台进程）、Windows 作业对象防孤儿沙盒、Everything 启动与
@@ -207,14 +309,34 @@ sdk.py           Everything SDK 封装与 Win32 常量：DLL 架构选择（32/6
                  SDK 函数签名声明、IPC/数据库健康检查；DLL_PATH 模块级全局在此
 scan.py          高速扫描：三阶段扫描主流程（文件收集 + 每目录最大 50 文件、
                  目录树构建、自底向上汇总）、扫描根判定（汇总止于扫描根）、
-                 LazyContents 按需构建的有界缓存
+                 LazyContents 按需构建的有界缓存；D4 增加指纹门
+                 （compute_fingerprint / FINGERPRINT_CACHE / fingerprints_equal /
+                 clear_fingerprint_cache）、轻刷（light_refresh）与深刷
+                 （deep_refresh，可取消，ScanCancelledError）
 tui.py           终端交互界面：msvcrt 受保护导入与统一按键读取 _getch、ANSI/VT
-                 渲染（不可用时回退 os.system('cls')）、交互主循环
+                 渲染（不可用时回退 os.system('cls')）、交互主循环；键位分发、
+                 两级刷新 r/R 与路径跳转 / 接在 keyrouter 动作上
+keyrouter.py     键位注册表与纯函数按键分发：KEY_BINDINGS 单数据结构描述全部
+                 注册键位（含 ACT_SAVE_SNAPSHOT=save_snapshot / ACT_HISTORY=
+                 history / ACT_HELP=help 动作常量），help_text() 由注册表自动
+                 生成操作指引行，禁键黑名单（Ctrl+C/Tab/F 键等）
+messages.py      横幅文案模板资产：模板 ID（BANNER_TEMPLATES）+ render_message /
+                 list_template_ids，错误/状态文案与界面层同源、不散落
+dispatcher.py    Everything 查询统一调度器：进程内并发=1、250ms 防抖合并、
+                 代际令牌丢弃过期结果、统一错误码（DispatcherError）
+snapshots.py     快照模块：自动/显式保存（四原子谓词、日配额、原子写、并发锁）、
+                 台账 ledger.json、滚动保留、读取/列表/自检（save_snapshot /
+                 load_snapshot / should_auto_save / load_ledger /
+                 get_snapshot_dir / is_snapshot_disabled 等）
+compare.py       历史对比引擎：compare_snapshots / diff_from_current（内存树与
+                 基线快照对比）/ top_growth / format_row，纯引擎不做 UI
 utils.py         通用工具：应用名、日志开关、human_size、致命错误出口、
                  应用目录与配置路径
 exceptions.py    公共异常：MsvcrtUnavailableError、EverythingEnvironmentError
-tests/           单元测试：test_cli / test_env / test_export / test_scan / test_sdk / test_tui /
-                 test_utils，共 161 个用例
+tests/           单元测试与集成测试：test_cli / test_env / test_export / test_scan /
+                 test_sdk / test_tui / test_utils / test_keyrouter / test_messages /
+                 test_refresh / test_jump / test_dispatcher / test_snapshots /
+                 test_compare / test_integration，共 333 个用例
 everything-SDK/  Everything SDK DLL（dll\ 下为 Everything32.dll、Everything64.dll）
 ```
 
@@ -226,7 +348,7 @@ everything-SDK/  Everything SDK DLL（dll\ 下为 Everything32.dll、Everything6
 
 1. 安装 Python 3.9+。
 2. 安装 Everything。
-3. 将全部 `.py` 模块（`main.py`、`cli.py`、`env.py`、`sdk.py`、`scan.py`、`tui.py`、`utils.py`、`exceptions.py`）、`requirements.txt`、`README.md` 和 `everything-SDK` 放在同一目录。
+3. 将全部 `.py` 模块（`main.py`、`cli.py`、`env.py`、`sdk.py`、`scan.py`、`tui.py`、`utils.py`、`exceptions.py`、`keyrouter.py`、`messages.py`、`dispatcher.py`、`snapshots.py`、`compare.py`）、`requirements.txt`、`README.md` 和 `everything-SDK` 放在同一目录。
 4. 运行：
 
 ```powershell
@@ -235,12 +357,26 @@ python main.py
 
 ### 可选：打包为 exe
 
-仓库当前不附带打包脚本与预构建产物（`PyInstaller` 仅为可选工具），如需
-打包可自行安装：
+依赖 `PyInstaller`（可选工具），按需安装：
 
 ```powershell
 pip install pyinstaller
 ```
+
+**Web 版（推荐，Phase 5 起）**：一键打包 Flask 本地 Web 应用为单 exe
+（含 `web/` 界面、自绘图标，双击启动自动开浏览器，无黑窗）：
+
+```powershell
+.\scripts\build_web.ps1            # 若 .tools\upx 存在则自动 UPX 压缩
+.\scripts\build_web.ps1 -NoUpx     # 跳过 UPX（个别杀软误报时用）
+```
+
+产物在 `releases\PythonDiskScanner-web\`：`PythonDiskScanner.exe`（约 9.5 MB）
++ `everything-SDK\dll\`（32/64 位 DLL 随包提供）+ `使用说明.txt`，
+另有同名 zip 分发包。图标由 `scripts\make_icon.py`（纯标准库）生成；
+spec 位于 `packaging\pyinstaller\python-disk-scanner-web.spec`。
+
+**终端版（旧）**：仍可打包 CLI 工具：
 
 ```powershell
 pyinstaller main.py
@@ -281,16 +417,28 @@ Everything SDK DLL（程序按「exe 目录\everything-SDK\dll\ → exe 目录\�
 
 可以先打开 Everything 客户端，确认搜索同一磁盘路径能看到结果。
 
+### 快照保存失败
+
+自动保存失败（如快照目录不可写、当日写量超限、并发写冲突）不影响程序退出，
+仅在 verbose 模式提示一行；可用 `--snapshot-dir` 换个可写目录，或
+`--no-snapshot` 关闭自动保存。
+
 ## 开发验证
 
-运行全部单元测试（161 个用例）：
+运行全部单元测试（共 333 个用例，含 D9 集成测试）：
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
+单独运行 D9 集成测试：
+
+```powershell
+python -m unittest tests.test_integration -v
+```
+
 检查语法：
 
 ```powershell
-python -m py_compile main.py cli.py env.py sdk.py scan.py tui.py utils.py exceptions.py
+python -m py_compile main.py cli.py env.py sdk.py scan.py tui.py utils.py exceptions.py keyrouter.py messages.py dispatcher.py snapshots.py compare.py
 ```

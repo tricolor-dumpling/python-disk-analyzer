@@ -1,6 +1,7 @@
 """命令行入口模块（C3 拆分自 main.py；D1 增加命令行参数与非交互模式；D2 增加
 UTF-8 流重配置与 --quiet 静默非交互过程日志；D3 增加 --export/--output 目录
-占用报告导出 CSV/JSON）。
+占用报告导出 CSV/JSON；D9 增加 --snapshot-dir/--no-snapshot/--baseline 与
+干净退出自动保存快照）。
 
 职责：组合各模块完成主控制流——解析命令行参数（可选 target、--top、--quiet 与
 --export/--output），按是否提供 target 分派：交互模式（等待输入目标路径、初始化
@@ -8,6 +9,15 @@ UTF-8 流重配置与 --quiet 静默非交互过程日志；D3 增加 --export/-
 界面并处理切换路径/退出）或非交互模式（同一条 env 启动/等待 + scan 链路，打印
 Top-N 目录占用报告后退出；--export 时另把全部目录聚合占用导出到 CSV/JSON 文件，
 不进入 TUI）。交互路径的输出文案与 UX 与拆分前逐字一致。
+
+D9 快照集成（装配层职责扩展）：
+- --snapshot-dir PATH 覆盖快照目录（写入 DSA_SNAPSHOT_DIR 环境变量，交互与非
+  交互模式都生效）；--no-snapshot 置 DSA_NO_SNAPSHOT=1 禁用自动保存；
+- --baseline PATH 在非交互模式加载基线快照，与本次扫描 sizes 经
+  compare.diff_from_current 对比后按 Top-N 打印 format_row 版式变化报告；
+- 交互主流程正常退出（Q 或主循环结束）统一归口 _auto_save_on_exit：四原子谓词
+  （snapshots.should_auto_save）通过则 save_snapshot(auto=True) 落盘退出快照并
+  补齐台账；失败/未通过一律静默（仅 verbose 提示），绝不阻塞/干扰退出流程。
 
 main() 启动最早处调用 utils._reconfigure_std_streams()：把 stdout/stderr 重配置为
 UTF-8（GBK 控制台/管道下 print 中文与 emoji 不再 UnicodeEncodeError，测试接管
@@ -18,7 +28,7 @@ VERBOSE 门控、始终保留；交互模式下 --quiet 同 --top/--export/--out
 --export/--output 仅非交互模式生效：--export 取值 csv/json（非法值报 argparse
 错误，退出码 2），--output 需与 --export 搭配（headless 下单独给出 --output 报
 argparse 错误，退出码 2）；导出全部目录（含扫描根与各级子目录）的聚合占用，不受
---top 限制；--output 未指定时按 _default_export_path 在当前目录自动命名
+--top 限制；--output 未指定时按 _default_export_path 在数据目录 exports\ 下自动命名
 disk_report_YYYYMMDD_HHMMSS.<csv|json>；写文件失败（OSError，如目录不可写）→
 打印中文提示（非 ANSI）并退出码 1；成功后的确认行经 log() 输出，--quiet 下被
 抑制（保持 D2「仅输出 Top-N 报告与错误信息」的静默契约）。
@@ -32,10 +42,12 @@ import csv
 import datetime
 import gc
 import json
+import os
 import sys
 from pathlib import Path
 
 import utils
+import datadir
 from utils import (
     APP_NAME,
     _exit_with_error,
@@ -46,7 +58,19 @@ from utils import (
 )
 from exceptions import EverythingEnvironmentError, MsvcrtUnavailableError
 from env import ensure_everything_running, init_windows_job_sandbox
-from scan import _is_scan_root, scan_via_everything_sdk
+from scan import _is_scan_root, compute_fingerprint, scan_via_everything_sdk
+from compare import CompareError, diff_from_current, format_row, top_growth
+from snapshots import (
+    SnapshotCorruptError,
+    get_machine_guid,
+    get_snapshot_dir,
+    is_snapshot_disabled,
+    load_ledger,
+    load_snapshot,
+    save_snapshot,
+    should_auto_save,
+    update_ledger_after_save,
+)
 from tui import _clear_screen, _getch, interactive_ui
 
 
@@ -128,6 +152,33 @@ def _parse_args(argv):
             "交互模式下忽略。"
         ),
     )
+    parser.add_argument(
+        "--snapshot-dir",
+        metavar="PATH",
+        default=None,
+        help=(
+            "覆盖快照存储目录（等效设置 DSA_SNAPSHOT_DIR 环境变量）；交互与非"
+            "交互模式均生效。不指定时使用默认目录（见 README「快照存储位置」）。"
+        ),
+    )
+    parser.add_argument(
+        "--no-snapshot",
+        action="store_true",
+        help=(
+            "禁用快照自动保存（等效 DSA_NO_SNAPSHOT=1）：交互模式干净退出不再"
+            "自动落盘退出快照。"
+        ),
+    )
+    parser.add_argument(
+        "--baseline",
+        metavar="PATH",
+        default=None,
+        help=(
+            "非交互模式下指定基线快照文件（.snap.gz）：加载该快照并与本次扫描"
+            "结果对比，按变化量打印 Top-N 对比报告（compare.format_row 版式）；"
+            "交互模式下忽略。"
+        ),
+    )
     parsed = parser.parse_args(argv)
     if parsed.target is not None and parsed.output is not None and parsed.export is None:
         parser.error("--output 需要与 --export 搭配使用（例如 --export csv --output 报告.csv）")
@@ -139,26 +190,42 @@ def main(argv=None):
 
     - 启动最早处重配置 stdout/stderr 为 UTF-8（_reconfigure_std_streams），
       保证 GBK 控制台/管道下中文与 emoji 输出不抛 UnicodeEncodeError；
-    - 未提供 target（含只给 --top/--quiet/--export/--output）→ 交互模式
-      _run_interactive，行为与拆分前逐字一致，--quiet/--export/--output 被忽略；
+    - 未提供 target（含只给 --top/--quiet/--export/--output/--baseline）→ 交互模式
+      _run_interactive，行为与拆分前逐字一致，--quiet/--export/--output/--baseline
+      被忽略（--snapshot-dir/--no-snapshot 例外，两种模式都生效）；
     - 提供 target → 非交互模式 _run_headless，打印 Top-N 报告后以退出码 0 结束；
       --quiet 生效时把进程内 VERBOSE 置 False：过程日志与进度行静默，
       Top-N 报告与 _fatal/扫描失败等必要输出始终保留；
+    - --snapshot-dir PATH 覆盖快照目录、--no-snapshot 禁用自动保存（均写入对应
+      环境变量，交互/非交互都生效）；--baseline PATH 在非交互模式加载基线快照、
+      与本次扫描 diff 后按 Top-N 打印对比报告（缺失/损坏 → 中文提示 + 退出码 1）；
     - --export csv|json 时把全部目录聚合占用导出到文件（不受 --top 限制），
       --output 未指定时在当前目录自动命名；导出写失败 → 中文提示 + 退出码 1。
     """
     _reconfigure_std_streams()
     args = _parse_args(argv)
+    # D9：--snapshot-dir / --no-snapshot 在两种模式下都生效（写入环境变量，
+    # snapshots 模块的 get_snapshot_dir / is_snapshot_disabled 会读取）。
+    if args.snapshot_dir is not None:
+        os.environ["DSA_SNAPSHOT_DIR"] = str(Path(args.snapshot_dir).resolve())
+    if args.no_snapshot:
+        os.environ["DSA_NO_SNAPSHOT"] = "1"
     if args.quiet and args.target is not None:
         utils.VERBOSE = False
     log(f"🚀 {APP_NAME}启动中...")
     if args.target is None:
         return _run_interactive()
-    return _run_headless(args.target, args.top, args.quiet, args.export, args.output)
+    return _run_headless(
+        args.target, args.top, args.quiet, args.export, args.output, args.baseline
+    )
 
 
 def _run_interactive():
-    """交互模式主流程：与拆分前 cli.main() 逐字一致（提示输入 → 环境就绪 → 扫描 → TUI 循环）。"""
+    """交互模式主流程：与拆分前 cli.main() 逐字一致（提示输入 → 环境就绪 → 扫描 → TUI 循环）。
+
+    D9：主循环正常退出（Q / 其他分支 break）后统一归口 _auto_save_on_exit，
+    仅当本会话完成过 ≥1 次完整扫描且快照未禁用时才可能落盘退出快照。
+    """
     target_drive = prompt_target_drive()
     init_windows_job_sandbox()
     try:
@@ -173,6 +240,7 @@ def _run_interactive():
     driver_label = "Everything SDK (高速总线版)"
     dir_sizes = None
     dir_contents = None
+    completed_scans = 0  # D9：本会话完成的完整扫描次数（干净退出自动保存条件之一）
 
     # 主循环，支持切换路径
     while True:
@@ -191,6 +259,8 @@ def _run_interactive():
             print("请检查 Everything 是否正常运行，或尝试切换路径。")
             input("按任意键退出...")
             sys.exit(1)
+
+        completed_scans += 1
 
         print("✅ 扫描数据准备完成，正在进入交互界面。")
         try:
@@ -218,18 +288,85 @@ def _run_interactive():
         else:
             break
 
+    # D9：干净退出自动保存统一归口（Q 或主循环结束后的正常退出路径）。
+    # 扫描失败 / 环境错误等异常退出（sys.exit 提前返回）不会走到这里。
+    if completed_scans > 0:
+        _auto_save_on_exit(root_path_obj, dir_sizes)
 
-def _run_headless(raw_target, top_n, quiet=False, export_format=None, output=None):
+
+def _auto_save_on_exit(root, sizes):
+    """干净退出自动保存（D9）：条件满足时把最终扫描树落盘为 auto 快照。
+
+    条件：is_snapshot_disabled() 为 False 且本会话完成过完整扫描（调用方保证
+    completed_scans > 0 才调用本函数；真实扫描 sizes 必含根键，空 dict 是仅
+    测试/退化输入，直接跳过，避免把空树写进真实快照目录）。
+
+    链路：rows 由最终 sizes（{Path: int}）生成 [{p, s}] →
+    fingerprint=compute_fingerprint(root) → ledger=load_ledger() →
+    should_auto_save 四原子谓词（完整树 ∧ 非脏 ∧ 指纹变 ∧ 当日未落）→ 通过则
+    save_snapshot(auto=True) → 成功后 update_ledger_after_save 补齐台账；
+    失败/未通过一律静默（仅 verbose 提示），任何意外异常被消化，绝不阻塞、
+    干扰或改变正常退出流程。
+    """
+    try:
+        if is_snapshot_disabled() or not sizes:
+            return
+        fingerprint = compute_fingerprint(root)
+        rows = [{"p": str(path), "s": size} for path, size in sizes.items()]
+        dir_path = get_snapshot_dir()
+        ledger = load_ledger(dir_path)
+        ok, reason = should_auto_save(
+            root,
+            tree_complete=True,
+            dirty=False,
+            fingerprint=fingerprint,
+            ledger=ledger,
+        )
+        if not ok:
+            if utils.VERBOSE:
+                log(f"📝 跳过退出自动保存（{reason}）")
+            return
+        try:
+            saved = save_snapshot(
+                root,
+                rows,
+                auto=True,
+                dir_path=dir_path,
+                machine_guid=get_machine_guid(),
+                fingerprint=fingerprint,
+            )
+        except Exception as exc:  # SnapshotBusyError/OSError/ValueError 等一律静默
+            if utils.VERBOSE:
+                log(f"📝 退出自动保存失败: {exc}")
+            return
+        if saved is not None:
+            update_ledger_after_save(root, fingerprint, auto=True, dir_path=dir_path)
+            if utils.VERBOSE:
+                log(f"📝 已自动保存退出快照: {saved}")
+    except Exception:
+        # 自动保存绝不影响正常退出：任何意外（含指纹探测异常）静默跳过
+        if utils.VERBOSE:
+            log("📝 退出自动保存跳过（异常）")
+
+
+def _run_headless(
+    raw_target, top_n, quiet=False, export_format=None, output=None, baseline_path=None
+):
     """非交互模式：路径校验 → 作业沙盒 → 环境就绪 → 扫描 → 打印 Top-N 报告 →（可选）导出。
 
     quiet=True 时把进程内 utils.VERBOSE 置 False（与 main() 的 --quiet 处理幂等，
     保证直接调用本函数也能获得同样的静默语义）；Top-N 报告与错误输出（_fatal/
     扫描失败文案）不经 VERBOSE 门控，始终输出。
 
+    baseline_path 非 None 时（--baseline）：扫描前即校验/加载基线快照（缺失/
+    损坏 → 中文提示 + 退出码 1，fail fast），扫描后把当前 sizes 与基线行经
+    compare.diff_from_current 对比，按 Top-N 打印 format_row 版式变化报告
+    （跨盘/根不一致 → CompareError → 中文提示 + 退出码 1）。
+
     export_format 为 'csv' 或 'json' 时，把扫描得到的全部目录聚合占用写入文件：
     - 导出范围不受 top_n 影响（--top 只作用于屏幕 Top-N 报告），含扫描根与各级
       子目录；数据源为 scan_via_everything_sdk 返回的 sizes（Path→int）；
-    - output 未指定时用 _default_export_path 在当前目录自动命名，后缀跟随格式；
+    - output 未指定时用 _default_export_path 在数据目录 exports\ 下自动命名，后缀跟随格式；
     - 写文件失败（OSError，如目录不可写）→ 打印中文提示（非 ANSI）并以退出码 1
       结束；成功后的确认行经 log() 输出，--quiet 下被抑制（保持 D2 静默契约）。
 
@@ -241,6 +378,9 @@ def _run_headless(raw_target, top_n, quiet=False, export_format=None, output=Non
     root_path_obj = Path(raw_target).resolve()
     if not root_path_obj.exists():
         _fatal(f"错误: 指定的扫描路径不存在: {root_path_obj}")
+    baseline = None
+    if baseline_path is not None:
+        baseline = _prepare_baseline(baseline_path)  # 缺失/损坏 → 中文提示 + 退出码 1
 
     init_windows_job_sandbox()
     try:
@@ -255,6 +395,9 @@ def _run_headless(raw_target, top_n, quiet=False, export_format=None, output=Non
         sys.exit(1)
 
     _print_top_n_report(root_path_obj, dir_sizes, top_n)
+
+    if baseline is not None:
+        _print_baseline_report(baseline, dir_sizes, baseline_path, top_n)
 
     if export_format is not None:
         output_path = Path(output) if output is not None else _default_export_path(export_format)
@@ -287,6 +430,57 @@ def _print_top_n_report(root_path_obj, dir_sizes, top_n):
     print(f"{human_size(total_size):>12}  合计: 共 {total_dirs} 个目录")
 
 
+def _prepare_baseline(baseline_path):
+    """校验并加载 --baseline 快照；文件缺失/损坏/读取失败 → 中文提示 + 退出码 1。
+
+    在扫描/环境就绪之前调用（fail fast）：缺文件、gzip 损坏、头部 CRC/字段
+    校验失败（SnapshotCorruptError）都是用户可修正的输入问题；文案走 headless
+    简洁纯文本契约（无 ❌/ANSI 装饰符）。
+    """
+    path = Path(baseline_path)
+    if not path.exists():
+        print(f"基线快照不存在: {path}")
+        sys.exit(1)
+    try:
+        return load_snapshot(path)
+    except SnapshotCorruptError as exc:
+        print(f"基线快照损坏或无法解析: {exc}")
+        sys.exit(1)
+    except OSError as exc:
+        print(f"基线快照读取失败: {exc}")
+        sys.exit(1)
+
+
+def _print_baseline_report(baseline, dir_sizes, baseline_path, top_n):
+    """打印与基线快照的 Top-N 变化对比（compare.format_row 版式，纯文本无 ANSI）。
+
+    数据源：当前扫描 sizes 不落盘，与基线行经 compare.diff_from_current 对比；
+    root 由两域路径集合公共前缀推导，跨盘/根不一致（CompareError）→ 中文提示 +
+    退出码 1。行序与增速列口径与 TUI 历史对比一致（top_growth 取 delta 降序前 N）。
+    """
+    try:
+        result = diff_from_current(
+            dir_sizes,
+            baseline.get("rows") or [],
+            machine_guid=baseline.get("header", {}).get("machine_guid"),
+        )
+    except CompareError as exc:
+        print(f"对比失败: {exc}")
+        sys.exit(1)
+    rows = top_growth(result, top_n)
+    print(f"\n与基线快照对比 Top {top_n}（基线: {baseline_path}）:")
+    for row in rows:
+        print(format_row(row))
+    print(
+        "{:>12}  合计变化 | 基线 {} → 当前 {}（共 {} 条差异）".format(
+            human_size(result["delta_total"]),
+            human_size(result["total_baseline"]),
+            human_size(result["total_current"]),
+            len(result["rows"]),
+        )
+    )
+
+
 def _sorted_export_entries(dir_sizes):
     """导出用目录条目：全部目录（含扫描根）按聚合大小降序，同大小按路径排序。
 
@@ -300,12 +494,15 @@ def _sorted_export_entries(dir_sizes):
 
 
 def _default_export_path(export_format, base_dir=None, now=None):
-    """未指定 --output 时的自动命名：<当前目录>/disk_report_YYYYMMDD_HHMMSS.<后缀>。
+    """未指定 --output 时的自动命名：<数据目录/exports>/disk_report_YYYYMMDD_HHMMSS.<后缀>。
 
-    export_format 决定后缀（csv/json），与 --export 保持一致；base_dir/now 供
-    测试注入（缺省分别取 Path.cwd() 与当前时刻）。
+    导出默认目录遵循 Phase 0 约定：统一写入数据目录
+    %LOCALAPPDATA%\\PythonDiskScanner\\exports。export_format 决定后缀（csv/json），
+    与 --export 保持一致；base_dir/now 供测试注入（缺省分别取数据目录 exports/
+    与当前时刻）。函数会确保 base_dir 存在，因此默认导出不会因目录缺失而失败。
     """
-    base = Path(base_dir) if base_dir is not None else Path.cwd()
+    base = Path(base_dir) if base_dir is not None else datadir.get_exports_dir()
+    base.mkdir(parents=True, exist_ok=True)
     now = now if now is not None else datetime.datetime.now()
     return base / f"disk_report_{now:%Y%m%d_%H%M%S}.{export_format}"
 

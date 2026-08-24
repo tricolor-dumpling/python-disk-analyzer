@@ -4,7 +4,10 @@
 - 扫描常量（MAX_FILES_PER_DIR/SCAN_PROGRESS_REFRESH_INTERVAL）；
 - 目录深度排序键（_dir_sort_key）、扫描根判定（_is_scan_root）；
 - 惰性 contents（LazyContents/_build_lazy_contents，有界缓存、按需构建）；
-- 扫描主流程（scan_via_everything_sdk）。
+- 扫描主流程（scan_via_everything_sdk）；
+- D4 两级刷新：指纹探测（compute_fingerprint/FINGERPRINT_CACHE/fingerprints_equal/
+  clear_fingerprint_cache）、轻刷（light_refresh，不触碰 sizes/contents）、
+  深刷包装（deep_refresh/ScanCancelledError，支持取消事件）。
 
 SDK 依赖全部通过 sdk 模块访问（sdk.load_everything_sdk/sdk.DLL_PATH/各类
 EVERYTHING_* 常量）；其中 sdk.DLL_PATH 是跨模块共享的可变全局——scan 在未
@@ -15,6 +18,7 @@ EVERYTHING_* 常量）；其中 sdk.DLL_PATH 是跨模块共享的可变全局�
 import ctypes
 import heapq
 import os
+import time
 from collections import defaultdict
 from pathlib import Path
 
@@ -24,6 +28,31 @@ import sdk
 MAX_FILES_PER_DIR = 50
 # Everything 扫描进度刷新间隔（按处理的记录条数计）
 SCAN_PROGRESS_REFRESH_INTERVAL = 10000
+
+
+class ScanCancelledError(Exception):
+    """深刷被用户取消（Esc 置位 cancel_event）时由扫描主循环抛出。
+
+    定义在本模块并 re-export（import scan 后经 scan.ScanCancelledError 使用），
+    调用方（tui 深刷线程）捕获后显示「已取消」——不修改 exceptions.py。
+    """
+
+
+# ------------【D4 指纹门：缓存与阈值常量】------------
+# 指纹缓存：root 规范化路径 str -> (fingerprint dict, computed_at 时间戳)。
+# 模块级可变全局；compute_fingerprint 写入，clear_fingerprint_cache() 清空，
+# 测试可经 scan.FINGERPRINT_CACHE 读写（tui 读取同一份状态）。
+FINGERPRINT_CACHE = {}
+# 指纹 60 秒冷却：命中缓存且未过期（now - computed_at < TTL）直接返回缓存。
+FINGERPRINT_CACHE_TTL = 60.0
+# 目录计数遍历门：结果数 ≤ 50 万才逐条 IsFolderResult 计数（耗时可控），
+# 超过则退化（dir_count=None + ok=False + FINGERPRINT_ERR_TOO_MANY）。
+FINGERPRINT_MAX_COUNT = 500000
+# 指纹探测失败时的内部 error_code（负数哨兵，区别于 Everything 错误码：
+# 探测失败时 error_code 取 Everything_GetLastError()，此处仅本模块私有哨兵）。
+FINGERPRINT_ERR_STAT_FAILED = -101   # os.stat 取根目录 mtime 失败
+FINGERPRINT_ERR_QUERY_FAILED = -102  # SDK 查询/调用抛出意外异常
+FINGERPRINT_ERR_TOO_MANY = -103      # 结果数超 FINGERPRINT_MAX_COUNT，dir_count 退化
 
 
 def _dir_sort_key(p):
@@ -122,11 +151,18 @@ def _build_lazy_contents(dir_sizes, folder_files, folder_subdirs):
     return LazyContents(builder)
 
 
-def scan_via_everything_sdk(root_path_obj):
-    """使用 Everything SDK 高速扫描指定路径，返回 (sizes, contents)"""
-    if sdk.DLL_PATH is None:
-        sdk.DLL_PATH = sdk.resolve_everything_dll()
-    everything = sdk.load_everything_sdk(sdk.DLL_PATH, include_result_functions=True)
+def scan_via_everything_sdk(root_path_obj, cancel_event=None, everything=None):
+    """使用 Everything SDK 高速扫描指定路径，返回 (sizes, contents)。
+
+    新增可选参数（默认 None 时行为与旧签名完全一致，不破坏既有调用方）：
+    - everything：注入的 SDK 实例（测试/嵌入场景直传，跳过 DLL 加载）；
+    - cancel_event：threading.Event，扫描主循环每 SCAN_PROGRESS_REFRESH_INTERVAL
+      （10000）条检查一次，置位即抛 ScanCancelledError（深刷取消）。
+    """
+    if everything is None:
+        if sdk.DLL_PATH is None:
+            sdk.DLL_PATH = sdk.resolve_everything_dll()
+        everything = sdk.load_everything_sdk(sdk.DLL_PATH, include_result_functions=True)
     log(f"🧩 正在加载 Everything SDK: {sdk.DLL_PATH}")
 
     raw_path = str(root_path_obj)
@@ -168,6 +204,12 @@ def scan_via_everything_sdk(root_path_obj):
     # 第一阶段：收集文件大小，同时为每个目录保留最大的若干文件，避免 UI 占用过多内存。
     log("📥 正在读取文件结果并统计目录直接占用...")
     for i in range(num_results):
+        # D4 深刷取消：每 10000 条检查一次 cancel_event（i=0 处首先检查，
+        # 已预置的取消信号立即生效，无需处理任何已有记录）。
+        if cancel_event is not None and i % SCAN_PROGRESS_REFRESH_INTERVAL == 0 \
+                and cancel_event.is_set():
+            raise ScanCancelledError("深刷已由用户取消(Esc)")
+
         if i - last_refresh >= refresh_interval:
             percent = i * 100 // num_results
             log(f"\r处理中 {percent:3d}% ({i:,}/{num_results:,})", end="", flush=True)
@@ -242,3 +284,189 @@ def scan_via_everything_sdk(root_path_obj):
     final_sizes = {Path(k): v for k, v in sizes.items()}
     contents = _build_lazy_contents(final_sizes, folder_files, folder_subdirs)
     return final_sizes, contents
+
+
+# =================【D4 指纹门：compute_fingerprint 系列】================
+
+
+def fingerprint_key(root_path_obj):
+    """规范化根路径作为 FINGERPRINT_CACHE 键。
+
+    大小写折叠（normcase）+ 绝对化 + 分隔符/尾斜杠折叠（Path 归一化），保证
+    tui 读缓存与 scan 写缓存使用完全一致的键（盘符根 C:\\ 自带尾斜杠，不被
+    剥离，键仍唯一）。
+    """
+    return os.path.normcase(os.path.abspath(str(Path(root_path_obj))))
+
+
+def _compute_fingerprint_uncached(root_path_obj, everything=None):
+    """单次指纹探测（不经缓存），返回指纹 dict。
+
+    返回字段：file_count（int，默认查询结果数）、dir_count（int，目录计数；
+    结果超 FINGERPRINT_MAX_COUNT 时退化为 None）、root_mtime（float|None，
+    os.stat 取根目录 mtime）、ok（bool，整体探测是否成功）、error_code
+    （int|None；Everything 错误码或本模块私有负哨兵）。
+    口径说明：指纹用于「数据未变」门控比较，只要求口径跨调用一致且对根内容
+    变化敏感——file_count 取 path:"<root>" 查询结果数（按 SDK 默认口径，其中
+    是否含目录由 Everything 决定），dir_count 在结果集 ≤50 万时逐条
+    IsFolderResult 计数，root_mtime 覆盖「同名替换/原地改目录条目」等计数
+    不变但内容变化的场景。任何一步失败 → ok=False，由调用方（tui）友好降级，
+    绝不崩溃；本函数不触发强制重建索引（只走 IPC 查询）。
+    """
+    result = {
+        "file_count": 0,
+        "dir_count": 0,
+        "root_mtime": None,
+        "ok": True,
+        "error_code": None,
+    }
+    try:
+        result["root_mtime"] = os.stat(root_path_obj).st_mtime
+    except OSError:
+        result["root_mtime"] = None
+        result["ok"] = False
+        result["error_code"] = FINGERPRINT_ERR_STAT_FAILED
+        return result
+    if everything is None:
+        if sdk.DLL_PATH is None:
+            sdk.DLL_PATH = sdk.resolve_everything_dll()
+        everything = sdk.load_everything_sdk(sdk.DLL_PATH, include_result_functions=True)
+    try:
+        raw_path = str(root_path_obj)
+        if not raw_path.endswith("\\"):
+            raw_path += "\\"
+        everything.Everything_SetSearchW('path:"%s"' % raw_path)
+        everything.Everything_SetRequestFlags(sdk.EVERYTHING_REQUEST_FULL_PATH_AND_FILE_NAME)
+        if not everything.Everything_QueryW(True):
+            result["ok"] = False
+            result["error_code"] = everything.Everything_GetLastError()
+            return result
+        num_results = everything.Everything_GetNumResults()
+        result["file_count"] = num_results
+        if num_results <= FINGERPRINT_MAX_COUNT:
+            dir_count = 0
+            for i in range(num_results):
+                if everything.Everything_IsFolderResult(i):
+                    dir_count += 1
+            result["dir_count"] = dir_count
+        else:
+            # 结果超 50 万：全量遍历 IsFolderResult 计数不可行，退化不崩溃
+            result["dir_count"] = None
+            result["ok"] = False
+            result["error_code"] = FINGERPRINT_ERR_TOO_MANY
+        return result
+    except Exception:
+        # 任何 SDK 层意外（换 DLL/缺函数/异常返回）都收敛为 ok=False，调用方降级
+        result["ok"] = False
+        result["error_code"] = FINGERPRINT_ERR_QUERY_FAILED
+        return result
+
+
+def compute_fingerprint(root_path_obj, everything=None, force=False):
+    """探测 root_path_obj 的指纹 dict（含 60 秒冷却缓存）。
+
+    - 命中 FINGERPRINT_CACHE 且未过期（now - computed_at < FINGERPRINT_CACHE_TTL）
+      时直接返回缓存（r@根「毫秒级返回」的依据），不重新查询；
+    - force=True 跳过缓存强制重新探测（并刷新缓存）；
+    - 结果统一写入 FINGERPRINT_CACHE（含 ok=False 的退化结果，语义见
+      fingerprints_equal：探测失败恒判「不等」，由调用方升级深扫）。
+    """
+    key = fingerprint_key(root_path_obj)
+    now = time.time()
+    if not force:
+        cached = FINGERPRINT_CACHE.get(key)
+        if cached is not None:
+            fingerprint, computed_at = cached
+            if now - computed_at < FINGERPRINT_CACHE_TTL:
+                return fingerprint
+    fingerprint = _compute_fingerprint_uncached(root_path_obj, everything)
+    FINGERPRINT_CACHE[key] = (fingerprint, now)
+    return fingerprint
+
+
+def fingerprints_equal(a, b):
+    """两个指纹是否判定为「数据未变」。
+
+    仅在双方均 ok=True 且 file_count/dir_count/root_mtime 三项一致时为 True；
+    任一探测失败（ok=False）或缺失基线一律判 False —— 安全方向：指纹门
+    探测失败时升级为深扫而非误报数据未变。
+    """
+    if a is None or b is None:
+        return False
+    if not a.get("ok") or not b.get("ok"):
+        return False
+    return (
+        a.get("file_count") == b.get("file_count")
+        and a.get("dir_count") == b.get("dir_count")
+        and a.get("root_mtime") == b.get("root_mtime")
+    )
+
+
+def clear_fingerprint_cache():
+    """清空全部根路径指纹缓存（换根/测试重置用）。"""
+    FINGERPRINT_CACHE.clear()
+
+
+# =================【D4 轻刷／深刷】================
+
+
+def light_refresh(root_path_obj, current_dir, everything=None, top=50):
+    """轻刷 current_dir：path:"..." 单查询，返回至多 top 个直接子项（按大小倒序）。
+
+    返回条目列表，结构与 contents 目录条目一致：[(name, is_dir, size), ...]；
+    查询失败返回 None。不触碰 sizes/contents 全局结构（深刷才重建）。
+    - root_path_obj 保持与深刷一致的签名（调用方透传），current_dir 决定查询范围；
+    - path: 查询返回全部后代，这里按 dirname == current_dir 过滤只取直接子项；
+    - 盘符根（C:\\）经 os.path.abspath 保留尾反斜杠，避免 rstrip 后与子项
+      dirname（C:\\）失配；卷条目（驱动根自身）不进入结果，与深刷口径一致；
+    - 已知限制：超大目录（后代极多）的客户端过滤不是毫秒级，巨目录请用深刷。
+    """
+    if everything is None:
+        if sdk.DLL_PATH is None:
+            sdk.DLL_PATH = sdk.resolve_everything_dll()
+        everything = sdk.load_everything_sdk(sdk.DLL_PATH, include_result_functions=True)
+    try:
+        raw_path = str(current_dir)
+        if not raw_path.endswith("\\"):
+            raw_path += "\\"
+        everything.Everything_SetSearchW('path:"%s"' % raw_path)
+        everything.Everything_SetRequestFlags(
+            sdk.EVERYTHING_REQUEST_FULL_PATH_AND_FILE_NAME | sdk.EVERYTHING_REQUEST_SIZE
+        )
+        if not everything.Everything_QueryW(True):
+            return None
+        num_results = everything.Everything_GetNumResults()
+        # abspath 保留盘符根的尾反斜杠（C:\\ 的 dirname 是自身），普通目录形态不变
+        parent_lower = os.path.normcase(os.path.abspath(str(current_dir)))
+        buffer = ctypes.create_unicode_buffer(sdk.FULL_PATH_BUFFER_CHARS)
+        file_size = ctypes.c_ulonglong()
+        entries = []
+        for i in range(num_results):
+            if everything.Everything_IsVolumeResult(i):
+                continue  # 卷条目是驱动根自身，不是直接子项（与深刷 IsVolumeResult 跳过一致）
+            is_dir = bool(everything.Everything_IsFolderResult(i))
+            if not everything.Everything_GetResultFullPathNameW(i, buffer, sdk.FULL_PATH_BUFFER_CHARS):
+                continue
+            full_path = buffer.value
+            if not full_path:
+                continue
+            if os.path.normcase(os.path.dirname(full_path)) != parent_lower:
+                continue  # 只取直接子项：path: 查询会把后代目录里的文件也带回
+            everything.Everything_GetResultSize(i, file_size)
+            size = file_size.value
+            entries.append((size, (os.path.basename(full_path), is_dir, size)))
+        entries.sort(key=lambda x: x[0], reverse=True)
+        return [item for _, item in entries[:top]]
+    except Exception:
+        return None
+
+
+def deep_refresh(root_path_obj, cancel_event=None, everything=None):
+    """深刷 = 重新执行全量扫描（等价 scan_via_everything_sdk），支持取消。
+
+    - cancel_event（threading.Event）置位时，扫描主循环每 10000 条检查一次，
+      置位即抛 ScanCancelledError（ScanCancelledError 从本模块 re-export）；
+    - everything 可注入 SDK 实例（测试用），透传给 scan_via_everything_sdk；
+    - 返回 (sizes, contents)，语义与 scan_via_everything_sdk 完全一致。
+    """
+    return scan_via_everything_sdk(root_path_obj, cancel_event=cancel_event, everything=everything)

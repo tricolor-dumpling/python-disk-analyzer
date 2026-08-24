@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Python 磁盘扫描 · 本地磁盘空间分析</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="brand">
+            <span class="brand-logo" aria-hidden="true">
+                <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 13a8 8 0 0 1 8-8h1a8 8 0 0 1 0 16h-1a8 8 0 0 1-8-8Z"/>
+                    <path d="M13 5l2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5Z"/>
+                </svg>
+            </span>
+            <div>
+                <h1>Python 磁盘扫描</h1>
+                <p class="brand-sub">空间分析工作台</p>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <button id="health-badge" class="badge" title="点击查看 Everything 状态">
+                <span id="health-text">正在检查环境…</span>
+            </button>
+            <button id="btn-guide" class="btn btn-ghost btn-sm" title="重新打开使用指引">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="12" cy="12" r="9"/><path d="M9.2 9a2.8 2.8 0 0 1 5.6.6c0 1.8-2.6 2-2.6 3.4"/><circle cx="12" cy="17.2" r="0.4" fill="currentColor"/>
+                </svg>
+                使用指引
+            </button>
+            <button id="btn-settings" class="btn btn-ghost btn-sm">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3.2"/>
+                    <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.08A1.7 1.7 0 0 0 10.12 3V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.11Z"/>
+                </svg>
+                设置
+            </button>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- 首启引导：紧凑折叠条 -->
+        <section id="onboarding" class="card hero hidden" aria-label="使用指引">
+            <div class="hero-head">
+                <h2>👋 欢迎使用 Python 磁盘扫描</h2>
+                <button id="btn-onboarding-close" class="icon-btn" title="关闭引导">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <p class="hero-sub">先扫描一次，建立空间索引。</p>
+            <ol class="steps hidden">
+                <li class="step">
+                    <span class="step-num">1</span>
+                    <div>
+                        <b>检查环境</b>
+                        <p>确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。</p>
+                    </div>
+                </li>
+                <li class="step">
+                    <span class="step-num">2</span>
+                    <div>
+                        <b>全量扫描</b>
+                        <p>点击「开始全量扫描」，程序在后台依次扫描 C、D 等所有本地盘，进度条实时显示。</p>
+                    </div>
+                </li>
+                <li class="step">
+                    <span class="step-num">3</span>
+                    <div>
+                        <b>保存快照</b>
+                        <p>扫描完成会提示「是否保存本次快照」，保存后生成 C、D 各一份快照与清单；也可在设置中开启自动保存。</p>
+                    </div>
+                </li>
+                <li class="step">
+                    <span class="step-num">4</span>
+                    <div>
+                        <b>对比与清空</b>
+                        <p>在「历史对比」中与基线快照对比找出变化；设置里可一键清空数据目录（需输入确认文字）。</p>
+                    </div>
+                </li>
+            </ol>
+        </section>
+
+        <!-- 空间概览：数据优先，图表作为导航 -->
+        <section id="overview-panel" class="overview-panel" aria-label="空间概览" aria-live="polite" role="region">
+            <div class="overview-head"><div><h2>空间概览</h2><p id="overview-meta">完成全量扫描后显示索引空间分布</p></div><div class="overview-actions"><button id="btn-overview-refresh" class="btn btn-sm">刷新概览</button></div></div>
+            <div id="overview-roots" class="overview-roots"><div class="overview-empty">暂无概览数据</div></div>
+        </section>
+
+        <div class="grid-main">
+
+            <!-- 目录浏览 -->
+            <section class="card" aria-label="目录浏览">
+                <div class="view-toolbar"><button id="btn-view-ranking" class="btn btn-sm btn-primary">排行</button><button id="btn-view-table" class="btn btn-sm">表格</button><button id="btn-density" class="btn btn-sm" aria-pressed="false">紧凑列表</button></div>
+                <div class="card-head">
+                    <h2>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>
+                        </svg>
+                        目录浏览
+                    </h2>
+                    <p class="card-sub">按目录占用查看空间分布</p>
+                </div>
+                <div class="row">
+                    <input id="browse-root" list="roots-suggest" type="text"
+                           placeholder="输入盘符或路径，例如 D:\" value="D:\"
+                           aria-label="浏览根目录">
+                    <datalist id="roots-suggest">
+                        <option value="C:\"></option>
+                        <option value="D:\"></option>
+                        <option value="E:\"></option>
+                        <option value="F:\"></option>
+                    </datalist>
+                    <button id="btn-browse" class="btn btn-primary">
+                        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <circle cx="11" cy="11" r="7"/><path d="m20.5 20.5-4.4-4.4"/>
+                        </svg>
+                        浏览
+                    </button>
+                    <button id="btn-back" class="btn" disabled>
+                        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 12H5"/><path d="m11 18-6-6 6-6"/>
+                        </svg>
+                        返回上级
+                    </button>
+                </div>
+                <div id="recent-roots" class="chips-row hidden"></div>
+                <div id="browse-history" class="chips-row hidden" aria-label="浏览历史"></div>
+                <nav id="breadcrumb" class="breadcrumb" aria-label="路径导航">
+                    <span class="muted">当前路径：</span><span class="crumb-current">-</span>
+                </nav>
+                <div id="browse-status" class="status-line" role="status"><span class="dot"></span><span id="browse-status-text">输入路径后点击「浏览」开始</span></div>
+                <div id="browse-cache-badge" class="notice notice-info hidden" role="status" aria-live="polite">来自内存缓存（无需重新扫描）</div>
+                <div id="browse-chart" class="browse-chart" aria-label="当前目录构成" hidden></div>
+                <div class="browse-filters" aria-label="目录筛选与排序">
+                    <input id="browse-filter" type="search" placeholder="筛选名称" aria-label="筛选名称">
+                    <select id="browse-kind" aria-label="内容类型"><option value="all">全部</option><option value="dir">仅目录</option><option value="file">仅文件</option></select>
+                    <select id="browse-sort" aria-label="排序方式"><option value="size-desc">按大小</option><option value="name-asc">按名称</option><option value="size-asc">大小最小</option></select>
+                </div>
+                <div id="browse-error" class="notice notice-error hidden">
+                    <span id="browse-error-text"></span>
+                    <span><button id="btn-browse-retry" class="btn btn-sm">重试</button></span>
+                </div>
+                <div class="table-wrap">
+                    <div id="browse-loading" class="loading-overlay hidden">
+                        <svg class="spinner spinner-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                            <path d="M21 12a9 9 0 1 1-6.2-8.56"/>
+                        </svg>
+                        <span id="browse-loading-text">正在扫描目录，请稍候…</span>
+                    </div>
+                    <table class="dir-table" aria-label="当前目录内容">
+                        <thead>
+                            <tr>
+                                <th>名称</th>
+                                <th class="col-size">大小</th>
+                                <th class="col-share">占比</th>
+                                <th class="col-type">类型</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dir-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <aside class="side">
+
+                <!-- 全量扫描 -->
+                <section class="card" aria-label="全量扫描">
+                    <div class="card-head">
+                        <h2>
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 12H2"/><path d="M5.5 5.5 2 12l3.5 6.5"/><path d="M18.5 5.5 22 12l-3.5 6.5"/>
+                                <rect x="4" y="3" width="8" height="18" rx="2"/><rect x="12" y="3" width="8" height="18" rx="2"/>
+                            </svg>
+                            全量扫描
+                        </h2>
+                        <p class="card-sub">建立最新空间索引</p>
+                    </div>
+                    <div class="row">
+                        <button id="btn-fullscan" class="btn btn-primary">
+                            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>
+                            </svg>
+                            开始全量扫描
+                        </button>
+                        <button id="btn-save" class="btn btn-success" disabled title="全量扫描完成后可保存">
+                            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/>
+                            </svg>
+                            保存快照
+                        </button>
+                    </div>
+                    <div class="progress-wrap">
+                        <div id="progress" class="progress"><div id="progress-fill" class="progress-fill"></div></div>
+                        <span id="progress-pct" class="progress-pct muted">0%</span>
+                    </div>
+                    <div id="fullscan-status" class="status-line" role="status"><span class="dot"></span><span id="fullscan-status-text">尚未开始全量扫描</span></div>
+                    <div id="scan-roots" class="chips-row hidden"></div>
+                    <div id="scan-progress-hint" class="notice notice-info hidden"></div>
+                    <div id="save-prompt" class="notice notice-warn hidden">
+                        <div><b>全量扫描已完成。</b>是否保存本次快照？保存后可在「历史对比」中与基线对比。</div>
+                        <div class="row">
+                            <button id="btn-save-now" class="btn btn-success btn-sm">立即保存</button>
+                            <button id="btn-save-later" class="btn btn-sm">暂不保存</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 历史快照 -->
+                <section class="card" aria-label="历史快照">
+                    <div class="card-head">
+                        <h2>
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>
+                            </svg>
+                            历史快照
+                        </h2>
+                        <p class="card-sub">保存的扫描结果</p>
+                    </div>
+                    <div class="row">
+                        <button id="btn-refresh-snapshots" class="btn">
+                            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>
+                            </svg>
+                            刷新历史
+                        </button>
+                        <button id="btn-undo-save" class="btn" title="删除最近一次保存的快照文件与清单">
+                            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 7v6h6"/><path d="M3.5 13a9 9 0 1 0 2-9.3L3 7"/>
+                            </svg>
+                            撤销最近保存
+                        </button>
+                    </div>
+                    <div id="snapshot-status" class="status-line"><span class="dot"></span><span id="snapshot-status-text">正在加载历史快照…</span></div>
+                    <ul id="snapshot-list" class="snapshot-list"></ul>
+                </section>
+
+            </aside>
+        </div>
+
+        <!-- 历史对比 -->
+        <section class="card" aria-label="历史对比">
+            <div class="card-head">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v16a2 2 0 0 0 2 2h16"/>
+                        <path d="M7 15l4-6 4 3 5-7"/>
+                    </svg>
+                    历史对比
+                </h2>
+                <p class="card-sub">查看空间变化</p>
+            </div>
+            <div class="row">
+                <input id="compare-baseline" list="baseline-suggest" type="text"
+                       placeholder="基线快照路径（留空自动选最近一份）" aria-label="基线快照路径">
+                <datalist id="baseline-suggest"></datalist>
+                <button id="btn-compare" class="btn btn-primary">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3v18"/><path d="M16 3v18"/><path d="M3 8h5"/><path d="M16 16h5"/>
+                    </svg>
+                    开始对比
+                </button>
+            </div>
+            <div id="compare-status" class="status-line"><span class="dot"></span><span id="compare-status-text">先保存过快照或指定基线文件，再点击「开始对比」</span></div>
+            <div id="compare-result" class="hidden">
+                <div id="compare-summary" class="compare-summary"></div>
+                <div id="compare-chart" class="compare-chart" aria-label="变化排行榜"></div>
+                <div class="table-wrap">
+                    <table class="dir-table compare-table">
+                        <thead>
+                            <tr><th style="width:110px">变化</th><th style="width:90px">增速</th><th>路径</th></tr>
+                        </thead>
+                        <tbody id="compare-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        数据保存在 %LOCALAPPDATA%\PythonDiskScanner（快照、清单与配置） · Everything 驱动 · 本地服务仅监听 127.0.0.1
+    </footer>
+
+    <!-- 设置弹窗 -->
+    <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="设置">
+        <div class="modal-panel">
+            <div class="modal-head">
+                <h2>设置</h2>
+                <button class="icon-btn" data-close="settings-modal" title="关闭">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label class="switch-row">
+                    <span>
+                        <b>扫描完成自动保存</b>
+                        <span class="switch-hint">全量扫描完成后立即生成快照，可随时「撤销最近保存」</span>
+                    </span>
+                    <input id="setting-auto-save" type="checkbox" class="switch">
+                </label>
+                <div class="field">
+                    <label>数据目录</label>
+                    <input id="setting-data-dir" type="text" readonly value="正在读取…">
+                </div>
+                <div class="field">
+                    <label>Everything 状态</label>
+                    <input id="setting-health" type="text" readonly value="正在检查…">
+                </div>
+                <div class="divider"></div>
+                <h3>危险操作</h3>
+                <p class="muted">一键清空会删除数据目录下的全部快照、保存清单与配置文件，随后重建为空结构；配置将恢复默认。此操作不可恢复。</p>
+                <button id="btn-wipe-open" class="btn btn-danger">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                    </svg>
+                    一键清空数据目录…
+                </button>
+            </div>
+            <div class="modal-foot">
+                <button id="btn-settings-save" class="btn btn-primary">保存设置</button>
+                <button class="btn" data-close="settings-modal">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 清空确认弹窗 -->
+    <div id="wipe-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="确认清空">
+        <div class="modal-panel modal-panel-sm">
+            <div class="modal-head">
+                <h2>确认清空数据目录</h2>
+                <button class="icon-btn" data-close="wipe-modal" title="关闭">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="notice notice-error">
+                    <b>⚠ 不可恢复：</b>将删除数据目录下全部快照、保存清单与配置文件（<span id="wipe-data-dir" class="muted">数据目录</span>）。
+                </p>
+                <p class="muted">为防止误删，请输入「<b>确认清空</b>」四个字以继续：</p>
+                <input id="wipe-confirm" type="text" placeholder="确认清空" autocomplete="off">
+            </div>
+            <div class="modal-foot">
+                <button id="btn-wipe" class="btn btn-danger" disabled>确认清空</button>
+                <button class="btn" data-close="wipe-modal">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通用确认弹窗 -->
+    <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="确认操作">
+        <div class="modal-panel modal-panel-sm">
+            <div class="modal-head">
+                <h2 id="confirm-title">确认操作</h2>
+                <button class="icon-btn" data-close="confirm-modal" title="关闭">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-text"></p>
+            </div>
+            <div class="modal-foot">
+                <button id="btn-confirm-ok" class="btn btn-danger">确定</button>
+                <button id="btn-confirm-cancel" class="btn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

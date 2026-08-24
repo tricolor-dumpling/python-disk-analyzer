@@ -55,6 +55,17 @@ class ExportCliTests(unittest.TestCase):
                 base / "disk_report_20260821_153000.json",
             )
 
+    def test_default_export_path_uses_data_dir_exports(self):
+        """Phase 0：未指定 base_dir 时自动命名落在数据目录 exports\\ 下。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            local = Path(tmp)
+            fixed = datetime.datetime(2026, 8, 21, 15, 30, 0)
+            with mock.patch.dict(os.environ, {"LOCALAPPDATA": str(local)}):
+                path = cli._default_export_path("csv", now=fixed)
+            exports = local / "PythonDiskScanner" / "exports"
+            self.assertEqual(path, exports / "disk_report_20260821_153000.csv")
+            self.assertTrue(exports.is_dir(), "默认导出目录应被自动创建")
+
     def test_export_report_csv_content(self):
         """CSV：BOM、表头、逗号/引号转义回读、降序（根最大排最前）、human_size 列。"""
         with tempfile.TemporaryDirectory() as tmp:
@@ -237,25 +248,22 @@ class ExportHeadlessTests(unittest.TestCase):
             self.assertTrue(out.read_bytes().startswith(b"\xef\xbb\xbf"))
 
     def test_export_default_auto_named_path(self):
-        """未指定 --output：在当前目录自动生成 disk_report_YYYYMMDD_HHMMSS.json。"""
+        """未指定 --output：在数据目录 exports\\ 下自动生成 disk_report_YYYYMMDD_HHMMSS.json。"""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp).resolve()
-            orig_cwd = Path.cwd()
-            try:
-                os.chdir(tmp)
-                before = set(p.name for p in Path(tmp).glob("disk_report_*.json"))
+            exports = Path(tmp) / "PythonDiskScanner" / "exports"
+            with mock.patch.dict(os.environ, {"LOCALAPPDATA": str(Path(tmp))}):
+                before = set(p.name for p in exports.glob("disk_report_*.json")) if exports.exists() else set()
                 ret, exc, _ = self._run_main(
                     [str(root), "--export", "json"], sizes={root: 500, root / "a": 300},
                 )
-                after = set(p.name for p in Path(tmp).glob("disk_report_*.json")) - before
-            finally:
-                os.chdir(orig_cwd)
+                after = set(p.name for p in exports.glob("disk_report_*.json")) - before
             self.assertIsNone(ret)
             self.assertIsNone(exc)
             self.assertEqual(len(after), 1)
             name = after.pop()
             self.assertRegex(name, r"^disk_report_\d{8}_\d{6}\.json$")
-            payload = json.loads((Path(tmp) / name).read_text(encoding="utf-8"))
+            payload = json.loads((exports / name).read_text(encoding="utf-8"))
             self.assertEqual(payload["total_size_bytes"], 500)
 
     def test_export_write_failure_missing_parent_exit1(self):

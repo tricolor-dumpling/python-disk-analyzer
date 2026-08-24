@@ -31,7 +31,8 @@ try:
 except ImportError:  # 非 Windows 平台没有 winreg，仅注册表定位 Everything.exe 依赖它
     winreg = None
 
-from utils import CONFIG_PATH, SCRIPT_DIR, log
+from utils import SCRIPT_DIR, log
+import datadir
 from sdk import (
     DWORD,
     INVALID_HANDLE_VALUE,
@@ -51,10 +52,15 @@ DEFAULT_EVERYTHING_STARTUP_TIMEOUT_SECONDS = 20
 DEFAULT_EVERYTHING_STARTUP_ARGS = ["-startup"]
 
 
-def load_config(config_path=CONFIG_PATH):
-    """读取本地配置。配置不存在或损坏时返回空配置。"""
+def _default_config_path():
+    """返回统一数据目录下的 config.json 路径（纯计算，不创建）。"""
+    return datadir.get_config_path()
+
+
+def _read_config_object(path):
+    """读取一个 config.json 路径为 dict；缺失/损坏/非 dict 一律返回空 dict。"""
     try:
-        path = Path(config_path)
+        path = Path(path)
         if not path.exists():
             return {}
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -63,10 +69,36 @@ def load_config(config_path=CONFIG_PATH):
         return {}
 
 
-def save_config(config, config_path=CONFIG_PATH):
-    """保存本地配置，失败时不影响主流程。"""
-    try:
+def load_config(config_path=None):
+    """读取本地配置。配置不存在或损坏时返回空配置。
+
+    config_path 缺省时按 Phase 0 约定读取统一数据目录
+    %LOCALAPPDATA%\\PythonDiskScanner\\config.json；若该文件缺失，则回退读取
+    项目目录下的 config.json（仅作为首次默认模板，不改写项目目录）。
+    """
+    if config_path is None:
+        path = _default_config_path()
+    else:
         path = Path(config_path)
+    if not path.exists():
+        if config_path is None:
+            template = Path(SCRIPT_DIR) / "config.json"
+            if template.exists() and template != path:
+                data = _read_config_object(template)
+                if data:
+                    return data
+        return {}
+    return _read_config_object(path)
+
+
+def save_config(config, config_path=None):
+    """保存本地配置，失败时不影响主流程。
+
+    config_path 缺省时写入统一数据目录 %LOCALAPPDATA%\\PythonDiskScanner\\config.json
+    （项目目录下的 config.json 仅保留为首次默认模板，不再回写）。
+    """
+    try:
+        path = Path(config_path) if config_path is not None else _default_config_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             json.dumps(config, ensure_ascii=False, indent=2),
@@ -390,7 +422,7 @@ def _normalize_startup_args(raw_args):
 def ensure_everything_running(
     dll_path=None,
     exe_path=None,
-    config_path=CONFIG_PATH,
+    config_path=None,
     is_running=is_everything_process_running,
     is_ipc_ready=is_everything_ipc_ready,
     popen=subprocess.Popen,
@@ -399,8 +431,10 @@ def ensure_everything_running(
 ):
     """检查 Everything 是否运行，若未运行则尝试启动，失败则退出。"""
     # 解析结果回填到 sdk.DLL_PATH（模块级全局，scan/scene 等模块从 sdk 读取）
-    config = load_config(config_path)
-    log(f"🧭 正在检查 Everything 运行环境，配置文件: {Path(config_path)}")
+    explicit_config_path = config_path
+    config_path = Path(config_path) if config_path is not None else _default_config_path()
+    config = load_config(explicit_config_path)
+    log(f"🧭 正在检查 Everything 运行环境，配置文件: {config_path}")
     try:
         sdk.DLL_PATH = Path(dll_path) if dll_path else resolve_everything_dll(config=config)
     except FileNotFoundError as e:

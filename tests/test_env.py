@@ -141,6 +141,52 @@ class ConfigIOTests(unittest.TestCase):
         self.assertFalse(save_config({"x": 1}, blocker / "config.json"))
 
 
+class ConfigMigrationTests(unittest.TestCase):
+    """Phase 0：config.json 默认读写迁到数据目录，项目目录文件仅作首次模板。"""
+
+    def test_save_load_default_uses_data_dir(self):
+        """无 config_path 参数的 save_config/load_config 读写数据目录 config.json。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            local = Path(tmp) / "local"
+            data_config = local / "PythonDiskScanner" / "config.json"
+            with mock.patch.dict(os.environ, {"LOCALAPPDATA": str(local)}):
+                self.assertTrue(save_config({"x": 1}))
+                self.assertEqual(load_config(), {"x": 1})
+            self.assertTrue(data_config.exists())
+
+    def test_load_default_falls_back_to_project_template(self):
+        """数据目录 config 缺失时，load_config() 回退读取项目目录模板。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"
+            project.mkdir()
+            (project / "config.json").write_text(
+                json.dumps({"everything_exe": "D:\\Everything\\Everything.exe"}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            local = Path(tmp) / "local"
+            with mock.patch.dict(os.environ, {"LOCALAPPDATA": str(local)}), mock.patch.object(
+                env, "SCRIPT_DIR", project
+            ):
+                self.assertEqual(
+                    load_config(),
+                    {"everything_exe": "D:\\Everything\\Everything.exe"},
+                )
+            # 绝不回写项目模板
+            self.assertTrue((project / "config.json").exists())
+            self.assertFalse((local / "PythonDiskScanner" / "config.json").exists())
+
+    def test_load_default_returns_empty_when_both_missing(self):
+        """数据目录与项目模板都缺失时，load_config() 返回空配置。"""
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp) / "project"
+            project.mkdir()
+            local = Path(tmp) / "local"
+            with mock.patch.dict(os.environ, {"LOCALAPPDATA": str(local)}), mock.patch.object(
+                env, "SCRIPT_DIR", project
+            ):
+                self.assertEqual(load_config(), {})
+
+
 class FindEverythingExeTests(unittest.TestCase):
     """find_everything_exe：临时目录放假 exe 验证基本路径与 config 缓存优先。"""
 
