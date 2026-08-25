@@ -369,7 +369,28 @@ const ASSERTIONS = [
       await new Promise((r) => setTimeout(r, 10));
       __assert($("settings-modal").classList.contains("hidden"), "第二次 Esc 关 settings-modal");
     } },
-  { id: "4", name: "断言④（W2.1）：busy health 不降级不进引导态", fn: null },
+  { id: "4", name: "断言④（W2.1）：busy health 徽章不降级、整页不进引导态、设置健康栏透出扫描中",
+    fn: async function () {
+      const savedRoute = __smoke.routes["GET /api/health"];
+      __smoke.routes["GET /api/health"] = SAMPLES.healthBusy;
+      try {
+        const classBefore = $("health-badge").className;
+        await refreshHealth();
+        __assert($("health-text").textContent.indexOf("扫描中") !== -1,
+                 "徽章文本应为中性「扫描中…」");
+        __assert($("health-badge").className === classBefore,
+                 "busy 时徽章 class 必须保持原状（不降级为 warn/err）");
+        __assert($("browse-guide").classList.contains("hidden"),
+                 "busy 不得把整页打回引导态（busy ≠ 未就绪）");
+        await setStatusForSettingsHealth();
+        __assert($("setting-health").value.indexOf("扫描中") !== -1,
+                 "设置健康栏应显示扫描中");
+      } finally {
+        if (savedRoute === undefined) delete __smoke.routes["GET /api/health"];
+        else __smoke.routes["GET /api/health"] = savedRoute;
+        await refreshHealth(); // 恢复正常健康态，避免污染其他断言
+      }
+    } },
   { id: "w28", name: "W2.8：浏览竞态防护（迟到旧响应丢弃；旧失败不打断新结果）",
     fn: async function () {
       const realFetch = window.fetch;

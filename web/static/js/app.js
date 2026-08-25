@@ -171,10 +171,20 @@ async function refreshHealth() {
     const badge = $("health-badge");
     try {
         const data = await api("/api/health");
-        badge.className = data.ready ? "badge badge-ok" : "badge badge-warn";
-        $("health-text").textContent = data.message || (data.ready ? "Everything 已就绪" : "Everything 未就绪");
-        badge.title = data.dll ? "Everything DLL：" + data.dll : "";
-        APP_STATE.health = data; // K6：健康载荷收敛进 APP_STATE
+        APP_STATE.health = data;
+        // P12·W2.1：busy ≠ 未就绪——busy 时保持现有徽章 class 不降级＋中性文本
+        if (data.ready) {
+            badge.className = "badge badge-ok";
+            $("health-text").textContent = data.message || "Everything 已就绪";
+            badge.title = data.dll ? "Everything DLL：" + data.dll : "";
+        } else if (data.busy) {
+            $("health-text").textContent = "扫描中…";
+            badge.title = "扫描中：" + (data.reason || "scanning");
+        } else {
+            badge.className = "badge badge-warn";
+            $("health-text").textContent = data.message || "Everything 未就绪";
+            badge.title = data.dll ? "Everything DLL：" + data.dll : "";
+        }
         return data; // P12·W1.3：门控求值需要完整 health 载荷
     } catch (e) {
         badge.className = "badge badge-err";
@@ -1024,7 +1034,12 @@ async function setStatusForSettingsHealth() {
     $("setting-health").value = "正在检查…";
     try {
         const data = await api("/api/health");
-        $("setting-health").value = (data.message || "") + (data.dll ? "（" + data.dll + "）" : "");
+        // P12·W2.1：扫描中显示中性「扫描中：<message>」，不误报未就绪
+        if (data.busy) {
+            $("setting-health").value = "扫描中：" + (data.message || "");
+        } else {
+            $("setting-health").value = (data.message || "") + (data.dll ? "（" + data.dll + "）" : "");
+        }
     } catch (e) {
         $("setting-health").value = "健康检查失败：" + e.message;
     }

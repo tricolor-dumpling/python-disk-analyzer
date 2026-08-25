@@ -82,48 +82,63 @@ def index():
 
 
 def _health_payload():
-    """健康探测主体（P12·W1.3 degraded 分类，冲突10/N3）。
+    """健康探测主体（P12·W1.3 degraded 分类；W2.1 busy 契约）。返回 JSON 字典。
 
-    - 病因② DLL 解析失败/配置缓存指向失效 → degraded="dll"；
-    - 病因① config.json 存在但 JSON 损坏（env.config_health）→ degraded="config"；
-    - 病因③ 未安装 Everything（RT-N09）→ degraded="not_installed"；
-    - 其余未就绪 → 普通 message（无 degraded 键）；意外异常由 api_health 兜底。
+    - 锁被占（扫描中）→ 立即返回 busy 形态，绝不阻塞 Werkzeug 线程：
+      {ready:false,busy:true,reason:"scanning"}——**硬性契约 busy ≠ 未就绪**；
+    - 病因② DLL 失效 → degraded="dll"；① config 损坏 → "config"；
+      ③ 未安装 → "not_installed"；意外异常由 api_health 兜底。
     """
+    # P12·W2.1：非阻塞 acquire，拿不到立即返回（不释放未持有的锁）
+    acquired = scan.SCAN_LOCK.acquire(blocking=False)
+    if not acquired:
+        return {
+            "ok": True, "ready": False, "busy": True, "reason": "scanning",
+            "dll": str(sdk.DLL_PATH) if sdk.DLL_PATH else None,
+            "message": "Everything 正在扫描中（健康检查暂缓探测）",
+        }
     try:
-        cfg = env.load_config()
-        dll = sdk.DLL_PATH or sdk.resolve_everything_dll(config=cfg)
-    except FileNotFoundError:
-        return _json_ok(
-            ready=False, dll=None, degraded="dll",
-            message="SDK DLL 缺失或配置失效",
-        )
-    bad = env.config_health()
-    ready = bool(sdk.is_everything_ipc_ready(dll))
-    if ready:
-        return _json_ok(ready=True, dll=str(dll), message="Everything 已就绪")
-    installed = env.find_everything_exe(config=cfg) is not None
-    if not installed:
-        return _json_ok(
-            ready=False, dll=str(dll), degraded="not_installed",
-            message="未检测到 Everything，请先安装并启动",
-        )
-    if bad:
-        return _json_ok(
-            ready=False, dll=str(dll), degraded="config",
-            message=f"配置文件损坏：{bad}",
-        )
-    return _json_ok(ready=False, dll=str(dll), message="Everything IPC 尚未就绪")
+        try:
+            cfg = env.load_config()
+            dll = sdk.DLL_PATH or sdk.resolve_everything_dll(config=cfg)
+        except FileNotFoundError:
+            return {
+                "ok": True, "ready": False, "dll": None, "degraded": "dll",
+                "message": "SDK DLL 缺失或配置失效",
+            }
+        bad = env.config_health()
+        ready = bool(sdk.is_everything_ipc_ready(dll))
+        if ready:
+            return {"ok": True, "ready": True, "dll": str(dll), "message": "Everything 已就绪"}
+        installed = env.find_everything_exe(config=cfg) is not None
+        if not installed:
+            return {
+                "ok": True, "ready": False, "dll": str(dll), "degraded": "not_installed",
+                "message": "未检测到 Everything，请先安装并启动",
+            }
+        if bad:
+            return {
+                "ok": True, "ready": False, "dll": str(dll), "degraded": "config",
+                "message": f"配置文件损坏：{bad}",
+            }
+        return {"ok": True, "ready": False, "dll": str(dll), "message": "Everything IPC 尚未就绪"}
+    finally:
+        scan.SCAN_LOCK.release()
 
 
 @app.get("/api/health")
 def api_health():
     try:
-        return _health_payload()
+        body = _health_payload()
     except Exception as exc:  # 意外异常兜底：不再伪装成正常结构
-        return _json_ok(
-            ready=False, dll=None, degraded="error",
-            message=f"环境检测异常：{exc}",
-        )
+        body = {
+            "ok": True, "ready": False, "dll": None, "degraded": "error", "busy": False,
+            "message": f"环境检测异常：{exc}",
+        }
+    # P12·W2.1：锁空闲路径补 additive busy:false（busy:true 仅出现在锁被占形态）
+    if isinstance(body, dict) and "busy" not in body:
+        body["busy"] = False
+    return jsonify(body)
 
 
 # =================【1. 空间概览】=================
@@ -512,11 +527,17 @@ def api_compare():
             Path(row["p"]): int(row["s"]) for row in cached["rows"]
         }
     else:
+        # P12·W2.1（C-1）：SDK 直扫分支改非阻塞 acquire——拿不到立即 409，
+        # 不再排队等锁造成请求挂死。
+        acquired = scan.SCAN_LOCK.acquire(blocking=False)
+        if not acquired:
+            return _json_error("全量扫描进行中，请稍后再对比", status=409)
         try:
-            with fullscan.GLOBAL_SCAN_LOCK:
-                current_sizes, _unused = scan.scan_via_everything_sdk(Path(raw_root))
+            current_sizes, _unused = scan.scan_via_everything_sdk(Path(raw_root))
         except Exception as exc:
             return _json_error(f"当前扫描失败: {exc}", status=500)
+        finally:
+            scan.SCAN_LOCK.release()
 
     try:
         report = compare.diff_from_current(

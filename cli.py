@@ -58,6 +58,7 @@ from utils import (
 )
 from exceptions import EverythingEnvironmentError, MsvcrtUnavailableError
 from env import ensure_everything_running, init_windows_job_sandbox
+import scan  # P12·W2.1：SCAN_LOCK 经模块属性访问（可 patch）
 from scan import _is_scan_root, compute_fingerprint, scan_via_everything_sdk
 from compare import CompareError, diff_from_current, format_row, top_growth
 from snapshots import (
@@ -328,7 +329,9 @@ def _auto_save_on_exit(root, sizes):
     try:
         if is_snapshot_disabled() or not sizes:
             return
-        fingerprint = compute_fingerprint(root)
+        # P12·W2.1：指纹探测段统一持 SDK 锁（与 Web 健康探测/对比互斥）
+        with scan.SCAN_LOCK:
+            fingerprint = compute_fingerprint(root)
         rows = [{"p": str(path), "s": size} for path, size in sizes.items()]
         dir_path = get_snapshot_dir()
         ledger = load_ledger(dir_path)

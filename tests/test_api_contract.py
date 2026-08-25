@@ -57,7 +57,7 @@ class ApiContractTests(unittest.TestCase):
             self.assertEqual(resp.status_code, 200)
             body = resp.get_json()
             self.assertEqual(
-                _keys(body), {"ok", "ready", "dll", "message"},
+                _keys(body), {"ok", "ready", "dll", "message", "busy"},  # W2.1 additive
                 f"/api/health 键集合漂移: {_keys(body)}",
             )
             self.assertIs(body["ok"], True)
@@ -266,7 +266,7 @@ class ApiContractTests(unittest.TestCase):
                     mock.patch.object(sdk, "is_everything_ipc_ready", return_value=True):
                 resp = client.get("/api/health")
             body = resp.get_json()
-            self.assertEqual(_keys(body), {"ok", "ready", "dll", "message"})
+            self.assertEqual(_keys(body), {"ok", "ready", "dll", "message", "busy"})  # W2.1 additive
             resp.close()
 
     def test_legacy_error_shape_still_ok(self):

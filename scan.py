@@ -18,6 +18,7 @@ EVERYTHING_* 常量）；其中 sdk.DLL_PATH 是跨模块共享的可变全局�
 import ctypes
 import heapq
 import os
+import threading
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -29,6 +30,11 @@ from exceptions import EverythingQueryError
 MAX_FILES_PER_DIR = 50
 # Everything 扫描进度刷新间隔（按处理的记录条数计）
 SCAN_PROGRESS_REFRESH_INTERVAL = 10000
+
+# P12·W2.1：SDK 全局唯一持锁实体（BE 路线 a，自 fullscan 迁移归属）。
+# fullscan.GLOBAL_SCAN_LOCK 为同一把锁的别名；所有触碰 Everything SDK 的路径
+# （主扫描/轻刷/深刷/指纹探测/健康探测）统一经它串行。
+SCAN_LOCK = threading.Lock()
 
 # ------------【P12·W1.1 大小未知哨兵过滤】------------
 # Everything 对「大小未知」的记录返回 2^64-1 哨兵值；历史实现裸读该值并把它当

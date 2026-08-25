@@ -480,7 +480,9 @@ def _interactive_ui_loop(root_path, sizes, contents, driver_name):
 
         def worker():
             try:
-                new_sizes, new_contents = deep_refresh(root_path, cancel_event=cancel_event)
+                # P12·W2.1：深刷统一持 SDK 锁（与 Web 健康探测/对比互斥）
+                with scan.SCAN_LOCK:
+                    new_sizes, new_contents = deep_refresh(root_path, cancel_event=cancel_event)
                 scan_state["result"] = (new_sizes, new_contents)
             except ScanCancelledError:
                 scan_state["cancelled"] = True

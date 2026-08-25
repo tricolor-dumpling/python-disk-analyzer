@@ -17,10 +17,11 @@ from datetime import datetime
 from pathlib import Path
 
 from scan import scan_via_everything_sdk, ScanCancelledError
+import scan
 
-# 全局限流锁：所有需要触碰 Everything SDK 的调用都应持有它。
-# 后台全量扫描会在整个扫描期间持有；前台浏览也应在进入 SDK 前获取。
-GLOBAL_SCAN_LOCK = threading.Lock()
+# P12·W2.1（BE 路线 a）：锁归属迁至 scan.SCAN_LOCK；本模块保留同名别名
+# （同一把锁对象），既有引用与测试不受影响。
+GLOBAL_SCAN_LOCK = scan.SCAN_LOCK
 
 # P12·W2.10（R-2）：协作取消事件——停服时不硬杀扫描线程，由扫描主循环在
 # 每 SCAN_PROGRESS_REFRESH_INTERVAL 条检查一次；置位后 ScanCancelledError
