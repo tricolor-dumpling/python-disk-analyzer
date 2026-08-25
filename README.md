@@ -61,6 +61,10 @@ ARM/ARM64 版 `EverythingARM.dll`、`EverythingARM64.dll` 按需放入
 本程序仅面向 Windows 运行：
 
 - Everything SDK 通过 `ctypes` 加载调用，Everything 服务本身是 Windows 专属程序。
+- 数据口径：Everything 未返回大小（「大小未知」哨兵 2^64-1）、读取失败或超过
+  卷容量/16TB 兜底上限的条目不计入聚合，界面（TUI 轻刷摘要等）会标注
+  「N 条大小未知」；历史快照中包含 ≥16TB 异常大小行时，加载对比会提示该基线
+  含已知异常数据，建议重扫重建基线。
 - 自动启动 Everything 时使用 Windows 作业对象（Job Object）沙盒，程序退出即终止由其启动的子进程，避免孤儿进程残留。
 - 交互界面按键读取依赖 `msvcrt`：该导入是受保护的（`try/except ImportError`），非 Windows 平台 `import main` 不会崩溃，但进入交互界面时会抛出 `MsvcrtUnavailableError`（中文提示「请在 Windows 上运行」），由上层统一捕获后优雅退出。
 - Everything.exe 注册表定位依赖 `winreg`：同样是受保护导入，非 Windows 平台自动跳过注册表候选路径。

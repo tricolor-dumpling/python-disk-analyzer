@@ -41,6 +41,12 @@ AUTO_MAX_PER_ROOT_PER_DAY = 1
 KEEP_EXPLICIT = 30
 KEEP_AUTO = 10
 
+# P12·W1.1 legacy 标记阈值：历史快照中 >= 该值的行视为「已知异常大小」数据
+# （Everything 哨兵/脏索引产物）。与 scan.SIZE_UNKNOWN_MAX_BYTES、
+# compare._LEGACY_SIZE_THRESHOLD 三处同值（依赖方向不允许互 import，
+# tests.test_compare 强制同值防单方漂移）。
+_LEGACY_SIZE_THRESHOLD = 16 * 1024 ** 4
+
 # 谓词失败原因（稳定字符串标识，供界面/日志使用）
 REASON_OK = "ok"
 REASON_NOT_TREE_COMPLETE = "tree_incomplete"
@@ -603,10 +609,15 @@ def _roll(directory, root, mode):
 
 
 def load_snapshot(path):
-    """读取并校验单份快照，返回 {"header": dict, "rows": [{"p","s"}, ...]}。
+    """读取并校验单份快照，返回 {"header", "rows", "legacy_unknown_rows"}。
 
     校验 gzip 完整性 + 头部 CRC + 头部字段类型 + 文件名与头部匹配；任一不满足抛
     SnapshotCorruptError（文件不存在则原样抛 FileNotFoundError，不视为损坏）。
+
+    P12·W1.1（additive）：返回体新增 ``legacy_unknown_rows`` 键——rows 中
+    大小 >= _LEGACY_SIZE_THRESHOLD（16TB）的「已知异常大小」行计数。这些行
+    原样读回（不做过滤/修改），仅供界面提示「基线含 N 条异常大小数据，建议
+    重扫重建」；快照 format v1 红线不受影响。
     """
     path = Path(path)
     raw = []
@@ -630,6 +641,7 @@ def load_snapshot(path):
     _validate_header(header, path)
 
     rows = []
+    legacy_unknown_rows = 0
     for index in range(1, len(raw)):
         line = raw[index]
         if not line.strip():
@@ -647,9 +659,15 @@ def load_snapshot(path):
             or not isinstance(row.get("s"), int)
         ):
             raise SnapshotCorruptError("第 %d 行字段非法: %s" % (index + 1, path))
+        if row["s"] >= _LEGACY_SIZE_THRESHOLD:
+            legacy_unknown_rows += 1
         rows.append({"p": row["p"], "s": row["s"]})
 
-    return {"header": _public_header(header), "rows": rows}
+    return {
+        "header": _public_header(header),
+        "rows": rows,
+        "legacy_unknown_rows": legacy_unknown_rows,
+    }
 
 
 def scan_snapshot_dir(dir_path=None):

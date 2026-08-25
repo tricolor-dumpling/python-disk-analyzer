@@ -9,7 +9,46 @@ _merge 输出行键与排序次序；int 校验非法输入抛 CompareError。
 import unittest
 
 import compare
+import scan
+import snapshots
 from compare import CompareError, _merge, _rows_to_map
+
+
+class ThresholdConstantsTests(unittest.TestCase):
+    """P12·W1.1：scan/snapshots/compare 三处 legacy 阈值常量同值（防单方漂移）。"""
+
+    def test_threshold_constants_identical(self):
+        self.assertEqual(scan.SIZE_UNKNOWN_MAX_BYTES, 16 * 1024 ** 4)
+        self.assertEqual(
+            scan.SIZE_UNKNOWN_MAX_BYTES,
+            snapshots._LEGACY_SIZE_THRESHOLD,
+            "snapshots 阈值与 scan 兜底上限漂移",
+        )
+        self.assertEqual(
+            snapshots._LEGACY_SIZE_THRESHOLD,
+            compare._LEGACY_SIZE_THRESHOLD,
+            "compare 阈值与 snapshots 阈值漂移",
+        )
+
+    def test_legacy_count_propagates(self):
+        """P12·W1.1：两个公开函数的返回体挂 legacy_count（additive），两侧行自统计一致。"""
+        huge = 16 * 1024 ** 4
+        baseline = {
+            "header": {"format": 1, "machine_guid": "g" * 8, "root": "C:\\T",
+                       "created_at": "2026-08-24T00:00:00", "auto": False},
+            "rows": [{"p": "C:\\T", "s": huge}, {"p": "C:\\T\\a", "s": 10}],
+        }
+        current = {
+            "header": dict(baseline["header"]),
+            "rows": [{"p": "C:\\T", "s": 50}],
+        }
+        report = compare.compare_snapshots(baseline, current)
+        self.assertEqual(report["legacy_count"], 1)
+        diff = compare.diff_from_current(
+            {__import__("pathlib").Path("C:\\T"): 50},
+            baseline["rows"],
+        )
+        self.assertEqual(diff["legacy_count"], 1)
 
 
 class RowsToMapTests(unittest.TestCase):

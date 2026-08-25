@@ -85,5 +85,24 @@ class SnapshotGoldenTests(unittest.TestCase):
         self.assertEqual(loaded["rows"], rows, "0 字节与大数行当前均不过滤（锁现状）")
 
 
+    def test_legacy_rows_marked_on_load(self):
+        """P12·W1.1：含 s>=16TB 行的合法快照 → legacy_unknown_rows==k，rows 原样读回。"""
+        huge = snapshots._LEGACY_SIZE_THRESHOLD
+        self.assertEqual(huge, 16 * 1024 ** 4)
+        rows = [
+            {"p": "C:\\Users\\Demo", "s": huge + 5},
+            {"p": "C:\\Users\\Demo\\normal.txt", "s": 12},
+            {"p": "C:\\Users\\Demo\\huge2.bin", "s": huge},
+        ]
+        loaded, _ = _save_and_load(rows, self.tmp)
+        self.assertEqual(loaded["legacy_unknown_rows"], 2)
+        self.assertEqual(loaded["rows"], rows, "legacy 行必须原样读回（不过滤不修改）")
+
+        # 无异常行时 additive 键恒存在且为 0
+        clean_rows = [{"p": "C:\\Users\\Demo\\small.txt", "s": 1}]
+        clean_loaded, _ = _save_and_load(clean_rows, self.tmp)
+        self.assertEqual(clean_loaded["legacy_unknown_rows"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

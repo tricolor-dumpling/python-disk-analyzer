@@ -37,6 +37,11 @@ class CompareError(Exception):
 # 增速次列的最小基数：旧值 ≥ 1 MiB 才计算 growth_pct（防小基数除零失真）
 MIN_GROWTH_BASE_BYTES = 1024 * 1024
 
+# P12·W1.1 legacy 标记阈值：>= 该值的行视为「已知异常大小」数据（Everything
+# 哨兵/脏索引产物）。与 snapshots._LEGACY_SIZE_THRESHOLD、scan.SIZE_UNKNOWN_MAX_BYTES
+# 三处同值（依赖方向不允许互 import，tests.test_compare 强制同值防单方漂移）。
+_LEGACY_SIZE_THRESHOLD = 16 * 1024 ** 4
+
 
 # =================【内部工具】=================
 
@@ -113,9 +118,20 @@ def _validate_snapshot_header(header, label):
 # =================【公开 API】=================
 
 
+def _count_legacy_rows(*maps):
+    """统计若干 mapping（路径 -> 大小）中 >= _LEGACY_SIZE_THRESHOLD 的行数之和。"""
+    return sum(
+        1
+        for mapping in maps
+        for value in mapping.values()
+        if value >= _LEGACY_SIZE_THRESHOLD
+    )
+
+
 def compare_snapshots(baseline, current, *, machine_guid=None):
     """对比两份快照，返回
-    {'root', 'total_baseline', 'total_current', 'delta_total', 'rows', 'truncated'}。
+    {'root', 'total_baseline', 'total_current', 'delta_total', 'rows',
+     'truncated', 'legacy_count'}。
 
     校验（任一不满足抛 CompareError）：
     - 任一侧 header['format'] != SNAPSHOT_FORMAT_VERSION（版本不一致拒比）；
@@ -154,6 +170,8 @@ def compare_snapshots(baseline, current, *, machine_guid=None):
         "delta_total": total_current - total_baseline,
         "rows": rows,
         "truncated": truncated,
+        # P12·W1.1（additive）：两侧「已知异常大小」行数，供界面提示重扫重建基线
+        "legacy_count": _count_legacy_rows(b_map, c_map),
     }
 
 
@@ -193,6 +211,8 @@ def diff_from_current(sizes, baseline_rows, machine_guid=None):
         "delta_total": total_current - total_baseline,
         "rows": rows,
         "truncated": truncated,
+        # P12·W1.1（additive）：两侧「已知异常大小」行数，供界面提示重扫重建基线
+        "legacy_count": _count_legacy_rows(b_map, c_map),
     }
 
 
