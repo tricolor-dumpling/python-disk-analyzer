@@ -14,6 +14,83 @@ import snapshots
 from compare import CompareError, _merge, _rows_to_map
 
 
+def _snapshot_dict(root, rows):
+    """构造 compare_snapshots 接受的最小快照结构（header 合法、root 一致）。"""
+    return {
+        "header": {"format": 1, "machine_guid": "abcd1234", "root": root,
+                   "created_at": "2026-08-24T00:00:00", "auto": False},
+        "rows": [{"p": p, "s": s} for p, s in rows],
+    }
+
+
+class TotalFromRootRowsTests(unittest.TestCase):
+    """P12·W1.2：合计口径下沉——根行优先，缺失回退顶层行求和，空集为 0。"""
+
+    def test_fixture_7050_to_6050_root_delta(self):
+        """夹具：基线根 7050（=4000+2500+550 直属）→ 当前 deep=1500，delta==-1000==根行 delta。"""
+        baseline = _snapshot_dict(
+            "T:\\",
+            [("T:\\", 7050), ("T:\\s", 4000), ("T:\\s\\deep", 2500)],
+        )
+        current = _snapshot_dict("T:\\", [("T:\\", 6050), ("T:\\s", 4000), ("T:\\s\\deep", 1500)])
+        report = compare.compare_snapshots(baseline, current)
+        self.assertEqual(report["total_baseline"], 7050)
+        self.assertEqual(report["total_current"], 6050)
+        self.assertEqual(report["delta_total"], -1000)
+        root_row = next(r for r in report["rows"] if r["path"] == "T:\\")
+        self.assertEqual(report["delta_total"], root_row["delta"], "合计必须等于根行 delta")
+        self.assertNotEqual(
+            report["delta_total"],
+            sum(r["delta"] for r in report["rows"]),
+            "合计不得等于明细行累加（祖先重复计数即回归）",
+        )
+
+    def test_nested_ancestors_not_double_counted(self):
+        """多层祖先嵌套树：total_baseline == 根行值而非 sum(rows)。"""
+        baseline = _snapshot_dict(
+            "C:\\T",
+            [("C:\\T", 900), ("C:\\T\\a", 500), ("C:\\T\\a\\b", 300), ("C:\\T\\a\\b\\c", 100)],
+        )
+        current = _snapshot_dict("C:\\T", [("C:\\T", 800), ("C:\\T\\a", 400), ("C:\\T\\a\\b", 200), ("C:\\T\\a\\b\\c", 50)])
+        report = compare.compare_snapshots(baseline, current)
+        self.assertEqual(report["total_baseline"], 900)
+        self.assertNotEqual(report["total_baseline"], 900 + 500 + 300 + 100)
+
+    def test_mixed_case_root_row_hit(self):
+        """根行 'c:\\t' vs header root 'C:\\T'：走 normcase 命中分支，不跌入顶层求和回退。"""
+        baseline = _snapshot_dict(
+            "C:\\T",
+            [("c:\\t", 100), ("D:\\x", 999)],   # 回退分支会把两行都当顶层求和 → 1099
+        )
+        current = _snapshot_dict("C:\\T", [("c:\\t", 150), ("D:\\x", 999)])
+        report = compare.compare_snapshots(baseline, current)
+        self.assertEqual(report["total_baseline"], 100, "大小写混合根行应命中 hint 分支")
+
+    def test_fallback_sums_top_level_rows_only(self):
+        """回退分支单独覆盖：root 行缺失时只累加顶层行（子行不重复计入）。"""
+        mapping = {"C:\\T": 100, "C:\\T\\sub": 60, "D:\\other": 40}
+        self.assertEqual(compare._total_from_root_rows(mapping, root_hint="E:\\"), 140)
+        self.assertEqual(compare._total_from_root_rows(mapping), 140)
+        self.assertEqual(compare._total_from_root_rows({}, root_hint=None), 0)
+
+    def test_leaf_only_removes_ancestor_rows(self):
+        """leaf_only=True 后 rows 不含任何为祖先的行；合计不受影响。"""
+        baseline = _snapshot_dict(
+            "T:\\",
+            [("T:\\", 7050), ("T:\\s", 4000), ("T:\\s\\deep", 2500)],
+        )
+        current = _snapshot_dict("T:\\", [("T:\\", 6050), ("T:\\s", 4000), ("T:\\s\\deep", 1500)])
+        full = compare.compare_snapshots(baseline, current)
+        leaf = compare.compare_snapshots(baseline, current, leaf_only=True)
+        ancestor_paths = {"T:\\", "T:\\s"}
+        for row in leaf["rows"]:
+            self.assertNotIn(row["path"], ancestor_paths, "leaf 口径不得包含祖先行")
+        self.assertIn("T:\\s\\deep", [r["path"] for r in leaf["rows"]])
+        # 合计口径与 leaf 无关
+        self.assertEqual(leaf["delta_total"], full["delta_total"])
+        self.assertEqual(full["delta_total"], -1000)
+
+
 class ThresholdConstantsTests(unittest.TestCase):
     """P12·W1.1：scan/snapshots/compare 三处 legacy 阈值常量同值（防单方漂移）。"""
 

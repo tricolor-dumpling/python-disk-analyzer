@@ -70,8 +70,42 @@ def _sizes_to_map(sizes, label):
     return mapping
 
 
-def _merge(b_map, c_map):
-    """并集合并 + 计算 delta/growth/removed/added + 排序 + 截断，返回 (rows, truncated)。"""
+def _total_from_root_rows(mapping, root_hint=None):
+    """从聚合行集合推导「合计」口径（P12·W1.2 下沉的公共助手，RT-01）。
+
+    旧口径 total = sum(mapping.values()) 会把祖先行与后代行重复累加（根行的
+    聚合值已包含全部后代），多根/嵌套树合计虚高。新口径：
+    ① root_hint 给定：遍历键找 os.path.normcase(p) == os.path.normcase(root_hint)
+       的根行，命中返回其值（大小写差异经 normcase 归一，'C:\\T' 与 'c:\\t' 命中）；
+    ② 未给/未命中回退：顶层行 = p 使 normcase(os.path.dirname(p.rstrip('\\')))
+       不在键集合中（盘根 dirname 自映射天然落入），求和返回（多根/根行缺失兜底；
+       单根树下等价于根行值，不重复计数）；
+    ③ 空 mapping → 0。
+    """
+    if not mapping:
+        return 0
+    if root_hint:
+        hint_key = os.path.normcase(str(root_hint))
+        for path, value in mapping.items():
+            if os.path.normcase(path) == hint_key:
+                return value
+    keys_n = {os.path.normcase(k) for k in mapping}
+    total = 0
+    for path, value in mapping.items():
+        parent = os.path.dirname(path.rstrip("\\"))
+        if os.path.normcase(parent) not in keys_n:
+            total += value
+    return total
+
+
+def _merge(b_map, c_map, leaf_only=False):
+    """并集合并 + 计算 delta/growth/removed/added + 排序 + 截断，返回 (rows, truncated)。
+
+    P12·W1.2：leaf_only=True 时在排序截断前把行集合过滤为叶子路径——不存在
+    其他键 q 使 normcase(q).startswith(normcase(p + '\\')) 且 q != p（即 p 不是
+    任何其他键的祖先）。祖先行的增量已由其叶子承载，leaf 过滤避免排行/图表
+    把同一份增量在祖先与后代上重复呈现；合计（_total_from_root_rows）不受影响。
+    """
     keys = set(b_map) | set(c_map)
     rows = []
     for p in keys:
@@ -92,6 +126,21 @@ def _merge(b_map, c_map):
                 "added": p not in b_map,
             }
         )
+    if leaf_only and rows:
+        # 盘根键（如 'C:\'）normcase 后仍带尾反斜杠，先剥掉再加分隔符，
+        # 否则前缀匹配失配会把根行误判为叶子。
+        leaves = {
+            p
+            for p in keys
+            if not any(
+                q != p
+                and os.path.normcase(q).startswith(
+                    os.path.normcase(p).rstrip("\\") + "\\"
+                )
+                for q in keys
+            )
+        }
+        rows = [r for r in rows if r["path"] in leaves]
     # 排序：主键 |delta| 降序，次键 path 升序（确定性稳定次序，替代集合迭代的不确定序）
     rows.sort(key=lambda r: (-abs(r["delta"]), r["path"]))
     truncated = len(rows) > MAX_ROWS
@@ -128,7 +177,7 @@ def _count_legacy_rows(*maps):
     )
 
 
-def compare_snapshots(baseline, current, *, machine_guid=None):
+def compare_snapshots(baseline, current, *, machine_guid=None, leaf_only=False):
     """对比两份快照，返回
     {'root', 'total_baseline', 'total_current', 'delta_total', 'rows',
      'truncated', 'legacy_count'}。
@@ -141,6 +190,9 @@ def compare_snapshots(baseline, current, *, machine_guid=None):
 
     rows 每行 {path, baseline, current, delta, growth_pct|None, removed, added}，
     按 delta 绝对降序（次键 path 升序）排列；行数 > MAX_ROWS 截断并置 truncated=True。
+    P12·W1.2：合计口径下沉 _total_from_root_rows——取扫描根行聚合值（root 行
+    缺失时回退顶层行求和），不再逐行累加；leaf_only=True 透传给 _merge，
+    rows 仅保留叶子路径。
     """
     b_root, b_mg = _validate_snapshot_header(baseline.get("header"), "baseline")
     c_root, c_mg = _validate_snapshot_header(current.get("header"), "current")
@@ -160,9 +212,9 @@ def compare_snapshots(baseline, current, *, machine_guid=None):
 
     b_map = _rows_to_map(baseline.get("rows") or [], "baseline")
     c_map = _rows_to_map(current.get("rows") or [], "current")
-    rows, truncated = _merge(b_map, c_map)
-    total_baseline = sum(b_map.values())
-    total_current = sum(c_map.values())
+    rows, truncated = _merge(b_map, c_map, leaf_only=leaf_only)
+    total_baseline = _total_from_root_rows(b_map, root_hint=b_root)
+    total_current = _total_from_root_rows(c_map, root_hint=b_root)
     return {
         "root": b_root,
         "total_baseline": total_baseline,
@@ -181,7 +233,7 @@ def top_growth(compare_result, n=10):
     return rows[:n]
 
 
-def diff_from_current(sizes, baseline_rows, machine_guid=None):
+def diff_from_current(sizes, baseline_rows, machine_guid=None, *, leaf_only=False):
     """把内存中当前扫描 sizes（{Path: int}）与 baseline 快照行对比，返回与
     compare_snapshots 同构的 dict（当前树不需要落盘）。
 
@@ -190,6 +242,8 @@ def diff_from_current(sizes, baseline_rows, machine_guid=None):
       CompareError（与『跨根拒绝』口径一致）；
     - machine_guid 仅作为合成头标注传入（行数据不携带机器信息，严格机器校验由
       调用方在 load_snapshot 头部完成）。
+    - P12·W1.2：合计口径下沉 _total_from_root_rows（root 行优先，缺失回退顶层
+      行求和）；leaf_only=True 透传给 _merge，rows 仅保留叶子路径。
     """
     b_map = _rows_to_map(baseline_rows, "baseline")
     c_map = _sizes_to_map(sizes, "current")
@@ -201,9 +255,9 @@ def diff_from_current(sizes, baseline_rows, machine_guid=None):
             raise CompareError("当前树与快照路径跨盘（根不一致），拒绝对比")
     else:
         root = ""
-    rows, truncated = _merge(b_map, c_map)
-    total_baseline = sum(b_map.values())
-    total_current = sum(c_map.values())
+    rows, truncated = _merge(b_map, c_map, leaf_only=leaf_only)
+    total_baseline = _total_from_root_rows(b_map, root_hint=root)
+    total_current = _total_from_root_rows(c_map, root_hint=root)
     return {
         "root": root,
         "total_baseline": total_baseline,
