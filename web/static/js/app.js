@@ -708,6 +708,19 @@ async function startFullscan() {
     }
 }
 
+/* P12·W3.2（L-5/DEF-017）：轮询单链收敛——任意时刻至多一条 1 秒待触发链，
+   杜绝多入口并发叠加；_wasScanRunning 支撑「扫描完成」边沿自动刷新概览。 */
+let _pollTimer = null;
+let _wasScanRunning = false;
+
+function schedulePollFullscan() {
+    if (_pollTimer !== null) return;
+    _pollTimer = setTimeout(async () => {
+        _pollTimer = null;
+        await pollFullscan();
+    }, 1000);
+}
+
 async function pollFullscan() {
     let st;
     try {
@@ -718,17 +731,25 @@ async function pollFullscan() {
         return;
     }
     renderFullscanState(st);
-    if (st.running) setTimeout(pollFullscan, 1000);
+    if (st.running) schedulePollFullscan();
 }
 
 function renderFullscanState(st) {
+    const wasRunning = _wasScanRunning;
+    const runningNow = !!st.running;
+    _wasScanRunning = runningNow;
     const pct = Number(st.progress_pct) || 0;
     $("progress-fill").style.width = pct + "%";
     $("progress-pct").textContent = pct + "%";
-    $("progress").classList.toggle("running", !!st.running);
-    $("btn-fullscan").disabled = !!st.running;
-    $("btn-compare").disabled = !!st.running; // W2.4：扫描中对比按钮保持禁用
-    renderScanRootChips(st.roots, st.roots_done, !!st.running);
+    $("progress").classList.toggle("running", runningNow);
+    $("btn-fullscan").disabled = runningNow;
+    $("btn-compare").disabled = runningNow; // W2.4：扫描中对比按钮保持禁用
+    renderScanRootChips(st.roots, st.roots_done, runningNow);
+
+    // P12·W3.2：完成边沿——运行中→完成且结果就绪且无错误，概览自动刷新一次
+    if (wasRunning && !runningNow && st.result_ready && !st.error) {
+        refreshOverview();
+    }
 
     if (st.running) {
         $("btn-save").disabled = true;
