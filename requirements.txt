@@ -1,5 +1,8 @@
-# 运行本程序不需要安装第三方 pip 包。
-# 代码只使用 Python 标准库；Everything 访问依赖程序目录中的 everything-SDK\dll\*.dll。
+# CLI/TUI 仅标准库；Web 版（app.py）需要 Flask（P12·W3.3 修订：原「无需第三方包」
+# 的说法与 Web 版实际依赖不符）。
+#
+# Everything 访问依赖程序目录中的 everything-SDK\dll\*.dll，不经 pip 安装。
+flask>=3.0.2
 #
 # 可选打包工具：
 # pyinstaller>=6.0

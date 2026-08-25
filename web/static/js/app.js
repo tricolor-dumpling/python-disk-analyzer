@@ -1078,7 +1078,11 @@ function renderCompareResult(r) {
             .join("");
     }
 
-    const extra = r.truncated ? "（仅显示变化最大的 100 条）" : "（共 " + rows.length + " 条差异）";
+    // P12·W3.3：truncated 如实化——真实语义是 compare 行数超 50 万上限截断；
+    // 「100 条」只是 top_growth 的固定切片，两回事，不再混为一谈。
+    const extra = r.truncated
+        ? "（注意：数据集超过快照 50 万行上限已截断，结果可能不完整；下表展示变化最大的 " + rows.length + " 条）"
+        : "（展示变化最大的 " + rows.length + " 条差异）";
     // P12·W2.11（B-3）：状态行透出当前数据时间，过期缓存不再伪装实时
     const dataTime = r.current_completed_at
         ? "；当前数据时间 " + String(r.current_completed_at).replace("T", " ")

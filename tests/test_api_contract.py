@@ -89,6 +89,27 @@ class ApiContractTests(unittest.TestCase):
             self.assertIn("不是一个目录", resp.get_json()["error"])
             resp.close()
 
+    def test_404_returns_json(self):
+        """P12·W3.3：未知接口 → 404 + JSON（旧形态 {ok,error}），非 HTML。"""
+        with app.test_client() as client:
+            resp = client.get("/api/no-such")
+            self.assertEqual(resp.status_code, 404)
+            self.assertIn("json", resp.headers["Content-Type"])
+            body = resp.get_json()
+            self.assertIs(body["ok"], False)
+            self.assertTrue(body["error"])
+            resp.close()
+
+    def test_405_returns_json(self):
+        """P12·W3.3：方法不允许 → 405 + JSON。"""
+        with app.test_client() as client:
+            resp = client.delete("/api/health")
+            self.assertEqual(resp.status_code, 405)
+            self.assertIn("json", resp.headers["Content-Type"])
+            body = resp.get_json()
+            self.assertIs(body["ok"], False)
+            resp.close()
+
     def test_settings_get_shape(self):
         """GET /api/settings：键集合恰为 {ok, settings, data_dir, snapshots_dir}。"""
         with app.test_client() as client:

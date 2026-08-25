@@ -71,13 +71,20 @@ ARM/ARM64 版 `EverythingARM.dll`、`EverythingARM64.dll` 按需放入
 - 「打开所在文件夹」经 `explorer /select` 实现：接口返回 `launched:true` 仅代表
   进程拉起成功，explorer 自身定位失败（如路径含逗号、事后被删除）仍为静默，
   此时以「复制路径」作为兜底。
+- 空目录/0 字节条目口径：扫描结果会保留空目录与 0 字节条目；快照单份上限
+  `MAX_ROWS=500000` 行，超限拒绝保存（提示缩小扫描根范围），开关版入 backlog。
+- 闲置资产归宿（P12·W3.3 声明）：`snapshots.scan_snapshot_dir` 与
+  `messages.INFO_SNAPSHOT_AUTO` 当前无生产调用方，「保留待接」（P13 候选：
+  快照健康自检透出），本轮不删不改。
 
 ## pip 依赖
 
-本程序运行不需要安装第三方 pip 包，代码只使用 Python 标准库。
+- **CLI/TUI**：仅 Python 标准库，零第三方依赖。
+- **Web 版**（`app.py`）：需要 `pip install flask`（或 `pip install -r requirements.txt`，
+  内含 `flask>=3.0.2`）。
 
-`requirements.txt` 目前只包含说明注释，`pip install -r requirements.txt`
-不会安装任何必需依赖；其中的 `pyinstaller` 只是可选打包工具的提示。
+Everything 访问依赖程序目录中的 `everything-SDK\dll\*.dll`，不经 pip 安装；
+`requirements.txt` 中另有可选打包工具 pyinstaller 的提示。
 
 ## Everything 安装要求
 

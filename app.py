@@ -74,6 +74,18 @@ def _json_ok(**payload):
     return jsonify(body)
 
 
+# P12·W3.3（RT-N08）：404/405 统一 JSON 化——沿用旧形态 {ok:false,error}
+# （W1.3 渲染器已容忍无 code/detail 的旧形态，不再制造第三种形态）。
+@app.errorhandler(404)
+def _not_found(_error):
+    return _json_error("接口不存在", 404)
+
+
+@app.errorhandler(405)
+def _method_not_allowed(_error):
+    return _json_error("方法不被允许", 405)
+
+
 # =================【页面】=================
 
 
