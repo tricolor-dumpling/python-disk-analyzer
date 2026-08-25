@@ -20,10 +20,14 @@ from pathlib import Path
 from unittest import mock
 
 import compare
+import env
 import fullscan
+import messages
+import scan
 import snapshots
 import sdk
 from app import app
+from exceptions import EverythingQueryError
 
 
 GUID = "deadbeef-1234-5678-9abc-def012345678"
@@ -87,6 +91,122 @@ class ApiContractTests(unittest.TestCase):
             body = resp.get_json()
             self.assertEqual(_keys(body), {"ok", "error"})
             self.assertIn("root", body["error"])
+            resp.close()
+
+    def test_query_error_typed_response(self):
+        """P12·W1.3：SDK 抛 EverythingQueryError(2) → POST /api/browse 502 且
+        body={ok:false,error:中文文案,code:2}（无裸错误码）。"""
+        calls = {}
+
+        def fake_scan(root_path_obj, cancel_event=None, everything=None):
+            calls["root"] = str(root_path_obj)
+            raise EverythingQueryError(2)
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        with app.test_client() as client:
+            with mock.patch.object(fullscan.BROWSE_INDEX, "root_for", return_value=None), \
+                    mock.patch.object(fullscan, "is_running", return_value=False), \
+                    mock.patch.object(scan, "scan_via_everything_sdk", side_effect=fake_scan), \
+                    mock.patch.object(env, "list_everything_process_sessions", return_value=[]), \
+                    mock.patch.object(env, "get_current_session_id", return_value=1):
+                resp = client.post(
+                    "/api/browse",
+                    json={"root": tmp.name, "path": tmp.name},
+                )
+            self.assertEqual(resp.status_code, 502)
+            body = resp.get_json()
+            self.assertIs(body["ok"], False)
+            self.assertEqual(body["code"], 2)
+            self.assertIn(messages.render_everything_error(2), body["error"])
+            self.assertNotIn("service_only", body, "会话列表为空时不得误报 service_only")
+            resp.close()
+
+    def test_service_only_flag(self):
+        """P12·W1.3：Everything 全在 Session 0、当前会话为 1 → service_only=True
+        且文案含「管理员」对齐提示。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        with app.test_client() as client:
+            with mock.patch.object(fullscan.BROWSE_INDEX, "root_for", return_value=None), \
+                    mock.patch.object(fullscan, "is_running", return_value=False), \
+                    mock.patch.object(
+                        scan, "scan_via_everything_sdk",
+                        side_effect=EverythingQueryError(2),
+                    ), \
+                    mock.patch.object(env, "list_everything_process_sessions",
+                                      return_value=[0]), \
+                    mock.patch.object(env, "get_current_session_id", return_value=1):
+                resp = client.post("/api/browse", json={"root": tmp.name, "path": tmp.name})
+            self.assertEqual(resp.status_code, 502)
+            body = resp.get_json()
+            self.assertIs(body["service_only"], True)
+            self.assertIn("管理员", body["error"])
+            resp.close()
+
+    def test_health_degraded_dll_not_installed_config(self):
+        """P12·W1.3：health 三种 degraded 分支（dll / not_installed / config），
+        均含 message 且 ready=False。"""
+        corrupt_tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(corrupt_tmp.cleanup)
+        corrupt_config = Path(corrupt_tmp.name) / "config.json"
+        corrupt_config.write_text("{broken json", encoding="utf-8")
+        fake_dll = "C:\\fake\\Everything64.dll"
+
+        # 病因② DLL 解析失败
+        with app.test_client() as client:
+            with mock.patch.object(sdk, "DLL_PATH", None), \
+                    mock.patch.object(sdk, "resolve_everything_dll",
+                                      side_effect=FileNotFoundError("未找到 DLL")):
+                resp = client.get("/api/health")
+            body = resp.get_json()
+            self.assertEqual(body["degraded"], "dll")
+            self.assertIs(body["ready"], False)
+            self.assertTrue(body["message"])
+            resp.close()
+
+        # 病因③ 未安装（找不到 Everything.exe）
+        with app.test_client() as client:
+            with mock.patch.object(sdk, "DLL_PATH", fake_dll), \
+                    mock.patch.object(sdk, "is_everything_ipc_ready", return_value=False), \
+                    mock.patch.object(env, "find_everything_exe", return_value=None):
+                resp = client.get("/api/health")
+            body = resp.get_json()
+            self.assertEqual(body["degraded"], "not_installed")
+            self.assertIs(body["ready"], False)
+            self.assertIn("安装", body["message"])
+            resp.close()
+
+        # 病因① config.json 损坏（config_health 经 _default_config_path 注入）
+        with app.test_client() as client:
+            with mock.patch.object(sdk, "DLL_PATH", fake_dll), \
+                    mock.patch.object(sdk, "is_everything_ipc_ready", return_value=False), \
+                    mock.patch.object(env, "find_everything_exe", return_value=Path("C:\\e\\Everything.exe")), \
+                    mock.patch.object(env, "_default_config_path", return_value=corrupt_config):
+                resp = client.get("/api/health")
+            body = resp.get_json()
+            self.assertEqual(body["degraded"], "config")
+            self.assertIs(body["ready"], False)
+            self.assertIn("配置文件损坏", body["message"])
+            resp.close()
+
+    def test_health_ready_shape_unchanged(self):
+        """P12·W1.3 additive：就绪分支键集合保持 {ok,ready,dll,message} 不变。"""
+        with app.test_client() as client:
+            with mock.patch.object(sdk, "DLL_PATH", "C:\\fake\\Everything64.dll"), \
+                    mock.patch.object(sdk, "is_everything_ipc_ready", return_value=True):
+                resp = client.get("/api/health")
+            body = resp.get_json()
+            self.assertEqual(_keys(body), {"ok", "ready", "dll", "message"})
+            resp.close()
+
+    def test_legacy_error_shape_still_ok(self):
+        """RT-N04 并存锚点：未迁移动作（缺参 400）仍为 {ok,error} 两键。"""
+        with app.test_client() as client:
+            resp = client.post("/api/browse", json={"path": "X:\\y"})  # 缺 root
+            self.assertEqual(resp.status_code, 400)
+            body = resp.get_json()
+            self.assertEqual(_keys(body), {"ok", "error"}, "旧形态必须原样保留")
             resp.close()
 
     def test_compare_report_shape_and_three_cards_consistent(self):

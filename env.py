@@ -109,6 +109,27 @@ def save_config(config, config_path=None):
         return False
 
 
+def config_health(config_path=None):
+    """检查 config.json 的健康度（P12·W1.3 /api/health 病因①）。
+
+    返回 None 表示健康（含文件缺失——缺失不算损坏，load_config 会回退模板）；
+    存在但 JSON 解析失败/非 dict/读取失败时返回原因字符串（中文），供
+    /api/health 以 degraded="config" 区分于普通「未就绪」。
+    """
+    path = Path(config_path) if config_path is not None else _default_config_path()
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        return "配置文件无法读取: {}".format(exc)
+    except json.JSONDecodeError as exc:
+        return "配置文件 JSON 解析失败: {}".format(exc)
+    if not isinstance(data, dict):
+        return "配置文件内容不是 JSON 对象"
+    return None
+
+
 def _registry_everything_locations():
     """从注册表读取 Everything 的安装目录，覆盖非默认安装路径。"""
     if winreg is None:

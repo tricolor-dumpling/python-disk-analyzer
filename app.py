@@ -24,11 +24,13 @@ import compare
 import datadir
 import env
 import fullscan
+import messages
 import scan
 import sdk
 import session
 import snapshots
 import utils
+from exceptions import EverythingEnvironmentError, EverythingQueryError
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = BASE_DIR / "web" / "templates"
@@ -41,8 +43,22 @@ app = Flask(
 )
 
 
-def _json_error(message, status=400):
-    return jsonify({"ok": False, "error": message}), status
+def _json_error(message, status=400, code=None, detail=None, **extra):
+    """统一错误响应（P12·W1.3 additive 扩展）。
+
+    旧形态 {ok:false,error} 保持不变；code/detail/extra 键仅在提供时附加
+    （新形态 {ok:false,error[,code][,detail][,...]}），前端渲染器对两种
+    形态双向容忍（RT-N04）。
+    """
+    payload = {"ok": False, "error": message}
+    if code is not None:
+        payload["code"] = int(code)
+    if detail:
+        payload["detail"] = str(detail)
+    for key, value in extra.items():
+        if value is not None:
+            payload[key] = value
+    return jsonify(payload), status
 
 
 def _json_ok(**payload):
@@ -62,23 +78,48 @@ def index():
 # =================【0. 健康检查】=================
 
 
+def _health_payload():
+    """健康探测主体（P12·W1.3 degraded 分类，冲突10/N3）。
+
+    - 病因② DLL 解析失败/配置缓存指向失效 → degraded="dll"；
+    - 病因① config.json 存在但 JSON 损坏（env.config_health）→ degraded="config"；
+    - 病因③ 未安装 Everything（RT-N09）→ degraded="not_installed"；
+    - 其余未就绪 → 普通 message（无 degraded 键）；意外异常由 api_health 兜底。
+    """
+    try:
+        cfg = env.load_config()
+        dll = sdk.DLL_PATH or sdk.resolve_everything_dll(config=cfg)
+    except FileNotFoundError:
+        return _json_ok(
+            ready=False, dll=None, degraded="dll",
+            message="SDK DLL 缺失或配置失效",
+        )
+    bad = env.config_health()
+    ready = bool(sdk.is_everything_ipc_ready(dll))
+    if ready:
+        return _json_ok(ready=True, dll=str(dll), message="Everything 已就绪")
+    installed = env.find_everything_exe(config=cfg) is not None
+    if not installed:
+        return _json_ok(
+            ready=False, dll=str(dll), degraded="not_installed",
+            message="未检测到 Everything，请先安装并启动",
+        )
+    if bad:
+        return _json_ok(
+            ready=False, dll=str(dll), degraded="config",
+            message=f"配置文件损坏：{bad}",
+        )
+    return _json_ok(ready=False, dll=str(dll), message="Everything IPC 尚未就绪")
+
+
 @app.get("/api/health")
 def api_health():
     try:
-        config = env.load_config()
-        if sdk.DLL_PATH is None:
-            sdk.DLL_PATH = sdk.resolve_everything_dll(config=config)
-        ready = bool(sdk.is_everything_ipc_ready(sdk.DLL_PATH))
+        return _health_payload()
+    except Exception as exc:  # 意外异常兜底：不再伪装成正常结构
         return _json_ok(
-            ready=ready,
-            dll=str(sdk.DLL_PATH),
-            message="Everything 已就绪" if ready else "Everything IPC 尚未就绪",
-        )
-    except Exception as exc:
-        return _json_ok(
-            ready=False,
-            dll=None,
-            message=f"Everything 不可用：{exc}",
+            ready=False, dll=None, degraded="error",
+            message=f"环境检测异常：{exc}",
         )
 
 
@@ -184,6 +225,25 @@ def api_browse():
         try:
             with fullscan.GLOBAL_SCAN_LOCK:
                 sizes, contents = scan.scan_via_everything_sdk(current)
+        except EverythingQueryError as exc:
+            # P12·W1.3：类型化查询错误 → 502 + 码表文案（不出裸错误码）；
+            # code=2 叠加 Session 0 判定：Everything 全在其他会话（或当前会话
+            # 为 0）→ service_only=True，文案改会话对齐提示。
+            text = messages.render_everything_error(exc.code)
+            extra = {}
+            if exc.code == sdk.EVERYTHING_ERROR_IPC:
+                sessions = env.list_everything_process_sessions()
+                current_session = env.get_current_session_id()
+                if sessions and (
+                    current_session == 0
+                    or all(s != current_session for s in sessions)
+                ):
+                    extra["service_only"] = True
+                    text = (
+                        "Everything 正以服务方式运行于其他会话，本会话无法连接；"
+                        "请以管理员身份对齐运行后重试"
+                    )
+            return _json_error(f"扫描失败: {text}", status=502, code=exc.code, **extra)
         except Exception as exc:
             return _json_error(f"扫描失败: {exc}", status=500)
 
@@ -494,6 +554,21 @@ def _ensure_std_streams():
             )
 
 
+def _bootstrap_everything():
+    """bind 后台自动拉起 Everything（冲突3，P0 只做冷启动）。
+
+    任何失败只记日志、绝不杀服务器——health 的 degraded 分类兜底呈现。
+    """
+    try:
+        env.ensure_everything_running(
+            timeout_seconds=env.DEFAULT_EVERYTHING_STARTUP_TIMEOUT_SECONDS
+        )
+    except EverythingEnvironmentError as exc:
+        utils.log(f"[引导] 自动拉起未完成：{exc}")
+    except Exception as exc:  # 任何失败不杀服务器
+        utils.log(f"[引导] 自动拉起异常：{exc}")
+
+
 def run_server(port=5000, open_browser=True):
     """启动本地 Flask 服务（仅 127.0.0.1，threaded=True）。"""
     # 与 cli.main() 同款：把 stdout/stderr 重配置为 UTF-8，避免 GBK 控制台/管道下
@@ -507,6 +582,10 @@ def run_server(port=5000, open_browser=True):
             0.8,
             lambda: webbrowser.open(f"http://127.0.0.1:{port}"),
         ).start()
+    # P12·W1.3：daemon 线程自动拉起，绝不阻塞 bind
+    threading.Thread(
+        target=_bootstrap_everything, name="everything-bootstrap", daemon=True
+    ).start()
     app.run(
         host="127.0.0.1",
         port=port,

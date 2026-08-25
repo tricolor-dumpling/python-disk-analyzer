@@ -140,6 +140,20 @@ class ConfigIOTests(unittest.TestCase):
         blocker.write_text("i am a file", encoding="utf-8")
         self.assertFalse(save_config({"x": 1}, blocker / "config.json"))
 
+    def test_config_health_flags_corrupt_json(self):
+        """P12·W1.3：config_health 损坏 JSON 返回非 None；正常/缺失返回 None。"""
+        self.config_path.write_text("{not json!!!", encoding="utf-8")
+        self.assertIsNotNone(env.config_health(self.config_path))
+        self.config_path.write_text('{"x": 1}', encoding="utf-8")
+        self.assertIsNone(env.config_health(self.config_path))
+        missing = Path(self._tmp.name) / "missing.json"
+        self.assertIsNone(env.config_health(missing))
+
+    def test_config_health_non_dict_json_flagged(self):
+        """P12·W1.3：合法但非 dict 的 config.json 视为损坏。"""
+        self.config_path.write_text("[1, 2, 3]", encoding="utf-8")
+        self.assertIsNotNone(env.config_health(self.config_path))
+
 
 class ConfigMigrationTests(unittest.TestCase):
     """Phase 0：config.json 默认读写迁到数据目录，项目目录文件仅作首次模板。"""
