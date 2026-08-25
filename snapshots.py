@@ -20,12 +20,18 @@ import gzip
 import json
 import os
 import re
+import time
 import uuid
 import zlib
 from datetime import datetime
 from pathlib import Path
 
 import datadir
+
+try:
+    import ctypes
+except ImportError:  # pragma: no cover - CPython 均带 ctypes，防御性兜底
+    ctypes = None
 
 try:
     import winreg
@@ -473,13 +479,82 @@ def _validate_header(header, path):
 
 # =================【并发锁】=================
 
+# P12·W2.3：陈旧锁判定 TTL——崩溃遗留锁超过该时长（且无活进程）才允许偷锁
+STALE_LOCK_TTL_SECONDS = 600
+
+# OpenProcess 进程访问权限：仅查询基本信息（P12·W2.3）
+_PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+
+
+def _pid_alive(pid):
+    """判断进程是否存活；无法判定时保守视为存活，交由 TTL 兜底。
+
+    - pid 非法（None/≤0）→ False；
+    - 非 Windows 平台无 OpenProcess → 保守 True；
+    - Windows：OpenProcess(QUERY_LIMITED_INFO) 打不开 = 已退出 → False。
+    """
+    if pid is None or int(pid) <= 0:
+        return False
+    if os.name != "nt" or ctypes is None:
+        return True  # 无法判定：保守视为存活，交 TTL 兜底
+    try:
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(
+            _PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid)
+        )
+        if not handle:
+            return False  # 打不开 = 已退出
+        kernel32.CloseHandle(handle)
+        return True
+    except Exception:
+        return True  # 查询异常保守视为存活，交 TTL 兜底
+
+
+def _is_stale(lock_path):
+    """判断既有锁文件是否为陈旧锁（P12·W2.3，DEF-021）。
+
+    - 内容可解析为 PID 且进程仍存活 → 非陈旧（**活进程优先于 TTL**）；
+    - 内容非法按 PID 未知处理，仅 TTL 生效；
+    - PID 死亡/未知时：mtime 超过 STALE_LOCK_TTL_SECONDS 才判陈旧。
+    """
+    try:
+        raw = Path(lock_path).read_text(encoding="utf-8").strip()
+        pid = int(raw) if raw else None
+    except (OSError, ValueError):
+        pid = None
+    if pid is not None and _pid_alive(pid):
+        return False
+    try:
+        age_seconds = time.time() - Path(lock_path).stat().st_mtime
+    except OSError:
+        return False  # 锁已消失：交由上层 O_EXCL 重试处理
+    return age_seconds > STALE_LOCK_TTL_SECONDS
+
 
 def _acquire_lock(directory):
     lock_path = directory / _LOCK_FILENAME
     try:
         fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError:
-        raise SnapshotBusyError("另一个快照保存正在进行（锁文件已存在）: %s" % lock_path)
+        # P12·W2.3：陈旧锁检测成立 → unlink 后重试 O_CREAT|O_EXCL **恰好一次**
+        #（偷锁仅一次，防双偷双写）；仍失败按并发冲突抛 SnapshotBusyError。
+        if _is_stale(lock_path):
+            try:
+                lock_path.unlink()
+            except OSError as exc:
+                raise SnapshotBusyError(
+                    "另一个快照保存正在进行（陈旧锁清理失败）: %s" % lock_path
+                ) from exc
+            try:
+                fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            except FileExistsError as exc:
+                raise SnapshotBusyError(
+                    "另一个快照保存正在进行（锁文件已存在）: %s" % lock_path
+                ) from exc
+        else:
+            raise SnapshotBusyError(
+                "另一个快照保存正在进行（锁文件已存在）: %s" % lock_path
+            )
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(str(os.getpid()))
