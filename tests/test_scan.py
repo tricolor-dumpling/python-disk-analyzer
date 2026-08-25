@@ -40,11 +40,13 @@ class FakeEverythingSDK:
     不触碰真实 DLL。
     """
 
-    def __init__(self, rows, num_results=None, query_ok=True, last_error=0):
+    def __init__(self, rows, num_results=None, query_ok=True, last_error=0,
+                 size_query_ok=True):
         self.rows = list(rows)
         self.num_results_value = num_results if num_results is not None else len(self.rows)
         self.query_ok = query_ok
         self.last_error_value = last_error
+        self.size_query_ok = size_query_ok  # P12·W1.1：支持 GetResultSize 返回 BOOL FALSE
         self.calls = []
 
     def Everything_SetSearchW(self, s):
@@ -76,6 +78,8 @@ class FakeEverythingSDK:
 
     def Everything_GetResultSize(self, i, size_ptr):
         self.calls.append(("GetResultSize", i))
+        if not self.size_query_ok:
+            return 0  # P12·W1.1：BOOL FALSE（历史实现忽略该返回值）
         size_ptr.value = self.rows[i][2]
         return 1
 
@@ -447,6 +451,91 @@ class ScanViaEverythingSdkTests(unittest.TestCase):
             self.assertIsInstance(name, str)
             self.assertIsInstance(is_dir, bool)
             self.assertIsInstance(size, int)
+
+    def test_sentinel_bool_false_returns_none(self):
+        """P12·W1.1：GetResultSize 返回 BOOL FALSE → 该行不入 sizes，unknown==1。"""
+        rows = [("file", "C:\\Users\\Test\\Docs\\a.txt", 10)]
+        fake = FakeEverythingSDK(rows, size_query_ok=False)
+        with mock.patch.object(scan, "log"), \
+                mock.patch.object(sdk, "load_everything_sdk", return_value=fake), \
+                mock.patch.object(sdk, "DLL_PATH", "C:\\fake\\Everything64.dll"):
+            sizes, contents = scan_via_everything_sdk(self.ROOT)
+        self.assertEqual(dict(sizes), {}, "BOOL FALSE 的大小不得进入聚合")
+        self.assertEqual(getattr(sizes, "unknown_size_count", None), 1)
+
+    def test_sentinel_max_u64_constant_filtered(self):
+        """P12·W1.1：2^64-1 哨兵行恒滤，聚合只含正常行，count==2。"""
+        sentinel = scan.SIZE_UNKNOWN_SENTINEL
+        self.assertEqual(sentinel, 0xFFFFFFFFFFFFFFFF)
+        rows = [
+            ("file", "C:\\Users\\Test\\bad1.bin", sentinel),
+            ("file", "C:\\Users\\Test\\bad2.bin", sentinel),
+            ("file", "C:\\Users\\Test\\ok.txt", 42),
+        ]
+        fake, sizes, _ = run_scan(self.ROOT, rows)
+        self.assertEqual(dict(sizes), {Path("C:\\Users\\Test"): 42})
+        self.assertEqual(getattr(sizes, "unknown_size_count", None), 2)
+
+    def test_over_cap_filtered_with_volume_fallback(self):
+        """P12·W1.1：卷容量取不到时按 16TB 兜底滤 17TB 行并记警告；容量充足则保留。"""
+        over_cap = 17 * 1024 ** 4
+        rows = [("file", "C:\\Users\\Test\\huge.bin", over_cap)]
+        fake = FakeEverythingSDK(rows)
+        with mock.patch.object(scan, "_volume_capacity_bytes", return_value=None), \
+                mock.patch.object(scan, "log") as log_mock, \
+                mock.patch.object(sdk, "load_everything_sdk", return_value=fake), \
+                mock.patch.object(sdk, "DLL_PATH", "C:\\fake\\Everything64.dll"):
+            sizes, _ = scan_via_everything_sdk(self.ROOT)
+        self.assertEqual(dict(sizes), {}, "超兜底上限的大小不得进入聚合")
+        self.assertEqual(getattr(sizes, "unknown_size_count", None), 1)
+        self.assertTrue(log_mock.called, "回退分支必须记一行警告")
+
+        # 卷容量可取（100TB）时：17TB 行保留，unknown==0
+        fake2 = FakeEverythingSDK(rows)
+        with mock.patch.object(scan, "_volume_capacity_bytes",
+                               return_value=100 * 1024 ** 4), \
+                mock.patch.object(scan, "log"), \
+                mock.patch.object(sdk, "load_everything_sdk", return_value=fake2), \
+                mock.patch.object(sdk, "DLL_PATH", "C:\\fake\\Everything64.dll"):
+            sizes2, _ = scan_via_everything_sdk(self.ROOT)
+        self.assertEqual(sizes2[Path("C:\\Users\\Test")], over_cap)
+        self.assertEqual(getattr(sizes2, "unknown_size_count", None), 0)
+
+    def test_unknown_size_count_additive_channel(self):
+        """P12·W1.1 零破坏传出通道：二元组解包不炸；计数挂 sizes 属性；contents 无污染。"""
+        rows = [
+            ("file", "C:\\Users\\Test\\bad.bin", scan.SIZE_UNKNOWN_SENTINEL),
+            ("file", "C:\\Users\\Test\\Docs\\a.txt", 10),
+            ("file", "C:\\Users\\Test\\b.txt", 5),
+        ]
+        result = run_scan(self.ROOT, rows)
+        self.assertIsInstance(result, tuple)
+        _, sizes, contents = result
+        self.assertEqual(getattr(sizes, "unknown_size_count", None), 1)
+        self.assertFalse(
+            hasattr(contents, "unknown_size_count"),
+            "contents 不得被 unknown 计数属性污染",
+        )
+        # 聚合只含可信行（Docs=10、根=15）
+        self.assertEqual(sizes[Path("C:\\Users\\Test\\Docs")], 10)
+        self.assertEqual(sizes[Path("C:\\Users\\Test")], 15)
+
+    def test_light_refresh_stats_out(self):
+        """P12·W1.1：light_refresh(stats=s) 写入 s["unknown_size_count"]，返回仍为 list。"""
+        fake = FakeEverythingSDK([
+            ("file", "C:\\Users\\Test\\Dir\\big.bin", scan.SIZE_UNKNOWN_SENTINEL),
+            ("file", "C:\\Users\\Test\\Dir\\ok.txt", 7),
+        ])
+        stats = {}
+        with mock.patch.object(scan, "log"), \
+                mock.patch.object(sdk, "load_everything_sdk", return_value=fake), \
+                mock.patch.object(sdk, "DLL_PATH", "C:\\fake\\Everything64.dll"):
+            items = scan.light_refresh(
+                Path("C:\\"), Path("C:\\Users\\Test\\Dir"), top=50, stats=stats
+            )
+        self.assertIsInstance(items, list, "light_refresh 返回值契约不变（list）")
+        self.assertEqual(items, [("ok.txt", False, 7)])
+        self.assertEqual(stats.get("unknown_size_count"), 1)
 
     def test_dll_auto_resolve_when_unset(self):
         """sdk.DLL_PATH 为 None 时自动解析并回填，再经 load 加载一次。"""

@@ -483,9 +483,12 @@ def _interactive_ui_loop(root_path, sizes, contents, driver_name):
         """对 target_dir 执行轻刷：更新视图条目并打印摘要行（文件+N / 净±X MB~）。
 
         失败返回友好提示（绝不让 TUI 崩溃）；摘要置于状态区，为文本行输出。
+        P12·W1.1：经 stats 通道取回「大小未知」条数，N>0 时在摘要行后追加
+        「N 条大小未知」，与主扫描口径一致。
         """
         nonlocal last_data_time
-        items = light_refresh(root_path, target_dir, top=LIGHT_REFRESH_TOP)
+        stats = {}
+        items = light_refresh(root_path, target_dir, top=LIGHT_REFRESH_TOP, stats=stats)
         if items is None:
             print("轻刷失败: Everything 查询未成功，请确认 Everything 正在运行")
             return
@@ -495,7 +498,11 @@ def _interactive_ui_loop(root_path, sizes, contents, driver_name):
         view["contents"][target_dir] = items
         last_data_time = datetime.now()  # 轻刷完成 → 状态栏数据时间刷新
         sign = "+" if new_total >= old_total else "-"
-        print(f"已轻刷: 文件+{len(items)} / 净{sign}{human_size(abs(new_total - old_total))}~")
+        summary = f"已轻刷: 文件+{len(items)} / 净{sign}{human_size(abs(new_total - old_total))}~"
+        unknown_count = int(stats.get("unknown_size_count") or 0)
+        if unknown_count > 0:
+            summary += f"，{unknown_count} 条大小未知"
+        print(summary)
 
     def _handle_root_light_refresh():
         """r@根指纹门：缓存指纹与最新指纹一致 → 「数据未变」毫秒返回；否则升级深刷。

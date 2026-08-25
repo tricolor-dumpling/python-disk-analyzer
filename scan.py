@@ -29,6 +29,24 @@ MAX_FILES_PER_DIR = 50
 # Everything 扫描进度刷新间隔（按处理的记录条数计）
 SCAN_PROGRESS_REFRESH_INTERVAL = 10000
 
+# ------------【P12·W1.1 大小未知哨兵过滤】------------
+# Everything 对「大小未知」的记录返回 2^64-1 哨兵值；历史实现裸读该值并把它当
+# 真实字节数聚合，导致概览出现天文数字。W1.1 起主扫描与轻刷统一经
+# read_result_size/_classify_result_size 收口：BOOL 失败、哨兵、超上限一律滤除。
+SIZE_UNKNOWN_SENTINEL = 0xFFFFFFFFFFFFFFFF   # 2^64-1，Everything「大小未知」哨兵
+SIZE_UNKNOWN_MAX_BYTES = 16 * 1024 ** 4      # 16TB 兜底上限（取不到卷容量时使用）
+# 注意：该阈值与 snapshots._LEGACY_SIZE_THRESHOLD / compare._LEGACY_SIZE_THRESHOLD
+# 三处同值（依赖方向不允许互 import，tests.test_compare 强制同值防漂移）。
+
+
+class SizeMap(dict):
+    """sizes 聚合产物容器（plain dict 子类）。
+
+    W1.1 零破坏传出通道：`(sizes, contents)` 二元组契约冻结，unknown 计数以
+    ``sizes.unknown_size_count`` 属性附加（additive）；plain dict 不支持属性
+    赋值，故用子类承载。既有按 dict 使用 sizes 的调用方不受任何影响。
+    """
+
 
 class ScanCancelledError(Exception):
     """深刷被用户取消（Esc 置位 cancel_event）时由扫描主循环抛出。
@@ -151,6 +169,80 @@ def _build_lazy_contents(dir_sizes, folder_files, folder_subdirs):
     return LazyContents(builder)
 
 
+# ==============【P12·W1.1 大小未知过滤：统一读取收口】==============
+
+# 单条结果大小分类状态（_classify_result_size 返回值第一元素）
+_SIZE_OK = "ok"                # 可信正整数大小
+_SIZE_BOOL_FALSE = "bool_false"  # Everything_GetResultSize 返回 BOOL FALSE
+_SIZE_SENTINEL = "sentinel"    # sz == SIZE_UNKNOWN_SENTINEL（「大小未知」哨兵）
+_SIZE_OVER_CAP = "over_cap"    # sz > 卷容量/兜底上限（疑似脏索引数据）
+_SIZE_ZERO = "zero"            # sz <= 0（沿用既有过滤口径，不计入 unknown）
+
+
+def _volume_capacity_bytes(root):
+    """返回 root 所在卷的总容量字节数；失败或非 Windows 返回 None。
+
+    经 GetDiskFreeSpaceExW 取 lpTotalNumberOfBytes；任何异常一律收敛为 None，
+    由调用方回退 SIZE_UNKNOWN_MAX_BYTES 兜底上限，绝不影响扫描主流程。
+    """
+    if os.name != "nt":
+        return None
+    try:
+        kernel32 = ctypes.windll.kernel32
+        total_bytes = ctypes.c_ulonglong(0)
+        free_bytes = ctypes.c_ulonglong(0)
+        ok = kernel32.GetDiskFreeSpaceExW(
+            str(root), None, ctypes.byref(total_bytes), ctypes.byref(free_bytes)
+        )
+        if not ok:
+            return None
+        return int(total_bytes.value)
+    except Exception:
+        return None
+
+
+def _classify_result_size(everything, index, volume_cap=None):
+    """单条结果大小的可信性分类（W1.1 收口核心）。
+
+    返回 (status, size)：status ∈ {_SIZE_OK/_SIZE_BOOL_FALSE/_SIZE_SENTINEL/
+    _SIZE_OVER_CAP/_SIZE_ZERO}；仅 _SIZE_OK 时 size 为可信正整数，其余为 None。
+    判定顺序：
+    ① GetResultSize 先取 BOOL 返回值（历史实现忽略它）→ FALSE 记 bool_false；
+    ② sz == SIZE_UNKNOWN_SENTINEL 恒滤（防脏索引）记 sentinel；
+    ③ sz > cap 记 over_cap；cap = volume_cap（取到卷容量时），否则
+       SIZE_UNKNOWN_MAX_BYTES（16TB）兜底；
+    ④ sz <= 0 记 zero（沿用现行过滤）;
+    ⑤ 其余为 ok。
+    """
+    sz = ctypes.c_ulonglong()
+    ok = everything.Everything_GetResultSize(index, sz)
+    if not ok:
+        return _SIZE_BOOL_FALSE, None
+    value = int(sz.value)
+    if value == SIZE_UNKNOWN_SENTINEL:
+        return _SIZE_SENTINEL, None
+    cap = volume_cap if volume_cap is not None else SIZE_UNKNOWN_MAX_BYTES
+    if value > cap:
+        return _SIZE_OVER_CAP, None
+    if value <= 0:
+        return _SIZE_ZERO, None
+    return _SIZE_OK, value
+
+
+def read_result_size(everything, index, volume_cap=None):
+    """读取第 index 条结果的可信大小；一切「不可信」形态返回 None（W1.1 契约）。
+
+    - ① GetResultSize BOOL FALSE → None；
+    - ② sz == SIZE_UNKNOWN_SENTINEL → None；
+    - ③ sz > cap → None（cap 取卷容量，取不到用 SIZE_UNKNOWN_MAX_BYTES 兜底）；
+    - ④ sz <= 0 → None（沿用现行过滤）；
+    - ⑤ 其余返回 sz。
+    主扫描与轻刷共用本收口，杜绝裸读哨兵值进入聚合。
+    """
+    status, size = _classify_result_size(everything, index, volume_cap)
+    return size if status == _SIZE_OK else None
+
+
 def scan_via_everything_sdk(root_path_obj, cancel_event=None, everything=None):
     """使用 Everything SDK 高速扫描指定路径，返回 (sizes, contents)。
 
@@ -184,7 +276,9 @@ def scan_via_everything_sdk(root_path_obj, cancel_event=None, everything=None):
     log(f"📈 Everything 返回 {num_results:,} 条记录")
 
     if num_results == 0:
-        return {}, {}
+        empty_sizes = SizeMap()
+        empty_sizes.unknown_size_count = 0
+        return empty_sizes, {}
 
     root_str = str(root_path_obj).rstrip("\\")
     root_lower = root_str.lower()
@@ -195,11 +289,15 @@ def scan_via_everything_sdk(root_path_obj, cancel_event=None, everything=None):
     folder_subdirs = defaultdict(set)
 
     buffer = ctypes.create_unicode_buffer(sdk.FULL_PATH_BUFFER_CHARS)
-    file_size = ctypes.c_ulonglong()
 
     processed = 0
     refresh_interval = SCAN_PROGRESS_REFRESH_INTERVAL
     last_refresh = 0
+
+    # P12·W1.1：大小未知过滤计数与卷容量上限（每根取一次卷容量）
+    unknown = 0
+    volume_cap = _volume_capacity_bytes(root_path_obj)
+    warned_over_cap_fallback = False  # 兜底分支警告只记一行，避免脏索引刷屏
 
     # 第一阶段：收集文件大小，同时为每个目录保留最大的若干文件，避免 UI 占用过多内存。
     log("📥 正在读取文件结果并统计目录直接占用...")
@@ -229,9 +327,18 @@ def scan_via_everything_sdk(root_path_obj, cancel_event=None, everything=None):
         if full_path_lower != root_lower and not full_path_lower.startswith(root_prefix):
             continue
 
-        everything.Everything_GetResultSize(i, file_size)
-        size = file_size.value
-        if size <= 0:
+        # W1.1 收口：BOOL FALSE / 哨兵 / 超上限 / ≤0 一律不进聚合；
+        # 除已知 0 字节外均计入 unknown（「N 条大小未知」）。
+        status, size = _classify_result_size(everything, i, volume_cap)
+        if status != _SIZE_OK:
+            if status != _SIZE_ZERO:
+                unknown += 1
+                if status == _SIZE_OVER_CAP and volume_cap is None and not warned_over_cap_fallback:
+                    warned_over_cap_fallback = True
+                    log(
+                        "⚠️ 无法取得卷容量，按 16TB 兜底上限过滤超限大小值"
+                        "（疑似 Everything 脏索引，建议重建索引后重扫）"
+                    )
             continue
 
         parent_dir = os.path.dirname(full_path)
@@ -281,7 +388,10 @@ def scan_via_everything_sdk(root_path_obj, cancel_event=None, everything=None):
     # folder_subdirs 数据重复驻留是大磁盘扫描后的内存大头），改为按需构建 +
     # 有界缓存：交互界面逐级浏览时只按需构建并缓存当前目录的条目。
     log("🧱 正在准备交互界面数据（惰性模式：按需构建）...")
-    final_sizes = {Path(k): v for k, v in sizes.items()}
+    final_sizes = SizeMap({Path(k): v for k, v in sizes.items()})
+    # P12·W1.1 零破坏传出通道（RT-04 固化）：(sizes, contents) 二元组契约冻结，
+    # unknown 计数以 dict 属性附加（additive），六处解包调用方不受影响。
+    final_sizes.unknown_size_count = unknown
     contents = _build_lazy_contents(final_sizes, folder_files, folder_subdirs)
     return final_sizes, contents
 
@@ -410,7 +520,7 @@ def clear_fingerprint_cache():
 # =================【D4 轻刷／深刷】================
 
 
-def light_refresh(root_path_obj, current_dir, everything=None, top=50):
+def light_refresh(root_path_obj, current_dir, everything=None, top=50, stats=None):
     """轻刷 current_dir：path:"..." 单查询，返回至多 top 个直接子项（按大小倒序）。
 
     返回条目列表，结构与 contents 目录条目一致：[(name, is_dir, size), ...]；
@@ -420,6 +530,10 @@ def light_refresh(root_path_obj, current_dir, everything=None, top=50):
     - 盘符根（C:\\）经 os.path.abspath 保留尾反斜杠，避免 rstrip 后与子项
       dirname（C:\\）失配；卷条目（驱动根自身）不进入结果，与深刷口径一致；
     - 已知限制：超大目录（后代极多）的客户端过滤不是毫秒级，巨目录请用深刷。
+    - P12·W1.1：大小读取统一走 _classify_result_size 收口（BOOL FALSE/哨兵/
+      超上限/≤0 不进入结果）；stats 传 dict 时写入 stats["unknown_size_count"]
+      （被滤除的「大小未知」条数），返回值仍为 list，不破坏唯一调用方
+      （tui._do_light_refresh）。
     """
     if everything is None:
         if sdk.DLL_PATH is None:
@@ -439,8 +553,10 @@ def light_refresh(root_path_obj, current_dir, everything=None, top=50):
         # abspath 保留盘符根的尾反斜杠（C:\\ 的 dirname 是自身），普通目录形态不变
         parent_lower = os.path.normcase(os.path.abspath(str(current_dir)))
         buffer = ctypes.create_unicode_buffer(sdk.FULL_PATH_BUFFER_CHARS)
-        file_size = ctypes.c_ulonglong()
         entries = []
+        unknown = 0
+        volume_cap = _volume_capacity_bytes(current_dir)
+        warned_over_cap_fallback = False
         for i in range(num_results):
             if everything.Everything_IsVolumeResult(i):
                 continue  # 卷条目是驱动根自身，不是直接子项（与深刷 IsVolumeResult 跳过一致）
@@ -452,10 +568,22 @@ def light_refresh(root_path_obj, current_dir, everything=None, top=50):
                 continue
             if os.path.normcase(os.path.dirname(full_path)) != parent_lower:
                 continue  # 只取直接子项：path: 查询会把后代目录里的文件也带回
-            everything.Everything_GetResultSize(i, file_size)
-            size = file_size.value
+            # W1.1 收口：与主扫描同口径过滤不可信大小
+            status, size = _classify_result_size(everything, i, volume_cap)
+            if status != _SIZE_OK:
+                if status != _SIZE_ZERO:
+                    unknown += 1
+                    if status == _SIZE_OVER_CAP and volume_cap is None and not warned_over_cap_fallback:
+                        warned_over_cap_fallback = True
+                        log(
+                            "⚠️ 无法取得卷容量，按 16TB 兜底上限过滤超限大小值"
+                            "（疑似 Everything 脏索引，建议重建索引后重扫）"
+                        )
+                continue
             entries.append((size, (os.path.basename(full_path), is_dir, size)))
         entries.sort(key=lambda x: x[0], reverse=True)
+        if stats is not None:
+            stats["unknown_size_count"] = unknown
         return [item for _, item in entries[:top]]
     except Exception:
         return None
