@@ -33,6 +33,8 @@ const ICONS = {
         '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg>',
     close:
         '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    copy:
+        '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
     spinner:
         '<svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.56"/></svg>',
 };
@@ -267,6 +269,53 @@ let currentRoot = "D:\\"; // 用户本次浏览会话的根（面包屑/返回�
 let currentPath = "D:\\"; // 当前正在查看的目录
 let browseHistory = [];
 
+/* P12·W1.4 行动闭环：行内 hover 操作区（打开所在文件夹 / 复制路径） */
+function rowActions(path) {
+    return (
+        '<span class="row-actions">' +
+        '<button class="icon-btn act-open" data-act-path="' + esc(path) + '" title="打开所在文件夹" aria-label="打开所在文件夹">' + ICONS.folder + "</button>" +
+        '<button class="icon-btn act-copy" data-act-path="' + esc(path) + '" title="复制路径" aria-label="复制路径">' + ICONS.copy + "</button>" +
+        "</span>"
+    );
+}
+
+/* 复制路径：clipboard API → execCommand 兜底（临时 textarea）→ toast */
+async function copyPath(path) {
+    let ok = false;
+    try {
+        await navigator.clipboard.writeText(path);
+        ok = true;
+    } catch (e) {
+        try {
+            const ta = document.createElement("textarea");
+            ta.value = path;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            ok = document.execCommand("copy");
+            ta.remove();
+        } catch (e2) { ok = false; }
+    }
+    toast(ok ? "已复制路径：" + path : "复制失败，请手动选择路径复制", ok ? "success" : "error");
+}
+
+/* 打开所在文件夹：POST /api/open-path（explorer /select），按 launched 分文案 */
+async function openInExplorer(path) {
+    try {
+        const data = await postJson("/api/open-path", { path: path });
+        if (data.launched) {
+            toast(data.message || "已请求资源管理器定位", "success");
+        } else {
+            toast(data.message || "无法调起资源管理器，路径已复制", "warn");
+            copyPath(path); // 降级：至少把路径放进剪贴板
+        }
+    } catch (e) {
+        toast(e.message, "error");
+    }
+}
+
 function renderBrowseHistory() {
     const box = $("browse-history");
     if (!box || browseHistory.length < 2) { if (box) box.classList.add("hidden"); return; }
@@ -371,7 +420,20 @@ function renderEntries(data) {
     renderComposition(data, entries);
     if (browseView === "ranking") {
         const max = Math.max(1, ...entries.map((entry) => Number(entry.size) || 0));
-        body.innerHTML = entries.map((entry) => '<tr><td colspan="4"><div tabindex="0" role="button" class="ranking-row" data-path="' + (entry.is_dir ? esc(entry.path) : '') + '" aria-label="' + esc(entry.name) + '，' + esc(entry.size_human) + '"><span class="ranking-name">' + (entry.is_dir ? ICONS.folder : ICONS.file) + esc(entry.name) + '</span><span class="size-track"><span class="size-bar" style="width:' + Math.max(2, Number(entry.size) / max * 100) + '%"></span></span><strong>' + esc(entry.size_human) + '</strong></div></td></tr>').join("") || '<tr><td colspan="4"><div class="empty-state"><b>暂无数据</b><p>扫描后显示目录排行。</p></div></td></tr>';
+        // P12·W1.4 渲染层区分（FE 方案 B）：目录行保留 role/tabindex/data-path，
+        // 文件行改用 .ranking-row-static（无 role/tabindex/data-path）——
+        // 点击与键盘 Enter/Space 天然只作用于目录行，文件行 0 个额外请求。
+        body.innerHTML = entries.map((entry) => {
+            const label = 'aria-label="' + esc(entry.name) + "，" + esc(entry.size_human) + '"';
+            const inner =
+                '<span class="ranking-name">' + (entry.is_dir ? ICONS.folder : ICONS.file) + esc(entry.name) + '</span>' +
+                '<span class="size-track"><span class="size-bar" style="width:' + Math.max(2, Number(entry.size) / max * 100) + '%"></span></span>' +
+                "<strong>" + esc(entry.size_human) + "</strong>";
+            if (entry.is_dir) {
+                return '<tr><td colspan="4"><div tabindex="0" role="button" class="ranking-row" data-path="' + esc(entry.path) + '" ' + label + ">" + inner + rowActions(entry.path) + "</div></td></tr>";
+            }
+            return '<tr><td colspan="4"><div class="ranking-row-static" ' + label + ">" + inner + rowActions(entry.path) + "</div></td></tr>";
+        }).join("") || '<tr><td colspan="4"><div class="empty-state"><b>暂无数据</b><p>扫描后显示目录排行。</p></div></td></tr>';
         body.querySelectorAll(".ranking-row[data-path]").forEach((row) => {
             row.addEventListener("click", () => browsePath(row.dataset.path));
             row.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); browsePath(row.dataset.path); } });
@@ -404,7 +466,7 @@ function renderEntries(data) {
             '<td class="cell-name">' + nameCell + "</td>" +
             '<td class="col-size">' + esc(entry.size_human) + "</td>" +
             '<td class="col-share"><span class="size-track"><span class="size-bar" style="width:' + pct + '%"></span></span></td>' +
-            '<td class="col-type">' + (isDir ? "目录" : "文件") + "</td>" +
+            '<td class="col-type"><span>' + (isDir ? "目录" : "文件") + "</span>" + rowActions(entry.path) + "</td>" +
             "</tr>"
         );
     });
@@ -837,7 +899,7 @@ function renderCompareResult(r) {
     const body = $("compare-body");
     if (!rows.length) {
         body.innerHTML =
-            '<tr><td colspan="3"><div class="empty-state">' +
+            '<tr><td colspan="4"><div class="empty-state">' +
             ICONS.success +
             "<b>无差异</b><p>当前结果与基线快照一致，没有找到大小变化的目录。</p></div></td></tr>";
     } else {
@@ -853,7 +915,10 @@ function renderCompareResult(r) {
                     '<td class="delta-cell ' + deltaClass(d) + '">' + signedBytes(d) + "</td>" +
                     "<td>" + esc(growth) + "</td>" +
                     '<td><span class="cell-name"><span class="name" title="' + esc(row.path) + '">' + esc(row.path) + "</span>" +
-                    tags.join("") + "</span></td></tr>"
+                    tags.join("") + "</span></td>" +
+                    // P12·W1.4：对比明细行尾「复制路径」操作列
+                    '<td><button class="icon-btn act-copy-cmp" data-act-path="' + esc(row.path) + '" title="复制路径" aria-label="复制路径">' + ICONS.copy + "</button></td>" +
+                    "</tr>"
                 );
             })
             .join("");
@@ -1086,6 +1151,18 @@ function bind() {
     // 确认弹窗
     $("btn-confirm-ok").addEventListener("click", () => resolveConfirm(true));
     $("btn-confirm-cancel").addEventListener("click", () => resolveConfirm(false));
+
+    // P12·W1.4 行动闭环：行内操作按钮事件委托（绑定一次，随渲染内容更新生效）
+    $("dir-body").addEventListener("click", (ev) => {
+        const openBtn = ev.target.closest(".act-open");
+        if (openBtn) { openInExplorer(openBtn.getAttribute("data-act-path")); return; }
+        const copyBtn = ev.target.closest(".act-copy");
+        if (copyBtn) { copyPath(copyBtn.getAttribute("data-act-path")); return; }
+    });
+    $("compare-body").addEventListener("click", (ev) => {
+        const copyBtn = ev.target.closest(".act-copy-cmp");
+        if (copyBtn) copyPath(copyBtn.getAttribute("data-act-path"));
+    });
 
     bindModalClose();
 }

@@ -17,6 +17,7 @@
 - 两级刷新：`r` 轻刷当前目录、`R` 深刷全量重建；根目录轻刷走**指纹门**（`compute_fingerprint`，60 秒冷却缓存）——数据未变毫秒级返回「数据未变」，内容变化或探测失败自动升级为深刷；深刷有 60 秒冷却，在途可 `Esc` 取消。
 - `/` 路径跳转：根内任意路径直接跳转、不触发重扫，自带最近 16 条跳转历史。
 - 快照与历史对比：交互模式干净退出自动保存快照（gzip JSONL + 台账），支持 `--snapshot-dir` 自定义目录、`--no-snapshot` 禁用；非交互模式用 `--baseline` 与基线快照对比并打印 Top-N 变化。`S` 保存快照 / `H` 历史对比 / `h` 帮助键位已注册。
+- Web 版目录/对比行内建「打开所在文件夹」「复制路径」行动闭环：≤2 次点击完成定位或复制；文件行不响应点击（0 个额外请求）。
 - 启动 Everything 的子进程被绑定到 Windows 作业对象（`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`），程序退出时不会残留孤儿进程。
 
 ## 运行环境
@@ -68,6 +69,9 @@ ARM/ARM64 版 `EverythingARM.dll`、`EverythingARM64.dll` 按需放入
 - 自动启动 Everything 时使用 Windows 作业对象（Job Object）沙盒，程序退出即终止由其启动的子进程，避免孤儿进程残留。
 - 交互界面按键读取依赖 `msvcrt`：该导入是受保护的（`try/except ImportError`），非 Windows 平台 `import main` 不会崩溃，但进入交互界面时会抛出 `MsvcrtUnavailableError`（中文提示「请在 Windows 上运行」），由上层统一捕获后优雅退出。
 - Everything.exe 注册表定位依赖 `winreg`：同样是受保护导入，非 Windows 平台自动跳过注册表候选路径。
+- 「打开所在文件夹」经 `explorer /select` 实现：接口返回 `launched:true` 仅代表
+  进程拉起成功，explorer 自身定位失败（如路径含逗号、事后被删除）仍为静默，
+  此时以「复制路径」作为兜底。
 
 ## pip 依赖
 

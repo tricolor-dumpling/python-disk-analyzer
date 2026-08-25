@@ -278,7 +278,30 @@ const ASSERTIONS = [
       __assert(box2.textContent.indexOf("错误码") === -1, "旧形态不得出现 code 区块（RT-N04 降级）");
       __assert(box2.textContent.indexOf(SAMPLES.errorLegacyShape.error) !== -1, "旧形态仍显示主文案");
     } },
-  { id: "1", name: "断言①（W1.4）：文件行零请求", fn: null },
+  { id: "1", name: "断言①（W1.4）：文件行零请求",
+    fn: async function () {
+      // 骨架样本 browseOk 含 2 目录 + 2 文件，init 门控已渲染进 #dir-body
+      __assert(document.querySelector("#dir-body .ranking-row[data-path]"), "应存在目录行");
+      const staticRow = document.querySelector("#dir-body .ranking-row-static");
+      __assert(staticRow, "应存在静态文件行（.ranking-row-static）");
+      __assert(!staticRow.hasAttribute("data-path"), "文件行不得携带 data-path");
+      __assert(!staticRow.hasAttribute("role"), "文件行不得有 role=button");
+      __assert(!staticRow.hasAttribute("tabindex"), "文件行不得有 tabindex");
+      __assert(document.querySelector('[data-path=""]') === null, "不得存在 data-path 为空字符串的行");
+
+      __smoke.fetchLog.length = 0;
+      staticRow.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      staticRow.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      staticRow.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+      let browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
+      __assert(browses === 0, "点击/键盘静态文件行应产生 0 个 /api/browse，实际 " + browses);
+
+      const dirRow = document.querySelector("#dir-body .ranking-row[data-path]");
+      dirRow.click();
+      await new Promise((r) => setTimeout(r, 40));
+      browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
+      __assert(browses === 1, "点击目录行应恰好 1 次 /api/browse，实际 " + browses);
+    } },
   { id: "2", name: "断言②（W2.5）：筛选空态出现清除按钮", fn: null },
   { id: "3", name: "断言③（W2.6）：双弹窗 Esc 逆序关栈顶", fn: null },
   { id: "4", name: "断言④（W2.1）：busy health 不降级不进引导态", fn: null },
