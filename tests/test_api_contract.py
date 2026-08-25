@@ -102,6 +102,56 @@ class ApiContractTests(unittest.TestCase):
             self.assertIsInstance(body["snapshots_dir"], str)
             resp.close()
 
+    def test_settings_post_whitelist_matrix(self):
+        """P12·W2.6（K4）/W2.9（SEC-1）：白名单矩阵——everything_*/未知键 400，
+        合法键 200 且落盘无脏键；last_roots 超 5 截断。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        config_path = Path(tmp.name) / "config.json"
+        with app.test_client() as client:
+            # everything_* 投毒链：固定文案 400，且不落盘
+            for key in ("everything_exe", "everything_dll", "everything_startup_args"):
+                resp = client.post(f"/api/settings", json={key: "C:\\evil.exe"})
+                self.assertEqual(resp.status_code, 400, f"{key} 必须 400")
+                body = resp.get_json()
+                self.assertIn("安全限制", body["error"])
+                self.assertIn("everything_", body["error"])
+                resp.close()
+            self.assertFalse(config_path.exists(), "被拒写入不得落盘")
+
+            # 未知键 → 400
+            resp = client.post("/api/settings", json={"hacker_key": "x"})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIn("不允许写入设置项", resp.get_json()["error"])
+            resp.close()
+
+            # 合法键：200；last_roots 6 项截断为 5
+            six_roots = ["C:\\", "D:\\", "E:\\", "F:\\", "G:\\", "H:\\"]
+            with mock.patch.object(env, "_default_config_path", return_value=config_path):
+                resp = client.post("/api/settings", json={"auto_save": True, "last_roots": six_roots})
+            self.assertEqual(resp.status_code, 200)
+            saved = resp.get_json()["settings"]
+            self.assertIs(saved["auto_save"], True)
+            self.assertEqual(len(saved["last_roots"]), 5, "last_roots 必须截断为 5")
+            resp.close()
+
+            # 落盘内容无脏键（config.json 只含白名单键）
+            import json as _json
+            on_disk = _json.loads(config_path.read_text(encoding="utf-8"))
+            self.assertNotIn("hacker_key", on_disk)
+            for forbidden in ("everything_exe", "everything_dll"):
+                self.assertNotIn(forbidden, on_disk)
+
+    def test_settings_post_rejects_bad_types(self):
+        """P12·W2.6（K4）：类型不符（auto_save 非布尔 / theme 非枚举）→ 400。"""
+        with app.test_client() as client:
+            resp = client.post("/api/settings", json={"auto_save": "yes"})
+            self.assertEqual(resp.status_code, 400)
+            resp.close()
+            resp = client.post("/api/settings", json={"theme": "solarized"})
+            self.assertEqual(resp.status_code, 400)
+            resp.close()
+
     def test_compare_error_shape(self):
         """POST /api/compare 缺参错误形态：键集合恰为 {ok, error}。"""
         with app.test_client() as client:

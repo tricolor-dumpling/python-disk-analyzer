@@ -547,6 +547,50 @@ def api_compare():
 
 # =================【5. 设置】=================
 
+# P12·W2.6（K4）/W2.9（SEC-1）：可写设置键白名单（冲突1 裁决——剔除 everything_*）。
+# 白名单外键一律 400；everything_* 前缀固定文案拒写（投毒链封堵）。
+ALLOWED_SETTING_KEYS = {
+    "auto_save": bool,
+    "last_roots": list,
+    "theme": str,
+}
+
+_EVERYTHING_LOCKED_MESSAGE = (
+    "安全限制：everything_* 只能由本机程序自动探测，不能从网页设置写入"
+)
+
+
+def validate_settings_payload(data):
+    """校验并清洗设置写入载荷，返回 (clean_dict, error_message|None)。
+
+    - 白名单外键 → 拒绝；everything_* 前缀 → 固定文案；
+    - auto_save 必须 bool；theme 仅 light/dark；last_roots 必须字符串列表，
+      且截断到前 5 项（与前端「最近浏览」上限一致）。
+    """
+    if not isinstance(data, dict):
+        return None, "请求体必须是 JSON 对象"
+    clean = {}
+    for key, value in data.items():
+        if isinstance(key, str) and key.startswith("everything_"):
+            return None, _EVERYTHING_LOCKED_MESSAGE
+        if key not in ALLOWED_SETTING_KEYS:
+            return None, f"不允许写入设置项: {key}"
+        expected = ALLOWED_SETTING_KEYS[key]
+        if expected is bool:
+            if not isinstance(value, bool):
+                return None, f"{key} 必须是布尔值"
+        elif expected is list:
+            if not isinstance(value, list) or not all(isinstance(x, str) for x in value):
+                return None, f"{key} 必须是字符串列表"
+            value = [v for v in value if v.strip()][:5]
+        else:  # str
+            if not isinstance(value, str):
+                return None, f"{key} 必须是字符串"
+            if key == "theme" and value not in ("light", "dark"):
+                return None, "theme 仅支持 light/dark"
+        clean[key] = value
+    return clean, None
+
 
 @app.route("/api/settings", methods=["GET", "POST"])
 def api_settings():
@@ -557,8 +601,11 @@ def api_settings():
             snapshots_dir=str(datadir.get_snapshots_dir()),
         )
     data = request.get_json(silent=True) or {}
+    clean, error = validate_settings_payload(data)
+    if error is not None:
+        return _json_error(error, status=400)
     config = env.load_config()
-    config.update(data)
+    config.update(clean)
     if not env.save_config(config):
         return _json_error("设置保存失败，请检查数据目录是否可写", status=500)
     return _json_ok(settings=config, message="设置已保存")
