@@ -12,10 +12,12 @@
 run_server()/__main__。
 """
 
+import atexit
 import os
 import subprocess
 import sys
 import threading
+import urllib.request
 import webbrowser
 from pathlib import Path
 
@@ -611,6 +613,29 @@ def _bootstrap_everything():
         utils.log(f"[引导] 自动拉起异常：{exc}")
 
 
+def _another_instance_running(port):
+    """P12·W2.10（DEP-1）：bind 前探测端口是否已被本工具实例占用。
+
+    能取到 /api/health 200 → 视为已有实例；任何异常（连接拒绝/超时）都视为
+    无实例，不影响正常启动。
+    """
+    try:
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{port}/api/health", timeout=1
+        ) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
+def _shutdown_fullscan():
+    """停服收尾（P12·W2.10 R-2）：协作取消后台扫描并等待其收尾。"""
+    try:
+        fullscan.cancel_scan(join_timeout=5)
+    except Exception:
+        pass  # 退出路径绝不因收尾失败而抛错/裸 traceback
+
+
 def run_server(port=5000, open_browser=True):
     """启动本地 Flask 服务（仅 127.0.0.1，threaded=True）。"""
     # 与 cli.main() 同款：把 stdout/stderr 重配置为 UTF-8，避免 GBK 控制台/管道下
@@ -619,11 +644,19 @@ def run_server(port=5000, open_browser=True):
     utils._reconfigure_std_streams()
     TEMPLATE_DIR.mkdir(parents=True, exist_ok=True)
     STATIC_DIR.mkdir(parents=True, exist_ok=True)
+    # P12·W2.10（DEP-1）防双实例：bind 前探测，能通则复用已有实例页面
+    if _another_instance_running(port):
+        print(f"端口 {port} 已被本工具实例占用，将打开已有实例页面")
+        if open_browser:
+            webbrowser.open(f"http://127.0.0.1:{port}")
+        return
     if open_browser:
         threading.Timer(
             0.8,
             lambda: webbrowser.open(f"http://127.0.0.1:{port}"),
         ).start()
+    # P12·W2.10：退出时协作取消后台扫描（join 超时放弃，不硬杀）
+    atexit.register(_shutdown_fullscan)
     # P12·W1.3：daemon 线程自动拉起，绝不阻塞 bind
     threading.Thread(
         target=_bootstrap_everything, name="everything-bootstrap", daemon=True

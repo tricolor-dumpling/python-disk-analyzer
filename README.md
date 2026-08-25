@@ -369,6 +369,13 @@ everything-SDK/  Everything SDK DLL（dll\ 下为 Everything32.dll、Everything6
 python main.py
 ```
 
+Web 版部署与停服行为（P12·W2.10）：
+
+- **重复启动复用已有实例**：启动前探测 `127.0.0.1:<port>/api/health`，若已有
+  实例在运行则直接打开已有页面并退出，不再二次监听（消除僵尸双 LISTENING）。
+- **退出时取消后台扫描**：Ctrl+C / 进程退出会协作取消在途后台全量扫描
+  （等待最多 5 秒收尾），已完成盘的结果保留、日志无裸 traceback。
+
 ### 可选：打包为 exe
 
 依赖 `PyInstaller`（可选工具），按需安装：

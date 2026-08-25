@@ -16,11 +16,16 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
-from scan import scan_via_everything_sdk
+from scan import scan_via_everything_sdk, ScanCancelledError
 
 # 全局限流锁：所有需要触碰 Everything SDK 的调用都应持有它。
 # 后台全量扫描会在整个扫描期间持有；前台浏览也应在进入 SDK 前获取。
 GLOBAL_SCAN_LOCK = threading.Lock()
+
+# P12·W2.10（R-2）：协作取消事件——停服时不硬杀扫描线程，由扫描主循环在
+# 每 SCAN_PROGRESS_REFRESH_INTERVAL 条检查一次；置位后 ScanCancelledError
+# 被消化，已完成根保留、state 记 cancelled。
+CANCEL_EVENT = threading.Event()
 
 _STATE_LOCK = threading.Lock()
 
@@ -163,6 +168,7 @@ _STATE = {
     "roots_done": 0,
     "current_root": None,
     "error": None,
+    "cancelled": False,  # P12·W2.10：后台扫描被协作取消（停服）
     "scan_version": 0,
     "saved_scan_version": 0,
     "scan_finished_at": None,
@@ -227,6 +233,7 @@ def start(roots=None, everything=None):
         if _STATE["running"]:
             return False
         BROWSE_INDEX.clear()
+        CANCEL_EVENT.clear()  # P12·W2.10：新扫描前清取消位
         _STATE.update(
             {
                 "running": True,
@@ -234,6 +241,7 @@ def start(roots=None, everything=None):
                 "roots_done": 0,
                 "current_root": None,
                 "error": None,
+                "cancelled": False,
                 "scan_version": scan_version,
                 "scan_finished_at": None,
                 "last_result": None,
@@ -254,6 +262,7 @@ def _run(roots, everything, scan_version):
     """后台线程主函数：串行扫描每个根并更新进度。"""
     result_roots = {}
     error = None
+    cancelled = False
     try:
         with GLOBAL_SCAN_LOCK:
             for index, root in enumerate(roots):
@@ -261,8 +270,9 @@ def _run(roots, everything, scan_version):
                     current_root=str(root),
                     roots_done=index,
                 )
+                # P12·W2.10：透传 CANCEL_EVENT，停服时协作取消（不硬杀线程）
                 sizes, _unused_contents = scan_via_everything_sdk(
-                    root, everything=everything
+                    root, everything=everything, cancel_event=CANCEL_EVENT
                 )
                 rows = [
                     {"p": str(path), "s": int(size)}
@@ -275,6 +285,11 @@ def _run(roots, everything, scan_version):
                 # Publish only after this root has completely finished.
                 BROWSE_INDEX.add_scan(root, sizes, _unused_contents)
                 _update_state(roots_done=index + 1)
+    except ScanCancelledError:
+        # P12·W2.10：取消不算失败——已完成根保留、error=None、state 记 cancelled
+        error = None
+        cancelled = True
+        ok = False
     except Exception as exc:  # 扫描失败仍保留已完成根的结果；error 供状态透出
         error = str(exc)
         ok = False
@@ -295,9 +310,24 @@ def _run(roots, everything, scan_version):
             thread=None,
             current_root=None,
             error=error,
+            cancelled=cancelled,
             scan_finished_at=_now_iso(),
             last_result=last_result,
         )
+
+
+def cancel_scan(join_timeout=5.0):
+    """协作取消后台全量扫描并等待收尾（P12·W2.10 R-2）。
+
+    atexit 停服路径调用：置位 CANCEL_EVENT → 扫描主循环在下一检查点抛
+    ScanCancelledError 收尾 → join(timeout) 等待线程退出；超时则放弃
+    （daemon 线程随进程自然消亡），绝不硬杀。
+    """
+    CANCEL_EVENT.set()
+    with _STATE_LOCK:
+        thread = _STATE.get("thread")
+    if thread is not None and thread.is_alive():
+        thread.join(timeout=join_timeout)
 
 
 def is_running():
