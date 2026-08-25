@@ -157,6 +157,12 @@ const SAMPLES = {
     ],
     total_dirs: 2, total_files: 2
   },
+  browseSlow: { ok: true, root: "D:\\slowDir", parent: null,
+    directories: [{ name: "sdir", path: "D:\\slowDir\\sdir", is_dir: true, size: 10, size_human: "10 B" }],
+    files: [], total_dirs: 1, total_files: 0 },
+  browseFast: { ok: true, root: "D:\\fastDir", parent: null,
+    directories: [{ name: "fdir", path: "D:\\fastDir\\fdir", is_dir: true, size: 20, size_human: "20 B" }],
+    files: [], total_dirs: 1, total_files: 0 },
   fullscanStatusIdle: { ok: true, status: { running: false, roots: ["C:\\"], roots_done: 0, roots_total: 1, current_root: null, error: null, result_ready: false, save_ready: false, progress_pct: 0, scan_version: 1 } },
   snapshotsList: { ok: true, sessions: [ { session_id: "s-20260824-000000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T10:00:00", roots: { "D:\\": { root: "D:\\", snapshot: "D_20260824_100000_explicit_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260824_100000_explicit_aabbccd.snap.gz", skipped: false } } } ], count: 1 },
   compareReport: { ok: true, report: { root: "D:\\", total_baseline: 16000, total_current: 15990, delta_total: -10, truncated: false, legacy_count: 0, rows: [ { path: "D:\\data", baseline: 12000, current: 11990, delta: -10, growth_pct: -0.0833, removed: false, added: false } ] } },
@@ -305,6 +311,60 @@ const ASSERTIONS = [
   { id: "2", name: "断言②（W2.5）：筛选空态出现清除按钮", fn: null },
   { id: "3", name: "断言③（W2.6）：双弹窗 Esc 逆序关栈顶", fn: null },
   { id: "4", name: "断言④（W2.1）：busy health 不降级不进引导态", fn: null },
+  { id: "w28", name: "W2.8：浏览竞态防护（迟到旧响应丢弃；旧失败不打断新结果）",
+    fn: async function () {
+      const realFetch = window.fetch;
+      let releaseA;
+      const gateA = new Promise((r) => { releaseA = r; });
+      let n = 0;
+      window.fetch = function (url, options) {
+        if (String(url).indexOf("/api/browse") !== -1) {
+          n += 1;
+          if (n === 1) return gateA.then(() => Promise.resolve(__stubResponse(SAMPLES.browseSlow)));
+          return Promise.resolve(__stubResponse(SAMPLES.browseFast));
+        }
+        return realFetch(url, options);
+      };
+      try {
+        // 场景一：慢 A 先发，快 B 后发且先回 → 页面为 B；A 迟到被丢弃
+        const pA = browsePath("D:\\slowDir");
+        const pB = browsePath("D:\\fastDir");
+        await pB;
+        await new Promise((r) => setTimeout(r, 10));
+        __assert(currentPath === "D:\\fastDir", "B 先回后页面应为 fastDir");
+        releaseA();
+        await pA;
+        await new Promise((r) => setTimeout(r, 10));
+        __assert(currentPath === "D:\\fastDir", "迟到的 A 不得覆盖 B 的渲染状态");
+
+        // 场景二：慢 A 将失败、快 B 成功 → A 的失败不得覆盖 B 的成功态
+        let releaseC;
+        const gateC = new Promise((r) => { releaseC = r; });
+        let m = 0;
+        window.fetch = function (url, options) {
+          if (String(url).indexOf("/api/browse") !== -1) {
+            m += 1;
+            if (m === 1) return gateC.then(() => Promise.resolve(__stubResponse(SAMPLES.errorLegacyShape, 400)));
+            return Promise.resolve(__stubResponse(SAMPLES.browseFast));
+          }
+          return realFetch(url, options);
+        };
+        $("browse-error").classList.add("hidden");
+        const pC = browsePath("D:\\slowDir");
+        const pD = browsePath("D:\\fastDir");
+        await pD;
+        await new Promise((r) => setTimeout(r, 10));
+        const errHiddenAtB = $("browse-error").classList.contains("hidden");
+        releaseC();
+        await pC.catch(() => {});
+        await new Promise((r) => setTimeout(r, 10));
+        __assert(errHiddenAtB === true, "B 成功时不应有错误框");
+        __assert($("browse-error").classList.contains("hidden") || currentPath === "D:\\fastDir",
+                 "旧失败晚于 B 到达不得打断成功态");
+      } finally {
+        window.fetch = realFetch;
+      }
+    } },
 ];
 
 window.addEventListener("load", function () {

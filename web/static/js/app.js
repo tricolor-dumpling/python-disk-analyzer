@@ -500,7 +500,11 @@ function renderEntries(data) {
     );
 }
 
+/* P12·W2.8（N-1）：浏览竞态防护——每次 browsePath 取自增令牌，迟到响应丢弃 */
+let browseSeq = 0;
+
 async function browsePath(path, quiet) {
+    const seq = ++browseSeq;
     const target = normalizeRoot(path) || currentRoot;
     if (!target) {
         setStatus("browse-status", "warn", "请输入盘符或目录路径（例如 D:\\）");
@@ -512,6 +516,7 @@ async function browsePath(path, quiet) {
     $("dir-body").innerHTML = "";
     try {
         const data = await postJson("/api/browse", { root: currentRoot, path: target });
+        if (seq !== browseSeq) return; // 迟到的旧响应：不渲染、不改 currentPath/history
         document.title = (data.root || target) + " · Python 磁盘扫描";
         // API root 是当前目录；浏览会话根保持不变，避免进入子目录后越界。
         currentPath = data.root || target;
@@ -531,10 +536,11 @@ async function browsePath(path, quiet) {
         // 只在会话根层级记录「最近浏览」（进入子目录不算新根）
         if (data.root && !data.parent) updateRecentRoots(data.root, quiet);
     } catch (e) {
+        if (seq !== browseSeq) return; // 旧失败不打断新结果
         lastBrowse = { root: currentRoot, path: target };
         showBrowseError(e.message, e, () => browsePath($("browse-root").value.trim() || target));
     } finally {
-        setBrowseLoading(false);
+        if (seq === browseSeq) setBrowseLoading(false); // 仅最新请求有权解除 loading
     }
 }
 
