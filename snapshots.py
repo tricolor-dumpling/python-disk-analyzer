@@ -633,8 +633,12 @@ def save_snapshot(
     """
     rows = list(rows)
     if len(rows) > MAX_ROWS:
+        # P12·W3.1（R-1）：文案改为真因表述——保留空目录与小文件条目会快速堆高
+        # 行数；缩小扫描根范围是用户可执行的解法。
         raise ValueError(
-            "快照行数 %d 超过上限 %d，拒绝保存" % (len(rows), MAX_ROWS)
+            "快照行数 %d 超过快照格式上限 %d"
+            "（保留空目录与小文件条目会快速堆高行数），拒绝保存；"
+            "请缩小扫描根范围后重试" % (len(rows), MAX_ROWS)
         )
     canonical_rows = []
     est_bytes = 0  # W2.2：写量近似估计（路径长 + 大小位数十进制 + JSON 结构开销）

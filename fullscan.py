@@ -58,7 +58,8 @@ class BrowseIndex:
     def add_scan(self, root, sizes, contents):
         root_path = Path(root)
         dir_sizes = {_path_key(path): int(size) for path, size in sizes.items()}
-        display_paths = {_path_key(path): Path(path) for path in sizes}
+        # P12·W3.1（R-1）：移除原「路径键->Path 对象」冗余映射（键即 path_key，
+        # 显示路径可随时由 sizes 键重建），大磁盘扫描时白白驻留数十万 Path 对象。
         files = {}
         subdirs = {}
         # contents is LazyContents in production; .get() materializes one directory
@@ -82,7 +83,6 @@ class BrowseIndex:
             "root": root_path,
             "root_key": _path_key(root_path),
             "dir_sizes": dir_sizes,
-            "display_paths": display_paths,
             "files": files,
             "subdirs": subdirs,
         }
