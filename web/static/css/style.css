@@ -15,3 +15,12 @@
 .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;border:none;background:transparent;color:inherit;cursor:pointer;padding:0}
 .icon-btn:hover{background:rgba(127,127,127,.18)}
 .icon-btn:focus-visible{outline:2px solid currentColor;outline-offset:1px}
+
+/* ================= P12·W3.4 徽章反馈（DEF-027）与版本铺垫（DEF-031 部分） ================= */
+/* hover 反馈：徽章轻微变暗 */
+.badge:hover{filter:brightness(.95)}
+/* 未就绪/错误态呼吸动画（就绪绿 badge-ok 静止） */
+@keyframes badge-breathe{0%,100%{opacity:1}50%{opacity:.72}}
+.badge:not(.badge-ok){animation:badge-breathe 2.4s ease-in-out infinite}
+/* 系统开启「减弱动态效果」时豁免呼吸动画 */
+@media (prefers-reduced-motion:reduce){.badge{animation:none}}
