@@ -13,6 +13,7 @@ run_server()/__main__。
 """
 
 import os
+import subprocess
 import sys
 import threading
 import webbrowser
@@ -281,6 +282,47 @@ def api_browse():
 
 
 # =================【2. 后台全量】=================
+
+
+@app.post("/api/open-path")
+def api_open_path():
+    """在资源管理器中定位路径（P12·W1.4 行动闭环，DEF-009 P0-4）。
+
+    校验清单（任一不过 → 400 中文错误）：
+    ① path 为非空 str；② 绝对路径；③ 无控制字符（ord<32）；
+    ④ 长度 ≤ 32768；⑤ 位于已完成扫描索引内或真实存在。
+    处理：subprocess.Popen(list 形参免注入) 调 explorer /select；
+    spawn OSError → launched:false（前端降级为复制路径）。
+    已知限制：explorer 定位失败仍静默（RT-N10，README 已记录）。
+    """
+    data = request.get_json(silent=True) or {}
+    path = data.get("path")
+    if not isinstance(path, str) or not path.strip():
+        return _json_error("path 必须是非空字符串")
+    try:
+        if not Path(path).is_absolute():
+            return _json_error(f"path 必须是绝对路径: {path}")
+    except (OSError, ValueError):
+        return _json_error("path 不是合法路径")
+    if any(ord(c) < 32 for c in path):
+        return _json_error("path 含有非法控制字符")
+    if len(path) > 32768:
+        return _json_error("path 过长（超过 32768 字符）")
+    in_index = fullscan.BROWSE_INDEX.contains(path)
+    if not in_index:
+        try:
+            exists = Path(path).exists()
+        except OSError:
+            exists = False
+        if not exists:
+            return _json_error(f"路径不存在且不在扫描索引中: {path}")
+    try:
+        subprocess.Popen(["explorer", "/select,", path], close_fds=True)
+    except OSError:
+        return _json_ok(
+            launched=False, message="无法调起资源管理器，路径已复制"
+        )
+    return _json_ok(launched=True, message="已请求资源管理器定位")
 
 
 @app.post("/api/fullscan/start")

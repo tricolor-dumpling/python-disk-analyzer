@@ -1,4 +1,4 @@
-"""Web API 字段契约护栏（P12·W1.0，RT-03）。
+﻿"""Web API 字段契约护栏（P12·W1.0，RT-03）。
 
 用 app.test_client() 直连，冻结既有响应键集合：
 - GET  /api/health   -> {ok, ready, dll, message}
@@ -26,8 +26,16 @@ import messages
 import scan
 import snapshots
 import sdk
+import app as app_module
 from app import app
 from exceptions import EverythingQueryError
+
+
+def _write_probe_file(tmpdir):
+    """在临时目录写一个真实存在的文件，返回其路径字符串。"""
+    probe = Path(tmpdir) / "probe.txt"
+    probe.write_text("x", encoding="utf-8")
+    return str(probe)
 
 
 GUID = "deadbeef-1234-5678-9abc-def012345678"
@@ -207,6 +215,67 @@ class ApiContractTests(unittest.TestCase):
             self.assertEqual(resp.status_code, 400)
             body = resp.get_json()
             self.assertEqual(_keys(body), {"ok", "error"}, "旧形态必须原样保留")
+            resp.close()
+
+    def test_open_path_happy_and_errors(self):
+        """P12·W1.4：合法 tmp 路径（mock Popen）→ 200 launched:true；
+        相对路径/控制字符/不存在 → 400 且 error 为中文。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        probe = _write_probe_file(tmp.name)
+
+        with app.test_client() as client:
+            with mock.patch.object(app_module, "subprocess") as fake_sp:
+                fake_sp.Popen.return_value = mock.Mock()
+                resp = client.post("/api/open-path", json={"path": probe})
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertIs(body["ok"], True)
+            self.assertIs(body["launched"], True)
+            self.assertIn("资源管理器", body["message"])
+            resp.close()
+
+            # 相对路径 → 400
+            resp = client.post("/api/open-path", json={"path": "relative\\path.txt"})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIn("绝对路径", resp.get_json()["error"])
+            resp.close()
+
+            # 控制字符 → 400
+            resp = client.post("/api/open-path", json={"path": probe + "\x01"})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIn("控制字符", resp.get_json()["error"])
+            resp.close()
+
+            # 不存在且不在索引 → 400
+            missing = str(Path(tmp.name) / "no_such_dir" / "x.txt")
+            resp = client.post("/api/open-path", json={"path": missing})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIn("不存在", resp.get_json()["error"])
+            resp.close()
+
+    def test_open_path_rejects_non_string(self):
+        """P12·W1.4：path=123 / null → 400。"""
+        with app.test_client() as client:
+            for bad in (123, None):
+                resp = client.post("/api/open-path", json={"path": bad})
+                self.assertEqual(resp.status_code, 400, f"path={bad!r} 应 400")
+                self.assertIs(resp.get_json()["ok"], False)
+                resp.close()
+
+    def test_open_path_spawn_failure_degrades(self):
+        """P12·W1.4：Popen 抛 OSError → 200 launched:false（前端降级复制）。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        probe = _write_probe_file(tmp.name)
+        with app.test_client() as client:
+            with mock.patch.object(app_module, "subprocess") as fake_sp:
+                fake_sp.Popen.side_effect = OSError("spawn denied")
+                resp = client.post("/api/open-path", json={"path": probe})
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertIs(body["launched"], False)
+            self.assertIn("复制", body["message"])
             resp.close()
 
     def test_compare_report_shape_and_three_cards_consistent(self):
