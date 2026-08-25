@@ -398,14 +398,27 @@ def _save_fullscan_result(auto):
             )
         except Exception as exc:
             raise ValueError(f"保存 {root} 快照失败: {exc}") from exc
-        if saved_path is None:  # auto=True 被日配额谓词拒绝
-            roots_payload[root] = {
-                "root": root,
-                "snapshot": None,
-                "snapshot_path": None,
-                "skipped": True,
-                "skip_reason": "该根今天已自动保存过",
-            }
+        if saved_path is None:  # auto=True 被谓词或日配额拒绝
+            # P12·W2.2：notice 通道优先（读后即清）——有通知即日配额跳过
+            notice = snapshots.consume_last_save_notice()
+            if notice is not None:
+                roots_payload[root] = {
+                    "root": root,
+                    "snapshot": None,
+                    "snapshot_path": None,
+                    "skipped": True,
+                    "skip_reason": snapshots.REASON_DAY_BUDGET_EXCEEDED,
+                    "notice": notice,
+                }
+            else:
+                roots_payload[root] = {
+                    "root": root,
+                    "snapshot": None,
+                    "snapshot_path": None,
+                    "skipped": True,
+                    # P12·W2.2：skip_reason 稳定枚举（替换猜测文案）
+                    "skip_reason": "predicate_rejected",
+                }
             any_skipped = True
             continue
         roots_payload[root] = {
@@ -414,6 +427,10 @@ def _save_fullscan_result(auto):
             "snapshot_path": str(saved_path),
             "skipped": False,
         }
+        # P12·W2.2：explicit 软警告透传（additive，保存本身成功）
+        soft_notice = snapshots.consume_last_save_notice()
+        if soft_notice is not None:
+            roots_payload[root]["notice"] = soft_notice
         any_saved = True
 
     if not any_saved:

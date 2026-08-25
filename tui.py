@@ -635,6 +635,10 @@ def _interactive_ui_loop(root_path, sizes, contents, driver_name):
             print("%s: %s" % (render_message("INFO_SNAPSHOT_SAVED"), saved))
         else:
             print(_warn_banner("快照保存未完成"))
+        # P12·W2.2：消费保存通知（explicit 软警告等），警告横幅呈现
+        notice = snapshots.consume_last_save_notice()
+        if notice is not None:
+            print(_warn_banner(notice.get("message") or "保存提示"))
 
     while True:
         _apply_scan_result()

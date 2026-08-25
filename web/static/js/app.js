@@ -772,11 +772,31 @@ function maybePromptSave(st) {
     }
 }
 
+/* P12·W2.2：skip_reason 稳定枚举 → 中文（保存 toast 与快照列表共用） */
+const SKIP_REASON_TEXT = {
+    already_saved_today: "该根今天已自动保存过",
+    day_budget_exceeded: "今日写入量已达上限，自动保存跳过",
+    predicate_rejected: "未满足自动保存条件（数据未变化等）",
+};
+
+function skipReasonText(reason) {
+    return SKIP_REASON_TEXT[reason] || reason || "已跳过";
+}
+
 async function saveSnapshot(auto) {
     $("save-prompt").classList.add("hidden");
     $("btn-save").disabled = true;
     try {
         const data = await postJson("/api/save", { auto: !!auto });
+        // P12·W2.2：notice 通道 → warn toast；跳过 → info toast
+        const roots = Object.values(((data.session || {}).roots) || {});
+        roots.forEach((r) => {
+            if (r && r.notice) {
+                toast(r.notice.message || "保存提示", "warn");
+            } else if (r && r.skipped) {
+                toast(skipReasonText(r.skip_reason), "info");
+            }
+        });
         toast(data.message || "保存完成", "success");
         if (auto) toast("已自动保存快照；如需回退可点「撤销最近保存」", "info");
         refreshSnapshots();
@@ -855,7 +875,7 @@ function renderSnapshotList(sessions) {
                                   "<li>" + ICONS.drive +
                                   '<span>' + esc(r.root || "?") + '</span>' +
                                   '<span class="tag tag-skip">跳过</span>' +
-                                  '<span>' + esc(r.skip_reason || "跳过") + "</span></li>"
+                                  '<span>' + esc(skipReasonText(r.skip_reason)) + "</span></li>"
                               );
                           }
                           return (

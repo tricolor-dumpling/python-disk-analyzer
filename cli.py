@@ -63,6 +63,7 @@ from scan import _is_scan_root, compute_fingerprint, scan_via_everything_sdk
 from compare import CompareError, diff_from_current, format_row, top_growth
 from snapshots import (
     SnapshotCorruptError,
+    consume_last_save_notice,
     get_machine_guid,
     get_snapshot_dir,
     is_snapshot_disabled,
@@ -363,6 +364,10 @@ def _auto_save_on_exit(root, sizes):
             update_ledger_after_save(root, fingerprint, auto=True, dir_path=dir_path)
             if utils.VERBOSE:
                 log(f"📝 已自动保存退出快照: {saved}")
+        # P12·W2.2：消费保存通知（auto 硬门槛跳过等），verbose 下记录一行
+        notice = consume_last_save_notice()
+        if notice is not None and utils.VERBOSE:
+            log(f"⚠️ {notice.get('message') or '保存提示'}")
     except Exception:
         # 自动保存绝不影响正常退出：任何意外（含指纹探测异常）静默跳过
         if utils.VERBOSE:

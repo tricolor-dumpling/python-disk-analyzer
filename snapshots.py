@@ -53,6 +53,12 @@ REASON_NOT_TREE_COMPLETE = "tree_incomplete"
 REASON_DIRTY = "dirty"
 REASON_FINGERPRINT_UNCHANGED = "fingerprint_unchanged"
 REASON_ALREADY_SAVED_TODAY = "already_saved_today"
+# P12·W2.2：日配额超限（auto=硬门槛跳过 / explicit=软警告仍保存）
+REASON_DAY_BUDGET_EXCEEDED = "day_budget_exceeded"
+
+# P12·W2.2 读后即清通知通道（RT-07）：save_snapshot 内产生的「软提示」经此透出，
+# 消费方读一条即清一条；返回值契约冻结不受影响。
+_LAST_SAVE_NOTICE = None
 
 _LEDGER_FILENAME = "ledger.json"
 _DAY_WRITES_FILENAME = "day_writes.json"
@@ -385,6 +391,27 @@ def day_write_budget_ok(bytes_written, now=None, dir_path=None):
     return int(usage["bytes"]) + int(bytes_written) <= MAX_BYTES_PER_DAY
 
 
+# =================【P12·W2.2 保存通知通道】=================
+
+
+def _set_save_notice(reason, root, message):
+    """记录一条保存软提示（读后即清通道的写入侧）。"""
+    global _LAST_SAVE_NOTICE
+    _LAST_SAVE_NOTICE = {"reason": reason, "root": str(root), "message": message}
+
+
+def consume_last_save_notice():
+    """读取并清除最近一条保存通知（RT-07 读后即清契约）。
+
+    返回 None 或 {"reason", "root", "message"}；消费方（Web 保存/TUI S 键/
+    CLI 退出保存）在每次 save_snapshot 调用后立即消费，避免串扰。
+    """
+    global _LAST_SAVE_NOTICE
+    notice = _LAST_SAVE_NOTICE
+    _LAST_SAVE_NOTICE = None
+    return notice
+
+
 # =================【头部与 CRC】=================
 
 
@@ -518,7 +545,10 @@ def save_snapshot(
     """保存一份快照，返回最终文件 Path；自动保存被谓词拒绝时返回 None。
 
     rows: list[dict]，每行 {"p": 路径 str, "s": 大小 int}；超过 MAX_ROWS 抛 ValueError。
-    - 显式保存(auto=False)不做日配额；
+    - P12·W2.2 日配额语义：auto=True 为**硬门槛**——超限直接跳过（复用返回
+      None 的静默契约），并经通知通道透出 day_budget_exceeded；auto=False 为
+      **软警告**——超限仍保存成功（返回 Path），经通知通道透出软警告；
+    - 写量按最终文件实际大小记账（record_day_writes 在锁内执行）；
     - 自动保存(auto=True)必须先过四原子谓词（fingerprint 缺省时由 rows 推导，
       tree_complete/dirty 缺省为完整且非脏，由调用方按真实状态覆盖）；
     - 写流程：临时文件 .<name>.tmp -> gzip 写头行+逐行 -> flush+fsync 一次 ->
@@ -532,6 +562,7 @@ def save_snapshot(
             "快照行数 %d 超过上限 %d，拒绝保存" % (len(rows), MAX_ROWS)
         )
     canonical_rows = []
+    est_bytes = 0  # W2.2：写量近似估计（路径长 + 大小位数十进制 + JSON 结构开销）
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             raise TypeError("快照第 %d 行必须是 dict" % index)
@@ -540,6 +571,7 @@ def save_snapshot(
         s = row["s"]
         if not isinstance(s, int) or isinstance(s, bool):
             raise TypeError("快照第 %d 行的 s 必须是 int" % index)
+        est_bytes += len(str(row["p"])) + len(str(s)) + 8
         canonical_rows.append({"p": row["p"], "s": s})
 
     if machine_guid is None:
@@ -568,11 +600,31 @@ def save_snapshot(
                 now=now,
             )
             if not ok:
+                return None  # 四原子谓词静默契约不变
+            # P12·W2.2：auto 日配额硬门槛——超限跳过并透出通知（复用 None 契约）
+            if not day_write_budget_ok(est_bytes, now=now, dir_path=d):
+                _set_save_notice(
+                    REASON_DAY_BUDGET_EXCEEDED, root,
+                    "今日写入量已达上限，自动保存跳过",
+                )
                 return None
+        else:
+            budget_ok = day_write_budget_ok(est_bytes, now=now, dir_path=d)
         header = _build_header(root, now, auto, machine_guid)
         final_path = _write_snapshot(d, name, header, canonical_rows)
         _roll(d, root, mode)
         update_ledger_after_save(root, fingerprint, auto=auto, now=now, dir_path=d)
+        # P12·W2.2：按实际文件大小记账（锁内完成，多写者串行精确）
+        try:
+            record_day_writes(final_path.stat().st_size, now=now, dir_path=d)
+        except OSError:
+            pass  # 记账失败不影响保存结果
+        if not auto and not budget_ok:
+            # P12·W2.2：explicit 软警告——本次仍已保存
+            _set_save_notice(
+                REASON_DAY_BUDGET_EXCEEDED, root,
+                "今日写入量已超上限，本次仍已保存（软警告）",
+            )
         return final_path
     finally:
         _release_lock(lock_path)
@@ -718,6 +770,7 @@ __all__ = [
     "REASON_DIRTY",
     "REASON_FINGERPRINT_UNCHANGED",
     "REASON_ALREADY_SAVED_TODAY",
+    "REASON_DAY_BUDGET_EXCEEDED",
     "SnapshotError",
     "SnapshotBusyError",
     "SnapshotCorruptError",
@@ -735,4 +788,5 @@ __all__ = [
     "update_ledger_after_save",
     "record_day_writes",
     "day_write_budget_ok",
+    "consume_last_save_notice",
 ]
