@@ -72,6 +72,16 @@ DEEP_REFRESH_COOLDOWN_SECONDS = 60.0
 # 轻刷结果窗口上限（与扫描常量 MAX_FILES_PER_DIR 同量级的展示窗口）
 LIGHT_REFRESH_TOP = 50
 
+
+def _clamp_selection(idx, items_len):
+    """把选中下标收敛到 [0, items_len-1]；空列表恒返回 0（P12·W1.5）。
+
+    模块级纯函数，便于直测：深刷收缩 contents 后 selected_idx 可能越界，
+    ↑（仅下界钳制）与 Enter（items[selected_idx]）此前会抛 IndexError；
+    应用结果与主循环渲染两处各钳制一次（双保险）。
+    """
+    return min(max(0, idx), items_len - 1) if items_len else 0
+
 # ------------【D5 路径跳转常量】------------
 # 跳转历史条数上限（仅成功跳转入历史、去重后插头部；模态内按序号 1-16 选择）
 JUMP_HISTORY_MAX = 16
@@ -433,11 +443,14 @@ def _interactive_ui_loop(root_path, sizes, contents, driver_name):
 
     def _apply_scan_result():
         """深扫结果落到视图：替换 sizes/contents 局部引用（成功后再刷新视图）。"""
-        nonlocal last_data_time
+        nonlocal last_data_time, selected_idx
         if scan_state["result"] is None:
             return
         view["sizes"], view["contents"] = scan_state["result"]
         scan_state["result"] = None
+        # P12·W1.5 保险一：深刷收缩后立即收敛选中项，防 ↑/Enter 越界 IndexError
+        items_now = view["contents"].get(current_path, [])
+        selected_idx = _clamp_selection(selected_idx, len(items_now))
         last_data_time = datetime.now()  # 深刷完成 → 状态栏数据时间刷新
 
     def _report_scan_finish():
@@ -646,6 +659,8 @@ def _interactive_ui_loop(root_path, sizes, contents, driver_name):
             print("-" * 75)
 
             items = view["contents"].get(current_path, [])
+            # P12·W1.5 保险二：渲染取 items 后再钳制一次（防御未来新增的收缩路径）
+            selected_idx = _clamp_selection(selected_idx, len(items))
             if not items:
                 print("  (空文件夹，或该驱动内核已启用系统安全裁剪拦截)")
             else:

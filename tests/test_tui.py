@@ -141,5 +141,89 @@ class GetchTests(unittest.TestCase):
                 tui.interactive_ui(ROOT, {}, {}, "test-driver")
 
 
+class ClampSelectionTests(unittest.TestCase):
+    """P12·W1.5：_clamp_selection 纯函数边界。"""
+
+    def test_clamp_selection_boundaries(self):
+        self.assertEqual(tui._clamp_selection(-3, 2), 0)
+        self.assertEqual(tui._clamp_selection(5, 2), 1)
+        self.assertEqual(tui._clamp_selection(0, 0), 0)
+        self.assertEqual(tui._clamp_selection(2, 0), 0)
+        self.assertEqual(tui._clamp_selection(1, 3), 1)
+        self.assertEqual(tui._clamp_selection(-1, 0), 0)
+
+
+class _SyncThread:
+    """同步执行的 Thread 替身：start() 立即运行 target（深刷收缩夹具用）。"""
+
+    def __init__(self, target=None, args=(), daemon=None, name=None):
+        self._target = target
+        self._args = args
+
+    def start(self):
+        self._target(*self._args)
+
+    def join(self, timeout=None):  # pragma: no cover - 夹具不依赖 join
+        pass
+
+
+class DeepRefreshShrinkTests(unittest.TestCase):
+    """P12·W1.5：深刷收缩夹具下 ↑/Enter 不抛 IndexError（修复前稳定崩溃）。"""
+
+    def setUp(self):
+        self._ansi = tui._ANSI_AVAILABLE
+        self.addCleanup(setattr, tui, "_ANSI_AVAILABLE", self._ansi)
+        tui._ANSI_AVAILABLE = False
+        term = mock.patch("shutil.get_terminal_size",
+                          return_value=os.terminal_size((120, 40)))
+        term.start()
+        self.addCleanup(term.stop)
+        cls_patch = mock.patch("os.system")
+        cls_patch.start()
+        self.addCleanup(cls_patch.stop)
+
+    def _run_shrink(self, keys):
+        """大目录 → 深刷收缩至 1 项的夹具：返回 (结果, 渲染输出)。
+
+        初始 ROOT 有 3 个子项；按 R 触发深刷，deep_refresh 返回仅剩 1 个子目录
+        的小树；threading.Thread 打桩为同步执行，深刷在按键处理内完成。
+        """
+        big_contents = {
+            ROOT: [("a", True, 30), ("b", True, 20), ("c.txt", False, 10)],
+        }
+        small_sizes = {ROOT / "OnlyDir": 5, ROOT: 5}
+        small_contents = {
+            ROOT: [("OnlyDir", True, 5)],
+            ROOT / "OnlyDir": [],
+        }
+        buf = io.StringIO()
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(tui, "_getch", side_effect=list(keys)))
+            stack.enter_context(mock.patch("tui.threading.Thread", _SyncThread))
+            stack.enter_context(mock.patch.object(
+                tui, "deep_refresh", return_value=(small_sizes, small_contents)
+            ))
+            with contextlib.redirect_stdout(buf):
+                result = tui.interactive_ui(ROOT, {ROOT: 60}, big_contents, "test-driver")
+        return result, buf.getvalue()
+
+    def test_deep_refresh_shrink_no_indexerror(self):
+        """下移两次→深刷收缩→上移→Enter→退出：全程不抛 IndexError 且正常退出。
+
+        （修复前：收缩后 selected_idx==2 越界，↑ 后 Enter 访问 items[2] 稳定崩溃）
+        """
+        keys = [b"\xe0P", b"\xe0P", b"R", b"\xe0H", b"\r", b"Q"]
+        result, output = self._run_shrink(keys)
+        self.assertEqual(result, ("quit", None))
+
+    def test_selection_after_shrink_is_valid(self):
+        """收缩后按 ↓ 再 Enter 进入现存子目录，输出含其路径。"""
+        keys = [b"\xe0P", b"\xe0P", b"R", b"\xe0P", b"\r", b"Q"]
+        result, output = self._run_shrink(keys)
+        self.assertEqual(result, ("quit", None))
+        expected = str(ROOT / "OnlyDir")
+        self.assertIn(expected, output.replace("\r", ""), "Enter 应回退到合法选中项并进入 OnlyDir")
+
+
 if __name__ == "__main__":
     unittest.main()
