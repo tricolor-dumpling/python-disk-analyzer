@@ -331,7 +331,7 @@ const ASSERTIONS = [
 
       // H：筛选空态与一键清除
       $("browse-filter").value = "不存在的关键词xyz";
-      if (window.__lastBrowseData) renderEntries(window.__lastBrowseData);
+      if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
       const btn = document.getElementById("btn-clear-filter");
       __assert(btn, "筛选空态应出现「清除筛选」按钮");
       __assert(document.getElementById("dir-body").textContent.indexOf("无匹配") !== -1,
@@ -341,7 +341,34 @@ const ASSERTIONS = [
       __assert($("browse-filter").value === "", "点击清除后筛选参数应清空");
       __assert(document.querySelector("#dir-body .ranking-row"), "应恢复渲染原条目");
     } },
-  { id: "3", name: "断言③（W2.6）：双弹窗 Esc 逆序关栈顶", fn: null },
+  { id: "3", name: "断言③（W2.6）：双弹窗 Esc 按打开逆序关闭栈顶；Tab 循环；R 守卫",
+    fn: async function () {
+      const browseCallsBefore = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
+      openModal("settings-modal");
+      openModal("confirm-modal"); // 栈顶 = confirm-modal
+      __assert(!$("settings-modal").classList.contains("hidden"), "设置弹窗应开启");
+      __assert(!$("confirm-modal").classList.contains("hidden"), "确认弹窗应开启");
+      // R 守卫：弹窗开着时按 R 不触发浏览
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "r", bubbles: true }));
+      await new Promise((r) => setTimeout(r, 10));
+      const browseCallsAfterR = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
+      __assert(browseCallsAfterR === browseCallsBefore, "弹窗开启时按 R 不得触发浏览请求");
+      // Tab 循环：焦点不出栈顶面板
+      const panel = $("confirm-modal").querySelector(".modal-panel") || $("confirm-modal");
+      panel.querySelector("button,input,[tabindex]").focus();
+      for (let i = 0; i < 5; i++) {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }));
+      }
+      __assert(panel.contains(document.activeElement), "Tab 循环后焦点必须仍在面板内");
+      // Esc 逆序：先关 confirm（栈顶），再关 settings
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await new Promise((r) => setTimeout(r, 10));
+      __assert($("confirm-modal").classList.contains("hidden"), "第一次 Esc 应关栈顶 confirm-modal");
+      __assert(!$("settings-modal").classList.contains("hidden"), "settings-modal 应保持开启");
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await new Promise((r) => setTimeout(r, 10));
+      __assert($("settings-modal").classList.contains("hidden"), "第二次 Esc 关 settings-modal");
+    } },
   { id: "4", name: "断言④（W2.1）：busy health 不降级不进引导态", fn: null },
   { id: "w28", name: "W2.8：浏览竞态防护（迟到旧响应丢弃；旧失败不打断新结果）",
     fn: async function () {

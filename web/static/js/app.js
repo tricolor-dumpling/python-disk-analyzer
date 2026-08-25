@@ -95,6 +95,23 @@ function signedBytes(n) {
 
 /* ================= Toast 提示 ================= */
 
+/* P12·W2.6（K6）：页面级可变状态收敛到单一对象（不再挂 window 全局散落） */
+const APP_STATE = {
+    lastBrowseData: null, // 最近一次 /api/browse 载荷（视图切换重渲用）
+    health: null,         // 最近一次 /api/health 载荷
+};
+
+/* ================= K7：已处理的扫描代次持久化 ================= */
+const HANDLED_SCAN_KEY = "pds_handled_scan_version_v1";
+
+function loadHandledScanVersion() {
+    try { return Number(localStorage.getItem(HANDLED_SCAN_KEY)) || 0; }
+    catch (e) { return 0; } // localStorage 不可用时退化为进程内变量
+}
+function storeHandledScanVersion(v) {
+    try { localStorage.setItem(HANDLED_SCAN_KEY, String(v)); } catch (e) { /* ignore */ }
+}
+
 function toast(message, type, timeoutMs) {
     const kind = ["success", "warn", "error", "info"].includes(type) ? type : "info";
     const icons = { success: ICONS.success, warn: ICONS.warn, error: ICONS.error, info: ICONS.info };
@@ -157,6 +174,7 @@ async function refreshHealth() {
         badge.className = data.ready ? "badge badge-ok" : "badge badge-warn";
         $("health-text").textContent = data.message || (data.ready ? "Everything 已就绪" : "Everything 未就绪");
         badge.title = data.dll ? "Everything DLL：" + data.dll : "";
+        APP_STATE.health = data; // K6：健康载荷收敛进 APP_STATE
         return data; // P12·W1.3：门控求值需要完整 health 载荷
     } catch (e) {
         badge.className = "badge badge-err";
@@ -415,7 +433,7 @@ function renderComposition(data, entries) {
 function renderEntries(data) {
     const body = $("dir-body");
     body.classList.toggle("compact-list", compactDensity);
-    window.__lastBrowseData = data;
+    APP_STATE.lastBrowseData = data;
     const entries = filteredEntries(data);
     // P12·W2.5-H：筛选空态——原始条目非空但被筛选清空时给出统一空态＋一键清除
     const rawCount = (data.directories || []).length + (data.files || []).length;
@@ -433,7 +451,7 @@ function renderEntries(data) {
         if (clearBtn) clearBtn.addEventListener("click", () => {
             if ($("browse-filter")) $("browse-filter").value = "";
             if ($("browse-kind")) $("browse-kind").value = "all";
-            if (window.__lastBrowseData) renderEntries(window.__lastBrowseData);
+            if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
         });
         return;
     }
@@ -606,6 +624,10 @@ function renderRecentChips() {
     });
 }
 
+/* P12·W2.6（K5）：最近浏览 POST 防抖 300ms（trailing），连跳目录只落一次盘 */
+let _recentRootsTimer = null;
+let _recentRootsPending = null;
+
 async function updateRecentRoots(root, quiet) {
     const value = normalizeRoot(root);
     if (!value) return;
@@ -613,16 +635,18 @@ async function updateRecentRoots(root, quiet) {
     lastRoots = [value].concat(lastRoots.filter((r) => String(r).toUpperCase() !== upper)).slice(0, 5);
     renderRecentChips();
     if (!quiet) {
-        try {
-            await postJson("/api/settings", { last_roots: lastRoots });
-        } catch (e) { /* 记录失败不影响浏览 */ }
+        _recentRootsPending = lastRoots;
+        clearTimeout(_recentRootsTimer);
+        _recentRootsTimer = setTimeout(() => {
+            postJson("/api/settings", { last_roots: _recentRootsPending }).catch(() => { /* 记录失败不影响浏览 */ });
+        }, 300);
     }
 }
 
 /* ================= 全量扫描 ================= */
 
 let autoSaveSetting = false;
-let handledScanVersion = 0; // 已处理过「是否保存」提示的扫描代次
+let handledScanVersion = loadHandledScanVersion(); // K7：localStorage 持久化
 
 function renderScanRootChips(roots, rootsDone, running) {
     const box = $("scan-roots");
@@ -730,6 +754,7 @@ function maybePromptSave(st) {
     const version = Number(st.scan_version) || 0;
     if (handledScanVersion >= version) return;
     handledScanVersion = version;
+    storeHandledScanVersion(version);
     if (autoSaveSetting) {
         saveSnapshot(true);
     } else {
@@ -977,7 +1002,7 @@ function renderCompareResult(r) {
 let dataDir = "";
 
 async function openSettings() {
-    $("settings-modal").classList.remove("hidden");
+    openModal("settings-modal"); // P12·W2.6（K1）：统一走弹窗工具
     setStatusForSettingsHealth();
     try {
         const data = await api("/api/settings");
@@ -1023,20 +1048,29 @@ function openWipeModal() {
     $("wipe-confirm").value = "";
     $("btn-wipe").disabled = true;
     $("wipe-data-dir").textContent = dataDir || "数据目录";
-    $("wipe-modal").classList.remove("hidden");
+    openModal("wipe-modal"); // P12·W2.6（K1/K2）
 }
 
 async function wipeData() {
     $("btn-wipe").disabled = true;
     try {
         const data = await postJson("/api/admin/wipe", { confirm: $("wipe-confirm").value.trim() });
+        // P12·W2.6（RT-N06）：清键集合——成功响应后、关弹窗前执行（失败不清理）
+        try {
+            localStorage.removeItem(GUIDE_KEY);          // 恢复出厂：引导页重现
+            localStorage.removeItem(HANDLED_SCAN_KEY);   // 已处理扫描代次
+        } catch (e) { /* ignore */ }
+        handledScanVersion = 0;
+        APP_STATE.lastBrowseData = null;
+        browseHistory = [];
+        lastRoots = [];
+        sessionsCache = [];
+        renderRecentChips();
+        $("btn-undo-save").disabled = true;
         toast(data.message || "数据目录已清空", "success");
         closeModal("wipe-modal");
         closeModal("settings-modal");
-        sessionsCache = [];
         renderSnapshotList([]);
-        // P12·W2.5（D）：清空后撤销入口同步灰置
-        $("btn-undo-save").disabled = true;
         setStatus("snapshot-status", "", "数据目录已清空，历史快照为空");
         $("compare-result").classList.add("hidden");
         pollFullscan();
@@ -1057,7 +1091,7 @@ function confirmDialog(options) {
     const okBtn = $("btn-confirm-ok");
     okBtn.textContent = opts.okLabel || "确定";
     okBtn.className = "btn " + (opts.okClass || "btn-danger");
-    $("confirm-modal").classList.remove("hidden");
+    openModal("confirm-modal"); // P12·W2.6（K1/K2）：入栈管理
     return new Promise((resolve) => {
         confirmResolver = resolve;
     });
@@ -1072,15 +1106,70 @@ function resolveConfirm(value) {
     }
 }
 
-/* ================= 弹窗管理 ================= */
+/* ================= 弹窗管理（P12·W2.6 K1-K3） ================= */
+
+let modalStack = []; // 栈顶 = 最新打开的弹窗
+const _MODAL_FOCUS_RESTORE = {}; // id -> 打开前的活动元素（关闭时归还）
+
+const FOCUSABLE_SELECTOR =
+    'button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href],[tabindex="0"]';
+
+function openModal(id) {
+    const el = $(id);
+    if (!el) return;
+    if (!modalStack.includes(id)) {
+        modalStack.push(id);
+        try { _MODAL_FOCUS_RESTORE[id] = document.activeElement; } catch (e) { /* ignore */ }
+        el.classList.remove("hidden");
+        const panel = el.querySelector(".modal-panel");
+        if (panel) {
+            const first = panel.querySelector(FOCUSABLE_SELECTOR);
+            if (first) first.focus();
+        }
+    }
+}
 
 function closeModal(id) {
     const el = $(id);
     if (el) el.classList.add("hidden");
+    modalStack = modalStack.filter((x) => x !== id);
+    const restore = _MODAL_FOCUS_RESTORE[id];
+    delete _MODAL_FOCUS_RESTORE[id];
+    try { if (restore && typeof restore.focus === "function") restore.focus(); } catch (e) { /* ignore */ }
+    // confirmResolver Promise 语义冻结：confirm-modal 关闭即 resolve(false)
     if (id === "confirm-modal" && confirmResolver) {
         const resolve = confirmResolver;
         confirmResolver = null;
         resolve(false);
+    }
+}
+
+/* K1 焦点陷阱：Tab/Shift+Tab 在栈顶弹窗面板内循环，焦点不外逸 */
+function trapModalFocus(ev) {
+    if (ev.key !== "Tab" || !modalStack.length) return;
+    const topId = modalStack[modalStack.length - 1];
+    const topEl = $(topId);
+    const panel = topEl && topEl.querySelector(".modal-panel");
+    if (!panel) return;
+    const focusables = Array.from(panel.querySelectorAll(FOCUSABLE_SELECTOR))
+        .filter((el) => el.offsetParent !== null || el === document.activeElement);
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement;
+    ev.preventDefault(); // 统一接管 Tab 行为
+    if (!panel.contains(active)) {
+        first.focus();
+    } else if (ev.shiftKey && active === first) {
+        last.focus();
+    } else if (!ev.shiftKey && active === last) {
+        first.focus();
+    } else {
+        // 面板内正常移动：交给默认行为已被 preventDefault 接管，手动推进
+        const idx = focusables.indexOf(active);
+        const next = ev.shiftKey ? (idx - 1 + focusables.length) % focusables.length
+                                 : (idx + 1) % focusables.length;
+        focusables[next].focus();
     }
 }
 
@@ -1094,24 +1183,27 @@ function bindModalClose() {
             if (ev.target === modal) closeModal(modal.id);
         });
     });
-    // Esc 关闭最上层弹窗
+    // K2/K3：快捷键守卫与 Esc 关栈顶（废除写死数组顺序）
     document.addEventListener("keydown", (ev) => {
         if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "k") {
             ev.preventDefault();
+            if (modalStack.length) return; // 弹窗开着时忽略 Ctrl+K
             $("browse-root").focus();
             $("browse-root").select();
             return;
         }
+        trapModalFocus(ev); // Tab 循环（仅在弹窗开启时接管）
         if (ev.key.toLowerCase() === "r" && !/input|textarea|select/i.test(document.activeElement.tagName)) {
+            if (modalStack.length) return; // 弹窗开着时忽略 R 快捷刷新
             ev.preventDefault();
             browsePath(currentPath);
             return;
         }
         if (ev.key !== "Escape") return;
-        const open = ["wipe-modal", "confirm-modal", "settings-modal"].find(
-            (id) => !$(id).classList.contains("hidden")
-        );
-        if (open) closeModal(open);
+        if (modalStack.length) {
+            ev.preventDefault();
+            closeModal(modalStack[modalStack.length - 1]); // 关栈顶（逆序）
+        }
     });
 }
 
@@ -1123,10 +1215,10 @@ function bind() {
     $("btn-overview-refresh").addEventListener("click", refreshOverview);
     $("btn-view-ranking").classList.add("btn-primary");
     $("btn-view-table").classList.remove("btn-primary");
-    $("btn-view-ranking").addEventListener("click", () => { browseView = "ranking"; $("btn-view-ranking").classList.add("btn-primary"); $("btn-view-table").classList.remove("btn-primary"); if (window.__lastBrowseData) renderEntries(window.__lastBrowseData); });
-    $("btn-view-table").addEventListener("click", () => { browseView = "table"; $("btn-view-table").classList.add("btn-primary"); $("btn-view-ranking").classList.remove("btn-primary"); if (window.__lastBrowseData) renderEntries(window.__lastBrowseData); });
-    $("btn-density").addEventListener("click", () => { compactDensity = !compactDensity; $("btn-density").setAttribute("aria-pressed", String(compactDensity)); $("btn-density").textContent = compactDensity ? "舒适列表" : "紧凑列表"; if (window.__lastBrowseData) renderEntries(window.__lastBrowseData); });
-    ["browse-filter", "browse-kind", "browse-sort"].forEach((id) => $(id).addEventListener("input", () => { if (window.__lastBrowseData) renderEntries(window.__lastBrowseData); }));
+    $("btn-view-ranking").addEventListener("click", () => { browseView = "ranking"; $("btn-view-ranking").classList.add("btn-primary"); $("btn-view-table").classList.remove("btn-primary"); if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData); });
+    $("btn-view-table").addEventListener("click", () => { browseView = "table"; $("btn-view-table").classList.add("btn-primary"); $("btn-view-ranking").classList.remove("btn-primary"); if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData); });
+    $("btn-density").addEventListener("click", () => { compactDensity = !compactDensity; $("btn-density").setAttribute("aria-pressed", String(compactDensity)); $("btn-density").textContent = compactDensity ? "舒适列表" : "紧凑列表"; if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData); });
+    ["browse-filter", "browse-kind", "browse-sort"].forEach((id) => $(id).addEventListener("input", () => { if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData); }));
     $("btn-guide").addEventListener("click", showGuide);
 
     // 健康徽章 → 设置（含 Everything 详情）
