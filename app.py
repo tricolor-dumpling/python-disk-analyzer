@@ -613,6 +613,22 @@ def api_settings():
 
 # =================【6. 一键清空】=================
 
+# P12·W2.9（SEC-2）：Host 白名单中间件——防 DNS rebinding（拦截域名形态 Host）。
+# 仅本机回环来源放行；IP:端口形态不受影响。
+@app.before_request
+def _guard_host():
+    raw_host = (request.host or "").lower()
+    if raw_host.startswith("["):  # IPv6 字面量形态 [::1]:5000
+        host = raw_host.split("]")[0].lstrip("[")
+    else:
+        host = raw_host.split(":")[0]
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        return jsonify({"ok": False, "error": "非法访问来源（Host 校验失败）"}), 403
+    return None  # 放行
+
+
+@app.post("/api/admin/wipe")
+
 
 @app.post("/api/admin/wipe")
 def api_admin_wipe():
