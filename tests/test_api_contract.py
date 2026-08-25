@@ -100,6 +100,29 @@ class ApiContractTests(unittest.TestCase):
             self.assertTrue(body["error"])
             resp.close()
 
+    def test_wipe_double_confirmation(self):
+        """P12·W3.5 回归：错确认 400、正确确认 200 且重建空 snapshots/exports。"""
+        import datadir
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        data_root = Path(tmp.name) / "PythonDiskScanner"
+        with app.test_client() as client:
+            # 错误确认 → 400 JSON
+            resp = client.post("/api/admin/wipe", json={"confirm": "错误的确认"})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIs(resp.get_json()["ok"], False)
+            resp.close()
+
+            # 正确确认 → 200，且数据目录重建空结构
+            with mock.patch.object(datadir, "get_data_dir", return_value=data_root):
+                resp = client.post("/api/admin/wipe", json={"confirm": "确认清空"})
+            self.assertEqual(resp.status_code, 200)
+            self.assertIs(resp.get_json()["ok"], True)
+            resp.close()
+            self.assertTrue((data_root / "snapshots").is_dir())
+            self.assertTrue((data_root / "exports").is_dir())
+
     def test_405_returns_json(self):
         """P12·W3.3：方法不允许 → 405 + JSON。"""
         with app.test_client() as client:

@@ -803,8 +803,6 @@ def api_export():
     return resp
 
 
-@app.post("/api/admin/wipe")
-
 # P12·W2.9（SEC-2）：Host 白名单中间件——防 DNS rebinding（拦截域名形态 Host）。
 # 仅本机回环来源放行；IP:端口形态不受影响。
 @app.before_request
@@ -817,9 +815,6 @@ def _guard_host():
     if host not in ("127.0.0.1", "localhost", "::1"):
         return jsonify({"ok": False, "error": "非法访问来源（Host 校验失败）"}), 403
     return None  # 放行
-
-
-@app.post("/api/admin/wipe")
 
 
 # =================【7. 一键清空】=================
