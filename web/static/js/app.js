@@ -417,6 +417,26 @@ function renderEntries(data) {
     body.classList.toggle("compact-list", compactDensity);
     window.__lastBrowseData = data;
     const entries = filteredEntries(data);
+    // P12·W2.5-H：筛选空态——原始条目非空但被筛选清空时给出统一空态＋一键清除
+    const rawCount = (data.directories || []).length + (data.files || []).length;
+    const activeQuery = ($("browse-filter") && $("browse-filter").value || "").trim();
+    const activeKind = ($("browse-kind") && $("browse-kind").value) || "all";
+    if (!entries.length && rawCount > 0 && (activeQuery || activeKind !== "all")) {
+        body.innerHTML =
+            '<tr><td colspan="4"><div class="empty-state">' +
+            "<b>无匹配”" + esc(activeQuery || "(类型筛选)") + "“的结果</b>" +
+            '<p>试试更换关键词，或<button class="btn btn-sm" id="btn-clear-filter">清除筛选</button>后查看全部。</p>' +
+            "</div></td></tr>";
+        renderComposition(data, entries);
+        setStatus("browse-status", "warn", "没有匹配当前筛选的条目");
+        const clearBtn = document.getElementById("btn-clear-filter");
+        if (clearBtn) clearBtn.addEventListener("click", () => {
+            if ($("browse-filter")) $("browse-filter").value = "";
+            if ($("browse-kind")) $("browse-kind").value = "all";
+            if (window.__lastBrowseData) renderEntries(window.__lastBrowseData);
+        });
+        return;
+    }
     renderComposition(data, entries);
     if (browseView === "ranking") {
         const max = Math.max(1, ...entries.map((entry) => Number(entry.size) || 0));
@@ -538,6 +558,10 @@ async function browsePath(path, quiet) {
     } catch (e) {
         if (seq !== browseSeq) return; // 旧失败不打断新结果
         lastBrowse = { root: currentRoot, path: target };
+        // P12·W2.5（E）：失败回写输入框并聚焦全选，便于直接修正路径
+        $("browse-root").value = target;
+        $("browse-root").focus();
+        try { $("browse-root").select(); } catch (err) { /* 非文本态忽略 */ }
         showBrowseError(e.message, e, () => browsePath($("browse-root").value.trim() || target));
     } finally {
         if (seq === browseSeq) setBrowseLoading(false); // 仅最新请求有权解除 loading
@@ -641,7 +665,8 @@ async function startFullscan() {
     setStatus("fullscan-status", "busy", "正在启动后台全量扫描…");
     try {
         const data = await postJson("/api/fullscan/start", {});
-        toast(data.message || "全量扫描已启动", "info");
+        // P12·W2.5（G）：中性文案——任务是「提交」，不在点击瞬间完成
+        toast(data.message || "全量扫描任务已提交，后台执行中", "info");
         pollFullscan();
     } catch (e) {
         toast(e.message, "error");
@@ -728,6 +753,11 @@ async function saveSnapshot(auto) {
 }
 
 async function undoLastSave() {
+    // P12·W2.5（D）：入口保险——空会话直接 info 提示，不弹危险确认
+    if (!sessionsCache.length) {
+        toast("当前没有可撤销的保存", "info");
+        return;
+    }
     const ok = await confirmDialog({
         title: "撤销最近一次保存",
         text: "将删除最近一次保存生成的快照文件与保存清单。此操作不可恢复，确定继续吗？",
@@ -757,6 +787,8 @@ async function refreshSnapshots() {
     try {
         const data = await api("/api/snapshots");
         sessionsCache = data.sessions || [];
+        // P12·W2.5（D）：无会话时撤销入口灰置
+        $("btn-undo-save").disabled = !sessionsCache.length;
         renderSnapshotList(sessionsCache);
         rebuildBaselineSuggest(sessionsCache);
         setStatus("snapshot-status", "", "共 " + sessionsCache.length + " 个快照会话");
@@ -1003,6 +1035,8 @@ async function wipeData() {
         closeModal("settings-modal");
         sessionsCache = [];
         renderSnapshotList([]);
+        // P12·W2.5（D）：清空后撤销入口同步灰置
+        $("btn-undo-save").disabled = true;
         setStatus("snapshot-status", "", "数据目录已清空，历史快照为空");
         $("compare-result").classList.add("hidden");
         pollFullscan();
