@@ -51,6 +51,12 @@
     <div id="browse-history" class="chips-row hidden"></div>
     <nav id="breadcrumb"></nav>
     <div id="browse-status"><span class="dot"></span><span id="browse-status-text"></span></div>
+    <div id="browse-guide" class="notice notice-warn hidden" role="status">
+      <b id="guide-title">Everything 尚未就绪</b>
+      <p id="guide-msg"></p>
+      <button id="btn-guide-retry" class="btn btn-sm">重试环境检测</button>
+      <button id="btn-guide-help" class="btn btn-sm btn-ghost">查看指引</button>
+    </div>
     <div id="browse-cache-badge" class="notice notice-info hidden"></div>
     <div id="browse-chart" hidden></div>
     <div class="browse-filters">
@@ -260,6 +266,17 @@ const ASSERTIONS = [
       __assert(document.querySelector("#dir-body .ranking-row"), "#dir-body 未渲染出行");
       const first = __smoke.fetchLog.find((e) => e.url === "/api/settings");
       __assert(first, "init 应首先拉取 /api/settings");
+    } },
+  { id: "w13", name: "W1.3：renderApiError 双形态容忍（新形态出码，旧形态无 code 区块）",
+    fn: async function () {
+      const box = document.createElement("div");
+      renderApiError(box, { message: SAMPLES.errorTypedShape.error, code: SAMPLES.errorTypedShape.code, detail: SAMPLES.errorTypedShape.detail }, null);
+      __assert(box.textContent.indexOf("错误码 2") !== -1, "新形态应显示错误码区块");
+      __assert(box.textContent.indexOf(SAMPLES.errorTypedShape.detail) !== -1, "新形态应显示 detail 小字");
+      const box2 = document.createElement("div");
+      renderApiError(box2, { message: SAMPLES.errorLegacyShape.error }, null);
+      __assert(box2.textContent.indexOf("错误码") === -1, "旧形态不得出现 code 区块（RT-N04 降级）");
+      __assert(box2.textContent.indexOf(SAMPLES.errorLegacyShape.error) !== -1, "旧形态仍显示主文案");
     } },
   { id: "1", name: "断言①（W1.4）：文件行零请求", fn: null },
   { id: "2", name: "断言②（W2.5）：筛选空态出现清除按钮", fn: null },

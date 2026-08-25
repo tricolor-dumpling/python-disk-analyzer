@@ -133,6 +133,14 @@
                     <span class="muted">当前路径：</span><span class="crumb-current">-</span>
                 </nav>
                 <div id="browse-status" class="status-line" role="status"><span class="dot"></span><span id="browse-status-text">输入路径后点击「浏览」开始</span></div>
+                <div id="browse-guide" class="notice notice-warn hidden" role="status">
+                    <b id="guide-title">Everything 尚未就绪</b>
+                    <p id="guide-msg">正在等待 Everything 就绪（最长约 20 秒），请勿重复点击。正在加载索引，最长约 20 秒。</p>
+                    <div class="row">
+                        <button id="btn-guide-retry" class="btn btn-sm">重试环境检测</button>
+                        <button id="btn-guide-help" class="btn btn-sm btn-ghost">查看指引</button>
+                    </div>
+                </div>
                 <div id="browse-cache-badge" class="notice notice-info hidden" role="status" aria-live="polite">来自内存缓存（无需重新扫描）</div>
                 <div id="browse-chart" class="browse-chart" aria-label="当前目录构成" hidden></div>
                 <div class="browse-filters" aria-label="目录筛选与排序">

@@ -398,6 +398,21 @@ Everything SDK DLL（程序按「exe 目录\everything-SDK\dll\ → exe 目录\�
 
 ## 常见问题
 
+### Web 版显示「Everything 尚未就绪」引导态
+
+服务启动时会自动尝试拉起 Everything（冷启动，最长约 20 秒）。三种未就绪
+环境的页面表现对照：
+
+| 现象 | /api/health 表现 | 处理 |
+|---|---|---|
+| Everything 未运行 | `ready:false`，引导态「正在加载索引，最长约 20 秒」 | 等待自动拉起或点「重试环境检测」 |
+| 以服务方式运行于其他会话（Session 0） | 浏览报错带 `code:2` 与 `service_only:true` | 以管理员身份对齐运行 |
+| 未安装 Everything | `degraded:"not_installed"` | 先安装并启动 Everything |
+| SDK DLL 缺失/配置失效 | `degraded:"dll"` | 检查 `everything-SDK\dll` 目录 |
+| config.json 损坏 | `degraded:"config"` | 修复数据目录下 config.json |
+
+首次索引加载可能持续约 20 秒，期间请勿重复点击；就绪后徽章变绿并自动浏览。
+
 ### 提示无法定位 Everything.exe
 
 说明客户机器没有安装 Everything，或安装位置无法自动发现。解决方法：

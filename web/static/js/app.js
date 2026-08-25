@@ -52,7 +52,12 @@ async function api(url, options) {
     const resp = await fetch(url, options);
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok || data.ok === false) {
-        throw new Error(data.error || ("请求失败：" + resp.status));
+        // P12·W1.3：新形态错误 {ok,error,code,detail} 把 code/detail 挂到 Error 上；
+        // 旧形态 {ok,error} 无 code —— 渲染器据此降级（RT-N04 双向容忍）。
+        const err = new Error(data.error || ("请求失败：" + resp.status));
+        if (data && data.code !== undefined && data.code !== null) err.code = data.code;
+        if (data && data.detail) err.detail = data.detail;
+        throw err;
     }
     return data;
 }
@@ -150,9 +155,72 @@ async function refreshHealth() {
         badge.className = data.ready ? "badge badge-ok" : "badge badge-warn";
         $("health-text").textContent = data.message || (data.ready ? "Everything 已就绪" : "Everything 未就绪");
         badge.title = data.dll ? "Everything DLL：" + data.dll : "";
+        return data; // P12·W1.3：门控求值需要完整 health 载荷
     } catch (e) {
         badge.className = "badge badge-err";
         $("health-text").textContent = "健康检查失败";
+        return null;
+    }
+}
+
+/* ================= 环境引导态（P12·W1.3） ================= */
+
+/* 统一 API 错误渲染器：主文案 + 错误码标记（仅新形态）+ detail 小字 +
+   [重试][查看帮助]。err.code===undefined 即旧形态错误响应，仅显示主文案。 */
+function renderApiError(box, err, onRetry) {
+    if (!box) return;
+    const hasCode = err && err.code !== undefined && err.code !== null;
+    box.innerHTML =
+        esc((err && err.message) || "请求失败") +
+        (hasCode ? ' <span class="tag tag-skip">错误码 ' + esc(String(err.code)) + "</span>" : "") +
+        (err && err.detail ? '<div class="muted">' + esc(err.detail) + "</div>" : "") +
+        ' <button class="btn btn-sm" data-api-retry>重试</button> <button class="btn btn-sm btn-ghost" data-api-help>查看帮助</button>';
+    const retryBtn = box.querySelector("[data-api-retry]");
+    if (retryBtn) retryBtn.addEventListener("click", () => { if (typeof onRetry === "function") onRetry(); });
+    const helpBtn = box.querySelector("[data-api-help]");
+    if (helpBtn) helpBtn.addEventListener("click", showGuide);
+}
+
+function showBrowseGuide(h) {
+    const box = $("browse-guide");
+    if (!box) return;
+    let title = "Everything 尚未就绪";
+    let msg = "正在等待 Everything 就绪，正在加载索引，最长约 20 秒，请勿重复点击。";
+    if (h && h.degraded === "not_installed") {
+        title = "未检测到 Everything";
+        msg = (h.message || "未检测到 Everything") + "；安装并启动后点击「重试环境检测」。";
+    } else if (h && h.degraded === "dll") {
+        title = "SDK DLL 缺失";
+        msg = (h.message || "SDK DLL 缺失或配置失效") + "；请确认程序目录包含 everything-SDK\\dll 后重试。";
+    } else if (h && h.degraded === "config") {
+        title = "配置文件损坏";
+        msg = (h.message || "配置文件损坏") + "；可在数据目录修复 config.json 后重试。";
+    } else if (h && h.busy) {
+        title = "扫描进行中";
+        msg = h.message || "全量扫描进行中，完成后即可浏览。";
+    }
+    $("guide-title").textContent = title;
+    $("guide-msg").textContent = msg;
+    box.classList.remove("hidden");
+}
+
+function hideBrowseGuide() {
+    const box = $("browse-guide");
+    if (box) box.classList.add("hidden");
+}
+
+/* 环境门控（RT-02 边界）：只在首次加载与「重试环境检测」两处求值；
+   15s 轮询只刷徽章、绝不重评本门控。ready → 自动浏览首根；否则进引导态。 */
+function evaluateEnvGate(h) {
+    if (!h) {
+        showBrowseGuide(null);
+        return;
+    }
+    if (h.ready) {
+        hideBrowseGuide();
+        browsePath(currentRoot || "D:\\", true);
+    } else {
+        showBrowseGuide(h);
     }
 }
 
@@ -246,9 +314,16 @@ function renderBreadcrumb(path, parent) {
     $("btn-back").disabled = !parent;
 }
 
-function showBrowseError(message) {
+function showBrowseError(message, err, onRetry) {
     setStatus("browse-status", "err", message);
-    $("browse-error-text").textContent = message;
+    const box = $("browse-error");
+    const textEl = $("browse-error-text");
+    if (err && err.code !== undefined && err.code !== null) {
+        // P12·W1.3 新形态错误：统一渲染器（文案+码+detail+重试/帮助）
+        renderApiError(textEl, err, onRetry);
+    } else {
+        textEl.textContent = message;
+    }
     $("browse-error").classList.remove("hidden");
 }
 
@@ -395,7 +470,7 @@ async function browsePath(path, quiet) {
         if (data.root && !data.parent) updateRecentRoots(data.root, quiet);
     } catch (e) {
         lastBrowse = { root: currentRoot, path: target };
-        showBrowseError(e.message);
+        showBrowseError(e.message, e, () => browsePath($("browse-root").value.trim() || target));
     } finally {
         setBrowseLoading(false);
     }
@@ -973,6 +1048,16 @@ function bind() {
         browsePath(currentRoot);
     });
 
+    // P12·W1.3 引导态：重试环境检测（门控第二求值点）与查看指引
+    const guideRetry = $("btn-guide-retry");
+    if (guideRetry) guideRetry.addEventListener("click", async () => {
+        setStatus("browse-status", "busy", "正在重试环境检测…");
+        const h = await refreshHealth();
+        evaluateEnvGate(h);
+    });
+    const guideHelp = $("btn-guide-help");
+    if (guideHelp) guideHelp.addEventListener("click", showGuide);
+
     // 全量扫描
     $("btn-fullscan").addEventListener("click", startFullscan);
     $("btn-save").addEventListener("click", () => saveSnapshot(false));
@@ -1023,7 +1108,6 @@ function bind() {
         }
     } catch (e) { /* 设置读取失败不影响使用 */ }
 
-    await refreshHealth();
     refreshSnapshots();
     pollFullscan(); // 页面刷新后也能恢复「扫描中」状态
     refreshOverview();
@@ -1031,7 +1115,11 @@ function bind() {
     const firstRoot = lastRoots[0] || "D:\\";
     currentRoot = firstRoot;
     $("browse-root").value = firstRoot;
-    browsePath(firstRoot, true);
+
+    // P12·W1.3 init 门控（RT-02 边界：仅首拍求值；替换旧的无条件浏览）：
+    // ready → 自动浏览首根；未就绪 → 引导态。15s 轮询只刷徽章不重评门控。
+    const h = await refreshHealth();
+    evaluateEnvGate(h);
 
     setInterval(refreshHealth, 15000);
 })();
