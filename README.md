@@ -454,7 +454,7 @@ Everything SDK DLL（程序按「exe 目录\everything-SDK\dll\ → exe 目录\�
 
 ## 开发验证
 
-unittest 全绿底线（基数以 2026-08 P12·W1.0 实测记录为准，当前实测 **177** 项，
+unittest 全绿底线（基数以 2026-08 P12·W1.0 实测记录为准，当前实测 **208** 项，
 含快照格式 golden / API 字段契约 / compare 现状护栏三类护栏回归）：
 
 ```powershell
