@@ -1,4 +1,4 @@
-﻿"""Web API 字段契约护栏（P12·W1.0，RT-03）。
+"""Web API 字段契约护栏（P12·W1.0，RT-03）。
 
 用 app.test_client() 直连，冻结既有响应键集合：
 - GET  /api/health   -> {ok, ready, dll, message}
@@ -74,6 +74,17 @@ class ApiContractTests(unittest.TestCase):
             self.assertEqual(_keys(body), {"ok", "error"})
             self.assertIs(body["ok"], False)
             self.assertTrue(body["error"])
+            resp.close()
+
+    def test_browse_file_path_returns_not_a_directory(self):
+        """P12·W2.5（E）：root 指向文件路径 → 400「不是一个目录」。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        probe = _write_probe_file(tmp.name)
+        with app.test_client() as client:
+            resp = client.post("/api/browse", json={"root": probe})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIn("不是一个目录", resp.get_json()["error"])
             resp.close()
 
     def test_settings_get_shape(self):

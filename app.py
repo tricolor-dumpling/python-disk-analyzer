@@ -184,9 +184,14 @@ def api_browse():
     root = Path(raw_root)
     if not root.exists():
         return _json_error(f"路径不存在: {root}")
+    # P12·W2.5（E）：目录校验下沉到 API——文件路径浏览返回明确 400
+    if not root.is_dir():
+        return _json_error(f"不是一个目录: {root}")
     current = Path(data.get("path") or raw_root)
     if not current.exists():
         return _json_error(f"目录不存在: {current}")
+    if not current.is_dir():
+        return _json_error(f"不是一个目录: {current}")
 
     # ① 已完成根的内存索引：不获取 SDK 锁，直接返回。
     indexed_root = fullscan.BROWSE_INDEX.root_for(current)
@@ -337,7 +342,7 @@ def api_fullscan_start():
                 status=409,
             )
         return _json_error("未发现可扫描的本地盘符", status=400)
-    return _json_ok(message="全量扫描已启动", status=fullscan.status())
+    return _json_ok(message="全量扫描任务已提交，后台执行中", status=fullscan.status())
 
 
 @app.get("/api/fullscan/status")
