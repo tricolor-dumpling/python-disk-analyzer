@@ -39,6 +39,8 @@ def _write_probe_file(tmpdir):
 
 
 GUID = "deadbeef-1234-5678-9abc-def012345678"
+# W2.13 起 /api/compare 默认强校验：契约夹具一律使用本机 guid（异机见 test_machine.py）
+LOCAL_GUID = snapshots.get_machine_guid()
 
 
 def _keys(body):
@@ -359,7 +361,7 @@ class ApiContractTests(unittest.TestCase):
             baseline_rows,
             dir_path=Path(tmp.name),
             auto=False,
-            machine_guid=GUID,
+            machine_guid=LOCAL_GUID,
             fingerprint={"count": len(baseline_rows), "crc32": 0},
         )
         # fullscan.result(root=...) 的返回契约是单根条目 {"root": ..., "rows": [...]}

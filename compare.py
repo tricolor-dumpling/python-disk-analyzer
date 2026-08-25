@@ -233,7 +233,10 @@ def top_growth(compare_result, n=10):
     return rows[:n]
 
 
-def diff_from_current(sizes, baseline_rows, machine_guid=None, *, leaf_only=False):
+def diff_from_current(sizes, baseline_rows, machine_guid=None, *,
+                      leaf_only=False,
+                      local_machine_guid=None,
+                      allow_other_machine=False):
     """把内存中当前扫描 sizes（{Path: int}）与 baseline 快照行对比，返回与
     compare_snapshots 同构的 dict（当前树不需要落盘）。
 
@@ -244,7 +247,25 @@ def diff_from_current(sizes, baseline_rows, machine_guid=None, *, leaf_only=Fals
       调用方在 load_snapshot 头部完成）。
     - P12·W1.2：合计口径下沉 _total_from_root_rows（root 行优先，缺失回退顶层
       行求和）；leaf_only=True 透传给 _merge，rows 仅保留叶子路径。
+    - P12·W2.13（D2 三端接线，additive）：local_machine_guid 传入且与基线标注
+      的 machine_guid 不同、且未 allow_other_machine 时抛 CompareError，其
+      ``kind`` 属性为 "machine_mismatch"（additive 属性，不破坏既有捕获）。
+      不传新参的既有调用行为完全不变（fail-open 兼容红线），接线方默认 fail-closed。
     """
+    # 强校验（W2.13）：异机基线默认拦截，逃生口由调用方显式放行
+    if (
+        local_machine_guid is not None
+        and machine_guid
+        and str(machine_guid) != str(local_machine_guid)
+        and not allow_other_machine
+    ):
+        exc = CompareError(
+            "机器标识不一致：基线来自其他机器(%s)。如确认要在本机参考，"
+            "请使用允许跨机对比的入口（CLI --allow-other-machine / Web 确认 / TUI 确认键）"
+            % machine_guid
+        )
+        exc.kind = "machine_mismatch"
+        raise exc
     b_map = _rows_to_map(baseline_rows, "baseline")
     c_map = _sizes_to_map(sizes, "current")
     keys = set(b_map) | set(c_map)

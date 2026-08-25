@@ -26,6 +26,9 @@ from unittest import mock
 
 import cli
 import compare
+import snapshots
+
+LOCAL_MACHINE_GUID = snapshots.get_machine_guid()
 import utils
 from exceptions import EverythingEnvironmentError, MsvcrtUnavailableError
 
@@ -109,7 +112,7 @@ class BaselineReportTotalsTests(unittest.TestCase):
             {"p": "C:\\T\\sub\\deep", "s": 2500},
         ]
         baseline = {
-            "header": {"format": 1, "machine_guid": "abcd1234", "root": "C:\\T",
+            "header": {"format": 1, "machine_guid": LOCAL_MACHINE_GUID, "root": "C:\\T",
                        "created_at": "2026-08-24T00:00:00", "auto": False},
             "rows": baseline_rows,
         }

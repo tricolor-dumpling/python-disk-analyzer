@@ -590,10 +590,33 @@ def _interactive_ui_loop(root_path, sizes, contents, driver_name):
         if not baseline_time.strip():
             baseline_time = "未知时间"
         try:
-            diff_result = compare.diff_from_current(view["sizes"], baseline["rows"])
+            diff_result = compare.diff_from_current(
+                view["sizes"], baseline["rows"],
+                # P12·W2.13：默认携带本机 guid 强校验（RT-N01 三端接线）
+                machine_guid=baseline.get("header", {}).get("machine_guid"),
+                local_machine_guid=snapshots.get_machine_guid(),
+            )
         except compare.CompareError as exc:
-            print(_red_text("历史对比失败(跨根/机器不匹配): %s" % exc))
-            return
+            if getattr(exc, "kind", None) == "machine_mismatch":
+                # 异机基线：红字提示 + Y 显式放行，其他键返回列表态
+                print(_red_text(str(exc)))
+                print("按 Y 仍要对比（数字仅供参考），其他键返回")
+                key = _getch()
+                if key not in (b"y", b"Y"):
+                    return
+                try:
+                    diff_result = compare.diff_from_current(
+                        view["sizes"], baseline["rows"],
+                        machine_guid=baseline.get("header", {}).get("machine_guid"),
+                        local_machine_guid=snapshots.get_machine_guid(),
+                        allow_other_machine=True,
+                    )
+                except compare.CompareError as retry_exc:
+                    print(_red_text("历史对比失败: %s" % retry_exc))
+                    return
+            else:
+                print(_red_text("历史对比失败(跨根/机器不匹配): %s" % exc))
+                return
         _clear_screen()
         print("历史对比: %s → 当前" % baseline_time)
         # P12·W1.2：合计口径下沉后与 CLI 同构——列表前先出一行合计（根行口径）

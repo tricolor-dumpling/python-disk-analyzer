@@ -74,6 +74,8 @@
   <aside>
     <button id="btn-fullscan"></button>
     <button id="btn-save" disabled></button>
+    <button id="btn-export-csv"></button>
+    <button id="btn-export-json"></button>
     <div id="progress"><div id="progress-fill"></div></div>
     <span id="progress-pct">0%</span>
     <div id="fullscan-status"><span class="dot"></span><span id="fullscan-status-text"></span></div>
@@ -242,7 +244,18 @@ function __renderResults() {
   document.getElementById("smoke-table").innerHTML = html;
 }
 
+function __resetFormState() {
+  // 浏览器 location.reload() 会恢复表单值；断言前强制回默认，保证确定性
+  ["browse-filter", "browse-kind", "browse-sort"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === "INPUT") el.value = "";
+    else el.selectedIndex = 0;
+  });
+}
+
 async function __runAssertions(list) {
+  __resetFormState();
   for (const item of list) {
     let pass = false, detail = "";
     if (typeof item.fn !== "function") {
@@ -310,36 +323,40 @@ const ASSERTIONS = [
     } },
   { id: "2", name: "断言②（W2.5）：筛选空态出现清除按钮",
     fn: async function () {
-      // D：空会话刷新后撤销按钮灰置（走真实 refreshSnapshots 路径）
-      const savedRoute = __smoke.routes["GET /api/snapshots"];
-      const savedCache = sessionsCache;
-      __smoke.routes["GET /api/snapshots"] = { ok: true, sessions: [], count: 0 };
       try {
-        await refreshSnapshots();
-        __assert($("btn-undo-save").disabled === true, "无会话时撤销按钮应灰置");
-        // 入口保险：空会话点击不弹确认框、直接 info toast
-        const toastCountBefore = document.querySelectorAll("#toast-container .toast").length;
-        await undoLastSave();
-        __assert($("confirm-modal").classList.contains("hidden"), "空会话不得弹出危险确认");
-        __assert(document.querySelectorAll("#toast-container .toast").length > toastCountBefore,
-                 "空会话撤销应出 info 提示");
-      } finally {
-        if (savedRoute === undefined) delete __smoke.routes["GET /api/snapshots"];
-        else __smoke.routes["GET /api/snapshots"] = savedRoute;
-        sessionsCache = savedCache;
-      }
+        // D：空会话刷新后撤销按钮灰置（走真实 refreshSnapshots 路径）
+        const savedRoute = __smoke.routes["GET /api/snapshots"];
+        const savedCache = sessionsCache;
+        __smoke.routes["GET /api/snapshots"] = { ok: true, sessions: [], count: 0 };
+        try {
+          await refreshSnapshots();
+          __assert($("btn-undo-save").disabled === true, "无会话时撤销按钮应灰置");
+          const toastCountBefore = document.querySelectorAll("#toast-container .toast").length;
+          await undoLastSave();
+          __assert($("confirm-modal").classList.contains("hidden"), "空会话不得弹出危险确认");
+          __assert(document.querySelectorAll("#toast-container .toast").length > toastCountBefore,
+                   "空会话撤销应出 info 提示");
+        } finally {
+          if (savedRoute === undefined) delete __smoke.routes["GET /api/snapshots"];
+          else __smoke.routes["GET /api/snapshots"] = savedRoute;
+          sessionsCache = savedCache;
+        }
 
-      // H：筛选空态与一键清除
-      $("browse-filter").value = "不存在的关键词xyz";
-      if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
-      const btn = document.getElementById("btn-clear-filter");
-      __assert(btn, "筛选空态应出现「清除筛选」按钮");
-      __assert(document.getElementById("dir-body").textContent.indexOf("无匹配") !== -1,
-               "空态文案应出现");
-      btn.click();
-      await new Promise((r) => setTimeout(r, 10));
-      __assert($("browse-filter").value === "", "点击清除后筛选参数应清空");
-      __assert(document.querySelector("#dir-body .ranking-row"), "应恢复渲染原条目");
+        // H：筛选空态与一键清除
+        $("browse-filter").value = "不存在的关键词xyz";
+        if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
+        const btn = document.getElementById("btn-clear-filter");
+        __assert(btn, "筛选空态应出现「清除筛选」按钮");
+        __assert(document.getElementById("dir-body").textContent.indexOf("无匹配") !== -1,
+                 "空态文案应出现");
+        btn.click();
+        await new Promise((r) => setTimeout(r, 10));
+        __assert($("browse-filter").value === "", "点击清除后筛选参数应清空");
+        __assert(document.querySelector("#dir-body .ranking-row"), "应恢复渲染原条目");
+      } finally {
+        $("browse-filter").value = "";
+        $("browse-kind").value = "all";
+      }
     } },
   { id: "3", name: "断言③（W2.6）：双弹窗 Esc 按打开逆序关闭栈顶；Tab 循环；R 守卫",
     fn: async function () {

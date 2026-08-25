@@ -111,6 +111,8 @@ ARM/ARM64 版 `EverythingARM.dll`、`EverythingARM64.dll` 按需放入
 
 说明：
 
+- `config.json` 位于统一数据目录 `%LOCALAPPDATA%\PythonDiskScanner\config.json`；
+  项目目录下的 `config.json` 仅为首次默认模板、不会被改写（P12·W2.13 D4 修订）。
 - 不需要手动创建 `config.json`。
 - 如果文件不存在，程序会自动探测并在成功启动 Everything 后写入。
 - 如果 JSON 损坏或路径失效，程序会忽略缓存并重新探测。
@@ -276,9 +278,13 @@ JSONL 文件（首行头部 JSON，其后每行一个 `{"p": 路径, "s": 大小
 ## 历史对比
 
 `--baseline PATH` 在非交互模式把**本次扫描结果**（不落盘）与基线快照做 diff：
-按变化量（`delta`）绝对值降序取前 `--top N` 条，每行由 `compare.format_row`
-渲染（右对齐带符号变化大小 + 增速列 + 路径；增幅列仅对基线 ≥ 1 MiB 的目录
-计算，小基数显示 `-`）。删除的目录标负 delta，新增目录标正 delta。
+按**带符号 delta 降序**排列（增长在前、缩减在后），取前 `--top N` 条，每行由
+`compare.format_row` 渲染（右对齐带符号变化大小 + 增速列为辅列；增幅列仅对
+基线 ≥ 1 MiB 的目录计算，小基数显示 `-`）。删除的目录标负 delta，新增目录标正 delta。
+
+跨机器基线（P12·W2.13）：对比默认携带本机 `machine_guid` 强校验——基线来自
+其他机器时三端（CLI/Web/TUI）一律拦截；CLI 用 `--allow-other-machine`、Web/TUI
+用确认键可显式放行（数字仅供参考）。
 
 示例输出（Top 3）：
 

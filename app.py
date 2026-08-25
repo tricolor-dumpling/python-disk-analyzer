@@ -58,7 +58,8 @@ def _json_error(message, status=400, code=None, detail=None, **extra):
     """
     payload = {"ok": False, "error": message}
     if code is not None:
-        payload["code"] = int(code)
+        # W2.13：code 既支持数字错误码也支持稳定字符串标识（machine_mismatch 等）
+        payload["code"] = int(code) if isinstance(code, int) else str(code)
     if detail:
         payload["detail"] = str(detail)
     for key, value in extra.items():
@@ -627,8 +628,13 @@ def api_compare():
             # P12·W1.2：Web 对比默认 leaf 口径——祖先行增量已由叶子承载，
             # 排行/图表不再把同一份增量在祖先与后代上重复呈现。
             leaf_only=True,
+            # P12·W2.13：默认携带本机 guid 强校验；前端确认后二次提交放行
+            local_machine_guid=snapshots.get_machine_guid(),
+            allow_other_machine=bool(data.get("allow_other_machine") or False),
         )
     except compare.CompareError as exc:
+        if getattr(exc, "kind", None) == "machine_mismatch":
+            return _json_error(f"对比失败: {exc}", status=409, code="machine_mismatch")
         return _json_error(f"对比失败: {exc}", status=400)
 
     rows = compare.top_growth(report, 100)

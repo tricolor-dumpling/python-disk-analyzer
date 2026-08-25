@@ -199,6 +199,15 @@ def _parse_args(argv):
             "交互模式下忽略。"
         ),
     )
+    parser.add_argument(
+        "--allow-other-machine",
+        action="store_true",
+        default=False,
+        help=(
+            "允许与其它机器生成的基线快照对比，数字仅供参考"
+            "（P12·W2.13：默认拦截异机基线）。"
+        ),
+    )
     parsed = parser.parse_args(argv)
     if parsed.target is not None and parsed.output is not None and parsed.export is None:
         parser.error("--output 需要与 --export 搭配使用（例如 --export csv --output 报告.csv）")
@@ -236,7 +245,9 @@ def main(argv=None):
     if args.target is None:
         return _run_interactive()
     return _run_headless(
-        args.target, args.top, args.quiet, args.export, args.output, args.baseline
+        args.target, args.top, args.quiet, args.export, args.output,
+        args.baseline,
+        allow_other_machine=bool(getattr(args, "allow_other_machine", False)),
     )
 
 
@@ -376,7 +387,8 @@ def _auto_save_on_exit(root, sizes):
 
 
 def _run_headless(
-    raw_target, top_n, quiet=False, export_format=None, output=None, baseline_path=None
+    raw_target, top_n, quiet=False, export_format=None, output=None,
+    baseline_path=None, allow_other_machine=False,
 ):
     """非交互模式：路径校验 → 作业沙盒 → 环境就绪 → 扫描 → 打印 Top-N 报告 →（可选）导出。
 
@@ -427,7 +439,8 @@ def _run_headless(
     _print_top_n_report(root_path_obj, dir_sizes, top_n)
 
     if baseline is not None:
-        _print_baseline_report(baseline, dir_sizes, baseline_path, top_n)
+        _print_baseline_report(baseline, dir_sizes, baseline_path, top_n,
+                           allow_other_machine=allow_other_machine)
 
     if export_format is not None:
         output_path = Path(output) if output is not None else _default_export_path(export_format)
@@ -481,18 +494,23 @@ def _prepare_baseline(baseline_path):
         sys.exit(1)
 
 
-def _print_baseline_report(baseline, dir_sizes, baseline_path, top_n):
+def _print_baseline_report(baseline, dir_sizes, baseline_path, top_n,
+                           allow_other_machine=False):
     """打印与基线快照的 Top-N 变化对比（compare.format_row 版式，纯文本无 ANSI）。
 
     数据源：当前扫描 sizes 不落盘，与基线行经 compare.diff_from_current 对比；
     root 由两域路径集合公共前缀推导，跨盘/根不一致（CompareError）→ 中文提示 +
     退出码 1。行序与增速列口径与 TUI 历史对比一致（top_growth 取 delta 降序前 N）。
+    P12·W2.13：默认携带本机 machine_guid 强校验——异机基线被拦截
+    （CompareError.kind=="machine_mismatch"），--allow-other-machine 显式放行。
     """
     try:
         result = diff_from_current(
             dir_sizes,
             baseline.get("rows") or [],
             machine_guid=baseline.get("header", {}).get("machine_guid"),
+            local_machine_guid=get_machine_guid(),
+            allow_other_machine=allow_other_machine,
         )
     except CompareError as exc:
         print(f"对比失败: {exc}")

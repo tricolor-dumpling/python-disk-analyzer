@@ -941,7 +941,7 @@ function deltaClass(v) {
     return "flat";
 }
 
-async function compareSnapshots() {
+async function compareSnapshots(allowOtherMachine) {
     let baseline = $("compare-baseline").value.trim();
     if (!baseline) {
         const latest = sessionsCache[0];
@@ -961,20 +961,28 @@ async function compareSnapshots() {
     const btn = $("btn-compare");
     btn.disabled = true;
     setStatus("compare-status", "busy", "正在对比，请稍候…");
-    try {
-        const data = await postJson("/api/compare", {
-            root: currentRoot || currentPath,
-            baseline: baseline,
-        });
-        renderCompareResult(data.report);
     let scanPending = false; // W2.4：409 时保持按钮禁用直到扫描完成
     try {
         const data = await postJson("/api/compare", {
             root: currentRoot || currentPath,
             baseline: baseline,
+            allow_other_machine: !!allowOtherMachine, // P12·W2.13 二次提交放行
         });
         renderCompareResult(data.report);
     } catch (e) {
+        // P12·W2.13：异机基线 → 红字确认后二次提交携带 allow 字段
+        if (e && e.code === "machine_mismatch") {
+            const ok = await confirmDialog({
+                title: "跨机器基线确认",
+                text: "该基线来自其他机器，对比数字可能误导，仍要继续吗？",
+                okLabel: "仍要对比",
+                okClass: "btn-danger",
+            });
+            if (ok) return compareSnapshots(true);
+            setStatus("compare-status", "warn", "已取消跨机器对比");
+            btn.disabled = false;
+            return;
+        }
         $("compare-result").classList.add("hidden");
         // P12·W2.4：扫描中 409 → 中性提示＋按钮禁用，pollFullscan 完成分支恢复
         if ((e.message || "").indexOf("全量扫描进行中") !== -1) {
