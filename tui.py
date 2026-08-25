@@ -581,6 +581,19 @@ def _interactive_ui_loop(root_path, sizes, contents, driver_name):
             return
         _clear_screen()
         print("历史对比: %s → 当前" % baseline_time)
+        # P12·W1.2：合计口径下沉后与 CLI 同构——列表前先出一行合计（根行口径）
+        # 与 legacy 提示（基线含「已知异常大小」行时建议重扫重建）。
+        if int(diff_result.get("legacy_count") or 0) > 0:
+            print(_warn_banner(
+                "基线含 %d 条已知异常大小数据，对比数字可能失真，建议重扫重建基线"
+                % int(diff_result["legacy_count"])
+            ))
+        print("{:>12}  合计变化 | 基线 {} → 当前 {}（共 {} 条差异）".format(
+            human_size(diff_result["delta_total"]),
+            human_size(diff_result["total_baseline"]),
+            human_size(diff_result["total_current"]),
+            len(diff_result["rows"]),
+        ))
         for row in diff_result["rows"][:list_height]:
             print(compare.format_row(row))
         if diff_result.get("truncated"):

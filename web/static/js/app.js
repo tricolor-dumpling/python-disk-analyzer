@@ -735,7 +735,14 @@ function renderCompareResult(r) {
     const added = rows.filter((row) => row.added || Number(row.baseline_size || 0) === 0 && Number(row.current_size || 0) > 0).length;
     const removed = rows.filter((row) => row.removed || Number(row.current_size || 0) === 0 && Number(row.baseline_size || 0) > 0).length;
     const largest = rows.slice().sort((a, b) => Math.abs(Number(b.delta)) - Math.abs(Number(a.delta)))[0];
+    // P12·W1.2：基线含「已知异常大小」行时前置 warn 提示（additive 字段 legacy_count）
+    const legacyNotice = Number(r.legacy_count) > 0
+        ? '<div class="notice notice-warn compare-legacy" style="grid-column:1/-1">基线含 ' +
+          esc(Number(r.legacy_count)) +
+          " 条已知异常大小数据，对比数字可能失真，建议重扫重建基线。</div>"
+        : "";
     summary.innerHTML =
+        legacyNotice +
         '<div class="stat"><span class="stat-label">基线总大小</span><span class="stat-value">' + humanBytes(r.total_baseline) + "</span></div>" +
         '<div class="stat"><span class="stat-label">当前总大小</span><span class="stat-value">' + humanBytes(r.total_current) + "</span></div>" +
         '<div class="stat"><span class="stat-label">总变化量</span><span class="stat-value ' + deltaClass(delta) + '">' + signedBytes(delta) + "</span></div>" +

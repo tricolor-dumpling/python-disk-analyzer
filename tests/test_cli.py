@@ -25,8 +25,42 @@ from pathlib import Path
 from unittest import mock
 
 import cli
+import compare
 import utils
 from exceptions import EverythingEnvironmentError, MsvcrtUnavailableError
+
+
+class BaselineReportTotalsTests(unittest.TestCase):
+    """P12·W1.2：_print_baseline_report 合计行与对比引擎同口径（CLI==engine）。"""
+
+    def test_cli_totals_equal_engine(self):
+        """同一输入下，合计行数字 == human_size(delta_total/total_baseline/total_current)。"""
+        baseline_rows = [
+            {"p": "C:\\T", "s": 7050},
+            {"p": "C:\\T\\sub", "s": 4000},
+            {"p": "C:\\T\\sub\\deep", "s": 2500},
+        ]
+        baseline = {
+            "header": {"format": 1, "machine_guid": "abcd1234", "root": "C:\\T",
+                       "created_at": "2026-08-24T00:00:00", "auto": False},
+            "rows": baseline_rows,
+        }
+        sizes = {
+            Path("C:\\T"): 6050,
+            Path("C:\\T\\sub"): 4000,
+            Path("C:\\T\\sub\\deep"): 1500,
+        }
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            cli._print_baseline_report(baseline, sizes, "fake_baseline.snap.gz", 10)
+        output = buf.getvalue()
+        engine = compare.diff_from_current(sizes, baseline_rows)
+        # 合计行消费引擎的 delta_total（根行口径），而非明细行累加（-550+...）
+        self.assertIn(cli.human_size(engine["delta_total"]), output,
+                      "合计行必须输出引擎 delta_total（根行口径）")
+        self.assertIn(cli.human_size(engine["total_baseline"]), output)
+        self.assertIn(cli.human_size(engine["total_current"]), output)
+        self.assertEqual(engine["delta_total"], -1000)
 
 
 class CliMainTests(unittest.TestCase):

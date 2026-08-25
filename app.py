@@ -414,6 +414,9 @@ def api_compare():
             current_sizes,
             baseline.get("rows") or [],
             machine_guid=baseline.get("header", {}).get("machine_guid"),
+            # P12·W1.2：Web 对比默认 leaf 口径——祖先行增量已由叶子承载，
+            # 排行/图表不再把同一份增量在祖先与后代上重复呈现。
+            leaf_only=True,
         )
     except compare.CompareError as exc:
         return _json_error(f"对比失败: {exc}", status=400)
@@ -426,6 +429,8 @@ def api_compare():
             "total_current": report["total_current"],
             "delta_total": report["delta_total"],
             "truncated": report["truncated"],
+            # P12·W1.1/W1.2（additive）：基线含「已知异常大小」行数，前端出提示
+            "legacy_count": int(report.get("legacy_count") or 0),
             "rows": rows,
         },
     )

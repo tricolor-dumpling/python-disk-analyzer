@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>P12 前端零依赖冒烟页 · tests/web/smoke.html</title>
+<style>
+  body { font-family: Consolas, "Microsoft YaHei", monospace; margin: 24px; background: #111; color: #ddd; }
+  h1 { font-size: 16px; }
+  p.dim { color: #888; font-size: 12px; }
+  table { border-collapse: collapse; margin-top: 12px; }
+  td { border: 1px solid #444; padding: 4px 10px; font-size: 13px; }
+  .pass { color: #6f6; }
+  .fail { color: #f66; font-weight: bold; }
+  .pending { color: #aaa; }
+</style>
+</head>
+<body>
+<h1>Python 磁盘扫描 · 冒烟页（stub 传输层，不发真实请求）</h1>
+<p class="dim">直接双击用 Edge 打开即可（file:// 下同样有效）；页面底部显示「x/y 通过」即为绿。
+任何触碰 web/static/js/app.js 的工作项，提交前必跑（P12 合并闸门）。</p>
+
+<!-- ================= 最小 DOM 脚手架（结构复刻 index.html 中 app.js 依赖的节点） ================= -->
+<header>
+  <button id="health-badge" class="badge" title=""><span id="health-text">正在检查环境…</span></button>
+  <button id="btn-guide"></button>
+  <button id="btn-settings"></button>
+</header>
+<main>
+  <section id="onboarding" class="hidden">
+    <button id="btn-onboarding-close"></button>
+    <ol class="steps hidden">
+      <li class="step"><span class="step-num">4</span><div><b>对比与清空</b><p id="guide-step4-text">在「历史对比」中与基线快照对比找出变化；设置里可一键清空数据目录。</p></div></li>
+    </ol>
+  </section>
+  <section id="overview-panel">
+    <p id="overview-meta"></p>
+    <button id="btn-overview-refresh"></button>
+    <div id="overview-roots"></div>
+  </section>
+  <section>
+    <div class="view-toolbar">
+      <button id="btn-view-ranking"></button>
+      <button id="btn-view-table"></button>
+      <button id="btn-density" aria-pressed="false"></button>
+    </div>
+    <input id="browse-root" list="roots-suggest" type="text" value="">
+    <datalist id="roots-suggest"></datalist>
+    <button id="btn-browse"></button>
+    <button id="btn-back" disabled></button>
+    <div id="recent-roots" class="chips-row hidden"></div>
+    <div id="browse-history" class="chips-row hidden"></div>
+    <nav id="breadcrumb"></nav>
+    <div id="browse-status"><span class="dot"></span><span id="browse-status-text"></span></div>
+    <div id="browse-cache-badge" class="notice notice-info hidden"></div>
+    <div id="browse-chart" hidden></div>
+    <div class="browse-filters">
+      <input id="browse-filter" type="search">
+      <select id="browse-kind"><option value="all">全部</option><option value="dir">仅目录</option><option value="file">仅文件</option></select>
+      <select id="browse-sort"><option value="size-desc">按大小</option><option value="name-asc">按名称</option><option value="size-asc">大小最小</option></select>
+    </div>
+    <div id="browse-error" class="notice notice-error hidden">
+      <span id="browse-error-text"></span>
+      <span><button id="btn-browse-retry" class="btn btn-sm">重试</button></span>
+    </div>
+    <div id="browse-loading" class="loading-overlay hidden"><span id="browse-loading-text"></span></div>
+    <table class="dir-table"><tbody id="dir-body"></tbody></table>
+  </section>
+  <aside>
+    <button id="btn-fullscan"></button>
+    <button id="btn-save" disabled></button>
+    <div id="progress"><div id="progress-fill"></div></div>
+    <span id="progress-pct">0%</span>
+    <div id="fullscan-status"><span class="dot"></span><span id="fullscan-status-text"></span></div>
+    <div id="scan-roots" class="chips-row hidden"></div>
+    <div id="scan-progress-hint" class="notice notice-info hidden"></div>
+    <div id="save-prompt" class="notice notice-warn hidden">
+      <button id="btn-save-now"></button>
+      <button id="btn-save-later"></button>
+    </div>
+    <button id="btn-refresh-snapshots"></button>
+    <button id="btn-undo-save"></button>
+    <div id="snapshot-status"><span class="dot"></span><span id="snapshot-status-text"></span></div>
+    <ul id="snapshot-list"></ul>
+  </aside>
+  <section>
+    <input id="compare-baseline" list="baseline-suggest" type="text">
+    <datalist id="baseline-suggest"></datalist>
+    <button id="btn-compare"></button>
+    <div id="compare-status"><span class="dot"></span><span id="compare-status-text"></span></div>
+    <div id="compare-result" class="hidden">
+      <div id="compare-summary"></div>
+      <div id="compare-chart"></div>
+      <table><thead><tr><th>变化</th><th>增速</th><th>路径</th><th id="compare-op-head" hidden>操作</th></tr></thead></table>
+      <table><tbody id="compare-body"></tbody></table>
+    </div>
+  </section>
+</main>
+
+<div id="settings-modal" class="modal hidden">
+  <div class="modal-panel">
+    <input id="setting-auto-save" type="checkbox">
+    <input id="setting-data-dir" type="text" readonly>
+    <input id="setting-health" type="text" readonly>
+    <button id="btn-settings-save"></button>
+    <button id="btn-wipe-open"></button>
+  </div>
+</div>
+<div id="wipe-modal" class="modal hidden">
+  <div class="modal-panel">
+    <span id="wipe-data-dir"></span>
+    <input id="wipe-confirm" type="text">
+    <button id="btn-wipe" disabled>确认清空</button>
+  </div>
+</div>
+<div id="confirm-modal" class="modal hidden">
+  <div class="modal-panel">
+    <h2 id="confirm-title">确认操作</h2>
+    <p id="confirm-text"></p>
+    <button id="btn-confirm-ok"></button>
+    <button id="btn-confirm-cancel"></button>
+  </div>
+</div>
+<div id="toast-container"></div>
+
+<script>
+/* ============================================================
+   P12 零依赖冒烟页（W1.2 建立，附录A）
+   - 只 mock 传输层：整页替换 window.fetch，按 URL 返回预录响应；
+   - 响应体逐字照抄真实接口 JSON 形态；错误样本同时覆盖旧形态
+     {ok,error} 与新形态 {ok,error,detail,code}（RT-N04 双向容忍锚点）；
+   - 断言通过计数器统计 fetch 调用次数与参数，而非看 UI 截图。
+   ============================================================ */
+"use strict";
+
+/* ---- 真实形态样本（照抄后端响应键集合，勿手造简化体） ---- */
+const SAMPLES = {
+  healthOk: { ok: true, ready: true, dll: "C:\\Program Files\\Everything\\Everything64.dll", message: "Everything 已就绪" },
+  healthBusy: { ok: true, ready: false, busy: true, reason: "scanning", dll: "C:\\Program Files\\Everything\\Everything64.dll", message: "Everything 正在扫描中（健康检查暂缓探测）" },
+  settingsGet: { ok: true, settings: { auto_save: false, last_roots: ["D:\\"] }, data_dir: "%LOCALAPPDATA%\\PythonDiskScanner", snapshots_dir: "%LOCALAPPDATA%\\PythonDiskScanner\\snapshots" },
+  browseOk: {
+    ok: true,
+    root: "D:\\",
+    parent: null,
+    directories: [
+      { name: "data", path: "D:\\data", is_dir: true, size: 12000, size_human: "11.72 KB" },
+      { name: "docs", path: "D:\\docs", is_dir: true, size: 4000, size_human: "3.91 KB" }
+    ],
+    files: [
+      { name: "pagefile.sys", path: "D:\\pagefile.sys", is_dir: false, size: 999999, size_human: "976.56 KB" },
+      { name: "readme.txt", path: "D:\\readme.txt", is_dir: false, size: 100, size_human: "100 B" }
+    ],
+    total_dirs: 2, total_files: 2
+  },
+  fullscanStatusIdle: { ok: true, status: { running: false, roots: ["C:\\"], roots_done: 0, roots_total: 1, current_root: null, error: null, result_ready: false, save_ready: false, progress_pct: 0, scan_version: 1 } },
+  snapshotsList: { ok: true, sessions: [ { session_id: "s-20260824-000000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T10:00:00", roots: { "D:\\": { root: "D:\\", snapshot: "D_20260824_100000_explicit_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260824_100000_explicit_aabbccd.snap.gz", skipped: false } } } ], count: 1 },
+  compareReport: { ok: true, report: { root: "D:\\", total_baseline: 16000, total_current: 15990, delta_total: -10, truncated: false, legacy_count: 0, rows: [ { path: "D:\\data", baseline: 12000, current: 11990, delta: -10, growth_pct: -0.0833, removed: false, added: false } ] } },
+  /* 错误双形态（RT-N04）：旧 {ok,error} 与 新 {ok,error,detail,code} */
+  errorLegacyShape: { ok: false, error: "路径不存在: X:\\nope" },
+  errorTypedShape: { ok: false, error: "无法连接 Everything（未运行或权限不足）", code: 2, detail: "Session 0 服务态或未启动" }
+};
+
+/* ---- fetch 打桩 + 调用计数器 ---- */
+const __smoke = {
+  fetchLog: [],            // {url, method, body}
+  results: [],             // {id, name, pass, detail}
+  routes: {},              // 测试可覆写：{"POST /api/browse": {...}}
+  delayMs: 0               // 测试可注入延迟（竞态断言用）
+};
+
+function __stubResponse(body, status) {
+  status = status || (body && body.ok === false ? 400 : 200);
+  return {
+    ok: status < 400,
+    status: status,
+    json: function () { return Promise.resolve(JSON.parse(JSON.stringify(body))); }
+  };
+}
+
+window.fetch = function (url, options) {
+  options = options || {};
+  const method = (options.method || "GET").toUpperCase();
+  let payload = null;
+  try { payload = options.body ? JSON.parse(options.body) : null; } catch (e) { payload = null; }
+  const entry = { url: String(url), method: method, body: payload };
+  __smoke.fetchLog.push(entry);
+  const key = method + " " + String(url).split("?")[0];
+  const respond = () => {
+    if (Object.prototype.hasOwnProperty.call(__smoke.routes, key)) {
+      const override = __smoke.routes[key];
+      if (override && override.__status) {
+        return __stubResponse(override.body, override.__status);
+      }
+      return __stubResponse(override);
+    }
+    if (key === "GET /api/health") return __stubResponse(SAMPLES.healthOk);
+    if (key === "GET /api/settings") return __stubResponse(SAMPLES.settingsGet);
+    if (key === "POST /api/settings") return __stubResponse({ ok: true, settings: SAMPLES.settingsGet.settings, message: "设置已保存" });
+    if (key === "POST /api/browse") return __stubResponse(SAMPLES.browseOk);
+    if (key === "GET /api/fullscan/status") return __stubResponse(SAMPLES.fullscanStatusIdle);
+    if (key === "GET /api/snapshots") return __stubResponse(SAMPLES.snapshotsList);
+    if (key === "POST /api/save") return __stubResponse({ ok: true, message: "保存完成", session: SAMPLES.snapshotsList.sessions[0], session_file: "C:\\fake\\session.json", skipped: false });
+    if (key === "POST /api/save/undo") return __stubResponse({ ok: true, message: "已撤销最近一次保存", session_id: "s-1", deleted: [], undeleted: [] });
+    if (key === "POST /api/compare") return __stubResponse(SAMPLES.compareReport);
+    if (key === "GET /api/overview") return __stubResponse({ ok: true, ready: false, scanning: false, empty_reason: "no_scan", roots: [] });
+    // 缺省：旧形态错误（渲染器必须容忍无 code/detail）
+    return __stubResponse(SAMPLES.errorLegacyShape, 400);
+  };
+  if (__smoke.delayMs > 0) {
+    return new Promise((resolve) => setTimeout(() => resolve(respond()), __smoke.delayMs));
+  }
+  return Promise.resolve(respond());
+};
+
+/* ---- 断言框架 ---- */
+function __renderResults() {
+  const passCount = __smoke.results.filter((r) => r.pass === true).length;
+  const failCount = __smoke.results.filter((r) => r.pass === false).length;
+  const total = __smoke.results.length;
+  let html = "<table><tr><th>#</th><th>断言</th><th>结果</th><th>说明</th></tr>";
+  __smoke.results.forEach((r) => {
+    const cls = r.pass === true ? "pass" : r.pass === false ? "fail" : "pending";
+    const label = r.pass === true ? "PASS" : r.pass === false ? "FAIL" : "待接入";
+    html += "<tr><td>" + r.id + "</td><td>" + r.name + '</td><td class="' + cls + '">' + label + "</td><td>" + (r.detail || "") + "</td></tr>";
+  });
+  html += "</table>";
+  document.getElementById("smoke-summary").innerHTML =
+    '<b class="' + (failCount ? "fail" : "pass") + '">' +
+    (failCount ? failCount + ' 项失败；' : "") +
+    passCount + "/" + total + " 通过" + (failCount ? "" : (total ? " ✔" : "")) + "</b>";
+  document.getElementById("smoke-table").innerHTML = html;
+}
+
+async function __runAssertions(list) {
+  for (const item of list) {
+    let pass = false, detail = "";
+    if (typeof item.fn !== "function") {
+      __smoke.results.push({ id: item.id, name: item.name, pass: null, detail: "后续阶段接入" });
+      continue;
+    }
+    try {
+      await item.fn();
+      pass = true;
+    } catch (e) {
+      pass = false;
+      detail = e && e.message ? e.message : String(e);
+    }
+    __smoke.results.push({ id: item.id, name: item.name, pass: pass, detail: detail });
+  }
+  __renderResults();
+}
+
+function __assert(cond, message) {
+  if (!cond) throw new Error(message || "断言失败");
+}
+
+/* ---- 断言注册表（四断言随 W1.4/W2.5/W2.6/W2.1 接入；0 为骨架自检） ---- */
+const ASSERTIONS = [
+  { id: "0", name: "骨架自检：app.js 启动完成且首拉 /api/settings、浏览样本已渲染到 #dir-body",
+    fn: async function () {
+      __assert(document.querySelector("#dir-body .ranking-row"), "#dir-body 未渲染出行");
+      const first = __smoke.fetchLog.find((e) => e.url === "/api/settings");
+      __assert(first, "init 应首先拉取 /api/settings");
+    } },
+  { id: "1", name: "断言①（W1.4）：文件行零请求", fn: null },
+  { id: "2", name: "断言②（W2.5）：筛选空态出现清除按钮", fn: null },
+  { id: "3", name: "断言③（W2.6）：双弹窗 Esc 逆序关栈顶", fn: null },
+  { id: "4", name: "断言④（W2.1）：busy health 不降级不进引导态", fn: null },
+];
+
+window.addEventListener("load", function () {
+  // 等 init() 的异步链跑完再执行断言
+  setTimeout(function () { __runAssertions(ASSERTIONS); }, 80);
+});
+</script>
+
+<!-- app.js 必须在 stub 就位之后加载 -->
+<script src="../../web/static/js/app.js"></script>
+
+<div id="smoke-summary" style="margin-top:16px"></div>
+<div id="smoke-table"></div>
+</body>
+</html>

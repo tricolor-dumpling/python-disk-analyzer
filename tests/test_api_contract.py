@@ -14,11 +14,19 @@ web 契约测试编码规约（自此生效）：一律 ``with app.test_client()
 """
 
 import os
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
+import compare
+import fullscan
+import snapshots
 import sdk
 from app import app
+
+
+GUID = "deadbeef-1234-5678-9abc-def012345678"
 
 
 def _keys(body):
@@ -79,6 +87,61 @@ class ApiContractTests(unittest.TestCase):
             body = resp.get_json()
             self.assertEqual(_keys(body), {"ok", "error"})
             self.assertIn("root", body["error"])
+            resp.close()
+
+    def test_compare_report_shape_and_three_cards_consistent(self):
+        """P12·W1.2：report 键集合冻结（+legacy_count additive）；三卡数值与直调
+        diff_from_current 全等（CLI==Web==engine 同口径）。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        baseline_rows = [
+            {"p": "D:\\T", "s": 7050},
+            {"p": "D:\\T\\sub", "s": 4000},
+            {"p": "D:\\T\\sub\\deep", "s": 2500},
+        ]
+        current_rows = [
+            {"p": "D:\\T", "s": 6050},
+            {"p": "D:\\T\\sub", "s": 4000},
+            {"p": "D:\\T\\sub\\deep", "s": 1500},
+        ]
+        baseline_file = snapshots.save_snapshot(
+            "D:\\T",
+            baseline_rows,
+            dir_path=Path(tmp.name),
+            auto=False,
+            machine_guid=GUID,
+            fingerprint={"count": len(baseline_rows), "crc32": 0},
+        )
+        # fullscan.result(root=...) 的返回契约是单根条目 {"root": ..., "rows": [...]}
+        cached_result = {
+            "root": "D:\\T",
+            "rows": [{"p": row["p"], "s": row["s"]} for row in current_rows],
+        }
+        with app.test_client() as client:
+            with mock.patch.object(fullscan, "is_running", return_value=False), \
+                    mock.patch.object(fullscan, "result", return_value=cached_result):
+                resp = client.post(
+                    "/api/compare",
+                    json={"root": "D:\\T", "baseline": str(baseline_file)},
+                )
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            report = body["report"]
+            self.assertEqual(
+                _keys(report),
+                {"root", "total_baseline", "total_current", "delta_total",
+                 "truncated", "legacy_count", "rows"},
+                f"/api/compare report 键集合漂移: {_keys(report)}",
+            )
+            # 三卡（基线总大小/当前总大小/总变化量）与直调引擎全等（根行口径）
+            engine = compare.diff_from_current(
+                {Path(row["p"]): int(row["s"]) for row in current_rows},
+                baseline_rows,
+            )
+            self.assertEqual(report["total_baseline"], engine["total_baseline"])
+            self.assertEqual(report["total_current"], engine["total_current"])
+            self.assertEqual(report["delta_total"], engine["delta_total"])
+            self.assertEqual(report["delta_total"], -1000)
             resp.close()
 
 

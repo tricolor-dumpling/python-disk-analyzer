@@ -471,6 +471,15 @@ def _print_baseline_report(baseline, dir_sizes, baseline_path, top_n):
     print(f"\n与基线快照对比 Top {top_n}（基线: {baseline_path}）:")
     for row in rows:
         print(format_row(row))
+    # P12·W1.2：legacy 提示——基线含「已知异常大小」行时建议重扫重建（合计口径
+    # 已下沉 compare._total_from_root_rows，delta_total 自动获得根行口径）。
+    legacy_count = int(result.get("legacy_count") or 0)
+    if legacy_count > 0:
+        print(
+            "⚠ 基线含 {} 条已知异常大小数据，对比数字可能失真，建议重扫重建基线".format(
+                legacy_count
+            )
+        )
     print(
         "{:>12}  合计变化 | 基线 {} → 当前 {}（共 {} 条差异）".format(
             human_size(result["delta_total"]),
