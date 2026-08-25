@@ -12,8 +12,7 @@
    与拆分前完全一致；
 3. D9 兼容层增量：snapshots（save_snapshot/load_snapshot/list_snapshots/
    get_snapshot_dir/should_auto_save/常量与异常）、compare（compare_snapshots/
-   top_growth/diff_from_current/format_row/CompareError）、dispatcher
-   （EverythingQueryDispatcher/DispatcherError）、keyrouter（key_to_action/
+   top_growth/diff_from_current/format_row/CompareError）、keyrouter（key_to_action/
    help_text/ACT_*）、messages（render_message/list_template_ids/
    BANNER_TEMPLATES）与 scan 新增（compute_fingerprint/light_refresh/
    deep_refresh/ScanCancelledError/clear_fingerprint_cache 等）同样静态
@@ -135,7 +134,7 @@ from tui import (  # noqa: F401
     interactive_ui,
 )
 
-# =================【D9 兼容层增量：snapshots/compare/dispatcher/keyrouter/messages】=================
+# =================【D9 兼容层增量：snapshots/compare/keyrouter/messages】=================
 # 以下模块在 D6-D8 批次新增；顶层公共 API 全部静态 from-import 回拷（这些名字
 # 拆分前后都不会被重新赋值，拷贝等价），保持旧脚本「import main 后按
 # main.<名字> 使用」的习惯不变。
@@ -177,7 +176,6 @@ from compare import (  # noqa: F401
     format_row,
     top_growth,
 )
-from dispatcher import DispatcherError, EverythingQueryDispatcher  # noqa: F401
 from keyrouter import (  # noqa: F401
     ACT_BACK,
     ACT_CHANGE_ROOT,

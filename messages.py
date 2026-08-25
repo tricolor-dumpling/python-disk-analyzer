@@ -41,7 +41,7 @@ BANNER_TEMPLATES = {
     ),
     "E_BUSY": (
         BANNER_WARN,
-        "S 已在途：请稍后",
+        "深刷已在途（Esc 可取消）",
     ),
     "E_TERM_TOO_SMALL": (
         BANNER_WARN,

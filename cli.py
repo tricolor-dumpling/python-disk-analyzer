@@ -74,9 +74,26 @@ from snapshots import (
 from tui import _clear_screen, _getch, interactive_ui
 
 
-def prompt_target_drive():
-    """运行入口处再询问扫描路径，避免 import main 时阻塞测试或复用。"""
-    return input("请输入扫描的目标路径 (例如 C:\\Users 或 D:\\): ").strip()
+def prompt_target_drive(max_attempts=3):
+    """运行入口处再询问扫描路径，避免 import main 时阻塞测试或复用。
+
+    P12·W2.12（DEF-024）：管道喂 EOF / Ctrl-C → 「已取消输入，退出。」并
+    sys.exit(1)，不再让 None/异常静默向下走；空输入重问，≤max_attempts 次
+    仍为空 → 同款 fatal，杜绝静默扫描 cwd。
+    """
+    for attempt in range(1, max_attempts + 1):
+        try:
+            raw = input("请输入扫描的目标路径 (例如 C:\\Users 或 D:\\): ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("已取消输入，退出。")
+            sys.exit(1)
+        if raw:
+            return raw
+        remaining = max_attempts - attempt
+        if remaining > 0:
+            print(f"路径为空，请重新输入（还可尝试 {remaining} 次）")
+    print("错误: 扫描路径为空")
+    sys.exit(1)
 
 
 def _parse_top_n(raw):
@@ -375,6 +392,10 @@ def _run_headless(
     """
     if quiet:
         utils.VERBOSE = False
+    # P12·W2.12（DEF-023）：空路径此前会 resolve 成 cwd 静默扫描当前目录，
+    # 改为显式 fatal（退出码 1），与「路径不存在」同款出口。
+    if not raw_target or not str(raw_target).strip():
+        _fatal("错误: 扫描路径为空")
     root_path_obj = Path(raw_target).resolve()
     if not root_path_obj.exists():
         _fatal(f"错误: 指定的扫描路径不存在: {root_path_obj}")

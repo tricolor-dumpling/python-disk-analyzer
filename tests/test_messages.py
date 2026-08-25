@@ -30,6 +30,14 @@ class EverythingErrorTextTests(unittest.TestCase):
         self.assertIn("Everything", text)
         self.assertIn("99", text)
 
+    def test_e_busy_copy_removed_key_hint(self):
+        """P12·W2.12（D5）：E_BUSY 新文案「深刷已在途（Esc 可取消）」，不含键位字母。"""
+        from messages import render_message
+
+        text = render_message("E_BUSY")
+        self.assertEqual(text, "深刷已在途（Esc 可取消）")
+        self.assertNotIn("S 已在途", text)
+
 
 if __name__ == "__main__":
     unittest.main()

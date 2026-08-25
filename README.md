@@ -42,7 +42,6 @@
   utils.py
   keyrouter.py
   messages.py
-  dispatcher.py
   snapshots.py
   compare.py
   tests/
@@ -305,7 +304,7 @@ JSONL 文件（首行头部 JSON，其后每行一个 `{"p": 路径, "s": 大小
 ```text
 main.py          程序入口与兼容层：运行 python main.py 时调用 cli.main()；
                  同时把拆分后各模块的公共/下划线名字全量导回 main 命名空间
-                 （含 snapshots/compare/dispatcher/keyrouter/messages 与 scan
+                 （含 snapshots/compare/keyrouter/messages 与 scan
                  的新增 API），并动态转发可变全局（DLL_PATH / VERBOSE /
                  _ANSI_AVAILABLE / _GLOBAL_JOB_HANDLE / _getch / msvcrt /
                  winreg 等），保证旧脚本 import main 后按 main.<名字> 使用
@@ -336,8 +335,6 @@ keyrouter.py     键位注册表与纯函数按键分发：KEY_BINDINGS 单数�
                  生成操作指引行，禁键黑名单（Ctrl+C/Tab/F 键等）
 messages.py      横幅文案模板资产：模板 ID（BANNER_TEMPLATES）+ render_message /
                  list_template_ids，错误/状态文案与界面层同源、不散落
-dispatcher.py    Everything 查询统一调度器：进程内并发=1、250ms 防抖合并、
-                 代际令牌丢弃过期结果、统一错误码（DispatcherError）
 snapshots.py     快照模块：自动/显式保存（四原子谓词、日配额、原子写、并发锁）、
                  台账 ledger.json、滚动保留、读取/列表/自检（save_snapshot /
                  load_snapshot / should_auto_save / load_ledger /
@@ -362,7 +359,7 @@ everything-SDK/  Everything SDK DLL（dll\ 下为 Everything32.dll、Everything6
 
 1. 安装 Python 3.9+。
 2. 安装 Everything。
-3. 将全部 `.py` 模块（`main.py`、`cli.py`、`env.py`、`sdk.py`、`scan.py`、`tui.py`、`utils.py`、`exceptions.py`、`keyrouter.py`、`messages.py`、`dispatcher.py`、`snapshots.py`、`compare.py`）、`requirements.txt`、`README.md` 和 `everything-SDK` 放在同一目录。
+3. 将全部 `.py` 模块（`main.py`、`cli.py`、`env.py`、`sdk.py`、`scan.py`、`tui.py`、`utils.py`、`exceptions.py`、`keyrouter.py`、`messages.py`、`snapshots.py`、`compare.py`）、`requirements.txt`、`README.md` 和 `everything-SDK` 放在同一目录。
 4. 运行：
 
 ```powershell
@@ -483,5 +480,5 @@ python -W error::ResourceWarning -m unittest discover -s tests -t .
 检查语法：
 
 ```powershell
-python -m py_compile main.py cli.py env.py sdk.py scan.py tui.py utils.py exceptions.py keyrouter.py messages.py dispatcher.py snapshots.py compare.py
+python -m py_compile main.py cli.py env.py sdk.py scan.py tui.py utils.py exceptions.py keyrouter.py messages.py snapshots.py compare.py app.py fullscan.py session.py datadir.py
 ```

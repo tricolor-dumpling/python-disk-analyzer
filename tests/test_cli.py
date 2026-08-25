@@ -30,6 +30,74 @@ import utils
 from exceptions import EverythingEnvironmentError, MsvcrtUnavailableError
 
 
+class CliEdgeGuardTests(unittest.TestCase):
+    """P12·W2.12 CLI 边角：空路径 fatal、prompt EOF/空输入防护。"""
+
+    def test_headless_empty_target_fatal_exit1(self):
+        """headless 传 "" → SystemExit(1)＋「扫描路径为空」，未触达 ensure/scan。"""
+        buf = io.StringIO()
+        with contextlib.ExitStack() as stack:
+            ensure = stack.enter_context(mock.patch.object(cli, "ensure_everything_running"))
+            scan = stack.enter_context(mock.patch.object(cli, "scan_via_everything_sdk"))
+            stack.enter_context(mock.patch.object(cli, "init_windows_job_sandbox"))
+            stack.enter_context(contextlib.redirect_stdout(buf))
+            try:
+                cli.main(argv=[""])
+                exc = None
+            except SystemExit as e:
+                exc = e
+        self.assertIsNotNone(exc)
+        self.assertEqual(exc.code, 1)
+        self.assertIn("扫描路径为空", buf.getvalue())
+        ensure.assert_not_called()
+        scan.assert_not_called()
+
+    def test_prompt_eof_exits_gracefully(self):
+        """管道喂 EOF → 「已取消输入，退出。」+ sys.exit(1)，无 traceback。"""
+        buf = io.StringIO()
+        with mock.patch("builtins.input", side_effect=EOFError), \
+                contextlib.redirect_stdout(buf):
+            with self.assertRaises(SystemExit) as ctx:
+                cli.prompt_target_drive()
+        self.assertEqual(ctx.exception.code, 1)
+        self.assertIn("已取消输入", buf.getvalue())
+
+    def test_prompt_keyboard_interrupt_exits_gracefully(self):
+        """Ctrl-C 同款优雅退出（exit 1，中文提示）。"""
+        buf = io.StringIO()
+        with mock.patch("builtins.input", side_effect=KeyboardInterrupt), \
+                contextlib.redirect_stdout(buf):
+            with self.assertRaises(SystemExit) as ctx:
+                cli.prompt_target_drive()
+        self.assertEqual(ctx.exception.code, 1)
+
+    def test_prompt_empty_input_retries_then_fatal(self):
+        """空输入重问 ≤3 次；有效输入直接返回；三次仍空 → fatal exit 1。"""
+        buf = io.StringIO()
+        answers = iter(["", "   ", "C:\\Windows"])
+        with mock.patch("builtins.input", side_effect=lambda *a: next(answers)), \
+                contextlib.redirect_stdout(buf):
+            self.assertEqual(cli.prompt_target_drive(), "C:\\Windows")
+        self.assertIn("还可尝试", buf.getvalue())
+
+        buf2 = io.StringIO()
+        answers2 = iter(["", "", "", ""])
+        with mock.patch("builtins.input", side_effect=lambda *a: next(answers2)), \
+                contextlib.redirect_stdout(buf2):
+            with self.assertRaises(SystemExit) as ctx:
+                cli.prompt_target_drive()
+        self.assertEqual(ctx.exception.code, 1)
+        self.assertIn("扫描路径为空", buf2.getvalue())
+
+    def test_import_main_has_no_dispatcher_names(self):
+        """import main 成功且 dispatcher 名字按预期消失（无 AttributeError）。"""
+        import importlib
+
+        main_mod = importlib.import_module("main")
+        self.assertFalse(hasattr(main_mod, "DispatcherError"))
+        self.assertFalse(hasattr(main_mod, "EverythingQueryDispatcher"))
+
+
 class BaselineReportTotalsTests(unittest.TestCase):
     """P12·W1.2：_print_baseline_report 合计行与对比引擎同口径（CLI==engine）。"""
 
