@@ -19,6 +19,7 @@ import sys
 import threading
 import urllib.request
 import webbrowser
+from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
@@ -369,7 +370,13 @@ def api_fullscan_status():
 
 
 def _save_fullscan_result(auto):
-    """从最近一次全量结果生成 C、D 各一份快照 + session 清单。"""
+    """从最近一次全量结果生成各根快照 + session 清单（P12·W2.11 语义补全）。
+
+    - **逐盘 try 成败清单**（B-1 缓解，不做全事务）：单盘失败不再一损俱损，
+      响应 additive 携带 saved/failed/skipped_roots 三张清单；
+    - **台账备份**（B-2）：保存前抓取每根台账条目，写入清单 additive 字段
+      ``ledger_backup``，undo 时按其回滚，保证指纹谓词不抑制下次自动保存。
+    """
     if fullscan.is_running():
         raise ValueError("全量扫描进行中，暂不能保存")
     scan_result = fullscan.result()
@@ -382,10 +389,20 @@ def _save_fullscan_result(auto):
     session_id = session.build_session_id(machine_guid=machine_guid)
 
     roots_payload = {}
+    ledger_backup = {}
+    saved_list = []
+    failed_list = []
+    skipped_roots = []
     any_saved = False
     any_skipped = False
     for root, item in roots_map.items():
         rows = item["rows"]
+        # P12·W2.11（B-2）：保存前抓取该根当前台账条目（undo 回滚依据）
+        try:
+            current_ledger = snapshots.load_ledger(snap_dir)
+            ledger_backup[root] = current_ledger.get(root)
+        except Exception:
+            ledger_backup[root] = None
         try:
             saved_path = snapshots.save_snapshot(
                 root,
@@ -397,12 +414,14 @@ def _save_fullscan_result(auto):
                 dirty=False,
             )
         except Exception as exc:
-            raise ValueError(f"保存 {root} 快照失败: {exc}") from exc
+            failed_list.append(
+                {"root": root, "error": f"保存 {root} 快照失败: {exc}"}
+            )
+            continue
         if saved_path is None:  # auto=True 被谓词或日配额拒绝
-            # P12·W2.2：notice 通道优先（读后即清）——有通知即日配额跳过
             notice = snapshots.consume_last_save_notice()
             if notice is not None:
-                roots_payload[root] = {
+                entry = {
                     "root": root,
                     "snapshot": None,
                     "snapshot_path": None,
@@ -411,36 +430,46 @@ def _save_fullscan_result(auto):
                     "notice": notice,
                 }
             else:
-                roots_payload[root] = {
+                entry = {
                     "root": root,
                     "snapshot": None,
                     "snapshot_path": None,
                     "skipped": True,
-                    # P12·W2.2：skip_reason 稳定枚举（替换猜测文案）
                     "skip_reason": "predicate_rejected",
                 }
+            roots_payload[root] = entry
+            skipped_roots.append({"root": root, "skip_reason": entry["skip_reason"]})
             any_skipped = True
             continue
-        roots_payload[root] = {
+        entry = {
             "root": root,
             "snapshot": saved_path.name,
             "snapshot_path": str(saved_path),
             "skipped": False,
         }
-        # P12·W2.2：explicit 软警告透传（additive，保存本身成功）
         soft_notice = snapshots.consume_last_save_notice()
         if soft_notice is not None:
-            roots_payload[root]["notice"] = soft_notice
+            entry["notice"] = soft_notice
+        roots_payload[root] = entry
+        try:
+            saved_bytes = int(saved_path.stat().st_size)
+        except OSError:
+            saved_bytes = 0
+        saved_list.append(
+            {"root": root, "snapshot": saved_path.name, "bytes": saved_bytes}
+        )
         any_saved = True
 
-    if not any_saved:
-        raise ValueError("本次没有生成任何快照（可能因为今天已自动保存过）")
+    if not any_saved and not skipped_roots:
+        raise ValueError("本次没有生成任何快照：" + "；".join(f["error"] for f in failed_list))
 
     session_payload = {
         "session_id": session_id,
         "auto": bool(auto),
         "machine_guid": machine_guid,
         "roots": roots_payload,
+        # P12·W2.11（B-2）additive：undo 台账回滚依据
+        "ledger_backup": ledger_backup,
     }
     session_file = session.save_session(session_payload)
     fullscan.mark_saved(scan_version=scan_result.get("scan_version"))
@@ -448,6 +477,10 @@ def _save_fullscan_result(auto):
         "session": session_payload,
         "session_file": str(session_file),
         "skipped": any_skipped,
+        # P12·W2.11 additive：逐盘成败清单
+        "saved": saved_list,
+        "failed": failed_list,
+        "skipped_roots": skipped_roots,
     }
 
 
@@ -475,17 +508,45 @@ def api_save_undo():
 
     deleted = []
     errors = []
+    # P12·W2.11（SEC-4 搭车）：unlink 前目录边界校验——只删快照目录内的路径
+    try:
+        snapshots_root = Path(snapshots.get_snapshot_dir()).resolve()
+    except OSError:
+        snapshots_root = None
     for root_info in latest.get("roots", {}).values():
         snapshot_path = root_info.get("snapshot_path")
         if not snapshot_path:
             continue
-        path = Path(snapshot_path)
+        try:
+            resolved = Path(snapshot_path).resolve()
+            resolved.relative_to(snapshots_root)
+        except (ValueError, OSError):
+            errors.append(f"越界路径已跳过: {snapshot_path}")
+            continue
+        path = resolved
         try:
             if path.exists():
                 path.unlink()
                 deleted.append(str(path))
         except OSError as exc:
             errors.append(f"{snapshot_path}: {exc}")
+
+    # P12·W2.11（B-2）：台账回滚——按保存前备份恢复每根台账条目，保证 undo 后
+    # 指纹谓词不抑制下次自动保存；旧清单无该字段则跳过并附提示。
+    ledger_backup = latest.get("ledger_backup")
+    if isinstance(ledger_backup, dict):
+        try:
+            ledger = snapshots.load_ledger()
+            for root_key, prev_entry in ledger_backup.items():
+                if prev_entry is None:
+                    ledger.pop(str(root_key), None)
+                else:
+                    ledger[str(root_key)] = prev_entry
+            snapshots.save_ledger(ledger)
+        except OSError as exc:
+            errors.append(f"台账回滚失败: {exc}")
+    else:
+        errors.append("清单早于台账回滚功能，下次自动保存可能被指纹谓词抑制一次")
 
     try:
         session.delete_session(sessions[0])
@@ -569,6 +630,14 @@ def api_compare():
         return _json_error(f"对比失败: {exc}", status=400)
 
     rows = compare.top_growth(report, 100)
+    # P12·W2.11（B-3）additive：两侧数据时间透传——过期缓存不再伪装实时
+    baseline_created_at = str(
+        (baseline.get("header") or {}).get("created_at") or ""
+    )
+    last_fullscan = fullscan.result()
+    current_completed_at = (last_fullscan or {}).get("completed_at")
+    if not current_completed_at:
+        current_completed_at = datetime.now().isoformat(timespec="seconds")
     return _json_ok(
         report={
             "root": report["root"],
@@ -578,6 +647,8 @@ def api_compare():
             "truncated": report["truncated"],
             # P12·W1.1/W1.2（additive）：基线含「已知异常大小」行数，前端出提示
             "legacy_count": int(report.get("legacy_count") or 0),
+            "baseline_created_at": baseline_created_at,
+            "current_completed_at": current_completed_at,
             "rows": rows,
         },
     )

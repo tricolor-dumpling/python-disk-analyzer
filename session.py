@@ -10,6 +10,7 @@
 
 import itertools
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -66,10 +67,14 @@ def save_session(session, *, dir_path=None):
     directory = _dir_path(dir_path)
     directory.mkdir(parents=True, exist_ok=True)
     path = session_path(session_id, dir_path=directory)
-    path.write_text(
+    # P12·W2.11（B-5）：tmp + os.replace 原子写（模式照抄 snapshots.save_ledger），
+    # 杜绝读方读到半截 JSON。
+    tmp_path = path.with_name(path.name + ".tmp")
+    tmp_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    os.replace(str(tmp_path), str(path))
     return path
 
 

@@ -380,7 +380,7 @@ class ApiContractTests(unittest.TestCase):
             self.assertEqual(
                 _keys(report),
                 {"root", "total_baseline", "total_current", "delta_total",
-                 "truncated", "legacy_count", "rows"},
+                 "truncated", "legacy_count", "baseline_created_at", "current_completed_at", "rows"}  # W2.11 additive,
                 f"/api/compare report 键集合漂移: {_keys(report)}",
             )
             # 三卡（基线总大小/当前总大小/总变化量）与直调引擎全等（根行口径）

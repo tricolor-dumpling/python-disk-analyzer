@@ -797,6 +797,8 @@ async function saveSnapshot(auto) {
                 toast(skipReasonText(r.skip_reason), "info");
             }
         });
+        // P12·W2.11（B-1 缓解）：逐盘失败清单 → warn toast（不一损俱损）
+        (data.failed || []).forEach((f) => toast(f.error || ("保存失败：" + f.root), "warn"));
         toast(data.message || "保存完成", "success");
         if (auto) toast("已自动保存快照；如需回退可点「撤销最近保存」", "info");
         refreshSnapshots();
@@ -1018,11 +1020,15 @@ function renderCompareResult(r) {
     }
 
     const extra = r.truncated ? "（仅显示变化最大的 100 条）" : "（共 " + rows.length + " 条差异）";
+    // P12·W2.11（B-3）：状态行透出当前数据时间，过期缓存不再伪装实时
+    const dataTime = r.current_completed_at
+        ? "；当前数据时间 " + String(r.current_completed_at).replace("T", " ")
+        : "";
     setStatus(
         "compare-status",
         "ok",
         "对比完成：" + humanBytes(r.total_baseline) + " → " + humanBytes(r.total_current) +
-        "，变化 " + signedBytes(delta) + extra
+        "，变化 " + signedBytes(delta) + extra + dataTime
     );
     $("compare-result").classList.remove("hidden");
 }
