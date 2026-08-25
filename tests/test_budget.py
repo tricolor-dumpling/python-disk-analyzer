@@ -76,29 +76,41 @@ class DayBudgetTests(unittest.TestCase):
         self.assertGreater(self._day_writes_bytes(), 0, "按实际大小记账")
 
     def test_concurrent_saves_serialize_accounting(self):
-        """并发夹具：N 线程同目录保存 → day_writes.json 可解析、累计==实际大小之和。"""
+        """并发夹具：N 线程同目录保存 → day_writes.json 可解析、累计==实际大小之和。
+
+        冲突线程按契约收到 SnapshotBusyError 后短暂重试（锁内串行语义），
+        最终全部成功；记账必须精确等于各份实际大小之和。
+        """
         with mock.patch.object(snapshots, "MAX_BYTES_PER_DAY", 10 * 1024 * 1024):
             sizes_on_disk = []
-            lock = threading.Lock()
+            sizes_lock = threading.Lock()
             threads = []
             for i in range(8):
                 def worker(idx=i):
                     rows = [{"p": f"C:\\T{idx}", "s": 100 + idx}]
-                    path = snapshots.save_snapshot(
-                        f"C:\\T{idx}", rows, dir_path=self.dir_path, auto=False,
-                        machine_guid="deadbeef-1234",
-                        fingerprint={"count": idx + 10, "crc32": idx},
-                        now=None,
-                    )
-                    with lock:
-                        if path is not None:
-                            sizes_on_disk.append(path.stat().st_size)
+                    path = None
+                    for _attempt in range(100):
+                        try:
+                            path = snapshots.save_snapshot(
+                                f"C:\\T{idx}", rows, dir_path=self.dir_path,
+                                auto=False, machine_guid="deadbeef-1234",
+                                fingerprint={"count": idx + 10, "crc32": idx},
+                                now=None,
+                            )
+                            break
+                        except snapshots.SnapshotBusyError:
+                            time.sleep(0.01)  # 锁被他人持有：稍后重试
+                    if path is None:
+                        return
+                    with sizes_lock:
+                        sizes_on_disk.append(path.stat().st_size)
                 t = threading.Thread(target=worker)
                 threads.append(t)
             for t in threads:
                 t.start()
             for t in threads:
-                t.join(timeout=10)
+                t.join(timeout=30)
+        self.assertEqual(len(sizes_on_disk), 8, "重试后全部保存都应成功")
         recorded = self._day_writes_bytes()
         actual_sum = sum(sizes_on_disk)
         self.assertEqual(recorded, actual_sum,
