@@ -333,10 +333,10 @@ compare.py       历史对比引擎：compare_snapshots / diff_from_current（�
 utils.py         通用工具：应用名、日志开关、human_size、致命错误出口、
                  应用目录与配置路径
 exceptions.py    公共异常：MsvcrtUnavailableError、EverythingEnvironmentError
-tests/           单元测试与集成测试：test_cli / test_env / test_export / test_scan /
-                 test_sdk / test_tui / test_utils / test_keyrouter / test_messages /
-                 test_refresh / test_jump / test_dispatcher / test_snapshots /
-                 test_compare / test_integration，共 333 个用例
+tests/           单元测试：test_cli / test_env / test_export / test_scan /
+                 test_sdk / test_tui / test_utils，及 P12·W1.0 护栏
+                 test_snapshot_golden / test_api_contract / test_compare，
+                 共 177 个用例（基数以 W1.0 实测记录为准）
 everything-SDK/  Everything SDK DLL（dll\ 下为 Everything32.dll、Everything64.dll）
 ```
 
@@ -425,17 +425,24 @@ Everything SDK DLL（程序按「exe 目录\everything-SDK\dll\ → exe 目录\�
 
 ## 开发验证
 
-运行全部单元测试（共 333 个用例，含 D9 集成测试）：
+unittest 全绿底线（基数以 2026-08 P12·W1.0 实测记录为准，当前实测 **177** 项，
+含快照格式 golden / API 字段契约 / compare 现状护栏三类护栏回归）：
 
 ```powershell
-python -m unittest discover -s tests -v
+python -m unittest discover -s tests -t . -v
 ```
 
-单独运行 D9 集成测试：
+资源警告卫生门禁（ResourceWarning 一律视为失败；web 契约测试统一
+with-resp/close 规约）：
 
 ```powershell
-python -m unittest tests.test_integration -v
+python -W error::ResourceWarning -m unittest discover -s tests -t .
 ```
+
+> 说明：`-t .` 显式指定顶层目录，保证 `tests/__init__.py`（含 Windows +
+> Python 3.13+ 下 tempfile 私有目录 ACL 的沙盒兼容垫片）随发现流程加载。
+> 本机开发环境为 Python 3.14 + 项目内 `.venv`（Web 版依赖 Flask，CLI/TUI
+> 仍零第三方依赖）；Web 版依赖见 `requirements.txt`。
 
 检查语法：
 

@@ -422,6 +422,32 @@ class ScanViaEverythingSdkTests(unittest.TestCase):
             [("Dir", True, sizes[Path("C:\\Users\\Big\\Dir")])],
         )
 
+    def test_return_tuple_unpack_contract(self):
+        """P12·W1.0 契约护栏：返回值恒可 (sizes, contents) 二元组解包，
+        sizes 键全部为 Path；contents 为 LazyContents 且条目为
+        (name, is_dir, size) 三元组。W1.1 哨兵收口不得破坏该契约。
+        """
+        rows = [
+            ("file", "C:\\Users\\Test\\Docs\\a.txt", 10),
+            ("file", "C:\\Users\\Test\\b.txt", 5),
+        ]
+        fake = FakeEverythingSDK(rows)
+        with mock.patch.object(scan, "log"), \
+                mock.patch.object(sdk, "load_everything_sdk", return_value=fake), \
+                mock.patch.object(sdk, "DLL_PATH", "C:\\fake\\Everything64.dll"):
+            result = scan_via_everything_sdk(self.ROOT)
+        self.assertIsInstance(result, tuple, "返回值必须是二元组（解包契约）")
+        sizes, contents = result  # 二元组解包契约：任何出口都不得炸
+        self.assertTrue(all(isinstance(k, Path) for k in sizes), "sizes 键必须为 Path")
+        self.assertTrue(
+            all(isinstance(v, int) and not isinstance(v, bool) for v in sizes.values())
+        )
+        entries = contents.get(Path("C:\\Users\\Test\\Docs"))
+        for name, is_dir, size in entries:
+            self.assertIsInstance(name, str)
+            self.assertIsInstance(is_dir, bool)
+            self.assertIsInstance(size, int)
+
     def test_dll_auto_resolve_when_unset(self):
         """sdk.DLL_PATH 为 None 时自动解析并回填，再经 load 加载一次。"""
         fake = FakeEverythingSDK([])

@@ -2,8 +2,9 @@
 __pycache__/
 *.py[cod]
 
-# Local verification and packaging helpers
-test_*.py
+# Local verification and packaging helpers（仅限仓库根散置脚本；
+# tests/ 下的正式用例不受影响 —— P12·W1.0 起护栏用例入库）
+/test_*.py
 scripts/
 packaging/
 
