@@ -727,6 +727,7 @@ function renderFullscanState(st) {
     $("progress-pct").textContent = pct + "%";
     $("progress").classList.toggle("running", !!st.running);
     $("btn-fullscan").disabled = !!st.running;
+    $("btn-compare").disabled = !!st.running; // W2.4：扫描中对比按钮保持禁用
     renderScanRootChips(st.roots, st.roots_done, !!st.running);
 
     if (st.running) {
@@ -854,6 +855,14 @@ async function refreshSnapshots() {
     }
 }
 
+/* P12·W2.4：root 归一化预检——trim + 大写 + 尾反斜杠（终审仍留后端 normcase） */
+function normRoot(x) {
+    let v = String(x || "").trim().toUpperCase();
+    if (!v) return "";
+    if (!v.endsWith("\\")) v += "\\";
+    return v;
+}
+
 function renderSnapshotList(sessions) {
     const list = $("snapshot-list");
     if (!sessions.length) {
@@ -880,10 +889,16 @@ function renderSnapshotList(sessions) {
                                   '<span>' + esc(skipReasonText(r.skip_reason)) + "</span></li>"
                               );
                           }
+                          // P12·W2.4：每盘子行尾「对比此快照」一键入口
+                          const cmpBtn = r.snapshot_path
+                              ? '<button class="btn btn-sm act-cmp-snap" data-baseline="' + esc(r.snapshot_path) +
+                                '" data-root="' + esc(r.root || "") + '">对比此快照</button>'
+                              : "";
                           return (
                               "<li>" + ICONS.drive +
                               "<span>" + esc(r.root || "?") + " →</span>" +
-                              "<code>" + esc(r.snapshot || "缺快照") + "</code></li>"
+                              "<code>" + esc(r.snapshot || "缺快照") + "</code>" +
+                              cmpBtn + "</li>"
                           );
                       })
                       .join("") +
@@ -952,11 +967,26 @@ async function compareSnapshots() {
             baseline: baseline,
         });
         renderCompareResult(data.report);
+    let scanPending = false; // W2.4：409 时保持按钮禁用直到扫描完成
+    try {
+        const data = await postJson("/api/compare", {
+            root: currentRoot || currentPath,
+            baseline: baseline,
+        });
+        renderCompareResult(data.report);
     } catch (e) {
         $("compare-result").classList.add("hidden");
-        setStatus("compare-status", "err", e.message);
+        // P12·W2.4：扫描中 409 → 中性提示＋按钮禁用，pollFullscan 完成分支恢复
+        if ((e.message || "").indexOf("全量扫描进行中") !== -1) {
+            toast("扫描完成后可对比", "warn");
+            btn.disabled = true;
+            scanPending = true;
+            pollFullscan();
+        } else {
+            setStatus("compare-status", "err", e.message);
+        }
     } finally {
-        btn.disabled = false;
+        if (!scanPending) btn.disabled = false;
     }
 }
 
@@ -1310,6 +1340,22 @@ function bind() {
     $("btn-compare").addEventListener("click", compareSnapshots);
     $("compare-baseline").addEventListener("keydown", (ev) => {
         if (ev.key === "Enter") compareSnapshots();
+    });
+    // P12·W2.4：快照列表一键对比（同根直比；跨盘先切换再自动对比）
+    $("snapshot-list").addEventListener("click", (ev) => {
+        const btn = ev.target.closest(".act-cmp-snap");
+        if (!btn) return;
+        const baseline = btn.getAttribute("data-baseline");
+        const root = btn.getAttribute("data-root");
+        if (normRoot(root) === normRoot(currentRoot)) {
+            $("compare-baseline").value = baseline;
+            compareSnapshots();
+        } else {
+            currentRoot = root;
+            $("browse-root").value = root;
+            $("compare-baseline").value = baseline;
+            browsePath(root).then(() => compareSnapshots());
+        }
     });
 
     // 设置
