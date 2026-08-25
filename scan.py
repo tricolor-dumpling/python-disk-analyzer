@@ -24,6 +24,7 @@ from pathlib import Path
 
 from utils import log
 import sdk
+from exceptions import EverythingQueryError
 
 MAX_FILES_PER_DIR = 50
 # Everything 扫描进度刷新间隔（按处理的记录条数计）
@@ -270,7 +271,8 @@ def scan_via_everything_sdk(root_path_obj, cancel_event=None, everything=None):
 
     log("⏳ 正在等待 Everything 返回查询结果...")
     if not everything.Everything_QueryW(True):
-        raise RuntimeError(f"Everything查询失败: {everything.Everything_GetLastError()}")
+        # P12·W1.3：换抛类型化异常（继承 RuntimeError，文案不变，兼容既有捕获）
+        raise EverythingQueryError(everything.Everything_GetLastError())
 
     num_results = everything.Everything_GetNumResults()
     log(f"📈 Everything 返回 {num_results:,} 条记录")

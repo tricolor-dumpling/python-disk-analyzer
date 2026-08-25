@@ -346,13 +346,16 @@ class ScanViaEverythingSdkTests(unittest.TestCase):
         self.assertTrue(any(name == "GetNumResults" for name, *_ in fake.calls))
 
     def test_query_failure_raises_runtime_error(self):
-        """Everything_QueryW 失败时抛 RuntimeError 并带查询失败文案。"""
+        """Everything_QueryW 失败时抛类型化 EverythingQueryError（RuntimeError 子类，
+        文案兼容）并携带原始错误码（P12·W1.3）。"""
         fake = FakeEverythingSDK([], query_ok=False, last_error=sdk.EVERYTHING_ERROR_IPC)
         with mock.patch.object(scan, "log"), \
                 mock.patch.object(sdk, "load_everything_sdk", return_value=fake), \
                 mock.patch.object(sdk, "DLL_PATH", "C:\\fake\\Everything64.dll"):
-            with self.assertRaisesRegex(RuntimeError, "Everything查询失败"):
+            with self.assertRaisesRegex(scan.EverythingQueryError, "Everything查询失败") as ctx:
                 scan_via_everything_sdk(self.ROOT)
+        self.assertEqual(ctx.exception.code, sdk.EVERYTHING_ERROR_IPC)
+        self.assertIsInstance(ctx.exception, RuntimeError, "必须保持 RuntimeError 兼容")
         self.assertIn(("GetLastError",), fake.calls)
 
     def test_basic_aggregation_and_lazy_contents(self):

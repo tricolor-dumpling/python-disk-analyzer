@@ -75,3 +75,31 @@ def render_message(template_id, **kwargs):
 def list_template_ids():
     """返回全部横幅模板 ID（按资产声明顺序）。"""
     return list(BANNER_TEMPLATES)
+
+
+# =================【P12·W1.3 Everything 错误码表】=================
+
+# Everything_GetLastError() 的稳定错误码表：(类别标识, 用户文案)。
+# 类别标识供日志/前端细分使用，文案面向用户（Web 引导态与 TUI 共用）。
+EVERYTHING_ERROR_TEXT = {
+    0: ("ok", "查询成功"),
+    1: ("memory", "Everything 内存不足，请重启 Everything"),
+    2: ("ipc", "无法连接 Everything（未运行或权限不足）"),
+    3: ("register", "Everything 内部注册失败，请重装/重启 Everything"),
+    4: ("window", "Everything 内部窗口创建失败，请重启 Everything"),
+    5: ("thread", "Everything 内部线程创建失败，请重启 Everything"),
+    6: ("index", "Everything 索引无效，请重建索引"),
+    7: ("call", "Everything 调用顺序错误，请重启 Everything"),
+}
+
+
+def render_everything_error(code):
+    """把 Everything 错误码渲染为用户文案；未知码回退为带码提示（不出裸码）。"""
+    try:
+        key = int(code)
+    except (TypeError, ValueError):
+        key = None
+    entry = EVERYTHING_ERROR_TEXT.get(key) if key is not None else None
+    if entry is None:
+        return "Everything 查询出错（错误码 {}），请重启 Everything 后重试".format(code)
+    return entry[1]

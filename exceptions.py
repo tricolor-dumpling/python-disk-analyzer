@@ -14,3 +14,18 @@ class EverythingEnvironmentError(RuntimeError):
 
     由 ensure_everything_running 抛出、main 统一捕获打印后退出；嵌入/测试场景可自行捕获处理。
     """
+
+
+class EverythingQueryError(RuntimeError):
+    """Everything SDK 查询失败（Everything_QueryW 返回 FALSE）。
+
+    P12·W1.3 类型化收口：继承 RuntimeError 保住既有 ``except Exception``
+    与测试的 RuntimeError 断言；``code`` 为 Everything_GetLastError() 的原始
+    错误码（0-7，语义见 messages.EVERYTHING_ERROR_TEXT），``detail`` 为可选
+    补充说明。str(exc) 文案保持「Everything查询失败: <code>」不变。
+    """
+
+    def __init__(self, code, detail=""):
+        super().__init__(f"Everything查询失败: {code}")
+        self.code = int(code)
+        self.detail = detail or ""
