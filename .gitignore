@@ -3,9 +3,10 @@ __pycache__/
 *.py[cod]
 
 # Local verification and packaging helpers（仅限仓库根散置脚本；
-# tests/ 下的正式用例不受影响 —— P12·W1.0 起护栏用例入库）
+# tests/ 正式用例与 scripts/dev/ 验收脚本不受影响 —— P12 起）
 /test_*.py
-scripts/
+/scripts/*
+!/scripts/dev/
 packaging/
 
 # Local runtime cache, regenerated automatically
