@@ -1332,6 +1332,14 @@ function bind() {
     $("btn-save-now").addEventListener("click", () => saveSnapshot(false));
     $("btn-save-later").addEventListener("click", () => $("save-prompt").classList.add("hidden"));
 
+    // P12·W2.7：Web 导出（CSV/JSON，经 Content-Disposition 触发下载）
+    const exportUrl = (fmt) => {
+        const root = encodeURIComponent(currentRoot || "");
+        return `/api/export?format=${fmt}&root=${root}`;
+    };
+    $("btn-export-csv").addEventListener("click", () => window.open(exportUrl("csv"), "_blank"));
+    $("btn-export-json").addEventListener("click", () => window.open(exportUrl("json"), "_blank"));
+
     // 历史
     $("btn-refresh-snapshots").addEventListener("click", refreshSnapshots);
     $("btn-undo-save").addEventListener("click", undoLastSave);

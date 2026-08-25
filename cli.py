@@ -41,6 +41,7 @@ import argparse
 import csv
 import datetime
 import gc
+import io
 import json
 import os
 import sys
@@ -545,26 +546,23 @@ def _default_export_path(export_format, base_dir=None, now=None):
     return base / f"disk_report_{now:%Y%m%d_%H%M%S}.{export_format}"
 
 
-def export_report_csv(root_path_obj, dir_sizes, output_path):
-    """导出 CSV：表头「路径,大小(字节),大小(可读)」，其后每行一个目录。
+def build_report_csv(dir_sizes, root_path_obj=None) -> str:
+    """生成 CSV 报表文本（P12·W2.7 从文件写入中抽取的纯构建层）。
 
-    编码 utf-8-sig（带 BOM），Excel 可直接打开且中文不乱码；路径中的逗号/引号
-    由 csv 模块按规范转义；newline='' 避免 Windows 下写出 \r\r\n。
+    表头「路径,大小(字节),大小(可读)」，其后每行一个目录（聚合大小降序）。
+    与旧 export_report_csv 的文件内容逐字节等价（不含 BOM——BOM 由写侧的
+    utf-8-sig 编码负责）。
     """
-    with open(output_path, "w", encoding="utf-8-sig", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["路径", "大小(字节)", "大小(可读)"])
-        for path, size in _sorted_export_entries(dir_sizes):
-            writer.writerow([str(path), size, human_size(size)])
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["路径", "大小(字节)", "大小(可读)"])
+    for path, size in _sorted_export_entries(dir_sizes):
+        writer.writerow([str(path), size, human_size(size)])
+    return buf.getvalue()
 
 
-def export_report_json(root_path_obj, dir_sizes, output_path):
-    """导出 JSON：scan_root/exported_at(ISO 时间)/total_size_bytes/directories。
-
-    total_size_bytes 取扫描根键（自我汇总后的全部占用）；directories 为目录级
-    明细（path/size_bytes/size_human），按聚合大小降序；ensure_ascii=False +
-    indent=2，文件名 UTF-8 无 BOM。
-    """
+def build_report_json(root_path_obj, dir_sizes) -> str:
+    """生成 JSON 报表文本（P12·W2.7 纯构建层，结构同旧 export_report_json）。"""
     payload = {
         "scan_root": str(root_path_obj),
         "exported_at": datetime.datetime.now().isoformat(timespec="seconds"),
@@ -574,9 +572,29 @@ def export_report_json(root_path_obj, dir_sizes, output_path):
             for path, size in _sorted_export_entries(dir_sizes)
         ],
     }
+    return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+
+
+def export_report_csv(root_path_obj, dir_sizes, output_path):
+    """导出 CSV：表头「路径,大小(字节),大小(可读)」，其后每行一个目录。
+
+    编码 utf-8-sig（带 BOM），Excel 可直接打开且中文不乱码；路径中的逗号/引号
+    由 csv 模块按规范转义；newline='' 避免 Windows 下写出 \r\r\n。
+    （W2.7 起为 build_report_csv 的薄包装，CLI 产物逐字节等价。）
+    """
+    with open(output_path, "w", encoding="utf-8-sig", newline="") as f:
+        f.write(build_report_csv(dir_sizes))
+
+
+def export_report_json(root_path_obj, dir_sizes, output_path):
+    """导出 JSON：scan_root/exported_at(ISO 时间)/total_size_bytes/directories。
+
+    total_size_bytes 取扫描根键（自我汇总后的全部占用）；directories 为目录级
+    明细（path/size_bytes/size_human），按聚合大小降序；ensure_ascii=False +
+    indent=2，文件名 UTF-8 无 BOM。（W2.7 起为 build_report_json 薄包装。）
+    """
     with open(output_path, "w", encoding="utf-8", newline="\n") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-        f.write("\n")
+        f.write(build_report_json(root_path_obj, dir_sizes))
 
 
 def export_report(root_path_obj, dir_sizes, export_format, output_path):

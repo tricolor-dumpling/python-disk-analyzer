@@ -24,6 +24,7 @@ from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
 
+import cli as cli_module
 import compare
 import datadir
 import env
@@ -35,6 +36,7 @@ import session
 import snapshots
 import utils
 from exceptions import EverythingEnvironmentError, EverythingQueryError
+from flask import Response
 
 BASE_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = BASE_DIR / "web" / "templates"
@@ -720,7 +722,70 @@ def api_settings():
     return _json_ok(settings=config, message="设置已保存")
 
 
-# =================【6. 一键清空】=================
+# =================【6. Web 导出（P12·W2.7，G-1）】=================
+
+
+@app.get("/api/export")
+def api_export():
+    """Web 导出：最近全量结果该根 rows 聚合 → CSV/JSON 下载。
+
+    - format 非法 → 400 JSON；无全量结果 / 根未完成 → 404 JSON；
+    - csv 响应头 text/csv; charset=utf-8-sig + attachment；json 为 application/json；
+    - legacy 提示（RT-05 消费端）：unknown_size_count>0 时 CSV 表头前输出
+      「# 提示：…」行（Excel 当首行数据属已知限制），JSON 加 additive
+      ``legacy_notice`` 字段。
+    """
+    fmt = (request.args.get("format") or "").lower()
+    if fmt not in ("csv", "json"):
+        return _json_error("format 仅支持 csv 或 json")
+    last = fullscan.result()
+    roots_map = (last or {}).get("roots") or {}
+    if not roots_map:
+        return _json_error("暂无可导出的全量扫描结果，请先完成全量扫描", status=404)
+    raw_root = request.args.get("root")
+    if raw_root:
+        target_key = next(
+            (key for key in roots_map if Path(key) == Path(raw_root)), None
+        )
+        if target_key is None:
+            return _json_error(f"该根尚未完成扫描或不在结果中: {raw_root}", status=404)
+    else:
+        target_key = next(iter(roots_map))
+    item = roots_map[target_key]
+    sizes_map = {Path(row["p"]): int(row["s"]) for row in (item.get("rows") or [])}
+    root_path_obj = Path(target_key)
+    unknown = int(item.get("unknown_size_count") or 0)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"disk_report_{timestamp}.{fmt}"
+
+    if fmt == "csv":
+        body = cli_module.build_report_csv(sizes_map)
+        if unknown > 0:
+            body = (
+                f"# 提示：本数据源含 {unknown} 条大小未知条目（未计入聚合），"
+                "建议重新扫描后导出\r\n" + body
+            )
+        resp = Response("\ufeff" + body, mimetype="text/csv; charset=utf-8-sig")
+        resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        return resp
+    # json
+    import json as json_lib
+
+    payload = json_lib.loads(cli_module.build_report_json(root_path_obj, sizes_map))
+    payload["legacy_notice"] = (
+        f"本数据源含 {unknown} 条大小未知条目（未计入聚合），建议重新扫描后导出"
+        if unknown > 0
+        else ""
+    )
+    resp = Response(
+        json_lib.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        mimetype="application/json",
+    )
+    resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    return resp
+
+
+@app.post("/api/admin/wipe")
 
 # P12·W2.9（SEC-2）：Host 白名单中间件——防 DNS rebinding（拦截域名形态 Host）。
 # 仅本机回环来源放行；IP:端口形态不受影响。
@@ -737,6 +802,9 @@ def _guard_host():
 
 
 @app.post("/api/admin/wipe")
+
+
+# =================【7. 一键清空】=================
 
 
 @app.post("/api/admin/wipe")

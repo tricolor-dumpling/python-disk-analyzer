@@ -282,6 +282,8 @@ def _run(roots, everything, scan_version):
                 result_roots[str(root)] = {
                     "root": str(root),
                     "rows": rows,
+                    # P12·W2.7 additive：透传扫描层「大小未知」计数（Web 导出提示用）
+                    "unknown_size_count": int(getattr(sizes, "unknown_size_count", 0) or 0),
                 }
                 # Publish only after this root has completely finished.
                 BROWSE_INDEX.add_scan(root, sizes, _unused_contents)
