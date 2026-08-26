@@ -242,6 +242,8 @@ function __renderResults() {
     (failCount ? failCount + ' 项失败；' : "") +
     passCount + "/" + total + " 通过" + (failCount ? "" : (total ? " ✔" : "")) + "</b>";
   document.getElementById("smoke-table").innerHTML = html;
+  // 自动化验证口：把结论写进标题（suite 名 + 通过数），浏览器标签/工具可直接读取
+  document.title = "[suite=" + __currentSuite + "][" + (failCount ? "FAIL" : "PASS") + " " + passCount + "/" + total + "] " + document.title;
 }
 
 function __resetFormState() {
@@ -480,6 +482,27 @@ const ASSERTIONS_V2 = [
       const first = __smoke.fetchLog.find((e) => e.url === "/api/settings");
       __assert(first, "init 应首先拉取 /api/settings（fetch 桩计数生效）");
       __assert(document.querySelector("#dir-body .ranking-row"), "#dir-body 未渲染出行（app.js 启动链未完成）");
+    } },
+  { id: "A1", name: "U1.1：主题切换（data-theme 切换 + localStorage 写入 + reduced 直切分支）",
+    fn: async function () {
+      __assert(typeof switchTheme === "function", "switchTheme 必须已定义");
+      const root = document.documentElement;
+      const before = root.getAttribute("data-theme") === "dark" ? "dark" : "light";
+      const next = before === "dark" ? "light" : "dark";
+      // 分支①：无事件坐标（ev=null）→ 直切（同时是 reduced/无 VT 的等效路径）
+      switchTheme(next, null);
+      __assert(root.getAttribute("data-theme") === next, "data-theme 应切换到 " + next);
+      __assert(localStorage.getItem("pds_theme_v1") === next, "localStorage pds_theme_v1 应写入 " + next);
+      // 分支②：带事件坐标（支持 VT 时走圆形扩散；结束后终态一致）
+      switchTheme(before, { clientX: 10, clientY: 10 });
+      await new Promise((r) => setTimeout(r, 80));
+      __assert(root.getAttribute("data-theme") === before, "带坐标切换后 data-theme 应回到 " + before);
+      __assert(localStorage.getItem("pds_theme_v1") === before, "localStorage 应同步回 " + before);
+      // 分支③：非法值回退为翻转语义
+      switchTheme("bogus", null);
+      const flipped = root.getAttribute("data-theme");
+      __assert(flipped === "dark" || flipped === "light", "非法入参应回退为合法主题，实际 " + flipped);
+      switchTheme(before, null); // 复位，不污染其他断言
     } },
 ];
 

@@ -3,6 +3,7 @@
 > ✅ 执行记录：（待填。每个工作项完成后在此追加一行，格式仿 P12：`U1.1：完成内容摘要｜测试结果｜遗留挂账`）
 >
 > - **U1.0：门禁双 suite 与基线核定。** smoke.html 增加 `?suite=v2` 注册表（A0 骨架自检）与 suite 名显示，默认仍 v1，只加不删｜unittest `discover -s tests -t . -W error::ResourceWarning` = **260 用例全绿（1 skip，环境性）**；smoke v1 = **7/7**、v2 = **1/1**（浏览器实测）；style.css hex 色值基线 = **51**｜⚠️ 偏差注记：①环境实测 Python 3.11.8 + flask 3.0.2（手册继承的 P12 记载为 3.14.3/3.1.3；`.venv` 已按现状重建，`--system-site-packages` 引全局 flask，pip 当前无网络）；②npm 11.17.0 实际存在（P12 记「无 npm」），但零新增依赖纪律不变；③发现 10 个**未跟踪**的 P12 前旧草稿测试（test_web/test_refresh/test_dispatcher 等，断言 P12 已废弃的旧行为如「已启动」「Everything 不可用」）混入 discover 造成 6 项假红——已归档至 `tests/archive_pre_p12/`（无 `__init__.py` 不被收集，文件保留可查），权威门禁以 git 跟踪的 tests/ 为准。
+> - **U1.1：tokens.css 与主题体系实现完成，验收暂停至下一工作日。** 新增全量设计 tokens、head 防闪烁主题解析、`switchTheme()`（View Transitions 450ms / reduced-motion 直切）、临时主题按钮、主题 v2 smoke A1；实现已在真实 Flask 页面完成初步 light→dark 与刷新持久化验证，但按用户指示不继续做本项最终验收｜待明日先完成 U1.1 六节流程中的验收与独立提交复核，再进入 U1.2。当前 style.css hex = **51（未超过基线）**｜⚠️挂账：`tests.test_budget.DayBudgetTests.test_concurrent_saves_serialize_accounting` 为预存 Windows 并发锁竞态，偶发/连续失败（`.snapshot.lock` 与并发 `read_text()` 句柄共享冲突导致 `_release_lock()` unlink 静默失败，后续同 PID 永久 busy）；本轮遵守红线未触碰 `snapshots.py`，转 backlog/P13。
 
 > **依据**：《docs/UI终版方案_SpaceLensPro视觉动效与功能补全_定稿.md》（v1.2，下称《定稿》）。本手册把《定稿》展开为**可直接执行的开发文档**：开发者**只看本文档即可完成全部开发任务**，无需回读《定稿》；确需视觉动机说明时再查阅对应章节。
 > **适用对象**：本改版（建议版本号 v2.0.0）的开发执行者与验收人。

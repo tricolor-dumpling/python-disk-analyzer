@@ -24,3 +24,15 @@
 .badge:not(.badge-ok){animation:badge-breathe 2.4s ease-in-out infinite}
 /* 系统开启「减弱动态效果」时豁免呼吸动画 */
 @media (prefers-reduced-motion:reduce){.badge{animation:none}}
+
+/* ================= UI2·U1.1 主题体系（tokens.css 配套，L0-1） ================= */
+/* View Transitions 圆形扩散：新旧快照取消默认动画与混合，clip-path 由 motion 侧驱动 */
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+/* 无 View Transitions 的浏览器：主题切换走 200ms 颜色过渡兜底（不闪烁） */
+@supports not (view-transition-name:root){
+  body{transition:background-color var(--dur-2,200ms) ease,color var(--dur-2,200ms) ease}
+}
+@media (prefers-reduced-motion:reduce){
+  ::view-transition-old(root),::view-transition-new(root){animation:none!important}
+  body{transition:none!important}
+}

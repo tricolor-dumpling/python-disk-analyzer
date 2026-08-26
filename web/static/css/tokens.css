@@ -1,0 +1,39 @@
+/* ============================================================
+   UI 2.0（SpaceLens Pro）· 设计 token 单一来源（U1.1）
+   - 本文件是唯一允许出现 hex 色值的 CSS 文件（色值门禁豁免）；
+   - 全量内容照抄《UI2.0_开发执行手册》§3.4，勿在此处即兴调参；
+   - 动效时长/缓动 token 供 motion.js 运行时读取（禁止魔法数）。
+   ============================================================ */
+
+:root{
+  --dur-1:120ms; --dur-2:200ms; --dur-3:320ms; --dur-4:600ms;
+  --ease-out:cubic-bezier(.16,1,.3,1); --ease-spring:cubic-bezier(.34,1.56,.64,1); --ease-inout:cubic-bezier(.65,0,.35,1);
+  --radius-card:16px; --radius-ctl:10px; --radius-chip:999px;
+  --font-num:tabular-nums;
+}
+:root[data-theme="light"]{
+  --bg:#f4f6fa; --bg-aurora-1:rgba(59,130,246,.10); --bg-aurora-2:rgba(125,211,252,.10);
+  --card:#ffffff; --card-glass:rgba(255,255,255,.86);
+  --text:#0f172a; --text-2:#475569; --muted:#64748b; --faint:#94a3b8;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --primary:#2563eb; --primary-hover:#1d4ed8; --primary-soft:#eff6ff;
+  --accent:#7c5cff; --grad-brand:linear-gradient(135deg,#6366f1,#3b82f6);
+  --success:#16a34a; --warning:#b45309; --danger:#dc2626;
+  --up:#dc2626; --down:#16a34a;
+  --glow-sm:0 0 0 transparent; --glow-md:0 0 0 transparent;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05); --shadow-md:0 6px 20px rgba(15,23,42,.10);
+  --shadow-lg:0 16px 40px rgba(15,23,42,.16);
+}
+:root[data-theme="dark"]{
+  --bg:#0b1020; --bg-aurora-1:rgba(124,92,255,.08); --bg-aurora-2:rgba(56,189,248,.06);
+  --card:#121a2e; --card-glass:rgba(18,26,46,.72);
+  --text:#e5e7eb; --text-2:#cbd5e1; --muted:#94a3b8; --faint:#64748b;
+  --border:rgba(255,255,255,.08); --border-strong:rgba(255,255,255,.16);
+  --primary:#4f8cff; --primary-hover:#6ba1ff; --primary-soft:rgba(79,140,255,.12);
+  --accent:#8b5cf6; --grad-brand:linear-gradient(135deg,#7c5cff,#4f8cff);
+  --success:#34d399; --warning:#fbbf24; --danger:#f87171;
+  --up:#f87171; --down:#34d399;
+  --glow-sm:0 0 12px rgba(124,92,255,.25); --glow-md:0 0 24px rgba(124,92,255,.35);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 8px 24px rgba(0,0,0,.45);
+  --shadow-lg:0 20px 48px rgba(0,0,0,.55);
+}
