@@ -464,10 +464,37 @@ const ASSERTIONS = [
     } },
 ];
 
+/* ================= U1.0：双 suite 门禁 =================
+   - URL 带 ?suite=v2 → 跑新注册表 ASSERTIONS_V2（随 UI2.0 工作项逐项接入）；
+   - 默认仍跑 v1（ASSERTIONS）——本项只加不删，门禁零真空；
+   - U1.3 起默认门禁切为 v2、v1 挂 ?suite=legacy（本文件届时再改派发）。 */
+const __suiteMatch = window.location.search.match(/[?&]suite=([^&]+)/);
+const __currentSuite = __suiteMatch ? decodeURIComponent(__suiteMatch[1]) : "v1";
+
+const ASSERTIONS_V2 = [
+  { id: "A0", name: "骨架自检：页面加载、__assert 可用、fetch 桩已接管且 app.js 启动完成",
+    fn: async function () {
+      __assert(typeof __assert === "function", "__assert 必须可用");
+      __assert(typeof window.fetch === "function", "fetch 桩必须就位");
+      // fetch 桩已接管：init 首拉 /api/settings 必须落在调用日志里
+      const first = __smoke.fetchLog.find((e) => e.url === "/api/settings");
+      __assert(first, "init 应首先拉取 /api/settings（fetch 桩计数生效）");
+      __assert(document.querySelector("#dir-body .ranking-row"), "#dir-body 未渲染出行（app.js 启动链未完成）");
+    } },
+];
+
+const __SUITE_REGISTRIES = { v1: ASSERTIONS, v2: ASSERTIONS_V2, legacy: ASSERTIONS };
+
 window.addEventListener("load", function () {
-  // 等 init() 的异步链跑完再执行断言
-  setTimeout(function () { __runAssertions(ASSERTIONS); }, 80);
+  // 标题与页头显示当前 suite 名
+  document.title = document.title.replace(" · tests/web/smoke.html", "") + " [suite=" + __currentSuite + "]";
+  const h1 = document.querySelector("h1");
+  if (h1) h1.textContent = h1.textContent + " — suite: " + __currentSuite;
+  // 等 init() 的异步链跑完再执行断言；按 suite 选择注册表（未知回落 v1）
+  const registry = __SUITE_REGISTRIES[__currentSuite] || ASSERTIONS;
+  setTimeout(function () { __runAssertions(registry); }, 80);
 });
+
 </script>
 
 <!-- app.js 必须在 stub 就位之后加载 -->
