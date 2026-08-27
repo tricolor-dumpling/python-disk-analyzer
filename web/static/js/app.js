@@ -139,7 +139,8 @@ function switchTheme(next, ev) {
 }
 
 /* ================= K7：已处理的扫描代次持久化 ================= */
-const HANDLED_SCAN_KEY = "pds_handled_scan_version_v1";function loadHandledScanVersion() {
+const HANDLED_SCAN_KEY = "pds_handled_scan_version_v1";
+function loadHandledScanVersion() {
     try { return Number(localStorage.getItem(HANDLED_SCAN_KEY)) || 0; }
     catch (e) { return 0; } // localStorage 不可用时退化为进程内变量
 }
