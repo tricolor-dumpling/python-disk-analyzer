@@ -1,16 +1,32 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· state.js APP_STATE 单一来源（U2.0 从 app.js 迁入）
-   - 旧 app.js 的 APP_STATE = { lastBrowseData, health }（P12·W2.6 K6），逐字迁入；
-   - §3.2 目标形状的其余命名空间（route/view/selection/scan/snapshots/compare/
-     treemap/ui）待 U2.1 路由落地时按形状对齐填充（本阶段无消费方，不预置，
-     避免「无消费字段」误导——见手册执行记录 U2.0 偏差注记）；
-   - localStorage 键表归属（搬家不改行为，不集中搬动）：
-     pds_theme_v1 → theme.js；pds_onboarding_dismissed_v1 → onboarding.js；
+   UI 2.0（SpaceLens Pro）· state.js APP_STATE 单一来源（U2.0 建，U2.1 对齐 §3.2）
+   - U2.0：迁入旧 app.js 的 { lastBrowseData, health }（行为等价优先）；
+   - U2.1：按手册 §3.2 目标形状落地全场命名空间——route 为本阶段真实字段
+     （router 维护 + smoke A3 断言）；其余命名空间按 §3.2 默认值预置，
+     随对应功能工作项启用（view→U2.2/U2.5、selection→U2.5、scan→U3.2、
+     snapshots/compare→U3.3/U3.4、treemap→U2.2、ui→U3.x）；
+   - 跨页面状态保持：模块级状态（currentPath/browseView/…）随模块持久，
+     路由切换不卸载模块 = 天然满足「切页不丢」；逐项迁入 state 随功能工作项。
+   - localStorage 键表归属：pds_theme_v1 → theme.js；pds_onboarding_dismissed_v1 → onboarding.js；
      pds_handled_scan_version_v1 → scan.js。
    ============================================================ */
 
-/* P12·W2.6（K6）：页面级可变状态收敛到单一对象（不再挂 window 全局散落） */
 export const APP_STATE = {
+    /* §3.2 目标形状（U2.1 起） */
+    theme: "light",                              // "light"|"dark"; 持久化 pds_theme_v1（index.html head 解析，U3.x 设置三态接线）
+    route: "/",                                  // 由 router 维护；"/"|"/compare"|"/snapshots"（未知回落 "/"）
+    health: { state: "checking", detail: null }, // 语义对齐：U2.0 旧键 health 为载荷对象（见下），本命名空间 U3.1 徽章 popover 启用
+    browse: { root: "D:\\", path: "D:\\", parent: null, history: [], seq: 0 }, // U2.3 面包屑联动/迷你条带启用（现由 workspace 模块级状态承载）
+    view: { mode: "treemap", density: "cozy", mergeTop: 24, sort: "size-desc", kind: "all", filter: "" }, // U2.2/U2.5 启用
+    selection: { keys: [], anchor: null },       // N08 多选（key=条目 path）；U2.5 启用
+    scan: { running: false, startTs: 0, roots: [], done: [], current: null,
+            stopAvailable: false, stopRequested: false, version: 0, finishedAt: null }, // U3.2 启用
+    snapshots: { sessions: [] },                 // U3.3 启用
+    compare: { baseline: "", target: "", result: null, lastSummary: null },             // U3.4 启用
+    treemap: { tiles: [], prev: new Map(), focusIdx: -1, hoverKey: null },              // U2.2 启用
+    ui: { fullscreen: false, paletteOpen: false, onboardingSeen: true },                // U2.3 全屏/U3.1 面板启用
+
+    /* P12·W2.6（K6）旧键（U2.0 迁入，行为等价保留；随功能工作项并入上表命名空间后移除） */
     lastBrowseData: null, // 最近一次 /api/browse 载荷（视图切换重渲用）
-    health: null,         // 最近一次 /api/health 载荷
+    healthPayload: null,  // 最近一次 /api/health 载荷（旧键名 health，见 topbar.js）
 };

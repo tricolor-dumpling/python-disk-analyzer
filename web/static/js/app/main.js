@@ -1,26 +1,29 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· main.js 入口装配（U2.0）
-   - 替代旧 app.js 尾部 init：装配顺序 = 旧 init() 调用顺序（行为等价）；
-   - app.js 已清空为注释壳（U4.3 删除文件）；
-   - 事件绑定按组件拆分（bind<组件>() = 旧 bind() 各段原样），
-     注册顺序差异不影响语义（全部为独立事件注册）；
-   - 本模块同时是 smoke 页的导入面：导出断言所需函数/状态
-     （selectors 不变因 id 未变；§3.6 机制经各组件模块原样保留）。
+   UI 2.0（SpaceLens Pro）· main.js 入口装配（U2.0 建，U2.1 路由化）
+   - 装配顺序：壳级绑定（顶栏/主题/设置/弹窗族）
+     → router 初始化（首渲染当前路由，默认工作台直装）
+     → 工作台页挂载（页面内容绑定）
+     → 原 init 异步链（偏好/快照/扫描轮询/概览/健康门控）；
+   - 页面注册表在此注入 router（装配根，router 零业务依赖、模块图无环）；
+   - smoke 页导入面另行导出（选择器不变因 id 未变）。
    ============================================================ */
 
 import { $, api } from "./api.js";
 import { APP_STATE } from "./state.js";
 import { switchTheme } from "./theme.js";
+import { createRouter } from "./router.js";
 import { loadGuide, bindOnboarding } from "./components/onboarding.js";
 import { refreshOverview, bindOverview } from "./components/storage.js";
 import {
     bindWorkspace, renderEntries, browsePath,
     getCurrentRoot, getCurrentPath, getLastRoots, setCurrentRoot, applyLastRoots,
+    renderWorkspace, unmountWorkspace, restoreWorkspaceView,
 } from "./pages/workspace.js";
-import { evaluateEnvGate, refreshHealth, bindTopbar } from "./components/topbar.js";
-import { pollFullscan, setAutoSaveSetting, undoLastSave, bindScan } from "./components/scan.js";
-import { refreshSnapshots, getSessionsCache, setSessionsCache } from "./pages/snapshots.js";
-import { bindCompare } from "./pages/compare.js";
+import { evaluateEnvGate, refreshHealth, bindTopbar, bindWorkspaceGuide } from "./components/topbar.js";
+import { pollFullscan, setAutoSaveSetting, undoLastSave, bindScan, applyScanView } from "./components/scan.js";
+import { refreshSnapshots, getSessionsCache, setSessionsCache, applySnapshotsView } from "./pages/snapshots.js";
+import { bindCompare, renderCompare, mountCompare, unmountCompare } from "./pages/compare.js";
+import { renderSnapshots, mountSnapshots, unmountSnapshots } from "./pages/snapshots.js";
 import { bindSettings, setDataDir, setStatusForSettingsHealth } from "./components/settings.js";
 import { bindModals, openModal, closeModal } from "./components/modals.js";
 import { renderApiError } from "./components/feedback.js";
@@ -31,17 +34,43 @@ function bindTheme() {
     if (themeBtn) themeBtn.addEventListener("click", (ev) => switchTheme(undefined, ev));
 }
 
-/* 启动：顺序与旧 init() 完全一致（bind 拆分调用同序）。 */
-export async function start() {
+/* 工作台页挂载（页面内容绑定集合 = 原 bind() 的页面段；组成见 U2.0 注记）
+   随后从模块级状态回灌视图（切页不丢：状态与显示均保持）。
+   概览刷新仅回挂路径执行——首挂仍由 start() 的 init 链按历史时序
+   （settings→snapshots→status→overview→health→browse）负责，
+   保证 Network 时序与重构前一致（验收①）。 */
+let _workspaceMountedOnce = false;
+function mountWorkspacePage() {
     bindOnboarding();
     bindOverview();
     bindWorkspace();
-    bindTopbar();
     bindScan();
     bindCompare();
+    bindWorkspaceGuide();
+    if (_workspaceMountedOnce) refreshOverview();
+    applySnapshotsView();     // 快照列表/基线下拉回灌
+    applyScanView();          // 扫描卡最近状态回灌
+    restoreWorkspaceView();   // 浏览视图回灌（缓存渲染，不重发请求）
+    _workspaceMountedOnce = true;
+}
+
+/* 页面注册表（router 由 main 装配，保持 router 零业务依赖） */
+const pages = {
+    "/": { name: "workspace", render: renderWorkspace, mount: mountWorkspacePage, unmount: unmountWorkspace },
+    "/compare": { name: "compare", render: renderCompare, mount: mountCompare, unmount: unmountCompare },
+    "/snapshots": { name: "snapshots", render: renderSnapshots, mount: mountSnapshots, unmount: unmountSnapshots },
+};
+const router = createRouter(pages);
+
+export function __router() { return router; }
+
+/* 启动：壳绑定 → 路由初始化（首渲染）→ 工作台挂载 → 原 init 链 */
+export async function start() {
+    bindTopbar();
     bindTheme();
     bindSettings();
     bindModals();
+    router.init();
     loadGuide();
 
     // 读取偏好（自动保存开关 + 最近浏览）

@@ -1,15 +1,41 @@
 # UI 2.0 开发状态与续作指引
 
-更新时间：2026-08-26（U2.0 完成会话修订，用于换机续作）
+更新时间：2026-08-26（U2.1 完成会话修订，用于换机续作）
 
 ## 当前状态
 
 - **分支**：`ui2.0`（已推送 GitHub origin，换机后 `git checkout ui2.0` 即可续作）；`main` 未动，仍是 P12 归档完成线。
-- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) →（本次：U2.0 模块化）。
-- **进度**：U1.0-U1.3、**U2.0 全部完成**（实现 + 验收 ①-③）；**下一步 = U2.1（hash 路由与三页面装配）**。
-- 验收用 Flask(5000)/静态服务(8771) 已停止；工作区仅 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》三个已知未跟踪项；`docs/UI终版方案…定稿.md` 未入库。
+- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) →（本次：U2.1 路由与三页面）。
+- **进度**：U1.0-U1.3、U2.0、**U2.1 全部完成**（实现 + 验收 ①-③）；**下一步 = U2.2（Treemap 渲染器：vz/treemap.js + palette.js + components/treemap-card）**。
+- 验收用 Flask(5000)/静态服务(8771) 已停止；工作区仅 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》三个已知未跟踪项。
 
-## 本次会话完成内容：U2.0 app.js 模块化拆分（行为等价重构）
+## 本次会话完成内容：U2.1 hash 路由与三页面装配
+
+验收口径与结果（详细记录在《docs/UI2.0_开发执行手册.md》头部 U2.1 执行记录）：
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| 路由骨架 | ✅ | `router.js`（表驱动/回落/串行队列/pds:navigate/焦点管理/pause 挂点/首渲染直装）；注册表由 main 注入（无环） |
+| 页面契约 | ✅ | workspace（模板搬移+restoreWorkspaceView）/compare/snapshots（占位页 §3.3+§6.5 文案）render/mount/unmount |
+| N13 导航标签 | ✅ | 原生锚点接线 + 激活态同步（截图：三标签 + 暗色一致）；下划线 L2-11 留 U3.1 |
+| smoke v2 / legacy | **12/12** / **7/7** ✅ | A3 实装（回落/state.route/渲染/往返保持/激活态） |
+| ① 切页时长 | ≤360ms ✅ | 120(pageOut)+240(pageIn) token 口径；换装完成实测 144ms；连点二次切换串行收敛 |
+| ② 切页不丢 | ✅ | A3 + 探针：往返后 rows 7/面包屑 D:/快照会话 1/扫描状态恢复/激活标签同步 |
+| ③ 子页面无页级渲染循环 | ✅（占位口径） | treemap 未接入（U2.2），router.pause 挂点已备 |
+| 视觉多模态 | ✅ | 三页×亮/暗截图目检（页头/空态/激活态/零滚动）；焦点管理实测 activeElement=H1 |
+| Console / Network | 0 报错 / **API 序列内容+顺序完全一致** ✅ | u20 探针前后对照（修复了首挂概览抢先调用的时序偏差） |
+
+**验收工具（已入库）**：`scripts/dev/u21_page_probe.mjs`（三页截图+转场时长+状态保持+激活态+错误捕获）；u13/u20 探针继续可用。
+
+**本次实施注记（下一会话须知）**：
+1. **切页不丢 = 状态+显示双保持**：路由返回后 DOM 由页面模板重建，各页 mount 需回灌显示态——workspace 用 `restoreWorkspaceView`（缓存渲染不重发请求）、snapshots 用 `applySnapshotsView`、scan 用 `applyScanView`（`_lastScanStatus` 缓冲）；**新页面组件接入时须遵循此模式（mount 时回灌）**。
+2. **Network 时序纪律**：首挂不得引入 init 链之外的 API 调用（概览刷新仅回挂路径）；`u20_network_probe.mjs` 会抓「内容+顺序」偏差（曾抓到 overview 抢先，已修）。
+3. **空守卫模式**：全局轮询/跨页函数的 DOM 更新必须容忍目标不在 DOM（`if (!$(id)) return;`），否则子页面期间轮询强崩；同时注意侧效顺序（_wasScanRunning 等状态先记账再早退）。
+4. 焦点管理：`[data-page-title]`（tabindex=-1）由 router 统一聚焦；workspace 用 `.sr-only` h1，子页面用可见 `.page-title`。
+5. 占位页副行含「U3.x 接线」注记（U3.3/U3.4 填充时替换）。
+6. legacy suite 仍在（U2.5 退役）；smoke 脚手架 = App Shell 结构并与页面共用同一模板源码（断言 id 永不失配）。
+
+## 本次会话完成内容：U2.0 app.js 模块化拆分（行为等价重构）（上一会话记录，保留）
 
 验收口径与结果（详细记录在《docs/UI2.0_开发执行手册.md》头部 U2.0 执行记录）：
 
@@ -118,7 +144,7 @@
 - `scripts/dev/u13_viewport_probe.mjs`：两档窗口零滚动 + 暗色 + 窄屏验收探针（入库）。
 - ⚠️ 偏差：`browse-chart` 未物理删除（D12 以 CSS 隐藏达成；renderComposition 无空守卫，物理删除归 U2.0）。
 
-### U2.0：app.js 模块化拆分（本次提交）
+### U2.0：app.js 模块化拆分（`1e5d234`）
 
 - 新增 `web/static/js/app/` 18 个模块（api/icons/state/theme/labels + components/{toast,statusbar,onboarding,feedback,topbar,storage,modals,settings,scan} + pages/{workspace,snapshots,compare} + main）；`app.js` 清空为过渡注释壳（U4.3 删除）。
 - `index.html` 改 `<script type="module" src="js/app/main.js">`；**renderComposition 与 browse-chart 容器物理删除**（映射表既定 D12，承接 U1.3 的偏差注记①路线）。
@@ -126,16 +152,26 @@
 - `scripts/dev/u20_network_probe.mjs`：Network 前后对照探针（入库）。
 - 验收：legacy 7/7 + v2 11/12（A3 占位）+ API 序列前后一致 + Console 0 + **四视口截图与 U1.3 基线逐字节一致**（SHA256 相同）。
 
-## 下一步：U2.1（hash 路由与三页面装配）
+### U2.1：hash 路由与三页面装配（本次提交）
 
-按手册 §U2.1 全节执行（前置 U2.0）：
+- 新增 `web/static/js/app/router.js`（createRouter：表驱动/回落/串行队列/pds:navigate/焦点管理/pause 挂点/首渲染直装；注册表由 main 注入——router 零业务依赖无环）。
+- `pages/*` 页面契约：workspace（工作台模板搬移 + `restoreWorkspaceView` 回灌）、compare/snapshots（占位页 §3.3 页头 + §6.5 空态，U3.4/U3.3 填充）。
+- `index.html` 纯壳化（顶栏 + `#route-view` + 状态栏 + 浮层族）；nav-tabs 接线（N13 亮相）；state.js §3.2 形状落地（route 真字段）。
+- 全模块空守卫 + 回挂回灌（applySnapshotsView/applyScanView/restoreWorkspaceView）。
+- smoke：脚手架 = App Shell 结构（与真实页共用页面模板）；**A3 实装**。
+- 验收：v2 **12/12** + legacy 7/7 + 转场 120+240=360ms 口径（实测 144ms 换装）+ 切页不丢（探针）+ Console 0 + 三页视觉目检合格 + API 序列内容+顺序完全一致。
 
-- 路由表与转场 = §3.3：`#/`（workspace 现有浏览块内嵌）、`#/compare`、`#/snapshots`（后两者先放占位头，U3.3/U3.4 填充）；`transitionTo`：router.pause → `motion.pageOut`（120ms）→ replaceChildren(render(state)) → `motion.pageIn`（240ms）→ resume；未知路由回落 `#/`；hashchange 原生前进后退可用。
-- 新文件：`router.js`（约 60 行骨架，`pds:navigate` 事件 + 切页后焦点移至页头标题）、`pages/workspace.js/compare.js/snapshots.js` 暴露 `render(state)→Node` + `mount()/unmount()`（unmount 停自身 rAF/轮询）；topbar 导航标签（N13，U1.3 已留 `nav-tabs` hidden 槽）接线（下划线 L2-11 可先静态）。
-- **状态迁移**：`state.js` APP_STATE 按 §3.2 目标形状对齐（路由/视图/选择/扫描/快照/对比/treemap/ui 命名空间落地；U2.0 注记 2 的待命字段在此启用；跨视图状态迁入，切页不丢）；组件间跨页联动启用 `pds:state` 事件（U2.0 注记 3）。
-- smoke v2：A3 接入（未知路由回落 + state.route 正确；A3 占位转正）。
-- 验收：切页总时长 ≤360ms；浏览路径/多选/扫描状态切页不丢；子页面期间 treemap rAF 已停（U2.3 项，treemap 未接入前以页面内滚/轮询口径复核）；Network/console 常规门禁。
-- **环境提示**：改 index.html/模板后 Flask 必须重启（debug=False 模板缓存）；smoke 双脚本结构纪律见 U2.0 注记 1。
+## 下一步：U2.2（Treemap 渲染器：viz/treemap.js + palette.js）
+
+按手册 §U2.2 全节执行（前置 U2.1）：
+
+- `js/app/viz/treemap.js`：**squarified 布局纯函数**（Bruls 算法 ~40 行；`layoutSquaried(items,x,y,w,h)`，node --test 可测：面积守恒/宽高比上界/单块/空输入）+ 双层 canvas 渲染（静态层矩形+文字；DPR 适配；resize rAF 节流）+ 标签三级（≥48px 名称+大小+占比 / 24-48px 仅名称 / <24px 无；>1500 块关闭小标签层且入场改整画布交叉淡化 240ms）+ 命中检测（坐标逆序遍历 tiles）+ tooltip（玻璃底/偏移 12,12/延迟 150ms/边界翻转）。
+- `js/app/palette.js`：FNV-1a 取色（U1.2 fnv1a 已备，`%10`）+「其他」固定 `#64748b`。
+- 数据接入：`/api/browse` children → `tiles=[{key:path,name,size,pct,color}]`；mergeTop（state.view.mergeTop）外并入「其他」；⚠️ 执行时核对 browse 字段名并记偏差注记。
+- 工作台视图区：L1-1 入场（drawFrame 插值，`prev:Map` 机制）；视图工具栏「矩形图」按钮接替默认视图（**⚠️ 默认视图从排行切为 treemap——v2 断言 A4/A5/A6 基于排行行渲染，需同步适配或保排行默认到 U2.5**，执行时与手册裁决）。
+- smoke v2 接入 A12（点击 tile 恰 1 次 browse 且 path 正确）。
+- 验收：①布局数学用例全绿；②真实目录渲染标签/配色/「其他」正确；③tooltip 全规格；④1000 块入场与 hover ≥50fps（附录B）。
+- **环境提示**：canvas 相关验收需要 Playwright（沙箱已具备）；node 测试照旧 `--test-isolation=none` 变体。
 
 ## 当前未解决问题
 

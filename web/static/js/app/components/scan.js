@@ -39,6 +39,7 @@ export function resetHandledScanVersion() { handledScanVersion = 0; }
 
 function renderScanRootChips(roots, rootsDone, running) {
     const box = $("scan-roots");
+    if (!box) return; // U2.1：子页面时扫描卡不在 DOM（全局轮询容错：状态仍在后端/模块内）
     const hint = $("scan-progress-hint");
     if (!roots || !roots.length) {
         box.classList.add("hidden");
@@ -73,8 +74,10 @@ function renderScanRootChips(roots, rootsDone, running) {
 }
 
 export async function startFullscan() {
-    $("btn-fullscan").disabled = true;
-    $("save-prompt").classList.add("hidden");
+    const btn = $("btn-fullscan");
+    if (btn) btn.disabled = true;
+    const prompt = $("save-prompt");
+    if (prompt) prompt.classList.add("hidden");
     setStatus("fullscan-status", "busy", "正在启动后台全量扫描…");
     try {
         const data = await postJson("/api/fullscan/start", {});
@@ -91,6 +94,7 @@ export async function startFullscan() {
    杜绝多入口并发叠加；_wasScanRunning 支撑「扫描完成」边沿自动刷新概览。 */
 let _pollTimer = null;
 let _wasScanRunning = false;
+let _lastScanStatus = null; // U2.1：最近一次状态（路由返回时回灌扫描卡）
 
 export function schedulePollFullscan() {
     if (_pollTimer !== null) return;
@@ -109,14 +113,22 @@ export async function pollFullscan() {
         setStatus("fullscan-status", "err", "无法获取扫描状态：" + e.message);
         return;
     }
+    _lastScanStatus = st;
     renderFullscanState(st);
     if (st.running) schedulePollFullscan();
+}
+
+/* U2.1：路由返回时的视图恢复（用最近状态重绘扫描卡；无状态时静默）。 */
+export function applyScanView() {
+    if (!_lastScanStatus) return;
+    renderFullscanState(_lastScanStatus);
 }
 
 function renderFullscanState(st) {
     const wasRunning = _wasScanRunning;
     const runningNow = !!st.running;
     _wasScanRunning = runningNow;
+    if (!$("progress-fill")) return; // U2.1：子页面时扫描卡不在 DOM（状态已记账，回主页即恢复渲染）
     const pct = Number(st.progress_pct) || 0;
     $("progress-fill").style.width = pct + "%";
     $("progress-pct").textContent = pct + "%";
@@ -174,8 +186,10 @@ function maybePromptSave(st) {
 }
 
 export async function saveSnapshot(auto) {
-    $("save-prompt").classList.add("hidden");
-    $("btn-save").disabled = true;
+    const prompt = $("save-prompt");
+    if (prompt) prompt.classList.add("hidden");
+    const saveBtn = $("btn-save");
+    if (saveBtn) saveBtn.disabled = true;
     try {
         const data = await postJson("/api/save", { auto: !!auto });
         // P12·W2.2：notice 通道 → warn toast；跳过 → info toast

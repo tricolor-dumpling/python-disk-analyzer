@@ -78,6 +78,7 @@ export async function compareSnapshots(allowOtherMachine) {
 
 function renderCompareResult(r) {
     const summary = $("compare-summary");
+    if (!summary) return; // U2.1：切页至子页面后迟到的对比结果不渲染（数据仍在）
     const delta = Number(r.delta_total);
     const rows = r.rows || [];
     const added = rows.filter((row) => row.added || Number(row.baseline_size || 0) === 0 && Number(row.current_size || 0) > 0).length;
@@ -181,4 +182,40 @@ export function bindCompare() {
         const copyBtn = ev.target.closest(".act-copy-cmp");
         if (copyBtn) copyPath(copyBtn.getAttribute("data-act-path"));
     });
+}
+
+/* ============================================================
+   U2.1：#/compare 页面（路由契约；占位头 + 空态，U3.4 填充真功能）
+   - 布局骨架（§3.3）：页头 64px（标题/基线 datalist/目标只读/开始对比）→
+     摘要 3 卡 96px → 发散图 240px → 表格 flex:1 内滚；U3.4 逐块落位；
+   - 主页右栏「历史对比」卡在当前阶段仍是可用入口（U3.4 迁移后改为
+     最近对比迷你卡）。
+   ============================================================ */
+
+const COMPARE_PAGE_HTML =
+    '<section class="page page-compare" data-page="compare">' +
+    '<header class="page-head">' +
+    '<h1 class="page-title" data-page-title>历史对比</h1>' +
+    '<p class="page-sub">基线 datalist · 目标只读 · 开始对比（U3.4 接线，见页面空态说明）</p>' +
+    '</header>' +
+    '<div class="page-body page-body-empty">' +
+    '<div class="empty-state">' +
+    '<b>选择一份基线快照</b>' +
+    '<p>开始对比两个时间点的空间变化。</p>' +
+    '<p class="muted">对比工作台将在 U3.4 接入；当前请使用主工作台右栏「历史对比」卡片（该功能已可用）。</p>' +
+    '</div></div>' +
+    '</section>';
+
+export function renderCompare() {
+    const el = document.createElement("div");
+    el.innerHTML = COMPARE_PAGE_HTML;
+    return el.firstElementChild;
+}
+
+export function mountCompare() {
+    /* 占位页无交互；U3.4 接入基线/目标/开始对比 */
+}
+
+export function unmountCompare() {
+    /* 预留 */
 }

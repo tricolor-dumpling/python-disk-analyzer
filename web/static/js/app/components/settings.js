@@ -86,13 +86,15 @@ async function wipeData() {
         resetBrowseHistory();
         applyLastRoots([]);
         setSessionsCache([]);
-        $("btn-undo-save").disabled = true;
+        const undoBtn = $("btn-undo-save");
+        if (undoBtn) undoBtn.disabled = true;
         toast(data.message || "数据目录已清空", "success");
         closeModal("wipe-modal");
         closeModal("settings-modal");
         renderSnapshotList([]);
         setStatus("snapshot-status", "", "数据目录已清空，历史快照为空");
-        $("compare-result").classList.add("hidden");
+        const compareResult = $("compare-result");
+        if (compareResult) compareResult.classList.add("hidden");
         pollFullscan();
     } catch (e) {
         toast(e.message, "error");

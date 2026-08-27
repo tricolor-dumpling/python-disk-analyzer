@@ -26,7 +26,8 @@ export async function refreshSnapshots() {
         const data = await api("/api/snapshots");
         sessionsCache = data.sessions || [];
         // P12·W2.5（D）：无会话时撤销入口灰置
-        $("btn-undo-save").disabled = !sessionsCache.length;
+        const undo = $("btn-undo-save");
+        if (undo) undo.disabled = !sessionsCache.length;
         renderSnapshotList(sessionsCache);
         rebuildBaselineSuggest(sessionsCache);
         setStatus("snapshot-status", "", "共 " + sessionsCache.length + " 个快照会话");
@@ -45,6 +46,7 @@ export function normRoot(x) {
 
 export function renderSnapshotList(sessions) {
     const list = $("snapshot-list");
+    if (!list) return; // U2.1：子页面时快照卡不在 DOM
     if (!sessions.length) {
         list.innerHTML =
             '<li><div class="empty-state">' +
@@ -101,6 +103,7 @@ export function renderSnapshotList(sessions) {
 
 export function rebuildBaselineSuggest(sessions) {
     const list = $("baseline-suggest");
+    if (!list) return;
     list.innerHTML = "";
     sessions.forEach((s) => {
         Object.values(s.roots || {}).forEach((r) => {
@@ -111,4 +114,48 @@ export function rebuildBaselineSuggest(sessions) {
             }
         });
     });
+}
+
+/* U2.1：路由返回时的视图恢复（快照列表/基线下拉/撤销灰置/状态行从缓存回灌）。 */
+export function applySnapshotsView() {
+    const undo = $("btn-undo-save");
+    if (undo) undo.disabled = !sessionsCache.length;
+    renderSnapshotList(sessionsCache);
+    rebuildBaselineSuggest(sessionsCache);
+    setStatus("snapshot-status", "", "共 " + sessionsCache.length + " 个快照会话");
+}
+
+/* ============================================================
+   U2.1：#/snapshots 页面（路由契约；占位头 + 空态，U3.3 填充真功能）
+   - 布局骨架（§3.3）：页头 64px（创建快照 + 撤销最近保存）→ 趋势卡×2 128px →
+     会话分组列表 flex:1 内滚；U3.3 逐块落位；
+   - 主页右栏「历史快照」卡在当前阶段仍是可用入口（U3.3 迁移后改为快照迷你卡）。
+   ============================================================ */
+
+const SNAPSHOTS_PAGE_HTML =
+    '<section class="page page-snapshots" data-page="snapshots">' +
+    '<header class="page-head">' +
+    '<h1 class="page-title" data-page-title>快照管理</h1>' +
+    '<p class="page-sub">创建快照 · 撤销最近保存（U3.3 接线，见页面空态说明）</p>' +
+    '</header>' +
+    '<div class="page-body page-body-empty">' +
+    '<div class="empty-state">' +
+    '<b>还没有快照</b>' +
+    '<p>全量扫描后保存一份，变化趋势从这里开始记录。</p>' +
+    '<p class="muted">快照管理页将在 U3.3 接入；当前请使用主工作台右栏「历史快照」卡片（该功能已可用）。</p>' +
+    '</div></div>' +
+    '</section>';
+
+export function renderSnapshots() {
+    const el = document.createElement("div");
+    el.innerHTML = SNAPSHOTS_PAGE_HTML;
+    return el.firstElementChild;
+}
+
+export function mountSnapshots() {
+    /* 占位页无交互；U3.3 接入创建/撤销/趋势卡 */
+}
+
+export function unmountSnapshots() {
+    /* 预留 */
 }

@@ -16,7 +16,7 @@
     overflow: hidden;
   }
   header { flex: none; }
-  main { flex: 1; min-height: 0; overflow: auto; margin: 0; }
+  #route-view { flex: 1; min-height: 0; overflow: auto; margin: 0; }
   #smoke-summary, #smoke-table { flex: none; max-height: 42vh; overflow: auto; }
   h1 { font-size: 16px; margin: 0 0 6px; }
   p.dim { color: #888; font-size: 12px; }
@@ -30,91 +30,23 @@
 <body>
 <h1>Python 磁盘扫描 · 冒烟页（stub 传输层，不发真实请求）</h1>
 <p class="dim">直接双击用 Edge 打开即可（file:// 下同样有效）；页面底部显示「x/y 通过」即为绿。
-任何触碰 web/static/js/app.js 的工作项，提交前必跑（P12 合并闸门）。</p>
+任何触碰 web/static/js/app/ 的工作项，提交前必跑（P12 合并闸门）。</p>
 
-<!-- ================= 最小 DOM 脚手架（结构复刻 index.html 中 app.js 依赖的节点） ================= -->
+<!-- ================= U2.1：脚手架 = App Shell 结构（顶栏 + 路由视区 + 弹窗族 + toast） =================
+     页面内容（工作台/对比/快照）由 pages/* 渲染进 #route-view，与真实页面共用同一份模板源码，
+     断言所用 id 因此与真实页面保持同一（选择器不变）。 -->
 <header>
   <button id="health-badge" class="badge" title=""><span id="health-text">正在检查环境…</span></button>
   <button id="btn-guide"></button>
+  <button id="btn-theme"></button>
   <button id="btn-settings"></button>
+  <nav class="nav-tabs" aria-label="主导航">
+    <a class="nav-tab is-active" href="#/" aria-current="page">工作台</a>
+    <a class="nav-tab" href="#/compare">对比</a>
+    <a class="nav-tab" href="#/snapshots">快照</a>
+  </nav>
 </header>
-<main>
-  <section id="onboarding" class="hidden">
-    <button id="btn-onboarding-close"></button>
-    <ol class="steps hidden">
-      <li class="step"><span class="step-num">4</span><div><b>对比与清空</b><p id="guide-step4-text">保存快照后，历史列表中每个盘符旁可「一键对比」；跨盘快照会先切换盘符再自动发起对比。</p></div></li>
-    </ol>
-  </section>
-  <section id="overview-panel">
-    <p id="overview-meta"></p>
-    <button id="btn-overview-refresh"></button>
-    <div id="overview-roots"></div>
-  </section>
-  <section>
-    <div class="view-toolbar">
-      <button id="btn-view-ranking"></button>
-      <button id="btn-view-table"></button>
-      <button id="btn-density" aria-pressed="false"></button>
-    </div>
-    <input id="browse-root" list="roots-suggest" type="text" value="">
-    <datalist id="roots-suggest"></datalist>
-    <button id="btn-browse"></button>
-    <button id="btn-back" disabled></button>
-    <div id="recent-roots" class="chips-row hidden"></div>
-    <div id="browse-history" class="chips-row hidden"></div>
-    <nav id="breadcrumb"></nav>
-    <div id="browse-status"><span class="dot"></span><span id="browse-status-text"></span></div>
-    <div id="browse-guide" class="notice notice-warn hidden" role="status">
-      <b id="guide-title">Everything 尚未就绪</b>
-      <p id="guide-msg"></p>
-      <button id="btn-guide-retry" class="btn btn-sm">重试环境检测</button>
-      <button id="btn-guide-help" class="btn btn-sm btn-ghost">查看指引</button>
-    </div>
-    <div id="browse-cache-badge" class="notice notice-info hidden"></div>
-    <div class="browse-filters">
-      <input id="browse-filter" type="search">
-      <select id="browse-kind"><option value="all">全部</option><option value="dir">仅目录</option><option value="file">仅文件</option></select>
-      <select id="browse-sort"><option value="size-desc">按大小</option><option value="name-asc">按名称</option><option value="size-asc">大小最小</option></select>
-    </div>
-    <div id="browse-error" class="notice notice-error hidden">
-      <span id="browse-error-text"></span>
-      <span><button id="btn-browse-retry" class="btn btn-sm">重试</button></span>
-    </div>
-    <div id="browse-loading" class="loading-overlay hidden"><span id="browse-loading-text"></span></div>
-    <table class="dir-table"><tbody id="dir-body"></tbody></table>
-  </section>
-  <aside>
-    <button id="btn-fullscan"></button>
-    <button id="btn-save" disabled></button>
-    <button id="btn-export-csv"></button>
-    <button id="btn-export-json"></button>
-    <div id="progress"><div id="progress-fill"></div></div>
-    <span id="progress-pct">0%</span>
-    <div id="fullscan-status"><span class="dot"></span><span id="fullscan-status-text"></span></div>
-    <div id="scan-roots" class="chips-row hidden"></div>
-    <div id="scan-progress-hint" class="notice notice-info hidden"></div>
-    <div id="save-prompt" class="notice notice-warn hidden">
-      <button id="btn-save-now"></button>
-      <button id="btn-save-later"></button>
-    </div>
-    <button id="btn-refresh-snapshots"></button>
-    <button id="btn-undo-save" disabled title="删除最近一次保存的快照文件与清单（无快照时不可用）"></button>
-    <div id="snapshot-status"><span class="dot"></span><span id="snapshot-status-text"></span></div>
-    <ul id="snapshot-list"></ul>
-  </aside>
-  <section>
-    <input id="compare-baseline" list="baseline-suggest" type="text">
-    <datalist id="baseline-suggest"></datalist>
-    <button id="btn-compare"></button>
-    <div id="compare-status"><span class="dot"></span><span id="compare-status-text"></span></div>
-    <div id="compare-result" class="hidden">
-      <div id="compare-summary"></div>
-      <div id="compare-chart"></div>
-      <table><thead><tr><th>变化</th><th>增速</th><th>路径</th><th id="compare-op-head" hidden>操作</th></tr></thead></table>
-      <table><tbody id="compare-body"></tbody></table>
-    </div>
-  </section>
-</main>
+<div id="route-view" class="route-view"></div>
 
 <div id="settings-modal" class="modal hidden">
   <div class="modal-panel">
@@ -538,7 +470,38 @@ const ASSERTIONS_V2 = [
       __assert(sh - ch <= 1, "scrollHeight(" + sh + ") - clientHeight(" + ch + ") 应 ≤1");
       __assert(getComputedStyle(document.body).overflow === "hidden", "桌面端 body 应 overflow:hidden");
     } },
-  { id: "A3", name: "U2.1：路由（未知路由回落 #/；切页后 state.route 正确）" },
+  { id: "A3", name: "U2.1：路由（未知路由回落 #/；切页后 state.route 正确、页面切换渲染、往返状态保持）",
+    fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      // 初始：工作台已在位（route-view 内含 workspace 内容）
+      __assert(APP_STATE.route === "/", "初始 route 应为 /，实际 " + APP_STATE.route);
+      __assert($("dir-body"), "初始应渲染工作台页（dir-body 在位）");
+      // 未知路由 → 回落 /
+      location.hash = "#/no-such-page";
+      await wait(600);
+      __assert(APP_STATE.route === "/", "未知路由应回落 /，实际 " + APP_STATE.route);
+      __assert($("dir-body"), "回落后应渲染工作台页");
+      // 切页：#/compare → state.route + compare 页渲染
+      location.hash = "#/compare";
+      await wait(600);
+      __assert(APP_STATE.route === "/compare", "切页后 route 应为 /compare，实际 " + APP_STATE.route);
+      __assert(document.querySelector("#route-view [data-page='compare']"), "应渲染 compare 占位页");
+      __assert(!$("dir-body"), "子页面不应保留工作台 DOM（dir-body 应被替换）");
+      // 切页：#/snapshots
+      location.hash = "#/snapshots";
+      await wait(600);
+      __assert(APP_STATE.route === "/snapshots", "切页后 route 应为 /snapshots，实际 " + APP_STATE.route);
+      __assert(document.querySelector("#route-view [data-page='snapshots']"), "应渲染 snapshots 占位页");
+      // 返回主页：浏览状态保持（模块级状态跨页不丢）
+      location.hash = "#/";
+      await wait(600);
+      __assert(APP_STATE.route === "/", "返回后 route 应为 /");
+      __assert($("dir-body"), "返回后工作台应重新渲染");
+      __assert(getCurrentPath() === "D:\\", "返回后浏览路径应保持（切页不丢），实际 " + getCurrentPath());
+      // 导航标签激活态同步
+      const activeTab = document.querySelector(".nav-tabs .nav-tab.is-active");
+      __assert(activeTab && activeTab.getAttribute("href") === "#/", "激活标签应同步为工作台");
+    } },
   { id: "A4", name: "U2.0 移植（W1.4·红线#11）：静态文件行零请求",
     fn: async function () {
       const staticRow = document.querySelector("#dir-body .ranking-row-static");

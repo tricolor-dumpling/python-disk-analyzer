@@ -44,6 +44,8 @@ button{font-family:inherit}
 :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .hidden{display:none!important}
 .muted{color:var(--muted)}
+/* 视觉隐藏但可聚焦/可朗读（路由焦点管理目标：[data-page-title]） */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .icon{width:18px;height:18px;flex:none}
 .icon-lg{width:22px;height:22px}
 .icon-sm{width:14px;height:14px}
@@ -102,7 +104,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* ============================================================ */
 
 .app{height:100%;display:flex;flex-direction:column;overflow:hidden}
-.shell{flex:1;min-height:0;display:flex;gap:16px;padding:12px 24px}
+.shell{flex:1;min-height:0;display:flex;padding:12px 24px}
+/* U2.1 路由视区：页面模块渲染进 #route-view（flex 行 = 旧 .shell 主区布局） */
+#route-view{flex:1;min-width:0;min-height:0;display:flex;gap:16px}
 .main-col{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;gap:8px}
 
 /* 面包屑 / 工具栏行（48px 预算；F06 路径行 + N10 视图工具栏位） */
@@ -129,6 +133,18 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   padding:0 24px;border-top:1px solid var(--border);background:var(--card);
   color:var(--faint);font-size:var(--fs-xs);white-space:nowrap;overflow:hidden;
 }
+
+/* ============================================================ */
+/* pages：子页面（U2.1 路由；compare/snapshots 占位 + 页头规格 §3.3/§3.5） */
+/* ============================================================ */
+
+.page{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px}
+.page-head{flex:none;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:4px 0}
+.page-title{margin:0;font-size:var(--fs-2xl);line-height:1.2}
+.page-sub{margin:0;font-size:var(--fs-xs);color:var(--muted)}
+.page-body{flex:1;min-height:0;display:flex;flex-direction:column}
+.page-body-empty{align-items:center;justify-content:center}
+.page-body-empty .empty-state{padding:48px 16px}
 
 /* ============================================================ */
 /* topbar：60px（品牌 + N13 导航标签位 + 右侧控件组）        */
@@ -428,6 +444,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   body{overflow:auto}
   .app{height:auto;overflow:visible}
   .shell{flex-direction:column;gap:12px;padding:12px 14px}
+  #route-view{flex-direction:column;gap:12px}
   .main-col{overflow:visible}
   .tool-row{height:auto;flex-wrap:wrap}
   .path-row{min-width:0;flex-wrap:wrap}

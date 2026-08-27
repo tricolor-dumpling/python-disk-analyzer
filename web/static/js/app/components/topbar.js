@@ -81,11 +81,15 @@ export function evaluateEnvGate(h) {
     }
 }
 
-/* 本组件在 init 期的绑定（顺序等价：原 bind() 的引导/徽章/引导态段） */
+/* 本组件在 init 期的绑定（顺序等价：原 bind() 的引导/徽章段；壳级） */
 export function bindTopbar() {
     $("btn-guide").addEventListener("click", showGuide);
     // 健康徽章 → 设置（含 Everything 详情）
     $("health-badge").addEventListener("click", openSettings);
+}
+
+/* 引导态重试/帮助按钮：位于工作台页（route-view 渲染内容），随页挂载 */
+export function bindWorkspaceGuide() {
     // P12·W1.3 引导态：重试环境检测（门控第二求值点）与查看指引
     const guideRetry = $("btn-guide-retry");
     if (guideRetry) guideRetry.addEventListener("click", async () => {
@@ -96,3 +100,7 @@ export function bindTopbar() {
     const guideHelp = $("btn-guide-help");
     if (guideHelp) guideHelp.addEventListener("click", showGuide);
 }
+
+/* [N13] 导航标签（顶栏壳级）：<a href="#/compare"> 原生锚点行为即为唯一接线
+   （hashchange → router 转场；激活态由 router 于 pds:navigate 维护）；
+   下划线滑动动效（L2-11）U3.1 补，当前为静态激活样式（.nav-tab.is-active）。 */

@@ -9,6 +9,8 @@ import { $ } from "../api.js";
 /* kind: "" | ok | warn | err | busy */
 export function setStatus(id, kind, text) {
     const el = $(id);
+    if (!el) return; // U2.1：路由切至子页面时目标状态行不在 DOM（全局轮询容错）
     el.className = "status-line" + (kind ? " " + kind : "");
-    $(id + "-text").textContent = text;
+    const textEl = $(id + "-text");
+    if (textEl) textEl.textContent = text;
 }
