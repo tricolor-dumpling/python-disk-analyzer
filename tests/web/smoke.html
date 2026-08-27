@@ -504,6 +504,42 @@ const ASSERTIONS_V2 = [
       __assert(flipped === "dark" || flipped === "light", "非法入参应回退为合法主题，实际 " + flipped);
       switchTheme(before, null); // 复位，不污染其他断言
     } },
+  { id: "A11", name: "U1.2：countUp（终值精确、dataset.v 记账、首帧不空白、reduced 直显）",
+    fn: async function () {
+      __assert(window.__motion && typeof window.__motion.countUp === "function",
+               "motion.js 模块必须已加载（window.__motion.countUp，需 http 访问）");
+      const { countUp } = window.__motion;
+      const el = document.createElement("div");
+      document.body.appendChild(el);
+      try {
+        const fmtInt = (v) => Math.round(v).toString();
+        // 分支①：动画滚动（短 dur 便于测试）→ 记账 + 终值精确
+        countUp(el, 3722, { dur: 50, fmt: fmtInt });
+        __assert(el.dataset.v === "3722", "countUp 调用瞬间 dataset.v 应记账为目标值，实际 " + el.dataset.v);
+        __assert(el.textContent === "0", "首帧应同步写 fmt(from=0)，不得空白，实际 " + JSON.stringify(el.textContent));
+        // 等待动画结束：终值精确 + dataset.v 保持记账
+        await new Promise((r) => setTimeout(r, 120));
+        __assert(el.textContent === "3722", "动画结束后 textContent 应为精确终值 3722，实际 " + el.textContent);
+        __assert(el.dataset.v === "3722", "dataset.v 应记录终值 3722，实际 " + el.dataset.v);
+        // 分支②：连续二次（from=上次终值）首帧仍不空白
+        countUp(el, 100, { dur: 50, fmt: fmtInt });
+        __assert(el.textContent !== "", "二次 countUp 首帧即写 fmt(from)，不得空白");
+        await new Promise((r) => setTimeout(r, 120));
+        __assert(el.textContent === "100", "二次 countUp 终值应为 100，实际 " + el.textContent);
+        // 分支③：reduced-motion 直显终值（临时桩 matchMedia）
+        const realMM = window.matchMedia;
+        window.matchMedia = (q) => ({ matches: true, media: q });
+        try {
+          countUp(el, 999, { dur: 5000, fmt: fmtInt });
+          __assert(el.textContent === "999", "reduced 应直显终值 999，实际 " + el.textContent);
+          __assert(el.dataset.v === "999", "reduced 直显也应记账 dataset.v=999");
+        } finally {
+          window.matchMedia = realMM;
+        }
+      } finally {
+        el.remove();
+      }
+    } },
 ];
 
 const __SUITE_REGISTRIES = { v1: ASSERTIONS, v2: ASSERTIONS_V2, legacy: ASSERTIONS };
@@ -522,6 +558,12 @@ window.addEventListener("load", function () {
 
 <!-- app.js 必须在 stub 就位之后加载 -->
 <script src="../../web/static/js/app.js"></script>
+<!-- U1.2：motion.js 为原生 ES Module，冒烟页以 module 方式引入并挂到 window.__motion 供 v2 断言使用。
+     注意：模块加载要求 http 访问（file:// 下模块 CORS 会被浏览器拦截，A11 将以明确信息失败）。 -->
+<script type="module">
+  import * as __motion from "../../web/static/js/app/motion.js";
+  window.__motion = __motion;
+</script>
 
 <div id="smoke-summary" style="margin-top:16px"></div>
 <div id="smoke-table"></div>
