@@ -4,8 +4,21 @@
 <meta charset="utf-8">
 <title>P12 前端零依赖冒烟页 · tests/web/smoke.html</title>
 <style>
-  body { font-family: Consolas, "Microsoft YaHei", monospace; margin: 24px; background: #111; color: #ddd; }
-  h1 { font-size: 16px; }
+  /* U1.3：冒烟脚手架自身也按 App Shell 单屏组织（body 零滚动，面板内滚），
+     使 A2「零滚动」断言的度量口径与真实页面一致（逻辑断言不受布局影响）。 */
+  html, body { height: 100%; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Consolas, "Microsoft YaHei", monospace;
+    margin: 0; padding: 12px;
+    background: #111; color: #ddd;
+    display: flex; flex-direction: column; gap: 8px;
+    overflow: hidden;
+  }
+  header { flex: none; }
+  main { flex: 1; min-height: 0; overflow: auto; margin: 0; }
+  #smoke-summary, #smoke-table { flex: none; max-height: 42vh; overflow: auto; }
+  h1 { font-size: 16px; margin: 0 0 6px; }
   p.dim { color: #888; font-size: 12px; }
   table { border-collapse: collapse; margin-top: 12px; }
   td { border: 1px solid #444; padding: 4px 10px; font-size: 13px; }
@@ -466,12 +479,12 @@ const ASSERTIONS = [
     } },
 ];
 
-/* ================= U1.0：双 suite 门禁 =================
-   - URL 带 ?suite=v2 → 跑新注册表 ASSERTIONS_V2（随 UI2.0 工作项逐项接入）；
-   - 默认仍跑 v1（ASSERTIONS）——本项只加不删，门禁零真空；
-   - U1.3 起默认门禁切为 v2、v1 挂 ?suite=legacy（本文件届时再改派发）。 */
+/* ================= U1.0/U1.3：双 suite 门禁派发 =================
+   - URL 带 ?suite=xxx → 跑对应注册表；**U1.3 起默认 = v2**（门禁主口径）；
+   - v1 注册表改挂 ?suite=legacy 保留（保 id 搬家的回归验证；U2.5 退役）；
+   - ?suite=v2 / ?suite=v1 仍可用（兼容 U1.0 起形成的调用习惯）。 */
 const __suiteMatch = window.location.search.match(/[?&]suite=([^&]+)/);
-const __currentSuite = __suiteMatch ? decodeURIComponent(__suiteMatch[1]) : "v1";
+const __currentSuite = __suiteMatch ? decodeURIComponent(__suiteMatch[1]) : "v2";
 
 const ASSERTIONS_V2 = [
   { id: "A0", name: "骨架自检：页面加载、__assert 可用、fetch 桩已接管且 app.js 启动完成",
@@ -504,6 +517,16 @@ const ASSERTIONS_V2 = [
       __assert(flipped === "dark" || flipped === "light", "非法入参应回退为合法主题，实际 " + flipped);
       switchTheme(before, null); // 复位，不污染其他断言
     } },
+  { id: "A2", name: "U1.3：零滚动（body.scrollHeight ≤ innerHeight+1，App Shell 单屏 §3.4 规则1）",
+    fn: async function () {
+      const sh = document.body.scrollHeight;
+      const ch = document.body.clientHeight;
+      const ih = window.innerHeight;
+      __assert(sh <= ih + 1, "body.scrollHeight=" + sh + " 应 ≤ innerHeight+1=" + (ih + 1));
+      __assert(sh - ch <= 1, "scrollHeight(" + sh + ") - clientHeight(" + ch + ") 应 ≤1");
+      __assert(getComputedStyle(document.body).overflow === "hidden", "桌面端 body 应 overflow:hidden");
+    } },
+  { id: "A3", name: "U2.1：路由（未知路由回落 #/；切页后 state.route 正确）" },
   { id: "A11", name: "U1.2：countUp（终值精确、dataset.v 记账、首帧不空白、reduced 直显）",
     fn: async function () {
       __assert(window.__motion && typeof window.__motion.countUp === "function",
@@ -542,15 +565,15 @@ const ASSERTIONS_V2 = [
     } },
 ];
 
-const __SUITE_REGISTRIES = { v1: ASSERTIONS, v2: ASSERTIONS_V2, legacy: ASSERTIONS };
+const __SUITE_REGISTRIES = { v2: ASSERTIONS_V2, v1: ASSERTIONS, legacy: ASSERTIONS };
 
 window.addEventListener("load", function () {
   // 标题与页头显示当前 suite 名
   document.title = document.title.replace(" · tests/web/smoke.html", "") + " [suite=" + __currentSuite + "]";
   const h1 = document.querySelector("h1");
   if (h1) h1.textContent = h1.textContent + " — suite: " + __currentSuite;
-  // 等 init() 的异步链跑完再执行断言；按 suite 选择注册表（未知回落 v1）
-  const registry = __SUITE_REGISTRIES[__currentSuite] || ASSERTIONS;
+  // 等 init() 的异步链跑完再执行断言；按 suite 选择注册表（未知回落 v2）
+  const registry = __SUITE_REGISTRIES[__currentSuite] || ASSERTIONS_V2;
   setTimeout(function () { __runAssertions(registry); }, 80);
 });
 

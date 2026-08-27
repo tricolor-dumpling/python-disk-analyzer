@@ -1,15 +1,40 @@
 # UI 2.0 开发状态与续作指引
 
-更新时间：2026-08-26（U1.2 完成会话修订，用于换机续作）
+更新时间：2026-08-26（U1.3 完成会话修订，用于换机续作）
 
 ## 当前状态
 
 - **分支**：`ui2.0`（已推送 GitHub origin，换机后 `git checkout ui2.0` 即可续作）；`main` 未动，仍是 P12 归档完成线。
-- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) →（本次：U1.2 实现与验收）。
-- **进度**：U1.0、U1.1、**U1.2 全部完成**（实现 + 验收 ①-③）；**下一步 = U1.3（App Shell 骨架与门禁切换，v2 设为默认 suite）**。
+- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) →（本次：U1.3 实现与验收）。
+- **进度**：U1.0、U1.1、U1.2、**U1.3 全部完成**（实现 + 验收 ①-④）；**下一步 = U2.0（app.js 模块化拆分，行为等价重构）**。
 - 验收用 Flask(5000)/静态服务(8771) 已停止；工作区仅 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》三个已知未跟踪项。
 
-## 本次会话完成内容：U1.2 motion 动效工具库
+## 本次会话完成内容：U1.3 App Shell 骨架与门禁切换
+
+验收口径与结果（详细记录在《docs/UI2.0_开发执行手册.md》头部 U1.3 执行记录）：
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| ① 两档窗口零滚动（1366×768 / 1920×1080） | ✅ | 探针实测 `scrollHeight==clientHeight`（768/768、1080/1080）、`body overflow:hidden`、顶栏 60/状态栏 32；首启引导态与常态两轮均成立；800×700 窄屏恢复纵向滚动（声明例外 ✓） |
+| ② legacy 全绿证明行为未变 | 7/7 ✅ | `?suite=legacy`（v1 注册表，U2.5 退役） |
+| ③ hex 色值门禁 | 51 → **0** ✅ | style.css 全量 token 化（只减不增；暗色适配统一 token 化） |
+| ④ 旧功能手工走查（真实页） | ✅ | 本机 Everything 就绪 + 真实 55 目录数据：设置弹窗/主题 VT 暗色/密度/表格视图/下钻（D:\→D:\虚拟机 8 子目录）/筛选/对比发起与「跨盘拒绝」/快照卡/徽章——全部正常，console/pageerror 0 |
+| smoke 默认 suite | v2 = **4/5** ✅ | 默认即 v2（A0/A1/A2/A11 绿；A3 占位待 U2.1 接入，非失败项） |
+| unittest | 260 OK ✅ | `-W error::ResourceWarning` 全绿 |
+
+**验收工具（已入库，可复用）**：
+- `scripts/dev/u13_viewport_probe.mjs`：真实页 + fetch 桩 + 四视口（1366×768 亮/1920×1080/1366×768 暗/800×700）零滚动指标与截图；`--steady` 用常态（收起首启引导）；依赖本机 `.dsh/profiles/web/node_modules/playwright`（仅本机验收，与项目零前端依赖纪律无关）。
+- U1.2/U1.1 探针（`u12_acc_probe.user.js`、`u11_acc_probe.user.js`、`u11_scroll_probe.user.js`）依旧可复用。
+
+**本次实施注记（下一会话须知）**：
+1. **browse-chart 容器未物理删除**（D12 视觉语义已达成：`#browse-chart{display:none!important}`）：`renderComposition()` 无空守卫（app.js:469-476），删容器 + app.js 零改动 = legacy 全红。物理删除与 renderComposition 一并归 **U2.0 模块化迁移**（§3.1 映射表既定）。
+2. **tokens.css 现含 U1.2 时长 token ×6 + U1.3 迁移色值组**（亮 18 hex + 暗 4 hex + rgba 项），style.css hex = **0**；非色值度量变量（--fs-*/--radius-*/--space-*）留在 style.css 本地 :root，U4.3 收口。
+3. **占位隐藏坑**：`display` 规则会覆盖 `[hidden]`（作者样式 > UA 样式）——`.nav-tabs` 因此泄漏过一次，已用 `.nav-tabs[hidden]{display:none!important}` 修复；后续新增暂藏元素（如 U2.x 的空槽位）必须同样显式处理。
+4. **smoke 门禁新口径**：默认 = v2（4/5，A3 待接）；`?suite=legacy` = v1 断言（7/7）；smoke 脚手架自身已按单屏组织（作者样式紧凑 + body 零滚动，供 A2 度量）；`?suite=v1/v2` 仍兼容。
+5. 新增 DOM 槽位：`.nav-tabs`（hidden，U2.1 接线）、`.view-toolbar`（U2.3 扩展 阈值/全屏）、`.strip-slot`（N09 迷你条带，U2.3 装配）、`.palette-slot`（N02 命令面板，U3.1 装配）；对比卡暂留右栏（U3.4 迁 `#/compare`，主页仅留「最近对比」入口）。
+6. 右栏现为 3+1 卡，768 高下右栏有面板内滚（§3.4 允许）；U3.4 迁走对比卡后余量增大，U2.4 环形图卡接替概览卡。
+
+## 本次会话完成内容：U1.2 motion 动效工具库（上一会话记录，保留）
 
 验收口径与结果（详细记录在《docs/UI2.0_开发执行手册.md》头部 U1.2 执行记录）：
 
@@ -50,24 +75,34 @@
 - `web/static/css/style.css`：VT 新旧快照取消默认动画、无 VT/reduced 兜底规则（尾追加）。
 - smoke v2 接入 A1。**六节流程最终验收 = 上表，全部通过。**
 
-### U1.2：motion 动效工具库（本次提交）
+### U1.2：motion 动效工具库（`5466bde` + 顺手修复 `83ebadd`）
 
 - 新增 `web/static/js/app/motion-core.js`（零 DOM 纯函数：`lerp`/`easeOutExpo`/`easeOutCubic`/`easeSpring` 常量/`clamp01`/`formatElapsed`/`fnv1a`）。
 - 新增 `web/static/js/app/motion.js`（11 导出：`reducedMotion`/`countUp`/`ripple`/`staggerIn`/`pageOut`/`pageIn`/`flip`/`sparkline`/`confetti`/`shake`/`drawCheck`；时长/缓动仅读 motion token）。
 - 新增 `scripts/dev/motion-core.test.mjs`（node:test 9 用例）与 `scripts/dev/u12_acc_probe.user.js`（真实页 countUp 验收探针）。
 - `tests/web/smoke.html`：`<script type="module">` 引入 motion.js 挂 `window.__motion`；v2 接入 A11。
-- `web/static/css/tokens.css`：增补 6 个 §3.5 专用时长 token（见本次实施注记 1）。
+- `web/static/css/tokens.css`：增补 6 个 §3.5 专用时长 token（见实施注记 1）。
 - 顺手修复 `app.js:142` 换行回归（单独小提交）。
 
-## 下一步：U1.3（App Shell 骨架与门禁切换，关键项）
+### U1.3：App Shell 骨架与门禁切换（本次提交）
 
-按手册 §U1.3 全节执行（前置 U1.1；U1.2 已完成）:
+- `web/templates/index.html`：单屏 App Shell（顶栏 60 + 工具栏行 48 + 内容 flex + 状态栏 32；右栏 300px；`<900px`/`<640px` 恢复滚动）；全部 id/行为保留、app.js 零改动；新增槽位 N13 nav-tabs（hidden）、N10 view-toolbar、N09 strip-slot、N02 palette-slot。
+- `web/static/css/style.css`：全量分区重构（base/layout/topbar/cards/list/overlays/motion + 响应式），**hex 51 → 0**（色值全量 token 化；暗色适配统一 token 化）。删除清单见手册 U1.3 执行记录偏差注记③。
+- `web/static/css/tokens.css`：增补 U1.3 迁移色值组（亮/暗双侧）。
+- `tests/web/smoke.html`：默认 suite 切 **v2**、v1 挂 `?suite=legacy`、v2 接入 A2（零滚动）+ A3 占位、脚手架自身零滚动组织。
+- `scripts/dev/u13_viewport_probe.mjs`：两档窗口零滚动 + 暗色 + 窄屏验收探针（入库）。
+- ⚠️ 偏差：`browse-chart` 未物理删除（D12 以 CSS 隐藏达成；renderComposition 无空守卫，物理删除归 U2.0）。
 
-- **保 id 搬家**：旧 DOM 搬进 App Shell 壳（topbar/面包屑工具栏/视图区/右栏三卡/状态栏/浮层区），`#dir-body`、`#health-badge`、`#browse-guide`、`#browse-filter`、`#btn-undo-save`、`#settings-modal`、`#wipe-modal`、`#confirm-modal`、`#toast-container` 等 id 与行为**全部保留**，app.js 零改动——v1 断言必须仍全绿（U1.3 起默认 suite 切为 v2，v1 挂 `?suite=legacy`）。
-- `style.css` 分区重构（base/layout/topbar/cards/list/overlays/motion），旧规则逐条迁移或删除（删除项记入执行记录）；body 零滚动 + 紧凑档 media query；`browse-chart` 容器删除（D12）。
-- 布局规格：60+48+flex+32 高度预算；右栏 300px；`@media (max-height:820px)` 紧凑档；`<900px` 宽恢复页面滚动。
-- 验收：①两档窗口（1366×768/1920×1080）零滚动；②legacy suite 全绿（保 id 验证）；③hex 门禁（重构期只降不升）；④旧功能手工走查。
-- **U1.1 注记**：暗色部分适配（旧 style.css 硬编码白底残留）在 U1.3 统一 token 化，勿提前扩大范围；零滚动断言 A2 在 U1.3 生效。
+## 下一步：U2.0（app.js 模块化拆分，行为等价重构）
+
+按手册 §U2.0 全节执行（前置 U1.3）：
+
+- **纯机械搬移**：按 §3.1 映射表把 app.js 逐段迁入 `web/static/js/app/` 模块（api.js/state.js/main.js/palette.js/viz/…，U1.2 的 motion-core.js/motion.js 已在位）；函数体不改，§3.6 十二项机制随段迁移；`index.html` 改 `<script type="module" src="…/js/app/main.js">`；app.js 清空为指向注释壳（U4.3 删文件）。
+- **先决**：browse-chart 容器 + renderComposition 随本项删除（映射表既定；U1.3 已用 CSS 隐藏过渡，D12 语义由 Treemap U2.2 真正承接）。
+- 每搬一段刷页面跑 **legacy** 套件（当前 = `?suite=legacy`，7/7），最终双 suite 全绿 + Network 对照 + Console 零报错。
+- 循环依赖处理：组件通信经 state.js 与 `pds:state` 自定义事件；禁止模块互引成环。
+- 验收：①Network 请求序列一致；②Console 零报错；③§3.6 十二项逐条抽查（v2-A4~A10 随段移植）。
+- **环境提示**：本机沙箱跑浏览器验收需 Playwright 子进程权限（见 U1.3 探针注记）；smoke 用 8771 静态服务、真实页用 5000 Flask；门禁命令 `?suite=legacy` 而非旧 `?suite=v1`。
 
 ## 当前未解决问题
 
@@ -85,9 +120,9 @@
 
 两套环境 unittest 均 260 绿；依赖仅 `flask>=3.0.2`（requirements.txt）。**新电脑建好 venv 后先跑一次 unittest 确认环境**。npm 12.17+ / Node 24.x 可用，但保持零前端依赖、零构建链纪律。**node 动效测试**：`node --test scripts/dev/`（motion-core.test.mjs 等；本机沙箱需 `--test-isolation=none` 变体，见本次实施注记 2）。
 
-### 3. U1.1 暗色视觉部分适配
+### 3. U1.1 暗色视觉部分适配 —— 已核销（U1.3）
 
-旧 `style.css` 仍有硬编码白底，部分卡片/控件偏亮；**U1.3 style.css 分区重构时统一 token 化，提前不要扩大范围**。
+U1.3 style.css 分区重构已把全部硬编码色值 token 化（hex 51→0，暗色补全），旧「部分适配」挂账注销；双主题视觉走查见本次 U1.3 验收（暗色截图与实测）。
 
 ### 4. 旧实例 / 端口残留风险
 
@@ -95,11 +130,11 @@
 
 ### 5. 版本控制状态（已更新）
 
-本地分支 `ui2.0` 已推送 origin（U1.2 起含 U1.1 验收记录与交接文档）；工作区仅三个**已知未跟踪项**：`.venv/`、`dsh-image-gen/`、`docs/UI终版方案_SpaceLensPro视觉动效与功能补全_定稿.md`（U4.3 才入库）。提交时**不要 `git add -A`**，按文件精确添加（历史教训：以上三项混入过工作区）。每工作项一提交，message 格式 `UI2-U1.x: <摘要>`。
+本地分支 `ui2.0` 已推送 origin（U1.3 起含 U1.1 验收记录与交接文档）；工作区仅三个**已知未跟踪项**：`.venv/`、`dsh-image-gen/`、`docs/UI终版方案_SpaceLensPro视觉动效与功能补全_定稿.md`（U4.3 才入库）。提交时**不要 `git add -A`**，按文件精确添加（历史教训：以上三项混入过工作区）。每工作项一提交，message 格式 `UI2-U1.x: <摘要>`。
 
 ## 续作路线
 
-`U1.3 App Shell/门禁切换 → U2.0 模块化 → U2.1 路由 → U2.2 Treemap → U2.3 交互特效 → U2.4 存储卡 → U2.5 列表 → U3.1-U3.5 → U4.1-U4.3 → 发版判定（v2.0.0）`（U1.0/U1.1/U1.2 已完成）。
+`U2.0 模块化 → U2.1 路由 → U2.2 Treemap → U2.3 交互特效 → U2.4 存储卡 → U2.5 列表 → U3.1-U3.5 → U4.1-U4.3 → 发版判定（v2.0.0）`（U1.0/U1.1/U1.2/U1.3 已完成）。
 
 ## 新电脑起手步骤
 
@@ -117,7 +152,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -X utf8 -W error::ResourceWarning -m unittest discover -s tests -t .
 powershell -Command "(Select-String -Path web\static\css\style.css -Pattern '#[0-9a-fA-F]{3,8}' -AllMatches).Matches.Count"   # 期望 ≤51
 node --test --test-isolation=none "scripts/dev/*.test.mjs"   # 期望全绿（真机可直接 node --test scripts/dev/）
-.\.venv\Scripts\python.exe -m http.server 8771 --bind 127.0.0.1 --directory .   # 然后浏览器开 /tests/web/smoke.html（默认 v1）与 ?suite=v2
+.\.venv\Scripts\python.exe -m http.server 8771 --bind 127.0.0.1 --directory .   # 然后浏览器开 /tests/web/smoke.html（U1.3 起默认 v2，4/5；v1 断言挂 ?suite=legacy，7/7）
 
 # 4. （可选）本地 Flask 手测
 .\.venv\Scripts\python.exe -X utf8 app.py --no-browser   # http://127.0.0.1:5000/

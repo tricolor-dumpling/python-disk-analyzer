@@ -27,6 +27,16 @@
   --glow-sm:0 0 0 transparent; --glow-md:0 0 0 transparent;
   --shadow-sm:0 1px 2px rgba(15,23,42,.05); --shadow-md:0 6px 20px rgba(15,23,42,.10);
   --shadow-lg:0 16px 40px rgba(15,23,42,.16);
+  /* U1.3 迁移：原 style.css :root 语义色值迁入（color 单一来源；暗色同步补全暗色值） */
+  --brand-blue:#3b82f6; --brand-soft:#93c5fd; --brand-mid:#60a5fa;
+  --on-primary:#fff;
+  --primary-border:#bfdbfe;
+  --success-soft:#f0fdf4; --success-border:#bbf7d0;
+  --warning-soft:#fffbeb; --warning-border:#fde68a; --warning-mid:#f59e0b;
+  --danger-soft:#fef2f2; --danger-border:#fecaca;
+  --track:#eaf0f8; --track-alt:#eef2f7; --row-alt:#fafbfe; --row-border:#f1f5f9; --th-bg:#f8fafc;
+  --card-soft:rgba(248,250,252,.8);
+  --grow-orange:#f97316;
 }
 :root[data-theme="dark"]{
   --bg:#0b1020; --bg-aurora-1:rgba(124,92,255,.08); --bg-aurora-2:rgba(56,189,248,.06);
@@ -40,4 +50,14 @@
   --glow-sm:0 0 12px rgba(124,92,255,.25); --glow-md:0 0 24px rgba(124,92,255,.35);
   --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 8px 24px rgba(0,0,0,.45);
   --shadow-lg:0 20px 48px rgba(0,0,0,.55);
+  /* U1.3 迁移：原 style.css :root 语义色值的暗色对应（暗色适配统一 token 化） */
+  --brand-blue:#3b82f6; --brand-soft:rgba(59,130,246,.5); --brand-mid:rgba(96,165,250,.7);
+  --on-primary:#fff;
+  --primary-border:rgba(79,140,255,.4);
+  --success-soft:rgba(52,211,153,.14); --success-border:rgba(52,211,153,.4);
+  --warning-soft:rgba(251,191,36,.14); --warning-border:rgba(251,191,36,.35); --warning-mid:#fbbf24;
+  --danger-soft:rgba(248,113,113,.14); --danger-border:rgba(248,113,113,.4);
+  --track:rgba(255,255,255,.07); --track-alt:rgba(255,255,255,.06); --row-alt:rgba(255,255,255,.03); --row-border:rgba(255,255,255,.06); --th-bg:rgba(255,255,255,.045);
+  --card-soft:rgba(255,255,255,.045);
+  --grow-orange:#fb923c;
 }
