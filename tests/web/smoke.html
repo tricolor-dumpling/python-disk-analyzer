@@ -71,7 +71,6 @@
       <button id="btn-guide-help" class="btn btn-sm btn-ghost">查看指引</button>
     </div>
     <div id="browse-cache-badge" class="notice notice-info hidden"></div>
-    <div id="browse-chart" hidden></div>
     <div class="browse-filters">
       <input id="browse-filter" type="search">
       <select id="browse-kind"><option value="all">全部</option><option value="dir">仅目录</option><option value="file">仅文件</option></select>
@@ -145,14 +144,10 @@
 
 <script>
 /* ============================================================
-   P12 零依赖冒烟页（W1.2 建立，附录A）
-   - 只 mock 传输层：整页替换 window.fetch，按 URL 返回预录响应；
-   - 响应体逐字照抄真实接口 JSON 形态；错误样本同时覆盖旧形态
-     {ok,error} 与新形态 {ok,error,detail,code}（RT-N04 双向容忍锚点）；
-   - 断言通过计数器统计 fetch 调用次数与参数，而非看 UI 截图。
+   P12 零依赖冒烟页 · 传输层打桩（经典脚本，解析期执行）
+   U2.0：必须保持「经典脚本先于 app 模块求值」——main.js 在模块
+   求值时即自启动 init，fetch 桩未就位会打到真实网络（历史事故）。
    ============================================================ */
-"use strict";
-
 /* ---- 真实形态样本（照抄后端响应键集合，勿手造简化体） ---- */
 const SAMPLES = {
   healthOk: { ok: true, ready: true, dll: "C:\\Program Files\\Everything\\Everything64.dll", message: "Everything 已就绪" },
@@ -193,6 +188,7 @@ const __smoke = {
   routes: {},              // 测试可覆写：{"POST /api/browse": {...}}
   delayMs: 0               // 测试可注入延迟（竞态断言用）
 };
+window.__smoke = __smoke; // U2.0：便于探针/外部工具读取（旧经典脚本时代本就全局可见）
 
 function __stubResponse(body, status) {
   status = status || (body && body.ok === false ? 400 : 200);
@@ -237,6 +233,22 @@ window.fetch = function (url, options) {
   }
   return Promise.resolve(respond());
 };
+</script>
+
+<script type="module">
+/* ============================================================
+   P12 零依赖冒烟页（W1.2 建立，附录A）· U2.0 起以 ES Module 运行
+   - 断言通过计数器统计 fetch 调用次数与参数，而非看 UI 截图；
+   - U2.0：app 逻辑经 main.js 显式导入（旧全局写法改为导入面；
+     id/选择器全部不变）；传输层打桩在上一个经典脚本里（解析期执行）。
+   ============================================================ */
+import {
+    $, APP_STATE, switchTheme, renderApiError, refreshSnapshots, refreshHealth,
+    setStatusForSettingsHealth, undoLastSave, renderEntries, openModal, closeModal,
+    browsePath, getCurrentPath, getSessionsCache, setSessionsCache,
+} from "../../web/static/js/app/main.js";
+import * as __motion from "../../web/static/js/app/motion.js";
+window.__motion = __motion;
 
 /* ---- 断言框架 ---- */
 function __renderResults() {
@@ -341,7 +353,7 @@ const ASSERTIONS = [
       try {
         // D：空会话刷新后撤销按钮灰置（走真实 refreshSnapshots 路径）
         const savedRoute = __smoke.routes["GET /api/snapshots"];
-        const savedCache = sessionsCache;
+        const savedCache = getSessionsCache();
         __smoke.routes["GET /api/snapshots"] = { ok: true, sessions: [], count: 0 };
         try {
           await refreshSnapshots();
@@ -354,7 +366,7 @@ const ASSERTIONS = [
         } finally {
           if (savedRoute === undefined) delete __smoke.routes["GET /api/snapshots"];
           else __smoke.routes["GET /api/snapshots"] = savedRoute;
-          sessionsCache = savedCache;
+          setSessionsCache(savedCache);
         }
 
         // H：筛选空态与一键清除
@@ -443,11 +455,11 @@ const ASSERTIONS = [
         const pB = browsePath("D:\\fastDir");
         await pB;
         await new Promise((r) => setTimeout(r, 10));
-        __assert(currentPath === "D:\\fastDir", "B 先回后页面应为 fastDir");
+        __assert(getCurrentPath() === "D:\\fastDir", "B 先回后页面应为 fastDir");
         releaseA();
         await pA;
         await new Promise((r) => setTimeout(r, 10));
-        __assert(currentPath === "D:\\fastDir", "迟到的 A 不得覆盖 B 的渲染状态");
+        __assert(getCurrentPath() === "D:\\fastDir", "迟到的 A 不得覆盖 B 的渲染状态");
 
         // 场景二：慢 A 将失败、快 B 成功 → A 的失败不得覆盖 B 的成功态
         let releaseC;
@@ -471,7 +483,7 @@ const ASSERTIONS = [
         await pC.catch(() => {});
         await new Promise((r) => setTimeout(r, 10));
         __assert(errHiddenAtB === true, "B 成功时不应有错误框");
-        __assert($("browse-error").classList.contains("hidden") || currentPath === "D:\\fastDir",
+        __assert($("browse-error").classList.contains("hidden") || getCurrentPath() === "D:\\fastDir",
                  "旧失败晚于 B 到达不得打断成功态");
       } finally {
         window.fetch = realFetch;
@@ -527,6 +539,158 @@ const ASSERTIONS_V2 = [
       __assert(getComputedStyle(document.body).overflow === "hidden", "桌面端 body 应 overflow:hidden");
     } },
   { id: "A3", name: "U2.1：路由（未知路由回落 #/；切页后 state.route 正确）" },
+  { id: "A4", name: "U2.0 移植（W1.4·红线#11）：静态文件行零请求",
+    fn: async function () {
+      const staticRow = document.querySelector("#dir-body .ranking-row-static");
+      __assert(staticRow, "应存在静态文件行（.ranking-row-static）");
+      __assert(!staticRow.hasAttribute("data-path"), "文件行不得携带 data-path");
+      __assert(!staticRow.hasAttribute("role"), "文件行不得有 role=button");
+      __assert(!staticRow.hasAttribute("tabindex"), "文件行不得有 tabindex");
+      __assert(document.querySelector('[data-path=""]') === null, "不得存在 data-path 为空字符串的行");
+      __smoke.fetchLog.length = 0;
+      staticRow.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      staticRow.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      staticRow.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+      const browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
+      __assert(browses === 0, "点击/键盘静态文件行应产生 0 个 /api/browse，实际 " + browses);
+    } },
+  { id: "A5", name: "U2.0 移植（W1.4·红线#11）：目录行恰一请求",
+    fn: async function () {
+      const dirRow = document.querySelector("#dir-body .ranking-row[data-path]");
+      __assert(dirRow, "应存在目录行");
+      __smoke.fetchLog.length = 0;
+      dirRow.click();
+      await new Promise((r) => setTimeout(r, 40));
+      const browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
+      __assert(browses === 1, "点击目录行应恰好 1 次 /api/browse，实际 " + browses);
+    } },
+  { id: "A6", name: "U2.0 移植（W2.5·红线#12）：筛选空态与一键清除",
+    fn: async function () {
+      try {
+        $("browse-filter").value = "不存在的关键词xyz";
+        if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
+        const btn = document.getElementById("btn-clear-filter");
+        __assert(btn, "筛选空态应出现「清除筛选」按钮");
+        __assert(document.getElementById("dir-body").textContent.indexOf("无匹配") !== -1,
+                 "空态文案应出现");
+        btn.click();
+        await new Promise((r) => setTimeout(r, 10));
+        __assert($("browse-filter").value === "", "点击清除后筛选参数应清空");
+        __assert(document.querySelector("#dir-body .ranking-row"), "应恢复渲染原条目");
+      } finally {
+        $("browse-filter").value = "";
+        $("browse-kind").value = "all";
+      }
+    } },
+  { id: "A7", name: "U2.0 移植（W2.6·红线#9）：双弹窗 Esc 逆序关栈顶；Tab 循环；R 守卫",
+    fn: async function () {
+      const browseCallsBefore = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
+      openModal("settings-modal");
+      openModal("confirm-modal"); // 栈顶 = confirm-modal
+      __assert(!$("settings-modal").classList.contains("hidden"), "设置弹窗应开启");
+      __assert(!$("confirm-modal").classList.contains("hidden"), "确认弹窗应开启");
+      // R 守卫：弹窗开着时按 R 不触发浏览
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "r", bubbles: true }));
+      await new Promise((r) => setTimeout(r, 10));
+      const browseCallsAfterR = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
+      __assert(browseCallsAfterR === browseCallsBefore, "弹窗开启时按 R 不得触发浏览请求");
+      // Tab 循环：焦点不出栈顶面板
+      const panel = $("confirm-modal").querySelector(".modal-panel") || $("confirm-modal");
+      panel.querySelector("button,input,[tabindex]").focus();
+      for (let i = 0; i < 5; i++) {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }));
+      }
+      __assert(panel.contains(document.activeElement), "Tab 循环后焦点必须仍在面板内");
+      // Esc 逆序：先关 confirm（栈顶），再关 settings
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await new Promise((r) => setTimeout(r, 10));
+      __assert($("confirm-modal").classList.contains("hidden"), "第一次 Esc 应关栈顶 confirm-modal");
+      __assert(!$("settings-modal").classList.contains("hidden"), "settings-modal 应保持开启");
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await new Promise((r) => setTimeout(r, 10));
+      __assert($("settings-modal").classList.contains("hidden"), "第二次 Esc 关 settings-modal");
+    } },
+  { id: "A8", name: "U2.0 移植（W2.1·红线#10）：busy health 徽章不降级、整页不进引导态",
+    fn: async function () {
+      const savedRoute = __smoke.routes["GET /api/health"];
+      __smoke.routes["GET /api/health"] = SAMPLES.healthBusy;
+      try {
+        const classBefore = $("health-badge").className;
+        await refreshHealth();
+        __assert($("health-text").textContent.indexOf("扫描中") !== -1,
+                 "徽章文本应为中性「扫描中…」");
+        __assert($("health-badge").className === classBefore,
+                 "busy 时徽章 class 必须保持原状（不降级为 warn/err）");
+        __assert($("browse-guide").classList.contains("hidden"),
+                 "busy 不得把整页打回引导态（busy ≠ 未就绪）");
+        await setStatusForSettingsHealth();
+        __assert($("setting-health").value.indexOf("扫描中") !== -1,
+                 "设置健康栏应显示扫描中");
+      } finally {
+        if (savedRoute === undefined) delete __smoke.routes["GET /api/health"];
+        else __smoke.routes["GET /api/health"] = savedRoute;
+        await refreshHealth(); // 恢复正常健康态，避免污染其他断言
+      }
+    } },
+  { id: "A9", name: "U2.0 移植（W2.8·红线#1）：浏览竞态——迟到旧响应不得覆盖新状态",
+    fn: async function () {
+      const realFetch = window.fetch;
+      let releaseA;
+      const gateA = new Promise((r) => { releaseA = r; });
+      let n = 0;
+      window.fetch = function (url, options) {
+        if (String(url).indexOf("/api/browse") !== -1) {
+          n += 1;
+          if (n === 1) return gateA.then(() => Promise.resolve(__stubResponse(SAMPLES.browseSlow)));
+          return Promise.resolve(__stubResponse(SAMPLES.browseFast));
+        }
+        return realFetch(url, options);
+      };
+      try {
+        const pA = browsePath("D:\\slowDir");
+        const pB = browsePath("D:\\fastDir");
+        await pB;
+        await new Promise((r) => setTimeout(r, 10));
+        __assert(getCurrentPath() === "D:\\fastDir", "B 先回后页面应为 fastDir");
+        releaseA();
+        await pA;
+        await new Promise((r) => setTimeout(r, 10));
+        __assert(getCurrentPath() === "D:\\fastDir", "迟到的 A 不得覆盖 B 的渲染状态");
+      } finally {
+        window.fetch = realFetch;
+      }
+    } },
+  { id: "A10", name: "U2.0 移植（W2.8·红线#1）：浏览竞态——旧失败不得打断新成功",
+    fn: async function () {
+      const realFetch = window.fetch;
+      let releaseC;
+      const gateC = new Promise((r) => { releaseC = r; });
+      let m = 0;
+      window.fetch = function (url, options) {
+        if (String(url).indexOf("/api/browse") !== -1) {
+          m += 1;
+          if (m === 1) return gateC.then(() => Promise.resolve(__stubResponse(SAMPLES.errorLegacyShape, 400)));
+          return Promise.resolve(__stubResponse(SAMPLES.browseFast));
+        }
+        return realFetch(url, options);
+      };
+      try {
+        $("browse-error").classList.add("hidden");
+        const pC = browsePath("D:\\slowDir");
+        const pD = browsePath("D:\\fastDir");
+        await pD;
+        await new Promise((r) => setTimeout(r, 10));
+        const errHiddenAtB = $("browse-error").classList.contains("hidden");
+        releaseC();
+        await pC.catch(() => {});
+        await new Promise((r) => setTimeout(r, 10));
+        __assert(errHiddenAtB === true, "B 成功时不应有错误框");
+        __assert($("browse-error").classList.contains("hidden") || getCurrentPath() === "D:\\fastDir",
+                 "旧失败晚于 B 到达不得打断成功态");
+      } finally {
+        window.fetch = realFetch;
+      }
+    } },
   { id: "A11", name: "U1.2：countUp（终值精确、dataset.v 记账、首帧不空白、reduced 直显）",
     fn: async function () {
       __assert(window.__motion && typeof window.__motion.countUp === "function",
@@ -579,15 +743,8 @@ window.addEventListener("load", function () {
 
 </script>
 
-<!-- app.js 必须在 stub 就位之后加载 -->
-<script src="../../web/static/js/app.js"></script>
-<!-- U1.2：motion.js 为原生 ES Module，冒烟页以 module 方式引入并挂到 window.__motion 供 v2 断言使用。
-     注意：模块加载要求 http 访问（file:// 下模块 CORS 会被浏览器拦截，A11 将以明确信息失败）。 -->
-<script type="module">
-  import * as __motion from "../../web/static/js/app/motion.js";
-  window.__motion = __motion;
-</script>
-
+<!-- app 逻辑：U2.0 起为 ES Module（main.js 装配；经典 stub 脚本必须先于本模块执行，
+     主模块在文档解析后执行，天然晚于上面的 stub 脚本） -->
 <div id="smoke-summary" style="margin-top:16px"></div>
 <div id="smoke-table"></div>
 </body>

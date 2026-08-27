@@ -1,15 +1,40 @@
 # UI 2.0 开发状态与续作指引
 
-更新时间：2026-08-26（U1.3 完成会话修订，用于换机续作）
+更新时间：2026-08-26（U2.0 完成会话修订，用于换机续作）
 
 ## 当前状态
 
 - **分支**：`ui2.0`（已推送 GitHub origin，换机后 `git checkout ui2.0` 即可续作）；`main` 未动，仍是 P12 归档完成线。
-- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) →（本次：U1.3 实现与验收）。
-- **进度**：U1.0、U1.1、U1.2、**U1.3 全部完成**（实现 + 验收 ①-④）；**下一步 = U2.0（app.js 模块化拆分，行为等价重构）**。
-- 验收用 Flask(5000)/静态服务(8771) 已停止；工作区仅 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》三个已知未跟踪项。
+- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) →（本次：U2.0 模块化）。
+- **进度**：U1.0-U1.3、**U2.0 全部完成**（实现 + 验收 ①-③）；**下一步 = U2.1（hash 路由与三页面装配）**。
+- 验收用 Flask(5000)/静态服务(8771) 已停止；工作区仅 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》三个已知未跟踪项；`docs/UI终版方案…定稿.md` 未入库。
 
-## 本次会话完成内容：U1.3 App Shell 骨架与门禁切换
+## 本次会话完成内容：U2.0 app.js 模块化拆分（行为等价重构）
+
+验收口径与结果（详细记录在《docs/UI2.0_开发执行手册.md》头部 U2.0 执行记录）：
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| 模块化落地 | ✅ | 旧 app.js 1502 行 → 18 个新模块 1581 行（api/icons/state/theme/labels + components×9 + pages×3 + main）+ app.js 空壳注释；index.html 改 `<script type="module" src="js/app/main.js">`；renderComposition 与 browse-chart 按映射表 D12 物理删除 |
+| 行为等价（main） | legacy **7/7** ✅ | 旧 v1 断言在 module 化 app 上全过 |
+| 行为等价（十二项机制） | v2-A4~A10 移植全绿 ✅ | A4/A5 文件行零请求/目录行恰一请求、A6 筛选空态、A7 弹窗栈、A8 busy 徽章、A9/A10 浏览竞态 |
+| ① Network 前后对照 | **API 序列完全一致** ✅ | `settings→snapshots→fullscan/status→overview→health→POST browse`（前后同）；探针 `scripts/dev/u20_network_probe.mjs`（before/after json 已存） |
+| ② Console 零报错 | ✅ | 四视口探针 errs=[] + 真实页 errs=[] |
+| ③ §3.6 十二项逐条 | ✅ | 见手册执行记录（smoke 覆盖 9 项 + 代码评审 3 项） |
+| **视觉等价（像素级）** | ✅ | 四视口截图与 U1.3 基线（b06c3ab worktree 同探针）**SHA256 逐字节一致**（819827bc/97a76cbb/7ded2bc5/6dcbe143） |
+| smoke v2 / unittest / hex / node | 11/12（A3 占位）/ **259+1 已知挂账** / 0 / 9/9 | P13 竞态本轮进入**连续失败段**（既有挂账，未触碰 snapshots.py） |
+
+**验收工具（已入库）**：`scripts/dev/u20_network_probe.mjs`（前后对照）；`u13_viewport_probe.mjs`（+`--base`/`--out` 参数化，可指向任意版本做像素级对照——**对比方法：git worktree add 目标版本 → 该目录起 Flask → 同探针同参 → Get-FileHash 比对**，曾因此法证明 U2.0 与 U1.3 四视口逐字节一致）。
+
+**本次实施注记（下一会话须知）**：
+1. **smoke 双脚本结构（硬纪律）**：传输层打桩必须是**经典脚本**（解析期执行，先于一切 module 求值）；`main.js` 在模块求值时即 `start()` 自启动——若 stub 与断言同在一个 module，stub 安装晚于 app 启动（实测踩坑：A0 首红，修复后 legacy/v2 全绿）。后续往 smoke 加东西，依然遵循「经典 stub 先行 → module 断言」。
+2. **跨模块可变状态一律经访问器**：workspace（setCurrentRoot/getCurrentRoot/getCurrentPath/getLastRoots/applyLastRoots/resetBrowseHistory）、snapshots（get/setSessionsCache）、scan（setAutoSaveSetting/resetHandledScanVersion）、settings（setDataDir）。ES Module 的 import 绑定只读，跨模块赋值必须走导出 setter。
+3. **依赖图无环**：renderApiError→feedback.js、SKIP_REASON_TEXT→labels.js 两个共享叶子是防环关键；pds:state 事件机制未启用（无环时直接导入），U2.1 跨页联动时再启用。
+4. **Flask 模板缓存**：`debug=False` 下改 index.html 必须**重启 Flask**（本次重演了 PID 31404 式旧模板事故，重启即解）。
+5. **本机 /api/health 时延抖动**（Everything DLL 探测偶发秒级）：网络探针用「等到 browse 或 15s」锚点，勿用固定等待窗。
+6. app.js 空壳留到 U4.3 删除；smoke 的 legacy 注册表留到 U2.5 退役。
+
+## 本次会话完成内容：U1.3 App Shell 骨架与门禁切换（上一会话记录，保留）
 
 验收口径与结果（详细记录在《docs/UI2.0_开发执行手册.md》头部 U1.3 执行记录）：
 
@@ -84,7 +109,7 @@
 - `web/static/css/tokens.css`：增补 6 个 §3.5 专用时长 token（见实施注记 1）。
 - 顺手修复 `app.js:142` 换行回归（单独小提交）。
 
-### U1.3：App Shell 骨架与门禁切换（本次提交）
+### U1.3：App Shell 骨架与门禁切换（`b06c3ab`）
 
 - `web/templates/index.html`：单屏 App Shell（顶栏 60 + 工具栏行 48 + 内容 flex + 状态栏 32；右栏 300px；`<900px`/`<640px` 恢复滚动）；全部 id/行为保留、app.js 零改动；新增槽位 N13 nav-tabs（hidden）、N10 view-toolbar、N09 strip-slot、N02 palette-slot。
 - `web/static/css/style.css`：全量分区重构（base/layout/topbar/cards/list/overlays/motion + 响应式），**hex 51 → 0**（色值全量 token 化；暗色适配统一 token 化）。删除清单见手册 U1.3 执行记录偏差注记③。
@@ -93,16 +118,24 @@
 - `scripts/dev/u13_viewport_probe.mjs`：两档窗口零滚动 + 暗色 + 窄屏验收探针（入库）。
 - ⚠️ 偏差：`browse-chart` 未物理删除（D12 以 CSS 隐藏达成；renderComposition 无空守卫，物理删除归 U2.0）。
 
-## 下一步：U2.0（app.js 模块化拆分，行为等价重构）
+### U2.0：app.js 模块化拆分（本次提交）
 
-按手册 §U2.0 全节执行（前置 U1.3）：
+- 新增 `web/static/js/app/` 18 个模块（api/icons/state/theme/labels + components/{toast,statusbar,onboarding,feedback,topbar,storage,modals,settings,scan} + pages/{workspace,snapshots,compare} + main）；`app.js` 清空为过渡注释壳（U4.3 删除）。
+- `index.html` 改 `<script type="module" src="js/app/main.js">`；**renderComposition 与 browse-chart 容器物理删除**（映射表既定 D12，承接 U1.3 的偏差注记①路线）。
+- `tests/web/smoke.html`：改为「经典打桩脚本 + module 断言框架」双段；v2 接入 A4-A10（四断言+两竞态移植）；legacy 沿用（U2.5 退役）。
+- `scripts/dev/u20_network_probe.mjs`：Network 前后对照探针（入库）。
+- 验收：legacy 7/7 + v2 11/12（A3 占位）+ API 序列前后一致 + Console 0 + **四视口截图与 U1.3 基线逐字节一致**（SHA256 相同）。
 
-- **纯机械搬移**：按 §3.1 映射表把 app.js 逐段迁入 `web/static/js/app/` 模块（api.js/state.js/main.js/palette.js/viz/…，U1.2 的 motion-core.js/motion.js 已在位）；函数体不改，§3.6 十二项机制随段迁移；`index.html` 改 `<script type="module" src="…/js/app/main.js">`；app.js 清空为指向注释壳（U4.3 删文件）。
-- **先决**：browse-chart 容器 + renderComposition 随本项删除（映射表既定；U1.3 已用 CSS 隐藏过渡，D12 语义由 Treemap U2.2 真正承接）。
-- 每搬一段刷页面跑 **legacy** 套件（当前 = `?suite=legacy`，7/7），最终双 suite 全绿 + Network 对照 + Console 零报错。
-- 循环依赖处理：组件通信经 state.js 与 `pds:state` 自定义事件；禁止模块互引成环。
-- 验收：①Network 请求序列一致；②Console 零报错；③§3.6 十二项逐条抽查（v2-A4~A10 随段移植）。
-- **环境提示**：本机沙箱跑浏览器验收需 Playwright 子进程权限（见 U1.3 探针注记）；smoke 用 8771 静态服务、真实页用 5000 Flask；门禁命令 `?suite=legacy` 而非旧 `?suite=v1`。
+## 下一步：U2.1（hash 路由与三页面装配）
+
+按手册 §U2.1 全节执行（前置 U2.0）：
+
+- 路由表与转场 = §3.3：`#/`（workspace 现有浏览块内嵌）、`#/compare`、`#/snapshots`（后两者先放占位头，U3.3/U3.4 填充）；`transitionTo`：router.pause → `motion.pageOut`（120ms）→ replaceChildren(render(state)) → `motion.pageIn`（240ms）→ resume；未知路由回落 `#/`；hashchange 原生前进后退可用。
+- 新文件：`router.js`（约 60 行骨架，`pds:navigate` 事件 + 切页后焦点移至页头标题）、`pages/workspace.js/compare.js/snapshots.js` 暴露 `render(state)→Node` + `mount()/unmount()`（unmount 停自身 rAF/轮询）；topbar 导航标签（N13，U1.3 已留 `nav-tabs` hidden 槽）接线（下划线 L2-11 可先静态）。
+- **状态迁移**：`state.js` APP_STATE 按 §3.2 目标形状对齐（路由/视图/选择/扫描/快照/对比/treemap/ui 命名空间落地；U2.0 注记 2 的待命字段在此启用；跨视图状态迁入，切页不丢）；组件间跨页联动启用 `pds:state` 事件（U2.0 注记 3）。
+- smoke v2：A3 接入（未知路由回落 + state.route 正确；A3 占位转正）。
+- 验收：切页总时长 ≤360ms；浏览路径/多选/扫描状态切页不丢；子页面期间 treemap rAF 已停（U2.3 项，treemap 未接入前以页面内滚/轮询口径复核）；Network/console 常规门禁。
+- **环境提示**：改 index.html/模板后 Flask 必须重启（debug=False 模板缓存）；smoke 双脚本结构纪律见 U2.0 注记 1。
 
 ## 当前未解决问题
 

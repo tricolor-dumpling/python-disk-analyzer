@@ -170,9 +170,6 @@
                 </div>
             </div>
             <div id="browse-cache-badge" class="notice notice-info hidden" role="status" aria-live="polite">来自内存缓存（无需重新扫描）</div>
-            <!-- [D12] browse-chart 构成图：元素为 app.js 契约保留（renderComposition 无空守卫），
-                 视觉由 style.css `#browse-chart{display:none!important}` 关闭；Treemap UI 2.2 接入后物理删除随 U2.0 迁移 -->
-            <div id="browse-chart" class="browse-chart" aria-label="当前目录构成" hidden></div>
             <div class="browse-filters" aria-label="目录筛选与排序">
                 <input id="browse-filter" type="search" placeholder="筛选名称" aria-label="筛选名称">
                 <select id="browse-kind" aria-label="内容类型"><option value="all">全部</option><option value="dir">仅目录</option><option value="file">仅文件</option></select>
@@ -430,6 +427,6 @@
 
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/app/main.js') }}"></script>
 </body>
 </html>

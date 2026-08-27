@@ -269,9 +269,6 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   background:var(--card);color:var(--text);
 }
 .browse-filters input{flex:1}
-/* [D12] browse-chart 构成图：元素为 app.js 契约保留（renderComposition 无空守卫），
-   U1.3 起视觉关闭（Treemap 取代，U2.2 接入），物理删除随 U2.0 renderComposition 一并迁移 */
-#browse-chart{display:none!important}
 
 .breadcrumb{
   display:flex;align-items:center;gap:2px;flex-wrap:wrap;margin:2px 0;
