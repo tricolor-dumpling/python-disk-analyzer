@@ -115,6 +115,8 @@ export async function pollFullscan() {
     }
     _lastScanStatus = st;
     renderFullscanState(st);
+    // U2.3：扫描状态广播（additive）——treemap 实时生长 L3-2 / 雷达扫掠 L3-3 订阅
+    try { window.dispatchEvent(new CustomEvent("pds:scan", { detail: st })); } catch (e) { /* 环境差异忽略 */ }
     if (st.running) schedulePollFullscan();
 }
 

@@ -1,13 +1,46 @@
 # UI 2.0 开发状态与续作指引
 
-更新时间：2026-08-26（U2.2 完成会话修订，用于换机续作）
+更新时间：2026-08-28（U2.3 完成会话修订，用于换机续作）
 
 ## 当前状态
 
 - **分支**：`ui2.0`（已推送 GitHub origin，换机后 `git checkout ui2.0` 即可续作）；`main` 未动，仍是 P12 归档完成线。
-- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) → `ffee6d1`(U2.1) →（本次：U2.2 Treemap 渲染器）。
-- **进度**：U1.0-U1.3、U2.0、U2.1、**U2.2 全部完成**（实现 + 验收 ①-④）；**下一步 = U2.3（Treemap 交互与特效：下钻 FLIP/双击回根/hover 联动/迷你条带/全屏/扫描实时生长/雷达扫掠）**。
-- 验收用 Flask(5000)/静态服务(8771) 由本次会话启动，会话结束时仍在运行（勿复用前需先查端口残留）；工作区仅 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》三个已知未跟踪项。
+- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) → `ffee6d1`(U2.1) → `3daa9d4`(U2.2) →（本次：U2.3 交互与特效）。
+- **进度**：U1.0-U1.3、U2.0、U2.1、**U2.2、U2.3 全部完成**（实现 + 验收）；**下一步 = U2.4（存储概览卡：viz/donut.js + 盘符 chips D15 + 最近对比入口；可与 U2.5 并行）**。
+- 验收用 Flask(5000)/静态服务(8771) 由本会话启动/沿用，会话结束时仍在运行（续作前先查端口残留）；工作区仅 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》三个已知未跟踪项。
+
+## 本次会话完成内容：U2.3 Treemap 交互与特效
+
+验收口径与结果（详细记录在《docs/UI2.0_开发执行手册.md》头部 U2.3 执行记录）：
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| 动画模式化 | ✅ | setTiles {entry/reflow/none}；reflow=L3-2/L3-9 lerp 300ms + 新块 0 生长 + fx 一次性描边光晕 |
+| L3-1 下钻 FLIP / 返回反向 | ✅ | 单击 → 300ms 双击窗确认 → 矩形 450ms ease-inout 放大铺满+其余淡出 → 新数据 L1-1 入场（pending 互斥机制）；返回上级 zoomOutTo 收缩进子目录矩形；面包屑同步 |
+| 双击回根防抖 | ✅ | 300ms 窗口（--dur-dblclick）+ 恰 1 次 browse 且 path=本级根（A13 + 探针） |
+| Backspace 上级 | ✅ | keydown 守卫（输入框/isComposing/弹窗栈）+ goUp 反向播放 |
+| L3-2 实时生长 | ✅ | pds:scan 事件 → 主页 500ms/子页 2s/回主页恢复（stub 页精确验证）+ liveSeq 竞态守卫 |
+| L3-3 雷达扫掠 | ✅ | fx 层 12% 光带每 6s、单次 1.2s、opacity ≤0.06、lighter；reduced 关 |
+| L3-7 迷你条带 | ✅ | 48px 上级构成（browsesCache LRU16）、点击跳回、盘根隐藏；**目检修复：块背景色缺失** |
+| L3-8 全屏 | ✅ | fixed 铺满 + veil 压暗 + FLIP 300ms + 工具行钉顶控制条；Esc/按钮退出 |
+| L3-9 合并阈值 | ✅ | −/+ 步长 10（1..200 边界）+ label + reflow 重排；**目检修复：merge-group hidden 属性未清** |
+| L2-5 双向联动 | ✅（数据层） | tile hover→行 .row-linked+scrollIntoView；行 hover→highlightKey（偏差②：互斥视图，U2.5 激活） |
+| smoke v2 / legacy | **14/14** / **7/7** ✅ | A13 实装 + A12 时序适配（条件等待）；5×5 稳定复跑 |
+| node / hex / unittest | **20/20** / **0** / **260 OK** ✅ | P13 挂账偶发-连续失败段（2 fail 后复跑即绿；未触碰 snapshots.py） |
+| u23 验收探针 | **29/29** ✅ | L3-1/2/3/7/8/9 逐条 + 双击 + **50 次下钻/返回**（heap Δ0.0MB、canvas=2/tooltip=1）+ 扫掠 reduced |
+| 视觉多模态 | ✅ | 稳态四截图目检（下钻+条带/全屏/暗色/50-cycle）；修复 3 处视觉问题（见注记） |
+| Console / 环境 | **0 / 注记** ✅ | ⚠️ 预存偏差：本会话 Flask 受限身份写 %LOCALAPPDATA% 被拒 → POST /api/settings 500（前端静默容忍；正常桌面运行不受影响） |
+
+**验收工具（已入库）**：`scripts/dev/u23_acc_probe.mjs`（29 项 + 截图）、`u22_smoke_probe.mjs`（双 suite 快速门禁）、`u22_acc_probe.mjs`（U2.2 回归）；u13/u20/u21 探针继续可用。
+
+**本次实施注记（下一会话须知）**：
+1. **treemap 渲染器动画模式化**：`setTiles(tiles,{mode:"entry"|"reflow"|"none"})`——entry 全新入场（prev 清空），reflow lerp 300ms（保留 prev 终帧），none 直绘；**转场互斥**：下钻/收缩动画期间 setTiles 只挂 pending，转场完成 dispatchPending 再按模式入场（改数据时不可 cancelAnim 打断转场，否则 pending 永不消费）。
+2. **双击防抖**：点击时间戳 + 300ms 窗口（--dur-dblclick）；**smoke 页必须引 tokens.css**（缺失回落 0 → 防抖语义退化、双击退化为两次单击）；A12/A13 用 `__waitUntil` 条件等待（300 双击窗 + 450 FLIP + 600 入场）。
+3. **条带/反向转场数据源** = workspace `browsesCache`（path→tiles，LRU16，renderTreemap 时缓存）；无缓存时反向播放降级为直入场（偏差①）。
+4. **视觉修复经验**：a) DOM 显式背景色不能漏（条带块曾白对白）；b) 模板 `hidden` 属性与 classList 双控冲突——**新增元素统一用 toggleAttribute 管理 hidden**（`.xxx[hidden]{display:none!important}` 会压过 class 逻辑）；c) 全屏 overlay 内 padding 与 canvas 无关——canvas absolute inset:0，铺满层必须另开工具行钉顶（body.view-fs）。
+5. **L3-2 低频节奏**：pds:scan 由 scan.js pollFullscan 每 1s 派发（additive）；workspace 订阅后按 route×视图选 500/2000ms；liveSeq 令牌防迟到覆盖；`data.scanning` 时保留现图只提示。U3.2 状态机扩展时此事件可复用。
+6. **本机 /api/browse 慢响应**（Everything IPC 抖动 1-8s）：任何真实页探针状态断言用「条件等待 ≤15s」锚，勿用固定等待窗；接受探针的 fetch 计数基于请求发起（接线验证），节奏精确断言在 stub 页做。
+7. **Flask 5000 与静态 8771 本会话仍在运行**：续作前先查端口残留；改 index.html 需重启 Flask（模板缓存）。
 
 ## 本次会话完成内容：U2.2 Treemap 渲染器（viz/treemap.js + palette.js）
 
@@ -193,15 +226,16 @@
 - smoke：脚手架 = App Shell 结构（与真实页共用页面模板）；**A3 实装**。
 - 验收：v2 **12/12** + legacy 7/7 + 转场 120+240=360ms 口径（实测 144ms 换装）+ 切页不丢（探针）+ Console 0 + 三页视觉目检合格 + API 序列内容+顺序完全一致。
 
-## 下一步：U2.3（Treemap 交互与特效）
+## 下一步：U2.4（存储概览卡：viz/donut.js + 盘符 chips D15 + 最近对比入口）
 
-按手册 §U2.3 全节执行（前置 U2.2）：
+按手册 §U2.4 全节执行（前置 U2.1；可与 U2.5 并行）：
 
-- 下钻 FLIP（记录点击矩形→450ms ease-inout 放大铺满→新数据 L1-1 入场）；双击回本级根（300ms 内防误触）；Backspace 上级。
-- hover 双向联动（L2-5：列表行 data-path ↔ tile.key，120ms，scrollIntoView(nearest)）；迷你条带（L3-7，上级 browse 缓存；盘根隐藏）；全屏（L3-8，Esc 退出）；合并阈值 −/+ 接线（L3-9，`setMergeTop` 已备）。
-- 扫描实时生长（L3-2：500ms 增量重排 lerp 300ms；子页面降频 2s——router 暴露当前路由给 scan 轮询）；雷达扫掠（L3-3：特效层 6s/次、opacity ≤0.06、lighter、reduced 关）。
-- smoke v2 接入 A13（双击不产生第三次 browse）。
-- **环境提示**：canvas 特效验收需 Playwright（u22_acc_probe.mjs 可扩展为 u23 版本）；node 测试照旧 `--test-isolation=none` 变体。
+- `js/app/viz/donut.js`：SVG 双弧环（底弧 --border-strong、数据弧 --grad-brand）；入场 sweep 800ms + 中心 count-up（L1-4）；扫描中不确定旋转弧 1.2s；hover 弧段外扩 2px + --glow-sm。
+- storage 卡装配：盘符 chips **只切环形数据不切目录（D15）**；全量扫描自动跟随 status 当前盘，用户手选后本扫描期锁定；「浏览此盘」→ browsePath(root)；图例两行（已使用/可用，▲无、纯静态）；空态/加载态文案按定稿 6.5。
+- ⚠️ 执行时核对 `/api/overview` 实际字段（app.py api_overview 已确认：roots[].total/total_human/index_ready/directory_count/file_count + 每盘 directories/files 前 10——**无「总容量」字段**，环形图以「已使用之环比」或降级「已用排行」形态实现，禁改后端）。
+- snapshot-mini：最近快照条目 +「管理快照」入口 + 空态（N06）；「最近对比」迷你卡（`state.compare.lastSummary`，空态引导文案）。
+- smoke v2 接入 A14（chips 点击不触发 /api/browse）。
+- **环境提示**：overview 探针可复用 u22/u23 模式；node 测试照旧 `--test-isolation=none` 变体。
 
 ## 当前未解决问题
 

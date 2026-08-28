@@ -29,6 +29,12 @@ function easeCss(name) {
     return v || "linear";
 }
 
+/* U2.3：对外导出 token 时长读取（装配层编排 L3-8 全屏 FLIP 等需在组件外引用时长）；
+   语义与内部 durMs 一致：token 缺失/非法 → 0（调用方按需兜底）。 */
+export function motionDur(name) {
+    return durMs(name);
+}
+
 /* ---------- 降级查询 ---------- */
 
 /* prefers-reduced-motion（§3.5 降级总表统一查询点）。 */

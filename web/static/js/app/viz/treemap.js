@@ -1,20 +1,35 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· viz/treemap.js（U2.2）Treemap 渲染器
+   UI 2.0（SpaceLens Pro）· viz/treemap.js（U2.2 建，U2.3 扩展）
    - layoutSquaried(items,x,y,w,h)：Bruls squarified 布局**纯函数**
      （零 DOM，node --test 可测；面积守恒/宽高比/单块/空输入用例见
      scripts/dev/treemap.test.mjs）；
    - createTreemap(host, opts)：双层 canvas 渲染器
-     · 静态层（矩形+文字）与特效层（U2.3 扫掠/粒子预留）分离；
+     · 静态层（矩形+文字）与特效层（U2.3 雷达扫掠/新块光晕）分离；
      · devicePixelRatio 适配；resize rAF 节流（ResizeObserver + window resize）；
      · 标签三级：块高 ≥48px 名称+大小+占比 / 24–48px 仅名称（ellipsis）/
        <24px 无；**>1500 块关闭小标签层（只留 ≥48 层）**；
      · 命中检测：坐标逆序遍历 tiles（后绘的小块在上，命中优先）；
      · tooltip：glass（--card-glass+blur）/ 偏移 (12,12) / 延迟 150ms（token
        --dur-tooltip-delay）/ 视口边界翻转；
-     · L1-1 入场：prev:Map（key → 上一代终帧矩形）插值 + stagger 12ms
-       （≤400ms，token）+ scale .92→1 + fade，600ms（--dur-4）ease-out
-       （--ease-out 控制点经 cubicBezier 求值）；**>1500 块改为整画布
-       交叉淡化 240ms（--dur-page-in）**；reduced-motion 直显终值；
+     · L1-1 入场：stagger 12ms（≤400ms）+ scale .92→1 + fade，600ms（--dur-4）
+       ease-out（--ease-out 控制点经 cubicBezier 求值）；>1500 块整画布
+       240ms（--dur-page-in）交叉淡化；reduced-motion 直显终值；
+     · U2.3：
+       - 动画模式化：setTiles(tiles,{mode:"entry"|"reflow"|"none"})
+         · entry = L1-1 入场（数据到达；全新生长，prev 清空）；
+         · reflow = L3-2/L3-9 lerp 300ms（--dur-treemap-lerp，无 stagger）：
+           旧块位置/尺寸过渡、新块从 0 生长 + fx 层一次性描边光晕；
+         · none = 直绘终帧（回灌/错误恢复）。
+       - 单击/双击判定（300ms，--dur-dblclick）：单击→延迟确认后 onClick；
+         双击→onDblClick 且取消待发单击（用点击时间戳防抖，防误触）。
+       - 下钻 FLIP（L3-1）：click 确认后 flipDrill(tile)——该矩形 450ms
+         ease-inout 放大铺满画布、其余块淡出；数据在 FLIP 完成前到达时
+         挂起（pending 机制），FLIP 完成后按 L1-1 入场。
+       - 返回上级反向播放（L3-1）：zoomOutTo(rect)——当前层整体收缩进目标
+         矩形（450ms ease-inout），完成后新数据入场（同样挂起机制）。
+       - 雷达扫掠（L3-3）：仅扫描中；12% 宽光带从左上到右下，每 6s 一次
+         （--dur-treemap-sweep），单次 1.2s（--dur-treemap-sweep-run），
+         峰值 opacity ≤0.06，composite lighter；reduced 关闭。
      - 纪律：动画只动 canvas 内容（canvas 内例外许可）与整画布 opacity；
        will-change 不用于常驻层；颜色只引用 tokens 变量/调色板；
        ⚠️ 偏差注记：未单设 components/treemap-card.js——本渲染器自包含，
@@ -140,17 +155,24 @@ function durMs(name) {
 function reducedMotion() {
     return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 }
-function easeOutFn() {
-    const m = cssVar("--ease-out").match(/cubic-bezier\(([^)]+)\)/);
+function bezierFromToken(token, fallback) {
+    const m = cssVar(token).match(/cubic-bezier\(([^)]+)\)/);
     const p = m ? m[1].split(",").map((s) => parseFloat(s)) : [];
     if (p.length === 4 && p.every((n) => isFinite(n))) {
         return cubicBezier(p[0], p[1], p[2], p[3]);
     }
-    return (v) => clamp01(v);
+    return fallback;
+}
+function easeOutFn() {
+    return bezierFromToken("--ease-out", (v) => clamp01(v));
+}
+function easeInOutFn() {
+    return bezierFromToken("--ease-inout", (v) => clamp01(v));
 }
 
 export function createTreemap(host, opts = {}) {
     const onClick = typeof opts.onClick === "function" ? opts.onClick : null;
+    const onDblClick = typeof opts.onDblClick === "function" ? opts.onDblClick : null;
     const onHover = typeof opts.onHover === "function" ? opts.onHover : null;
 
     /* ---- 双层 canvas + tooltip（tooltip 挂 body：fixed 定位，逃逸宿主裁剪/透明度） ---- */
@@ -162,7 +184,7 @@ export function createTreemap(host, opts = {}) {
     host.appendChild(staticCanvas);
     host.appendChild(fxCanvas);
     const sctx = staticCanvas.getContext("2d");
-    const fctx = fxCanvas.getContext("2d"); // U2.3 特效层（扫掠/粒子）使用；本阶段不绘
+    const fctx = fxCanvas.getContext("2d"); // U2.3 特效层（扫掠/新块光晕）
 
     const tooltip = document.createElement("div");
     tooltip.className = "treemap-tooltip";
@@ -171,21 +193,31 @@ export function createTreemap(host, opts = {}) {
     document.body.appendChild(tooltip);
 
     /* ---- 状态 ---- */
-    let tiles = [];          // 数据 tile（{key,name,size,pct,color,path,isDir,isOther}）
-    let layout = [];         // 布局结果（含 x,y,w,h；顺序 = 绘制顺序 = 命中逆序基准）
-    let prevFinal = new Map(); // key → 上一代终帧 rect（供 drawFrame 插值；新块缺省从 0 生长）
+    let tiles = [];            // 数据 tile（{key,name,size,pct,color,path,isDir,isOther}）
+    let layout = [];           // 布局结果（含 x,y,w,h；顺序 = 绘制顺序 = 命中逆序基准）
+    let prevFinal = new Map(); // key → 上一代终帧 rect（reflow 插值用；新块缺省从 0 生长）
     let rafId = 0;
-    let animating = false;
+    let animating = false;     // 任何动画进行中（入场/重排/FLIP/收缩）
     let crossfading = false;
     let hoverKey = null;
     let tooltipTimer = 0;
-    let lastCX = 0;          // 最近一次指针坐标（tooltip 显示瞬间按最新坐标定位）
+    let lastCX = 0;            // 最近一次指针坐标（tooltip 显示瞬间按最新坐标定位）
     let lastCY = 0;
     let resizeRaf = 0;
     let destroyed = false;
     let cssW = 0;
     let cssH = 0;
     let dark = document.documentElement.getAttribute("data-theme") === "dark";
+
+    /* U2.3：单击/双击防抖 + 下钻/收缩转场 + 扫描扫掠 */
+    let lastClickT = 0;
+    let clickTimer = 0;
+    let transition = null;     // {type:"drill"|"zoomout"} 转场动画进行中（数据挂起等待）
+    let pending = null;        // {tiles, mode}：转场完成后再应用的新数据
+    let sweepOn = false;
+    let sweepTimer = 0;
+    let sweepRaf = 0;
+    let sweepState = null;
 
     const themeObs = new MutationObserver(() => {
         dark = document.documentElement.getAttribute("data-theme") === "dark";
@@ -345,11 +377,9 @@ export function createTreemap(host, opts = {}) {
         prevFinal = new Map(layout.map((t) => [t.key, { x: t.x, y: t.y, w: t.w, h: t.h }]));
     }
 
-    /* ---- L1-1 入场（drawFrame 插值；prev:Map = 上一代终帧） ---- */
-    function drawFrame(t, e) {
-        const p = prevFinal.get(t.key) || { x: t.x, y: t.y, w: 0, h: 0 }; // 新块从 0 生长
-        const r = { x: lerp(p.x, t.x, e), y: lerp(p.y, t.y, e), w: lerp(p.w, t.w, e), h: lerp(p.h, t.h, e) };
-        paintTile(t, r, e, lerp(0.92, 1, e), false);
+    /* ---- L1-1 入场（drawFrame 插值；全新生长：prev 已清空） ---- */
+    function entryRect(t, e) {
+        return { x: t.x, y: t.y, w: lerp(0, t.w, e), h: lerp(0, t.h, e) };
     }
 
     function startEntry() {
@@ -370,13 +400,63 @@ export function createTreemap(host, opts = {}) {
                 if (p >= 1) {
                     paintTile(t, t, 1, 1, false);
                 } else {
-                    drawFrame(t, ease(clamp01(p)));
+                    const e = ease(clamp01(p));
+                    paintTile(t, entryRect(t, e), e, lerp(0.92, 1, e), false);
                     done = false;
                 }
             }
             if (done) {
                 animating = false;
                 drawFinalFrame(hoverKey !== null); // 收束时恢复命中高亮（动画期间暂停过重绘）
+            } else {
+                rafId = requestAnimationFrame(frame);
+            }
+        };
+        rafId = requestAnimationFrame(frame);
+    }
+
+    /* ---- L3-2/L3-9 重排（lerp 300ms；新块从 0 生长 + fx 一次性描边光晕） ---- */
+    function startReflow() {
+        animating = true;
+        const t0 = performance.now();
+        const dur = durMs("--dur-treemap-lerp"); // 300ms；缺失 → 瞬时
+        const ease = easeOutFn();
+        const newKeys = [];
+        for (const t of layout) if (!prevFinal.has(t.key)) newKeys.push(t.key);
+        const frame = (now) => {
+            if (destroyed) { animating = false; return; }
+            const p = clamp01((now - t0) / dur);
+            const e = ease(p);
+            sctx.clearRect(0, 0, cssW, cssH);
+            let done = p >= 1;
+            for (const t of layout) {
+                const pre = prevFinal.get(t.key);
+                const r = pre
+                    ? { x: lerp(pre.x, t.x, e), y: lerp(pre.y, t.y, e), w: lerp(pre.w, t.w, e), h: lerp(pre.h, t.h, e) }
+                    : { x: t.x, y: t.y, w: lerp(0, t.w, e), h: lerp(0, t.h, e) };
+                paintTile(t, r, 1, 1, false);
+            }
+            // 新块一次性描边光晕（fx 层，随进度衰减，lighter）
+            fctx.clearRect(0, 0, cssW, cssH);
+            if (newKeys.length && !done) {
+                fctx.save();
+                fctx.globalCompositeOperation = "lighter";
+                fctx.strokeStyle = cssVar("--primary") || "#2563eb";
+                fctx.globalAlpha = (1 - e) * 0.5;
+                fctx.lineWidth = 2;
+                fctx.beginPath();
+                for (const t of layout) {
+                    if (newKeys.indexOf(t.key) === -1) continue;
+                    fctx.rect(t.x + GAP / 2 + 1, t.y + GAP / 2 + 1, Math.max(0, t.w - GAP - 2), Math.max(0, t.h - GAP - 2));
+                }
+                fctx.stroke();
+                fctx.restore();
+            } else {
+                fctx.clearRect(0, 0, cssW, cssH);
+            }
+            if (done) {
+                animating = false;
+                drawFinalFrame(hoverKey !== null);
             } else {
                 rafId = requestAnimationFrame(frame);
             }
@@ -402,8 +482,144 @@ export function createTreemap(host, opts = {}) {
                 staticCanvas.style.opacity = "";
                 crossfading = false;
                 animating = false;
+                dispatchPending();
             }, dur + 60);
         });
+    }
+
+    /* ---- U2.3：下钻 FLIP / 返回收缩（450ms ease-inout；数据挂起等转场完成） ---- */
+    function holdDrillTile(tile) {
+        // reduced-motion：直画放大铺满终态（转场直切口径）
+        sctx.clearRect(0, 0, cssW, cssH);
+        paintTile(tile, { x: 0, y: 0, w: cssW, h: cssH }, 1, 1, false);
+    }
+
+    function flipDrill(tile) {
+        if (destroyed || !layout.length) return;
+        const t = layout.find((x) => x.key === tile.key) || tile;
+        if (!t) return;
+        if (reducedMotion()) { holdDrillTile(t); dispatchPending(); return; }
+        transition = { type: "drill" };
+        animating = true;
+        const t0 = performance.now();
+        const dur = durMs("--dur-flip"); // 450ms；缺失 → 瞬时
+        const ease = easeInOutFn();
+        const frame = (now) => {
+            if (destroyed) { transition = null; animating = false; return; }
+            const p = clamp01((now - t0) / dur);
+            const e = ease(p);
+            sctx.clearRect(0, 0, cssW, cssH);
+            const tar = { x: 0, y: 0, w: cssW, h: cssH };
+            paintTile(t, { x: lerp(t.x, tar.x, e), y: lerp(t.y, tar.y, e), w: lerp(t.w, tar.w, e), h: lerp(t.h, tar.h, e) }, 1, 1, false);
+            for (const o of layout) {
+                if (o.key === t.key) continue;
+                paintTile(o, o, 1 - e, 1, false);
+            }
+            if (p < 1) rafId = requestAnimationFrame(frame);
+            else { transition = null; animating = false; dispatchPending(); }
+        };
+        rafId = requestAnimationFrame(frame);
+    }
+
+    function zoomOutTo(rect) {
+        if (destroyed || !layout.length) return;
+        if (reducedMotion()) { dispatchPending(); return; }
+        transition = { type: "zoomout" };
+        animating = true;
+        const t0 = performance.now();
+        const dur = durMs("--dur-flip");
+        const ease = easeInOutFn();
+        const k0 = 1;
+        const k1 = rect.w / cssW;
+        const ox1 = rect.x + rect.w / 2 - (cssW / 2) * k1;
+        const oy1 = rect.y + rect.h / 2 - (cssH / 2) * k1;
+        const frame = (now) => {
+            if (destroyed) { transition = null; animating = false; return; }
+            const p = clamp01((now - t0) / dur);
+            const e = ease(p);
+            const k = lerp(k0, k1, e);
+            const ox = e * ox1; // 初始偏移 0（恒等缩放），终点对齐目标矩形
+            const oy = e * oy1;
+            sctx.clearRect(0, 0, cssW, cssH);
+            sctx.save();
+            sctx.translate(ox, oy);
+            sctx.scale(k, k);
+            for (const t of layout) paintTile(t, t, 1, 1, false);
+            sctx.restore();
+            if (p < 1) rafId = requestAnimationFrame(frame);
+            else { transition = null; animating = false; dispatchPending(); }
+        };
+        rafId = requestAnimationFrame(frame);
+    }
+
+    function cancelTransition() {
+        if (transition) {
+            transition = null;
+            cancelAnim();
+            drawFinalFrame(hoverKey !== null); // 恢复旧层终帧（浏览失败路径）
+        }
+        pending = null;
+    }
+
+    function isTransitioning() { return transition !== null; }
+
+    /* ---- L3-3 雷达扫掠（特效层；仅扫描中；reduced 关） ---- */
+    function setSweep(on) {
+        const want = !!on && !reducedMotion();
+        if (want === sweepOn) return;
+        sweepOn = want;
+        clearTimeout(sweepTimer);
+        sweepTimer = 0;
+        if (!sweepOn) {
+            cancelAnimationFrame(sweepRaf);
+            sweepRaf = 0;
+            sweepState = null;
+            fctx.clearRect(0, 0, cssW, cssH);
+            return;
+        }
+        sweepSchedule();
+    }
+    function sweepSchedule() {
+        clearTimeout(sweepTimer);
+        sweepTimer = setTimeout(() => {
+            sweepTimer = 0;
+            sweepRun();
+        }, durMs("--dur-treemap-sweep")); // 6s 周期；缺失 → 0（立即首轮）
+    }
+    function sweepRun() {
+        if (!sweepOn || destroyed) return;
+        sweepState = { t0: performance.now(), dur: durMs("--dur-treemap-sweep-run") || 1200 };
+        const frame = (now) => {
+            if (!sweepOn || destroyed || sweepState === null) return;
+            const p = clamp01((now - sweepState.t0) / sweepState.dur);
+            drawSweep(p);
+            if (p < 1) sweepRaf = requestAnimationFrame(frame);
+            else {
+                sweepState = null;
+                fctx.clearRect(0, 0, cssW, cssH);
+                sweepSchedule();
+            }
+        };
+        sweepRaf = requestAnimationFrame(frame);
+    }
+    function drawSweep(p) {
+        fctx.clearRect(0, 0, cssW, cssH);
+        // 12% 宽光带沿主对角线从左上到右下；峰值 opacity 0.06；lighter
+        const diag = Math.hypot(cssW, cssH);
+        const bandW = diag * 0.12;
+        const t = -bandW + p * (diag + 2 * bandW);
+        const ang = Math.atan2(cssH, cssW);
+        fctx.save();
+        fctx.globalCompositeOperation = "lighter";
+        fctx.translate(Math.cos(ang) * t, Math.sin(ang) * t);
+        fctx.rotate(ang);
+        const grad = fctx.createLinearGradient(0, -bandW / 2, 0, bandW / 2);
+        grad.addColorStop(0, "rgba(255,255,255,0)");
+        grad.addColorStop(0.5, "rgba(255,255,255,0.06)");
+        grad.addColorStop(1, "rgba(255,255,255,0)");
+        fctx.fillStyle = grad;
+        fctx.fillRect(-diag, -bandW / 2, diag * 2, bandW);
+        fctx.restore();
     }
 
     function cancelAnim() {
@@ -489,16 +705,47 @@ export function createTreemap(host, opts = {}) {
     function onClickCanvas(ev) {
         hideTooltip();
         const t = hitTest(toLocal(ev).x, toLocal(ev).y);
-        if (t && onClick) onClick(t);
+        if (!t) return;
+        // 单击/双击判定：300ms 窗口（--dur-dblclick；token 缺失时按 §3.5 参数回落 300——
+        // 防抖窗口为行为语义，0 会退化为无防抖，与动画「瞬时=直切」的 0 回落不同），
+        // 二次点击取消待发单击（防误触）
+        const win = durMs("--dur-dblclick") || 300;
+        const now = ev.timeStamp || performance.now();
+        if (lastClickT && now - lastClickT <= win) {
+            clearTimeout(clickTimer);
+            clickTimer = 0;
+            lastClickT = 0;
+            if (onDblClick) onDblClick(t);
+            return;
+        }
+        lastClickT = now;
+        clearTimeout(clickTimer);
+        clickTimer = setTimeout(() => {
+            clickTimer = 0;
+            lastClickT = 0;
+            if (onClick) onClick(t);
+        }, win);
     }
 
     staticCanvas.addEventListener("pointermove", onPointerMove);
     staticCanvas.addEventListener("pointerleave", onPointerLeave);
     staticCanvas.addEventListener("click", onClickCanvas);
 
-    /* ---- 对外 ---- */
+    /* ---- 数据流入（模式化：entry / reflow / none） ---- */
+    function dispatchPending() {
+        if (!pending) return;
+        const p = pending;
+        pending = null;
+        setTiles(p.tiles, { mode: p.mode });
+    }
+
     function setTiles(next, opts = {}) {
-        const animate = opts.animate !== false && !reducedMotion();
+        const mode = opts.mode || (opts.animate === false ? "none" : "entry");
+        if (transition) {
+            // 转场（下钻 FLIP/收缩）进行中：数据挂起（不动转场 rAF），完成后再按其模式入场
+            pending = { tiles: (next || []).slice(), mode: mode };
+            return;
+        }
         tiles = (next || []).slice();
         tiles.sort((a, b) => (Number(b.size) || 0) - (Number(a.size) || 0)); // 面积降序（stagger 排名 = 绘制顺序）
         if (!cssW || !cssH) doResize();
@@ -506,12 +753,24 @@ export function createTreemap(host, opts = {}) {
         const geo = layoutSquaried(tiles.map((t) => ({ key: t.key, value: t.size })), 0, 0, cssW, cssH);
         applyLayout(geo);
         cancelAnim();
+        if (mode !== "reflow") prevFinal = new Map(); // entry/none：全新生长（数据到达直入场）
+        const animate = mode !== "none" && !reducedMotion();
         if (!animate || !layout.length) {
             drawFinalFrame(false);
             return;
         }
+        if (mode === "reflow") {
+            startReflow();
+            return;
+        }
         if (layout.length > CROSSFADE_THRESHOLD) crossFadeIn();
         else startEntry();
+    }
+
+    /* 无副作用布局计算（U2.3 条带/反向转场定位用；返回 [{key,x,y,w,h}]） */
+    function computeLayout(items) {
+        if (!cssW || !cssH) return [];
+        return layoutSquaried(items.map((t) => ({ key: t.key, value: t.size })), 0, 0, cssW, cssH);
     }
 
     const api = {
@@ -523,9 +782,24 @@ export function createTreemap(host, opts = {}) {
         hitTest: hitTest,
         getLayout: () => layout,
         getTiles: () => tiles,
-        // U2.1 router 离场暂停挂点：终帧收束 + 停 rAF + 交叉淡化收尾（返回主页后重挂新宿主重建）
+        computeLayout: computeLayout,
+        /* U2.3：转场与扫掠 */
+        flipDrill: flipDrill,
+        zoomOutTo: zoomOutTo,
+        cancelTransition: cancelTransition,
+        isTransitioning: isTransitioning,
+        setSweep: setSweep,
+        /* L2-5 联动方向②（外部行 hover → 本视图高亮对应块；120ms 立即态） */
+        highlightKey: (key) => {
+            hoverKey = key || null;
+            if (!animating) drawFinalFrame(hoverKey !== null);
+        },
+        /* U2.1 router 离场暂停挂点：终帧收束 + 停 rAF + 扫掠/交叉淡化收尾（返回主页后重挂新宿主重建） */
         pause: () => {
             cancelAnim();
+            transition = null;
+            pending = null;
+            setSweep(false);
             if (crossfading) {
                 crossfading = false;
                 staticCanvas.style.transition = "";
@@ -536,6 +810,9 @@ export function createTreemap(host, opts = {}) {
         destroy: () => {
             destroyed = true;
             cancelAnim();
+            clearTimeout(clickTimer);
+            clearTimeout(sweepTimer);
+            cancelAnimationFrame(sweepRaf);
             hideTooltip();
             if (ro) ro.disconnect();
             window.removeEventListener("resize", scheduleResize);

@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>P12 前端零依赖冒烟页 · tests/web/smoke.html</title>
+<!-- U2.3：引入 tokens.css（动效 token 权威值）——treemap 单击/双击防抖窗口、
+     各种动画时长在烟测页按真实 token 运行（否则 token 缺失回落 0，防抖语义退化）。 -->
+<link rel="stylesheet" href="../../web/static/css/tokens.css">
 <style>
   /* U1.3：冒烟脚手架自身也按 App Shell 单屏组织（body 零滚动，面板内滚），
      使 A2「零滚动」断言的度量口径与真实页面一致（逻辑断言不受布局影响）。 */
@@ -235,6 +238,16 @@ async function __runAssertions(list) {
 
 function __assert(cond, message) {
   if (!cond) throw new Error(message || "断言失败");
+}
+
+/* U2.3：条件等待（drill 时序：300ms 双击窗口 + 450ms FLIP + 入场；避免固定等待窗脆断） */
+async function __waitUntil(fn, timeoutMs) {
+  const deadline = Date.now() + (timeoutMs || 3000);
+  while (Date.now() < deadline) {
+    if (fn()) return true;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return fn();
 }
 
 /* ---- 断言注册表（四断言随 W1.4/W2.5/W2.6/W2.1 接入；0 为骨架自检） ---- */
@@ -714,12 +727,14 @@ const ASSERTIONS_V2 = [
         clientY: rect.top + dirTile.y + dirTile.h / 2,
         bubbles: true,
       }));
-      await wait(80);
+      await wait(1000); // U2.3：单击经 300ms 双击窗口确认 → 下钻 FLIP 450ms → 新数据入场
       let browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse");
       __assert(browses.length === 1, "点击目录 tile 应恰 1 次 /api/browse，实际 " + browses.length);
       __assert(browses[0] && browses[0].body && browses[0].body.path === dirTile.path,
                "browse path 应为 " + dirTile.path + "，实际 " + (browses[0] && browses[0].body && browses[0].body.path));
       // ② 响应回来（browseOk：2 目录 + 2 文件）后：文件 tile 点击 0 请求（红线 #11 语义）
+      __assert(await __waitUntil(() => view.getLayout().some((x) => !x.isDir && !x.isOther), 3000),
+               "下钻响应后应出现文件 tile");
       layout = view.getLayout();
       const fileTile = layout.find((t) => !t.isDir && !t.isOther);
       __assert(fileTile, "应存在文件 tile");
@@ -729,13 +744,58 @@ const ASSERTIONS_V2 = [
         clientY: rect.top + fileTile.y + fileTile.h / 2,
         bubbles: true,
       }));
-      await wait(60);
+      await wait(500);
       browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
       __assert(browses === 0, "点击文件 tile 应 0 次 /api/browse，实际 " + browses);
-      // 恢复默认视图（排行），不污染后续断言（A13/A14 于 U2.3/U2.4 接入时位于后方）
+      // 恢复默认视图（排行），不污染后续断言（A13 于 U2.3 接入时位于后方）
       $("btn-view-ranking").click();
       await wait(20);
       __assert(!$("table-wrap").classList.contains("hidden"), "恢复排行后表格容器应可见");
+    } },
+  { id: "A13", name: "U2.3：双击回根防抖（双击恰 1 次 browse 且 path=本级根，不产生下钻的第三次请求）",
+    fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      // 定制一层数据（root=fastDir, parent=D:\）：先钻进去（单层有效状态）
+      const savedRoute = __smoke.routes["POST /api/browse"];
+      __smoke.routes["POST /api/browse"] = {
+        ok: true, root: "D:\\fastDir", parent: "D:\\",
+        directories: [{ name: "fdir", path: "D:\\fastDir\\fdir", is_dir: true, size: 20, size_human: "20 B" }],
+        files: [], total_dirs: 1, total_files: 0,
+      };
+      try {
+        $("btn-view-treemap").click();
+        await wait(60);
+        const view = getTreemapView();
+        __assert(view, "treemap 渲染器应就位");
+        const canvas = view.canvas();
+        const rect = canvas.getBoundingClientRect();
+        const clickAt = (t) => canvas.dispatchEvent(new MouseEvent("click", {
+          clientX: rect.left + t.x + t.w / 2,
+          clientY: rect.top + t.y + t.h / 2,
+          bubbles: true,
+        }));
+        // 第一阶段：单击下钻（fdir）→ 到达 D:\fastDir（有上级，双击回根本条件成立）
+        __smoke.fetchLog.length = 0;
+        clickAt(view.getLayout().find((t) => t.isDir && !t.isOther));
+        await wait(600);
+        __assert(getCurrentPath() === "D:\\fastDir", "下钻后应在 fastDir，实际 " + getCurrentPath());
+        // 第二阶段：双击（间隔 <300ms）→ 取消待发单击、回本级根 D:\ 恰 1 次
+        __smoke.fetchLog.length = 0;
+        const t = view.getLayout().find((x) => x.isDir && !x.isOther);
+        clickAt(t);
+        await wait(120);
+        clickAt(t);
+        await __waitUntil(() => __smoke.fetchLog.filter((e) => e.url === "/api/browse").length >= 1, 2500);
+        const browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse");
+        __assert(browses.length === 1, "双击应恰 1 次 /api/browse（回根），实际 " + browses.length);
+        __assert(browses[0] && browses[0].body && browses[0].body.path === "D:\\",
+                 "双击回根 path 应为 D:\\（本级根），实际 " + (browses[0] && browses[0].body && browses[0].body.path));
+      } finally {
+        if (savedRoute === undefined) delete __smoke.routes["POST /api/browse"];
+        else __smoke.routes["POST /api/browse"] = savedRoute;
+        $("btn-view-ranking").click();
+        await wait(20);
+      }
     } },
 ];
 
