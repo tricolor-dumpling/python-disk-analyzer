@@ -177,7 +177,7 @@ window.fetch = function (url, options) {
 import {
     $, APP_STATE, switchTheme, renderApiError, refreshSnapshots, refreshHealth,
     setStatusForSettingsHealth, undoLastSave, renderEntries, openModal, closeModal,
-    browsePath, getCurrentPath, getSessionsCache, setSessionsCache,
+    browsePath, getCurrentPath, getSessionsCache, setSessionsCache, getTreemapView,
 } from "../../web/static/js/app/main.js";
 import * as __motion from "../../web/static/js/app/motion.js";
 window.__motion = __motion;
@@ -689,6 +689,53 @@ const ASSERTIONS_V2 = [
       } finally {
         el.remove();
       }
+    } },
+  { id: "A12", name: "U2.2：treemap 命中（目录 tile 恰 1 次 browse 且 path 正确；文件 tile 0 请求）",
+    fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      // 进入矩形图视图（默认仍为排行——U2.2 裁决保持默认至 U2.5，此处显式切换）
+      $("btn-view-treemap").click();
+      await wait(60);
+      const view = getTreemapView();
+      __assert(view, "treemap 渲染器应已创建（getTreemapView 非空）");
+      __assert(!$("treemap-wrap").hasAttribute("hidden"), "treemap 容器应可见");
+      __assert($("table-wrap").classList.contains("hidden"), "排行/表格容器应隐藏");
+      let layout = view.getLayout();
+      __assert(layout.length >= 1, "应已有 tile 布局，实际 " + layout.length);
+      const canvas = view.canvas();
+      const rect = canvas.getBoundingClientRect();
+      __assert(rect.width > 0 && rect.height > 0, "canvas 应有非零尺寸（" + rect.width + "×" + rect.height + "）");
+      // ① 目录 tile：恰 1 次 /api/browse 且 path 正确
+      const dirTile = layout.find((t) => t.isDir && !t.isOther);
+      __assert(dirTile, "应存在目录 tile");
+      __smoke.fetchLog.length = 0;
+      canvas.dispatchEvent(new MouseEvent("click", {
+        clientX: rect.left + dirTile.x + dirTile.w / 2,
+        clientY: rect.top + dirTile.y + dirTile.h / 2,
+        bubbles: true,
+      }));
+      await wait(80);
+      let browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse");
+      __assert(browses.length === 1, "点击目录 tile 应恰 1 次 /api/browse，实际 " + browses.length);
+      __assert(browses[0] && browses[0].body && browses[0].body.path === dirTile.path,
+               "browse path 应为 " + dirTile.path + "，实际 " + (browses[0] && browses[0].body && browses[0].body.path));
+      // ② 响应回来（browseOk：2 目录 + 2 文件）后：文件 tile 点击 0 请求（红线 #11 语义）
+      layout = view.getLayout();
+      const fileTile = layout.find((t) => !t.isDir && !t.isOther);
+      __assert(fileTile, "应存在文件 tile");
+      __smoke.fetchLog.length = 0;
+      canvas.dispatchEvent(new MouseEvent("click", {
+        clientX: rect.left + fileTile.x + fileTile.w / 2,
+        clientY: rect.top + fileTile.y + fileTile.h / 2,
+        bubbles: true,
+      }));
+      await wait(60);
+      browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
+      __assert(browses === 0, "点击文件 tile 应 0 次 /api/browse，实际 " + browses);
+      // 恢复默认视图（排行），不污染后续断言（A13/A14 于 U2.3/U2.4 接入时位于后方）
+      $("btn-view-ranking").click();
+      await wait(20);
+      __assert(!$("table-wrap").classList.contains("hidden"), "恢复排行后表格容器应可见");
     } },
 ];
 

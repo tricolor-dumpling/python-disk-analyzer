@@ -18,6 +18,7 @@ import {
     bindWorkspace, renderEntries, browsePath,
     getCurrentRoot, getCurrentPath, getLastRoots, setCurrentRoot, applyLastRoots,
     renderWorkspace, unmountWorkspace, restoreWorkspaceView,
+    getTreemapView, getTreemapTiles, setMergeTop, renderTreemapFromState,
 } from "./pages/workspace.js";
 import { evaluateEnvGate, refreshHealth, bindTopbar, bindWorkspaceGuide } from "./components/topbar.js";
 import { pollFullscan, setAutoSaveSetting, undoLastSave, bindScan, applyScanView } from "./components/scan.js";
@@ -104,10 +105,12 @@ start();
 
 /* ================= smoke 页导入面（行为等价；选择器不变因 id 未变） =================
    按需导出：旧全局写法（window.switchTheme 等）改为显式导入；smoke 断言经
-   访问器读取/恢复状态（getSessionsCache/setSessionsCache、getCurrentPath）。 */
+   访问器读取/恢复状态（getSessionsCache/setSessionsCache、getCurrentPath）。
+   U2.2：treemap 访问器（A12 命中断言 + 附录B 1000 块基准控制台桥）。 */
 export {
     $, APP_STATE, switchTheme,
     renderApiError, refreshSnapshots, refreshHealth, setStatusForSettingsHealth,
     undoLastSave, renderEntries, openModal, closeModal, browsePath,
     getCurrentPath, getSessionsCache, setSessionsCache,
+    getTreemapView, getTreemapTiles, setMergeTop, renderTreemapFromState,
 };

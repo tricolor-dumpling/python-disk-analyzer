@@ -1,6 +1,6 @@
 /* ============================================================
    UI 2.0（SpaceLens Pro）· style.css 分区重构（U1.3）
-   分区顺序：base / layout / topbar / cards / list / overlays / motion
+   分区顺序：base / layout / topbar / cards / list / treemap / overlays / motion
    - 色值一律引用 tokens.css（本文件 hex 出现次数 = 基线 51 只减不增，
      U1.3 重构后目标为 0；rgba() 等函数色不受色值门禁约束）；
    - 旧规则逐条迁移或删除（删除清单见《开发执行手册》U1.3 执行记录）；
@@ -355,6 +355,32 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .empty-state .icon{width:34px;height:34px;color:var(--faint)}
 .empty-state b{color:var(--text)}
 .empty-state p{margin:0;max-width:420px}
+
+/* ============================================================ */
+/* treemap：矩形图视图（U2.2；hex=0，颜色一律 tokens 引用）      */
+/* ============================================================ */
+
+.treemap-wrap{
+  flex:1;min-width:0;position:relative;
+  border:1px solid var(--border);border-radius:var(--radius-md);
+  background:var(--card);overflow:hidden;
+}
+/* nav-tabs 坑：display 规则会覆盖 [hidden] 属性（作者样式 > UA），显式关闭 */
+.treemap-wrap[hidden]{display:none!important}
+.treemap-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.treemap-fx{pointer-events:none}
+/* Tooltip（§4.3：玻璃底 blur 12 / 圆角 10 / shadow-lg；fixed 定位由 JS 计算含边界翻转） */
+.treemap-tooltip{
+  position:fixed;z-index:1200;max-width:300px;padding:8px 12px;
+  background:var(--card-glass);backdrop-filter:blur(12px);
+  border:1px solid var(--border);border-radius:var(--radius-ctl);
+  box-shadow:var(--shadow-lg);color:var(--text);font-size:var(--fs-sm);
+  white-space:nowrap;pointer-events:none;
+}
+.treemap-tooltip[hidden]{display:none!important}
+.treemap-tooltip .tt-name{display:block;font-weight:600;margin-bottom:2px}
+.treemap-tooltip .tt-line{font-variant-numeric:var(--font-num)}
+.treemap-tooltip .tt-hint{margin-top:4px;color:var(--muted);font-size:var(--fs-xs)}
 
 /* ============================================================ */
 /* overlays：弹窗族 / toast / 命令面板位                       */

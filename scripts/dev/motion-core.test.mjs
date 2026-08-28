@@ -17,6 +17,7 @@ import {
     clamp01,
     formatElapsed,
     fnv1a,
+    cubicBezier,
 } from "../../web/static/js/app/motion-core.js";
 
 test("lerp 两端：t=0 精确等于 a、t=1 精确等于 b", () => {
@@ -79,4 +80,32 @@ test("fnv1a 异名异色：不同目录名给出不同哈希（% 10 亦不同，
 /* easeSpring 常量与 tokens.css --ease-spring 镜像一致性（U1.2 §设计 提及） */
 test("easeSpring 常量：4 控制点且与 --ease-spring 镜像一致", () => {
     assert.deepEqual(easeSpring, [0.34, 1.56, 0.64, 1]);
+});
+
+/* cubicBezier（U2.2 增补：treemap L1-1 入场缓动 = tokens.css --ease-out 求值器） */
+test("cubicBezier 端点精确：沿 --ease-out 镜像 (.16,1,.3,1) 求值 0→0、1→1", () => {
+    const e = cubicBezier(0.16, 1, 0.3, 1);
+    assert.equal(e(0), 0);
+    assert.equal(e(1), 1);
+    assert.equal(e(-0.5), 0); // 越界归端
+    assert.equal(e(1.5), 1);
+});
+
+test("cubicBezier 单调性与 ease-out 形态：(.16,1,.3,1) 中间值先快后缓", () => {
+    const e = cubicBezier(0.16, 1, 0.3, 1);
+    let prev = -1;
+    for (let i = 0; i <= 20; i++) {
+        const v = e(i / 20);
+        assert.ok(v >= prev - 1e-9, "必须单调不减，i=" + i + " v=" + v);
+        assert.ok(v >= 0 - 1e-9 && v <= 1 + 1e-9, "输出必须 ∈ [0,1]");
+        prev = v;
+    }
+    assert.ok(e(0.5) > 0.5 && e(0.5) < 1, "ease-out 在中点应已过半（前快），实际 " + e(0.5));
+});
+
+test("cubicBezier 线性镜像：cubic-bezier(0,0,1,1) 为恒等映射", () => {
+    const l = cubicBezier(0, 0, 1, 1);
+    assert.ok(Math.abs(l(0.25) - 0.25) < 1e-3);
+    assert.ok(Math.abs(l(0.5) - 0.5) < 1e-3);
+    assert.ok(Math.abs(l(0.8) - 0.8) < 1e-3);
 });

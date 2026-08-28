@@ -1,13 +1,45 @@
 # UI 2.0 开发状态与续作指引
 
-更新时间：2026-08-26（U2.1 完成会话修订，用于换机续作）
+更新时间：2026-08-26（U2.2 完成会话修订，用于换机续作）
 
 ## 当前状态
 
 - **分支**：`ui2.0`（已推送 GitHub origin，换机后 `git checkout ui2.0` 即可续作）；`main` 未动，仍是 P12 归档完成线。
-- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) →（本次：U2.1 路由与三页面）。
-- **进度**：U1.0-U1.3、U2.0、**U2.1 全部完成**（实现 + 验收 ①-③）；**下一步 = U2.2（Treemap 渲染器：vz/treemap.js + palette.js + components/treemap-card）**。
-- 验收用 Flask(5000)/静态服务(8771) 已停止；工作区仅 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》三个已知未跟踪项。
+- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) → `ffee6d1`(U2.1) →（本次：U2.2 Treemap 渲染器）。
+- **进度**：U1.0-U1.3、U2.0、U2.1、**U2.2 全部完成**（实现 + 验收 ①-④）；**下一步 = U2.3（Treemap 交互与特效：下钻 FLIP/双击回根/hover 联动/迷你条带/全屏/扫描实时生长/雷达扫掠）**。
+- 验收用 Flask(5000)/静态服务(8771) 由本次会话启动，会话结束时仍在运行（勿复用前需先查端口残留）；工作区仅 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》三个已知未跟踪项。
+
+## 本次会话完成内容：U2.2 Treemap 渲染器（viz/treemap.js + palette.js）
+
+验收口径与结果（详细记录在《docs/UI2.0_开发执行手册.md》头部 U2.2 执行记录）：
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| 布局纯函数 | ✅ | `layoutSquaried`（Bruls：worst 判定 + 竖/横条行布局，与论文算例 6×4 逐项核对） |
+| 双层 canvas 渲染器 | ✅ | 静态层矩形+三级标签 / 特效层预留 U2.3 / DPR / resize rAF 节流 / 命中逆序 |
+| L1-1 入场 | ✅ | prev:Map 插值 + stagger 12ms≤400ms + scale .92→1 + fade 600ms（--ease-out 经 cubicBezier 求值）>1500 块整画布 240ms 交叉淡化；reduced 直显 |
+| tooltip 全规格 | ✅ | glass+blur12 / (12,12) / 150ms 延迟 / 边界翻转 / 内容=名称·大小·占比·点击下钻 |
+| 取色 | ✅ | palette.js：fnv1a%10 十色 +「其他」#64748b |
+| 数据接入 | ✅ | children→tiles + mergeTop（24）外并入「其他」；browse 字段核对= name/path/is_dir/size/size_human |
+| 默认视图裁决 | ✅ | **保持「排行」默认至 U2.5**（A4/A5/A6 红线；定稿 N01 默认由 U2.5 接管）——保证不强改断言 |
+| smoke v2 / legacy | **13/13** / **7/7** ✅ | A12 实装（目录 tile 恰 1 次 browse+path 正确；文件 tile 0 请求） |
+| node / hex / unittest | **20/20** / **0** / **260 OK** ✅ | treemap.test.mjs 8 用例 + cubicBezier 3 用例；P13 挂账首轮复现一次复跑即绿（未触碰 snapshots.py） |
+| 验收②真实目录 | ✅ | u22_acc_probe：55 目录真实渲染、配色、其他块、mergeTop 计数 |
+| 验收③ tooltip | ✅ | 150ms/内容/glass/12,12/翻转 全过 |
+| 验收④ 1000 块 | ✅ | 入场 P95 + hover 横扫 P95 均 ≤20ms（≥50fps） |
+| 视觉多模态 | ✅ | 亮/暗/1920/窄屏四截图目检合格（标签三级/配色/其他灰块/工具提示） |
+| Console / 零滚动 | **0** / 两档 ✅ | pageerror=console=[]；1366×768 与 1920×1080 scrollHeight≤innerHeight+1 |
+| 切页不丢（treemap） | ✅ | 下钻后路由往返：视图选择 + 数据 + 路径均保持（自查修复见注记） |
+
+**验收工具（已入库）**：`scripts/dev/u22_acc_probe.mjs`（②③④⑤ 全量 + 截图）、`u22_smoke_probe.mjs`（双 suite 快速门禁）；u13/u20/u21 探针继续可用。
+
+**本次实施注记（下一会话须知）**：
+1. **treemap 渲染器自包含于 viz/treemap.js**（未单设 components/treemap-card.js，§3.1 表为设计占位）——`createTreemap(host,{onClick,onHover})` 返回 `{canvas,fx,setTiles,hitTest,getLayout,getTiles,pause,destroy,…}`；workspace 经 `ensureTreemap` 懒创建，**宿主随路由卸载失连时先 destroy 再重建**（防 RO/观察器/窗口监听跨路由泄漏），unmount 仅 pause。
+2. **smoke 脚手架无 tokens.css**：treemap 时长 token 缺失回落 0（瞬时完成）——与 motion.js `durMs()||0` 惯例一致；真实页按 token 全参数（A12 依赖瞬时性，勿回归）。
+3. **默认视图裁决已写入偏差注记③**：U2.5 切换默认视图时须同时迁移 A4/A5/A6 的渲染前提（排行行），或先核销三断言为视图无关语义。
+4. **本轮自查修复**：a) `renderEntries` 顶部先记 `APP_STATE.lastBrowseData`（原排行路径记账在 treemap 早退之后→下钻后缓存陈旧，切页不丢/回灌失真）；b) `bindWorkspace` 视图切换改「应用当前视图状态」（原强制 ranking，路由返回丢视图选择）；c) tooltip「边界翻转」按画布右下角实测；d) 布局函数首版面积/几何错误已重写（以论文算例 GToolkit 逐项断言校准）。
+5. **当前目录无文件时的 smoke 断言**：A12 的文件 tile 0 请求分支依赖样本 browseOk（含 2 文件），真实页 u22_acc_probe 遇 0 文件目录自动跳过——样本驱动断言不受目录环境影响。
+6. **Flask 5000 与静态 8771 本会话仍在运行**：续作前先查端口残留（`Get-NetTCPConnection -LocalPort 5000,8771 -State Listen`），避免旧模板/PID 事故重演。
 
 ## 本次会话完成内容：U2.1 hash 路由与三页面装配
 
@@ -161,17 +193,15 @@
 - smoke：脚手架 = App Shell 结构（与真实页共用页面模板）；**A3 实装**。
 - 验收：v2 **12/12** + legacy 7/7 + 转场 120+240=360ms 口径（实测 144ms 换装）+ 切页不丢（探针）+ Console 0 + 三页视觉目检合格 + API 序列内容+顺序完全一致。
 
-## 下一步：U2.2（Treemap 渲染器：viz/treemap.js + palette.js）
+## 下一步：U2.3（Treemap 交互与特效）
 
-按手册 §U2.2 全节执行（前置 U2.1）：
+按手册 §U2.3 全节执行（前置 U2.2）：
 
-- `js/app/viz/treemap.js`：**squarified 布局纯函数**（Bruls 算法 ~40 行；`layoutSquaried(items,x,y,w,h)`，node --test 可测：面积守恒/宽高比上界/单块/空输入）+ 双层 canvas 渲染（静态层矩形+文字；DPR 适配；resize rAF 节流）+ 标签三级（≥48px 名称+大小+占比 / 24-48px 仅名称 / <24px 无；>1500 块关闭小标签层且入场改整画布交叉淡化 240ms）+ 命中检测（坐标逆序遍历 tiles）+ tooltip（玻璃底/偏移 12,12/延迟 150ms/边界翻转）。
-- `js/app/palette.js`：FNV-1a 取色（U1.2 fnv1a 已备，`%10`）+「其他」固定 `#64748b`。
-- 数据接入：`/api/browse` children → `tiles=[{key:path,name,size,pct,color}]`；mergeTop（state.view.mergeTop）外并入「其他」；⚠️ 执行时核对 browse 字段名并记偏差注记。
-- 工作台视图区：L1-1 入场（drawFrame 插值，`prev:Map` 机制）；视图工具栏「矩形图」按钮接替默认视图（**⚠️ 默认视图从排行切为 treemap——v2 断言 A4/A5/A6 基于排行行渲染，需同步适配或保排行默认到 U2.5**，执行时与手册裁决）。
-- smoke v2 接入 A12（点击 tile 恰 1 次 browse 且 path 正确）。
-- 验收：①布局数学用例全绿；②真实目录渲染标签/配色/「其他」正确；③tooltip 全规格；④1000 块入场与 hover ≥50fps（附录B）。
-- **环境提示**：canvas 相关验收需要 Playwright（沙箱已具备）；node 测试照旧 `--test-isolation=none` 变体。
+- 下钻 FLIP（记录点击矩形→450ms ease-inout 放大铺满→新数据 L1-1 入场）；双击回本级根（300ms 内防误触）；Backspace 上级。
+- hover 双向联动（L2-5：列表行 data-path ↔ tile.key，120ms，scrollIntoView(nearest)）；迷你条带（L3-7，上级 browse 缓存；盘根隐藏）；全屏（L3-8，Esc 退出）；合并阈值 −/+ 接线（L3-9，`setMergeTop` 已备）。
+- 扫描实时生长（L3-2：500ms 增量重排 lerp 300ms；子页面降频 2s——router 暴露当前路由给 scan 轮询）；雷达扫掠（L3-3：特效层 6s/次、opacity ≤0.06、lighter、reduced 关）。
+- smoke v2 接入 A13（双击不产生第三次 browse）。
+- **环境提示**：canvas 特效验收需 Playwright（u22_acc_probe.mjs 可扩展为 u23 版本）；node 测试照旧 `--test-isolation=none` 变体。
 
 ## 当前未解决问题
 

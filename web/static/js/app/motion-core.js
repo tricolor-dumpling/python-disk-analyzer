@@ -60,3 +60,38 @@ export function fnv1a(str) {
     }
     return h >>> 0;
 }
+
+/* CSS cubic-bezier(x1,y1,x2,y2) 的 JS 求值器（U2.2，treemap L1-1 入场缓动用）。
+   - 纯函数、零 DOM：node --test 可测；浏览器侧与 CSS 的 `--ease-*` token 同源
+     （treemap.js 运行时读出 token 控制点字符串传入本函数）；
+   - 返回 f(p)：p∈[0,1] 时间进度 → 输出进度；端点精确 0/1；
+   - 求解 t 使 x(t)=p：8 轮 Newton + 二分兜底（x 非单调控制点时仍收敛）。 */
+export function cubicBezier(x1, y1, x2, y2) {
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+    const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
+    const sampleY = (t) => ((ay * t + by) * t + cy) * t;
+    const sampleDX = (t) => (3 * ax * t + 2 * bx) * t + cx;
+    const solveX = (x) => {
+        if (x <= 0) return 0;
+        if (x >= 1) return 1;
+        let t = x;
+        for (let i = 0; i < 8; i++) {
+            const err = sampleX(t) - x;
+            if (Math.abs(err) < 1e-6) return t;
+            const d = sampleDX(t);
+            if (Math.abs(d) < 1e-6) break;
+            t -= err / d;
+        }
+        let lo = 0, hi = 1;
+        t = x;
+        while (hi - lo > 1e-6) {
+            const err = sampleX(t) - x;
+            if (Math.abs(err) < 1e-6) break;
+            if (err > 0) hi = t; else lo = t;
+            t = (lo + hi) / 2;
+        }
+        return t;
+    };
+    return (p) => sampleY(solveX(clamp01(p)));
+}

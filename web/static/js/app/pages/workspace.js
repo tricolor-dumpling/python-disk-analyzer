@@ -5,12 +5,24 @@
    - ⚠️ 偏差注记：映射表既定「browse-chart 与 renderComposition 删除（D12）」
      本项落地——renderComposition 函数及其 2 处调用移除（U1.3 已用 CSS 隐藏过渡，
      视觉无变化；Treemap 由 U2.2 承接）；
+   - U2.2：视图区接入 treemap（viz/treemap.js 渲染器 + palette.js 取色）：
+     · 数据接入 = /api/browse 响应 children（directories+files）→ tiles
+       [{key:path,name,size,pct,color,path,isDir,isOther}]；
+       ⚠️ 偏差注记：browse 实际字段 = name/path/is_dir/size/size_human
+       （app.py api_browse 核对确认；手册「children」表述为数据结构语义）；
+     · state.view.mergeTop（默认 24）之外的项并入「其他」（fixed color）；
+     · ⚠️ 裁决：默认视图保持「排行」至 U2.5（v2-A4/A5/A6 断言基于排行行渲染，
+       不可静默破坏；定稿 N01「默认矩形图」由 U2.5 三视图框架统一切换时接管）；
+     · hit 回调：仅目录块（isDir && !isOther）触发 browsePath——文件块 0 请求
+       （红线 #11 在 treemap 语义下同样成立，smoke A12 双向断言）。
    - 跨模块可变状态经导出访问器读写（模块化拆分导出 setter/getter，行为等价）。
    ============================================================ */
 
-import { $, esc, postJson } from "../api.js";
+import { $, esc, postJson, humanBytes } from "../api.js";
 import { ICONS } from "../icons.js";
 import { APP_STATE } from "../state.js";
+import { createTreemap } from "../viz/treemap.js";
+import { colorFor, OTHER_COLOR } from "../palette.js";
 import { toast } from "../components/toast.js";
 import { setStatus } from "../components/statusbar.js";
 import { renderApiError } from "../components/feedback.js";
@@ -153,6 +165,108 @@ function setBrowseLoading(loading, text) {
 
 let browseView = "ranking";
 let compactDensity = false;
+let treemapView = null; // U2.2：treemap 渲染器实例（宿主随路由重建；失连自动重建）
+
+/* ================= U2.2：treemap 数据接入与视图切换 ================= */
+
+/* browse 响应 → tiles（children 无总量字段，占比按本次条目之和归一；
+   mergeTop（state.view.mergeTop，默认 24）之外的项并入「其他」固定色块）。 */
+function buildTiles(data) {
+    const raw = (data.directories || []).concat(data.files || []);
+    const mergeTop = Math.max(1, Number(APP_STATE.view.mergeTop) || 24);
+    const sorted = raw.slice().sort((a, b) => (Number(b.size) || 0) - (Number(a.size) || 0));
+    const total = sorted.reduce((s, e) => s + (Number(e.size) || 0), 0);
+    const tiles = sorted.slice(0, mergeTop).map((e) => {
+        const size = Number(e.size) || 0;
+        return {
+            key: e.path, path: e.path, name: e.name,
+            size: size, pct: total ? size / total : 0,
+            isDir: !!e.is_dir, isOther: false,
+            color: colorFor(e.name), sizeHuman: e.size_human || humanBytes(size),
+        };
+    });
+    const rest = sorted.slice(mergeTop);
+    if (rest.length) {
+        const size = rest.reduce((s, e) => s + (Number(e.size) || 0), 0);
+        tiles.push({
+            key: "…其他…", path: null, name: "其他",
+            size: size, pct: total ? size / total : 0,
+            isDir: false, isOther: true,
+            color: OTHER_COLOR, sizeHuman: humanBytes(size),
+        });
+    }
+    return tiles;
+}
+
+function ensureTreemap() {
+    if (treemapView && treemapView.host.isConnected) return treemapView;
+    if (treemapView) {
+        // 宿主已随路由卸载：销毁旧实例（解除 RO/主题观察器/窗口监听，防跨路由泄漏）
+        try { treemapView.destroy(); } catch (e) { /* 销毁失败不阻断重建 */ }
+        treemapView = null;
+    }
+    const host = $("treemap-wrap");
+    if (!host) return null;
+    treemapView = createTreemap(host, {
+        onClick: (tile) => {
+            // 命中回调：仅目录块下钻（文件块 0 请求 = 红线 #11；合并块无单一语义）
+            if (tile && tile.isDir && !tile.isOther) browsePath(tile.path);
+        },
+        onHover: (tile) => { APP_STATE.treemap.hoverKey = tile ? tile.key : null; },
+    });
+    return treemapView;
+}
+
+function renderTreemap(data, animate) {
+    const tiles = buildTiles(data);
+    APP_STATE.treemap.tiles = tiles;
+    const view = ensureTreemap();
+    if (view) view.setTiles(tiles, { animate: animate !== false });
+    setStatus(
+        "browse-status",
+        "ok",
+        "矩形图视图 · 共 " + data.total_dirs + " 个子目录 / " + data.total_files + " 个文件"
+    );
+}
+
+/* 视图切换（排行/表格/矩形图三态；矩形图激活时表格隐藏、treemap 容器显示；
+   L1-1 入场由 setTiles 播；从 treemap 切走时暂停 rAF 省电）。 */
+function setBrowseView(mode) {
+    browseView = mode;
+    $("btn-view-treemap").classList.toggle("btn-primary", mode === "treemap");
+    $("btn-view-ranking").classList.toggle("btn-primary", mode === "ranking");
+    $("btn-view-table").classList.toggle("btn-primary", mode === "table");
+    const wrap = $("treemap-wrap");
+    if (wrap) {
+        if (mode === "treemap") {
+            wrap.removeAttribute("hidden");
+            if (APP_STATE.lastBrowseData) renderTreemap(APP_STATE.lastBrowseData);
+        } else {
+            wrap.setAttribute("hidden", "");
+            const v = getTreemapView();
+            if (v) v.pause();
+        }
+    }
+    const tableWrap = $("table-wrap");
+    if (tableWrap) tableWrap.classList.toggle("hidden", mode === "treemap");
+    if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
+}
+
+export function getTreemapView() { return treemapView; }
+export function getTreemapTiles() { return APP_STATE.treemap.tiles; }
+
+/* U2.3 合并阈值 −/+ 接线口：调整 mergeTop 后按 L3-9 走 prev:Map lerp 重排。 */
+export function setMergeTop(n) {
+    const v = Math.max(1, Math.floor(Number(n) || 1));
+    APP_STATE.view.mergeTop = v;
+    if (APP_STATE.lastBrowseData && browseView === "treemap") renderTreemap(APP_STATE.lastBrowseData);
+}
+
+/* 附录B 基准桥：注入 state.treemap.tiles（1000 块 mock）后调本函数触发重绘。 */
+export function renderTreemapFromState() {
+    const view = ensureTreemap();
+    if (view) view.setTiles(APP_STATE.treemap.tiles || [], { animate: true });
+}
 
 function filteredEntries(data) {
     const query = ($("browse-filter") && $("browse-filter").value || "").trim().toLowerCase();
@@ -168,8 +282,14 @@ function filteredEntries(data) {
 export function renderEntries(data) {
     const body = $("dir-body");
     if (!body) return; // U2.1：子页面时列表不在 DOM（防迟到响应/重置路径）
+    APP_STATE.lastBrowseData = data; // 先记账（treemap 视图下钻时同样生效——切页不丢/视图回灌依赖）
+    if (browseView === "treemap") {
+        // U2.2：矩形图视图——数据 → tiles（mergeTop 合并）→ L1-1 入场；
+        // 筛选/排序行属排行/表格视图（定稿 F10），矩形图按组成渲染全部子项。
+        renderTreemap(data);
+        return;
+    }
     body.classList.toggle("compact-list", compactDensity);
-    APP_STATE.lastBrowseData = data;
     const entries = filteredEntries(data);
     // P12·W2.5-H：筛选空态——原始条目非空但被筛选清空时给出统一空态＋一键清除
     const rawCount = (data.directories || []).length + (data.files || []).length;
@@ -389,11 +509,12 @@ async function updateRecentRoots(root, quiet) {
 
 /* 本组件在 init 期的绑定（顺序等价：原 bind() 的视图工具栏/浏览/行内委托段） */
 export function bindWorkspace() {
-    // 视图切换与密度（N10 工具栏位沿用；U2.5 扩展多选等）
-    $("btn-view-ranking").classList.add("btn-primary");
-    $("btn-view-table").classList.remove("btn-primary");
-    $("btn-view-ranking").addEventListener("click", () => { browseView = "ranking"; $("btn-view-ranking").classList.add("btn-primary"); $("btn-view-table").classList.remove("btn-primary"); if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData); });
-    $("btn-view-table").addEventListener("click", () => { browseView = "table"; $("btn-view-table").classList.add("btn-primary"); $("btn-view-ranking").classList.remove("btn-primary"); if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData); });
+    // 视图切换与密度（N10 工具栏位；U2.2 接入矩形图三态；U2.5 扩展多选等）。
+    // 应用**当前**视图状态：首挂 = ranking；路由返回时保持用户选择（切页不丢）。
+    setBrowseView(browseView);
+    $("btn-view-treemap").addEventListener("click", () => setBrowseView("treemap"));
+    $("btn-view-ranking").addEventListener("click", () => setBrowseView("ranking"));
+    $("btn-view-table").addEventListener("click", () => setBrowseView("table"));
     $("btn-density").addEventListener("click", () => { compactDensity = !compactDensity; $("btn-density").setAttribute("aria-pressed", String(compactDensity)); $("btn-density").textContent = compactDensity ? "舒适列表" : "紧凑列表"; if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData); });
     ["browse-filter", "browse-kind", "browse-sort"].forEach((id) => $(id).addEventListener("input", () => { if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData); }));
 
@@ -467,8 +588,9 @@ const WORKSPACE_HTML =
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>' +
     '返回上级</button>' +
     '</div>' +
-    '<!-- [N10] 视图工具栏位：三视图切换 + 合并阈值 −/+ + 全屏（U2.3/U2.5 扩展；现有两按钮+密度） -->' +
+    '<!-- [N10] 视图工具栏位：三视图切换（U2.2 矩形图/排行/表格；合并阈值 −/+ 与全屏 U2.3 扩展） -->' +
     '<div class="view-toolbar" aria-label="视图切换与密度">' +
+    '<button id="btn-view-treemap" class="btn btn-sm" title="矩形图视图（新）">矩形图</button>' +
     '<button id="btn-view-ranking" class="btn btn-sm btn-primary">排行</button>' +
     '<button id="btn-view-table" class="btn btn-sm">表格</button>' +
     '<button id="btn-density" class="btn btn-sm" aria-pressed="false">紧凑列表</button>' +
@@ -494,12 +616,17 @@ const WORKSPACE_HTML =
     '<span><button id="btn-browse-retry" class="btn btn-sm">重试</button></span></div>' +
 
     '<!-- 视图区（flex:1；面板内滚） -->' +
-    '<div class="view-area" id="view-area"><div class="table-wrap">' +
+    '<div class="view-area" id="view-area">' +
+    '<div class="table-wrap" id="table-wrap">' +
     '<div id="browse-loading" class="loading-overlay hidden">' +
     '<svg class="spinner spinner-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.56"/></svg>' +
     '<span id="browse-loading-text">正在扫描目录，请稍候…</span></div>' +
     '<table class="dir-table" aria-label="当前目录内容"><thead><tr><th>名称</th><th class="col-size">大小</th><th class="col-share">占比</th><th class="col-type">类型</th></tr></thead>' +
-    '<tbody id="dir-body"></tbody></table></div></div>' +
+    '<tbody id="dir-body"></tbody></table>' +
+    '</div>' +
+    '<!-- [N01] 矩形图视图（U2.2：viz/treemap.js 双层 canvas 渲染器 + tooltip） -->' +
+    '<div class="treemap-wrap" id="treemap-wrap" hidden aria-label="目录空间矩形图"></div>' +
+    '</div>' +
 
     '<!-- [N09] 迷你条带位（视图区底部 48px，U2.3 装配 treemap 上级上下文） -->' +
     '<div class="strip-slot" data-slot="minimap" hidden></div>' +
@@ -585,17 +712,21 @@ export function renderWorkspace() {
     return frag;
 }
 
-/* 页面契约：unmount()——本阶段无归本页的 rAF/轮询（扫描轮询属全局模块，见文件头注记） */
+/* 页面契约：unmount()——U2.2 起停 treemap rAF（离场不空转；
+   扫描轮询属全局模块，见文件头注记；宿主随路由卸载，返回时重建）。 */
 export function unmountWorkspace() {
-    /* 预留：U2.3 treemap rAF 离场暂停挂点 */
+    const v = getTreemapView();
+    if (v) v.pause();
 }
 
 /* U2.1：路由返回时的视图恢复——模块级状态回灌新 DOM（切页不丢的完整语义：
-   状态与显示均保持；browse 数据用缓存 (lastBrowseData)，不重复发请求）。 */
+   状态与显示均保持；browse 数据用缓存 (lastBrowseData)，不重复发请求）。
+   U2.2：treemap 视图回灌不经入场动画（数据未重新到达，直绘终帧）。 */
 export function restoreWorkspaceView() {
     if (!APP_STATE.lastBrowseData) return;
     const rootInput = $("browse-root");
     if (rootInput) rootInput.value = getCurrentRoot();
     renderBreadcrumb(getCurrentPath(), browseParent);
-    renderEntries(APP_STATE.lastBrowseData);
+    if (browseView === "treemap") renderTreemap(APP_STATE.lastBrowseData, false);
+    else renderEntries(APP_STATE.lastBrowseData);
 }
