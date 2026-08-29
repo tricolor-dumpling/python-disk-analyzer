@@ -14,6 +14,7 @@ import { switchTheme } from "./theme.js";
 import { createRouter } from "./router.js";
 import { loadGuide, bindOnboarding } from "./components/onboarding.js";
 import { refreshOverview, bindOverview } from "./components/storage.js";
+import { bindSnapshotMini, renderCompareMini } from "./components/snapshot-mini.js";
 import {
     bindWorkspace, renderEntries, browsePath,
     getCurrentRoot, getCurrentPath, getLastRoots, setCurrentRoot, applyLastRoots,
@@ -47,9 +48,11 @@ function mountWorkspacePage() {
     bindWorkspace();
     bindScan();
     bindCompare();
+    bindSnapshotMini();   // U2.4：管理快照/全部会话折叠/最近对比入口
+    renderCompareMini();  // U2.4：最近对比迷你卡（state.compare.lastSummary 回灌）
     bindWorkspaceGuide();
     if (_workspaceMountedOnce) refreshOverview();
-    applySnapshotsView();     // 快照列表/基线下拉回灌
+    applySnapshotsView();     // 快照列表/基线下拉回灌（含 N06 迷你条目）
     applyScanView();          // 扫描卡最近状态回灌
     restoreWorkspaceView();   // 浏览视图回灌（缓存渲染，不重发请求）
     _workspaceMountedOnce = true;

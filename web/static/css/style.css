@@ -194,7 +194,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .step{display:flex;gap:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card)}
 .step-num{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--primary-soft);color:var(--primary);font-weight:700;flex:none}
 
-/* 空间概览卡（U2.4 升级为环形图，此处保留数据单元卡片骨架） */
+/* 存储概览卡（U2.4 环形图卡：viz/donut.js + chips 图例 + 浏览此盘；
+   旧「目录占用排行」条形列表已被环形图+chips 取代（F05），死规则已删） */
 .overview-panel{
   padding:14px 16px;border:1px solid var(--primary-border);border-radius:var(--radius-card);
   background:var(--card-glass);box-shadow:var(--shadow-md);
@@ -202,30 +203,98 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .overview-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .overview-head h2{margin:0;font-size:var(--fs-xl)}
 .overview-head p{margin:2px 0 0;color:var(--muted);font-size:var(--fs-xs)}
-.overview-roots{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+.overview-roots{display:block;margin-top:12px}
+.overview-roots-donut{min-height:180px}
 .overview-empty{
   display:flex;flex-direction:column;gap:4px;padding:20px;text-align:center;color:var(--muted);
   border:1px dashed var(--border-strong);border-radius:var(--radius-ctl);
 }
 .overview-empty b{color:var(--text);font-size:var(--fs-md)}
-.root-summary{padding:14px;border:1px solid var(--border);border-radius:var(--radius-ctl);background:var(--card-soft)}
-.root-summary header{display:flex;align-items:center;justify-content:space-between}
-.root-total{margin:8px 0;font-size:var(--fs-2xl);font-weight:700;font-variant-numeric:var(--font-num)}
-.root-meta{font-size:11px;color:var(--muted);margin-bottom:10px}
-.chart-title{margin-bottom:6px;font-size:var(--fs-xs);color:var(--muted)}
-.overview-bars{display:flex;flex-direction:column;gap:6px}
-.overview-bar{
-  min-height:36px;display:grid;grid-template-columns:minmax(70px,1fr) minmax(60px,1.5fr) auto;
-  align-items:center;gap:7px;border:0;background:transparent;text-align:left;color:var(--text);
-  cursor:pointer;padding:2px 0;font:inherit;
+.overview-open{margin-top:10px;width:100%}
+
+/* ---------- 环形图（viz/donut.js；L3-4 参数 token 化见 tokens.css U2.4 增补） ---------- */
+.storage-row{display:flex;align-items:center;gap:14px;margin-top:12px}
+.donut-host{flex:none}
+.donut-box{position:relative;width:160px;height:160px}
+.donut-svg{display:block;width:100%;height:100%}
+.donut-track{fill:none;stroke:var(--border-strong);stroke-width:10}
+.donut-arc-g{
+  transform-box:fill-box;transform-origin:center;
+  transition:transform var(--dur-2) var(--ease-out); /* 仅 transform 过渡（hover 外扩） */
 }
-.overview-bar:hover,.overview-bar:focus-visible{background:var(--primary-soft);box-shadow:inset 3px 0 var(--primary)}
-.overview-bar:hover .overview-bar-label{color:var(--primary)}
-.overview-bar-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.overview-track{height:7px;background:var(--track);border-radius:999px;overflow:hidden}
-.overview-track i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--brand-soft),var(--primary));transition:width .45s ease}
-.overview-bar strong{font-size:11px;white-space:nowrap;font-variant-numeric:var(--font-num)}
-.overview-open{margin-top:10px}
+.donut-arc{fill:none;stroke:url(#pds-donut-grad);stroke-width:10;stroke-linecap:round}
+.donut-grad-from{stop-color:var(--grad-brand-from)}
+.donut-grad-to{stop-color:var(--grad-brand-to)}
+/* hover 弧段外扩 ≈2px（r=52 显示半径随档位 48–69px，scale 1.035 居中带内近似；
+   光晕为静态 filter 状态变化（--glow-drop-sm，暗色有效/亮色 none），不参与过渡） */
+.donut-box.is-hover .donut-arc-g{transform:scale(1.035);filter:var(--glow-drop-sm)}
+/* 不确定弧（扫描中 22% 弧段旋转 1.2s：仅 transform；reduced 见 motion 区） */
+.donut-indet{display:none;fill:none;stroke:url(#pds-donut-grad);stroke-width:10;stroke-linecap:round}
+.donut-box.is-indet .donut-indet{
+  display:block;transform-box:fill-box;transform-origin:center;will-change:transform;
+  animation:donut-spin var(--dur-donut-indeterminate,1200ms) linear infinite;
+}
+.donut-box.is-indet .donut-arc-g{display:none}
+.donut-center{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;pointer-events:none;text-align:center;
+}
+.donut-value{font-size:var(--fs-lg);font-weight:700;line-height:1.15;font-variant-numeric:var(--font-num)}
+.donut-sub{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-xs);color:var(--muted)}
+/* 图例两行（已使用 / 全部盘累计——「可用」因后端无总容量字段降级，见 storage.js 注记） */
+.donut-legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.donut-legend-row{display:flex;flex-direction:column;gap:2px;min-width:0}
+.donut-legend-label{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.donut-legend-value{font-size:var(--fs-md);font-weight:600;font-variant-numeric:var(--font-num);white-space:nowrap}
+.donut-legend-value em{font-style:normal;font-weight:400;font-size:var(--fs-xs);color:var(--muted);margin-left:4px}
+.donut-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.donut-dot-used{background:var(--grad-brand)}
+.donut-dot-all{background:var(--border-strong)}
+.donut-legend-scan{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
+.overview-chips{margin-top:12px}
+.chip.is-active{border-color:var(--primary);background:var(--primary-soft);color:var(--primary);font-weight:600}
+
+/* ---------- [N06] 快照迷你卡（U2.4；components/snapshot-mini.js） ---------- */
+.snapshot-mini-card .card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.snapshot-mini-entry{margin-top:4px}
+.snapshot-mini-item{
+  width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);
+  border-radius:var(--radius-ctl);background:var(--card-soft);color:var(--text);cursor:pointer;
+  text-align:left;font:inherit;
+}
+.snapshot-mini-item:hover,.snapshot-mini-item:focus-visible{border-color:var(--primary);background:var(--primary-soft)}
+.snapshot-mini-item:hover strong{color:var(--primary)}
+.snapshot-mini-icon{color:var(--faint);flex:none}
+.snapshot-mini-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.snapshot-mini-info strong{font-size:var(--fs-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snapshot-mini-sub{font-size:var(--fs-xs);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snapshot-mini-empty{display:flex;flex-direction:column;gap:2px;padding:2px 2px 8px;color:var(--muted)}
+.snapshot-mini-empty b{color:var(--text);font-size:var(--fs-sm)}
+.snapshot-mini-empty span{font-size:var(--fs-xs)}
+.snapshot-mini-tools{margin:8px 0 0}
+.snapshot-mini-tools[hidden]{display:none!important}
+.snapshot-mini-list[hidden]{display:none!important}
+.snapshot-mini-list{margin-top:2px}
+
+/* ---------- 「最近对比」迷你卡（U2.4；state.compare.lastSummary） ---------- */
+.compare-mini-card .card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.compare-mini-body{margin-top:4px}
+.compare-mini-item,.compare-mini-empty{
+  width:100%;display:flex;flex-direction:column;gap:4px;padding:8px 10px;border:1px solid var(--border);
+  border-radius:var(--radius-ctl);background:var(--card-soft);color:var(--text);cursor:pointer;
+  text-align:left;font:inherit;
+}
+.compare-mini-item:hover,.compare-mini-item:focus-visible{border-color:var(--primary);background:var(--primary-soft)}
+.compare-mini-empty b{font-size:var(--fs-sm)}
+.compare-mini-empty span{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
+.compare-mini-line{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
+.compare-mini-label{font-size:var(--fs-xs);color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compare-mini-delta{font-size:var(--fs-md);font-weight:700;font-variant-numeric:var(--font-num);white-space:nowrap}
+.compare-mini-delta.grow{color:var(--up)}
+.compare-mini-delta.shrink{color:var(--down)}
+.compare-mini-delta.flat{color:var(--muted)}
+.compare-mini-at{font-size:var(--fs-xs);color:var(--faint);white-space:nowrap}
+
 
 /* 扫描卡（进度条 L2-3 效果层由 U3.2 接入，此处保留结构） */
 .progress-wrap{display:flex;align-items:center;gap:10px;margin:10px 0 4px}
@@ -459,6 +528,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 @keyframes stripes{to{background-position:22px 0}}
 @keyframes fade-in{from{opacity:0}}
 @keyframes modal-in{from{transform:translateY(10px);opacity:0}}
+/* U2.4：环形图扫描中不确定弧旋转（仅 transform；reduced 经全局降级规则静止） */
+@keyframes donut-spin{to{transform:rotate(360deg)}}
 /* 未就绪/错误态徽章呼吸（就绪 badge-ok 静止；P12·W3.4 DEF-027） */
 @keyframes badge-breathe{0%,100%{opacity:1}50%{opacity:.72}}
 .badge:hover{filter:brightness(.95)}
@@ -494,9 +565,14 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   .card-sub{display:none} /* 定稿 3.3：紧凑档隐藏副标题 */
   .snapshot-list{max-height:200px}
   .session-item{padding:8px 10px}
-  .overview-roots{gap:8px;margin-top:8px}
-  .root-summary{padding:10px}
-  .root-total{font-size:var(--fs-xl)}
+  .overview-roots{margin-top:8px}
+  .overview-roots-donut{min-height:140px}
+  .storage-row{margin-top:8px}
+  .donut-box{width:112px;height:112px} /* 定稿 3.3：环形图直径 160→112px */
+  .donut-value{font-size:var(--fs-md)}
+  .donut-legend{gap:6px}
+  .snapshot-mini-sub{display:none} /* 定稿 3.3：迷你卡折叠为单行（图标+快照名+按钮） */
+  .snapshot-mini-item{padding:6px 10px}
   .statusbar{font-size:11px}
 }
 
@@ -517,7 +593,6 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   .overview-head{align-items:flex-start}
   .overview-actions{width:100%}
   .overview-actions .btn{width:100%}
-  .overview-roots{grid-template-columns:1fr}
   .statusbar{height:auto;padding:6px 14px;flex-wrap:wrap}
   .topbar{padding:0 14px}
   .brand-sub{display:none}

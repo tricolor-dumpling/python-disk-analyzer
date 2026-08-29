@@ -113,7 +113,18 @@ const SAMPLES = {
   compareReport: { ok: true, report: { root: "D:\\", total_baseline: 16000, total_current: 15990, delta_total: -10, truncated: false, legacy_count: 0, rows: [ { path: "D:\\data", baseline: 12000, current: 11990, delta: -10, growth_pct: -0.0833, removed: false, added: false } ] } },
   /* 错误双形态（RT-N04）：旧 {ok,error} 与 新 {ok,error,detail,code} */
   errorLegacyShape: { ok: false, error: "路径不存在: X:\\nope" },
-  errorTypedShape: { ok: false, error: "无法连接 Everything（未运行或权限不足）", code: 2, detail: "Session 0 服务态或未启动" }
+  errorTypedShape: { ok: false, error: "无法连接 Everything（未运行或权限不足）", code: 2, detail: "Session 0 服务态或未启动" },
+  /* U2.4：/api/overview 真实形态样本（app.py api_overview 核对：无总容量字段
+     → 环形=已使用之环比（选中盘/全部盘累计）；键集合照抄后端勿简造） */
+  overviewOk: { ok: true, ready: true, roots: [
+    { root: "C:\\", total: 1200000, total_human: "1.14 MB", index_ready: true, index_valid: true,
+      directories: [{ name: "Windows", path: "C:\\Windows", size: 900000, size_human: "879.11 KB" }],
+      files: [], directory_count: 100, file_count: 1000, record_count: 1100, completed_at: "2026-08-28T10:00:00" },
+    { root: "D:\\", total: 4800000, total_human: "4.58 MB", index_ready: true, index_valid: true,
+      directories: [{ name: "data", path: "D:\\data", size: 3000000, size_human: "2.86 MB" }],
+      files: [], directory_count: 200, file_count: 2000, record_count: 2200, completed_at: "2026-08-28T10:00:00" }
+  ], completed_at: "2026-08-28T10:00:00" },
+  overviewEmpty: { ok: true, ready: false, scanning: false, empty_reason: "no_scan", roots: [] }
 };
 
 /* ---- fetch 打桩 + 调用计数器 ---- */
@@ -159,7 +170,7 @@ window.fetch = function (url, options) {
     if (key === "POST /api/save") return __stubResponse({ ok: true, message: "保存完成", session: SAMPLES.snapshotsList.sessions[0], session_file: "C:\\fake\\session.json", skipped: false });
     if (key === "POST /api/save/undo") return __stubResponse({ ok: true, message: "已撤销最近一次保存", session_id: "s-1", deleted: [], undeleted: [] });
     if (key === "POST /api/compare") return __stubResponse(SAMPLES.compareReport);
-    if (key === "GET /api/overview") return __stubResponse({ ok: true, ready: false, scanning: false, empty_reason: "no_scan", roots: [] });
+    if (key === "GET /api/overview") return __stubResponse(SAMPLES.overviewOk);
     // 缺省：旧形态错误（渲染器必须容忍无 code/detail）
     return __stubResponse(SAMPLES.errorLegacyShape, 400);
   };
@@ -796,6 +807,41 @@ const ASSERTIONS_V2 = [
         $("btn-view-ranking").click();
         await wait(20);
       }
+    } },
+  { id: "A14", name: "U2.4：存储 chips 语义——chips 点击只切环形数据不触发 /api/browse（D15）；「浏览此盘」恰 1 次 browse 且 path=所选盘",
+    fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      // 默认 stub = overviewOk（双盘），启动链已渲染存储卡；条件等待 chips 就位
+      const ready = await __waitUntil(() => document.querySelectorAll("#overview-chips .chip").length >= 2, 3000);
+      __assert(ready, "存储卡应渲染至少 2 个盘符 chips");
+      const chips = Array.from(document.querySelectorAll("#overview-chips .chip"));
+      const arc = document.querySelector("#overview-donut .donut-arc");
+      const sub = document.querySelector("#overview-donut .donut-sub");
+      const legendVal = document.querySelector("#overview-legend .donut-legend-value");
+      const d = chips[1].getAttribute("data-root");
+      __assert(chips[0].classList.contains("is-active"), "默认应激活第 1 个盘（首根）");
+      const legendBefore = legendVal.textContent;
+      // D15：chips 点击 → 0 次 /api/browse；环形/中心/图例切到所选盘（不重建目录）
+      __smoke.fetchLog.length = 0;
+      chips[1].click();
+      await __waitUntil(() => chips[1].classList.contains("is-active"), 1500);
+      const browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
+      __assert(browses === 0, "点击存储 chip 应 0 次 /api/browse（D15），实际 " + browses);
+      __assert(sub.textContent === d, "环形图中心副行应切为 " + d + "，实际「" + sub.textContent + "」");
+      const legendAfter = document.querySelector("#overview-legend .donut-legend-value");
+      __assert(legendAfter && legendAfter.textContent !== legendBefore, "图例「已使用」应随所选盘变化");
+      await wait(900); // sweep 终帧（--dur-donut-sweep 800ms 权威值）
+      const dash = parseFloat(getComputedStyle(arc).strokeDasharray) || 0;
+      const expect = 2 * Math.PI * 52 * (4800000 / (1200000 + 4800000)); // D 盘环比 80%
+      __assert(Math.abs(dash - expect) < 4, "D 盘弧长应 ≈ " + expect.toFixed(1) + "（环比 80%），实际 " + dash.toFixed(1));
+      // 「浏览此盘」= 唯一跳转浏览入口：恰 1 次 browse 且 path=所选盘
+      __smoke.fetchLog.length = 0;
+      $("btn-overview-browse").click();
+      await __waitUntil(() => __smoke.fetchLog.filter((e) => e.url === "/api/browse").length >= 1, 2500);
+      const browses2 = __smoke.fetchLog.filter((e) => e.url === "/api/browse");
+      __assert(browses2.length === 1, "「浏览此盘」应恰 1 次 /api/browse，实际 " + browses2.length);
+      __assert(browses2[0] && browses2[0].body && browses2[0].body.path === d,
+               "「浏览此盘」path 应为 " + d + "，实际 " + (browses2[0] && browses2[0].body && browses2[0].body.path));
     } },
 ];
 

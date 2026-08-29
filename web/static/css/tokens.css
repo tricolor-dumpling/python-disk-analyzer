@@ -18,6 +18,9 @@
      雷达扫掠周期 6s 与单次 1.2s）。同增补规则——§3.5 索引表参数为验收口径，token 化防魔法数 */
   --dur-dblclick:300ms; --dur-fullscreen:300ms; --dur-treemap-lerp:300ms;
   --dur-treemap-sweep:6000ms; --dur-treemap-sweep-run:1200ms;
+  /* U2.4 增补：L3-4 环形图专用时长（入场 sweep 800ms ease-inout / 扫描中不确定弧旋转 1.2s）。
+     同增补规则——§3.5 索引表参数为验收口径，token 化防魔法数 */
+  --dur-donut-sweep:800ms; --dur-donut-indeterminate:1200ms;
   --ease-out:cubic-bezier(.16,1,.3,1); --ease-spring:cubic-bezier(.34,1.56,.64,1); --ease-inout:cubic-bezier(.65,0,.35,1);
   --radius-card:16px; --radius-ctl:10px; --radius-chip:999px;
   --font-num:tabular-nums;
@@ -45,6 +48,12 @@
   --card-soft:rgba(248,250,252,.8);
   --grow-orange:#f97316;
   --veil:rgba(15,23,42,.35); /* U2.3：全屏背景压暗层（L3-8） */
+  /* U2.4 增补：--grad-brand 的两端色标镜像（SVG <stop> 无法消费 linear-gradient() 复合值，
+     donut 数据弧描边需逐 stop 取色；色值与上方 --grad-brand 逐字一致，勿单独改） */
+  --grad-brand-from:#6366f1; --grad-brand-to:#3b82f6;
+  /* U2.4 增补：SVG 弧段 hover 光晕（--glow-sm 为 box-shadow 形态，SVG 需 filter 形态；
+     亮色与 --glow-sm 同为无光晕） */
+  --glow-drop-sm:none;
 }
 :root[data-theme="dark"]{
   --bg:#0b1020; --bg-aurora-1:rgba(124,92,255,.08); --bg-aurora-2:rgba(56,189,248,.06);
@@ -69,4 +78,8 @@
   --card-soft:rgba(255,255,255,.045);
   --grow-orange:#fb923c;
   --veil:rgba(0,0,0,.5); /* U2.3：全屏背景压暗层（L3-8，暗色加深） */
+  /* U2.4 增补：--grad-brand 暗色端点镜像（同亮色注记） */
+  --grad-brand-from:#7c5cff; --grad-brand-to:#4f8cff;
+  /* U2.4 增补：暗色 hover 光晕（与 --glow-sm 同参数的 filter 形态） */
+  --glow-drop-sm:drop-shadow(0 0 12px rgba(124,92,255,.25));
 }

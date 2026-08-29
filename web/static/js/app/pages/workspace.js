@@ -29,6 +29,12 @@
      · L2-5 双向联动（事件委托数据层：tile hover → 列表行高亮+scrollIntoView；
        行 hover → hoverKey——⚠️ 偏差：§3.2 布局中列表与矩形图为互斥视图，双侧
        联动机制已就位，待 U2.5 三视图框架或双栏形态显式激活后可见生效）。
+   - U2.4：右栏三处装配——存储概览卡改环形图卡（viz/donut.js + 盘符 chips D15 +
+     图例 + 浏览此盘；渲染逻辑在 components/storage.js，本模板只留骨架）；
+     历史快照卡升级 N06 迷你卡形态（最近一份 + 管理快照入口 + 空态 + 全部会话
+     折叠区，渲染在 components/snapshot-mini.js，ids 全保留）；新增「最近对比」
+     迷你卡（state.compare.lastSummary，compare.js 对比成功后写入）。
+     旧「历史对比」卡保留至 U3.4（#/compare 占位页接管前为唯一对比功能入口）。
    - 跨模块可变状态经导出访问器读写（模块化拆分导出 setter/getter，行为等价）。
    ============================================================ */
 
@@ -866,11 +872,11 @@ const WORKSPACE_HTML =
     '<!-- 右栏 300px（§3.2；面板内滚允许） -->' +
     '<aside class="side-rail" id="side-rail">' +
 
-    '<!-- 空间概览（U2.4 升级为环形图卡，此处保留数据单元骨架） -->' +
-    '<section id="overview-panel" class="overview-panel" aria-label="空间概览" aria-live="polite" role="region">' +
-    '<div class="overview-head"><div><h2>空间概览</h2><p id="overview-meta">完成全量扫描后显示索引空间分布</p></div>' +
-    '<div class="overview-actions"><button id="btn-overview-refresh" class="btn btn-sm">刷新概览</button></div></div>' +
-    '<div id="overview-roots" class="overview-roots"><div class="overview-empty">暂无概览数据</div></div>' +
+    '<!-- [N04] 存储概览卡（U2.4 环形图卡：viz/donut.js + 盘符 chips（D15 只切环形数据不切目录）+ 图例 + 「浏览此盘」唯一跳转入口；数据源不变 /api/overview；无总容量字段 → 环形=已使用之环比降级，见 components/storage.js 注记） -->' +
+    '<section id="overview-panel" class="overview-panel" aria-label="存储概览" aria-live="polite" role="region">' +
+    '<div class="overview-head"><div><h2>存储概览</h2><p id="overview-meta">完成全量扫描后显示索引空间分布</p></div>' +
+    '<div class="overview-actions"><button id="btn-overview-refresh" class="btn btn-sm">刷新</button></div></div>' +
+    '<div id="overview-roots" class="overview-roots overview-roots-donut"><div class="overview-empty">暂无概览数据</div></div>' +
     '</section>' +
 
     '<!-- 扫描控制卡（U3.2 状态机扩展，此处保留结构与全部行为） -->' +
@@ -897,20 +903,22 @@ const WORKSPACE_HTML =
     '<button id="btn-save-later" class="btn btn-sm">暂不保存</button></div></div>' +
     '</section>' +
 
-    '<!-- 快照卡（U2.4 升级迷你卡，此处保留历史列表结构与行为） -->' +
-    '<section class="card" aria-label="历史快照">' +
+    '<!-- [N06] 快照迷你卡（U2.4：最近一份 + 「管理快照」入口 + 空态；条目点击=与上一份对比。过渡期保留：刷新/撤销（legacy 门禁 + U3.3 前功能）与「全部会话」折叠区（完整列表 U3.3 子页面接管前唯一入口，默认收起），ids 与行为不变，见 components/snapshot-mini.js 注记） -->' +
+    '<section class="card snapshot-mini-card" aria-label="快照">' +
     '<div class="card-head"><h2>' +
     '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>' +
-    '历史快照</h2><p class="card-sub">保存的扫描结果</p></div>' +
-    '<div class="row">' +
-    '<button id="btn-refresh-snapshots" class="btn">' +
+    '快照</h2><button id="btn-manage-snapshots" class="btn btn-sm">管理快照</button></div>' +
+    '<div id="snapshot-mini-entry" class="snapshot-mini-entry"><div class="snapshot-mini-empty"><b>正在加载快照…</b></div></div>' +
+    '<div class="row snapshot-mini-tools" id="snapshot-mini-tools" hidden>' +
+    '<button id="btn-refresh-snapshots" class="btn btn-sm" title="重新加载快照列表">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>' +
-    '刷新历史</button>' +
-    '<button id="btn-undo-save" class="btn" disabled title="删除最近一次保存的快照文件与清单（无快照时不可用）">' +
+    '刷新</button>' +
+    '<button id="btn-undo-save" class="btn btn-sm" disabled title="删除最近一次保存的快照文件与清单（无快照时不可用）">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3.5 13a9 9 0 1 0 2-9.3L3 7"/></svg>' +
-    '撤销最近保存</button></div>' +
+    '撤销最近保存</button>' +
+    '<button id="btn-snapshot-expand" class="btn btn-sm" aria-expanded="false">全部会话</button></div>' +
     '<div id="snapshot-status" class="status-line"><span class="dot"></span><span id="snapshot-status-text">正在加载历史快照…</span></div>' +
-    '<ul id="snapshot-list" class="snapshot-list"></ul>' +
+    '<div id="snapshot-mini-list" class="snapshot-mini-list" hidden><ul id="snapshot-list" class="snapshot-list"></ul></div>' +
     '</section>' +
 
     '<!-- 历史对比（U3.4 迁 #/compare 子页面，主页仅留「最近对比」迷你入口） -->' +
@@ -931,6 +939,14 @@ const WORKSPACE_HTML =
     '<div class="table-wrap"><table class="dir-table compare-table">' +
     '<thead><tr><th style="width:110px">变化</th><th style="width:90px">增速</th><th>路径</th><th style="width:60px">操作</th></tr></thead>' +
     '<tbody id="compare-body"></tbody></table></div></div>' +
+    '</section>' +
+
+    '<!-- [U2.4] 最近对比迷你卡（state.compare.lastSummary + 空态引导；点击跳 #/compare。旧「历史对比」卡保留至 U3.4 迁子页面（#/compare 现为占位页，此刻移除=功能回归），届时本卡成为主页唯一对比入口） -->' +
+    '<section class="card compare-mini-card" aria-label="最近对比">' +
+    '<div class="card-head"><h2>' +
+    '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-6 4 3 5-7"/></svg>' +
+    '最近对比</h2><button id="btn-compare-mini-go" class="btn btn-sm">去对比</button></div>' +
+    '<div id="compare-mini-body" class="compare-mini-body"></div>' +
     '</section>' +
     '</aside>';
 

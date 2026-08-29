@@ -208,7 +208,12 @@ const WAIT_FN = `(fn, timeout) => new Promise((resolve) => {
         const backOk = await page.evaluate(async (WAIT) => {
             const m = await import("/static/js/app/main.js");
             return eval("(" + WAIT + ")")(
-                () => m.getCurrentPath() === "D:\\" && m.getTreemapView().getTiles().length > 0,
+                // ⚠️ 时序修正（U2.4 会话发现）：须同时等转场收束——否则条件会在
+                // 反向播放未完成（画布仍显示子层块、tiles=子层数）时提前通过
+                () => m.getCurrentPath() === "D:\\" &&
+                    m.getTreemapView().getTiles().length > 0 &&
+                    !m.getTreemapView().isAnimating() &&
+                    !m.getTreemapView().isTransitioning(),
                 15000
             );
         }, WAIT_FN);

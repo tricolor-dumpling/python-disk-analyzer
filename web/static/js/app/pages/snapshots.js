@@ -9,6 +9,7 @@ import { $, api, esc } from "../api.js";
 import { ICONS } from "../icons.js";
 import { setStatus } from "../components/statusbar.js";
 import { skipReasonText } from "../labels.js";
+import { renderSnapshotMini } from "../components/snapshot-mini.js"; // U2.4：N06 迷你条目
 
 let sessionsCache = [];
 
@@ -29,6 +30,7 @@ export async function refreshSnapshots() {
         const undo = $("btn-undo-save");
         if (undo) undo.disabled = !sessionsCache.length;
         renderSnapshotList(sessionsCache);
+        renderSnapshotMini(sessionsCache); // U2.4：迷你卡最近一份 + 工具行/折叠区显隐
         rebuildBaselineSuggest(sessionsCache);
         setStatus("snapshot-status", "", "共 " + sessionsCache.length + " 个快照会话");
     } catch (e) {
@@ -121,6 +123,7 @@ export function applySnapshotsView() {
     const undo = $("btn-undo-save");
     if (undo) undo.disabled = !sessionsCache.length;
     renderSnapshotList(sessionsCache);
+    renderSnapshotMini(sessionsCache); // U2.4：回挂回灌迷你条目/工具行/折叠区
     rebuildBaselineSuggest(sessionsCache);
     setStatus("snapshot-status", "", "共 " + sessionsCache.length + " 个快照会话");
 }

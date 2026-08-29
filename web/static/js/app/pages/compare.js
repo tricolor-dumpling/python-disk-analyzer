@@ -6,12 +6,14 @@
 
 import { $, postJson, humanBytes, signedBytes, esc } from "../api.js";
 import { ICONS } from "../icons.js";
+import { APP_STATE } from "../state.js"; // U2.4：最近对比迷你卡数据源（U3.4 消费）
 import { setStatus } from "../components/statusbar.js";
 import { toast } from "../components/toast.js";
 import { confirmDialog } from "../components/modals.js";
 import { browsePath, copyPath, getCurrentRoot, getCurrentPath, setCurrentRoot } from "./workspace.js";
 import { getSessionsCache, normRoot } from "./snapshots.js";
 import { pollFullscan } from "../components/scan.js";
+import { renderCompareMini } from "../components/snapshot-mini.js"; // U2.4：最近对比迷你卡
 
 function deltaClass(v) {
     if (v > 0) return "grow";
@@ -47,6 +49,18 @@ export async function compareSnapshots(allowOtherMachine) {
             allow_other_machine: !!allowOtherMachine, // P12·W2.13 二次提交放行
         });
         renderCompareResult(data.report);
+        // U2.4：最近对比迷你卡数据源（compare.js 对比成功后写入；U3.4 对比工作台/迷你卡
+        // 点击预填的消费方）。additive，不改既有渲染路径。
+        APP_STATE.compare.lastSummary = {
+            baseline: baseline,
+            root: getCurrentRoot() || getCurrentPath(),
+            totalBaseline: Number(data.report.total_baseline) || 0,
+            totalCurrent: Number(data.report.total_current) || 0,
+            delta: Number(data.report.delta_total) || 0,
+            at: Date.now(),
+            atText: new Date().toLocaleString(),
+        };
+        renderCompareMini();
     } catch (e) {
         // P12·W2.13：异机基线 → 红字确认后二次提交携带 allow 字段
         if (e && e.code === "machine_mismatch") {
