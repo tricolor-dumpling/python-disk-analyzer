@@ -169,7 +169,7 @@ const SAMPLES = {
   browseFast: { ok: true, root: "D:\\fastDir", parent: null,
     directories: [{ name: "fdir", path: "D:\\fastDir\\fdir", is_dir: true, size: 20, size_human: "20 B" }],
     files: [], total_dirs: 1, total_files: 0 },
-  fullscanStatusIdle: { ok: true, status: { running: false, roots: ["C:\\"], roots_done: 0, roots_total: 1, current_root: null, error: null, result_ready: false, save_ready: false, progress_pct: 0, scan_version: 1 } },
+  fullscanStatusIdle: { ok: true, status: { running: false, roots: ["C:\\"], roots_done: 0, roots_total: 1, current_root: null, error: null, result_ready: false, save_ready: false, progress_pct: 0, scan_version: 1, stop_requested: false, stop_reason: null } },
   snapshotsList: { ok: true, sessions: [ { session_id: "s-20260824-000000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T10:00:00", roots: { "D:\\": { root: "D:\\", snapshot: "D_20260824_100000_explicit_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260824_100000_explicit_aabbccd.snap.gz", skipped: false } } } ], count: 1 },
   compareReport: { ok: true, report: { root: "D:\\", total_baseline: 16000, total_current: 15990, delta_total: -10, truncated: false, legacy_count: 0, rows: [ { path: "D:\\data", baseline: 12000, current: 11990, delta: -10, growth_pct: -0.0833, removed: false, added: false } ] } },
   /* 错误双形态（RT-N04）：旧 {ok,error} 与 新 {ok,error,detail,code} */
@@ -232,6 +232,10 @@ window.fetch = function (url, options) {
     if (key === "POST /api/save/undo") return __stubResponse({ ok: true, message: "已撤销最近一次保存", session_id: "s-1", deleted: [], undeleted: [] });
     if (key === "POST /api/compare") return __stubResponse(SAMPLES.compareReport);
     if (key === "GET /api/overview") return __stubResponse(SAMPLES.overviewOk);
+    /* U3.2：停止接口（D10）——默认按「后端已上线」形态（OPTIONS 探测 200）；
+       A16 覆写 OPTIONS→404 验证特性检测隐藏停止按钮 */
+    if (key === "OPTIONS /api/fullscan/stop") return __stubResponse({ ok: true }, 200);
+    if (key === "POST /api/fullscan/stop") return __stubResponse({ ok: true, stopped: false, status: SAMPLES.fullscanStatusIdle.status });
     // 缺省：旧形态错误（渲染器必须容忍无 code/detail）
     return __stubResponse(SAMPLES.errorLegacyShape, 400);
   };
@@ -253,6 +257,7 @@ import {
     $, APP_STATE, switchTheme, renderApiError, refreshHealth,
     setStatusForSettingsHealth, renderEntries, openModal, closeModal,
     browsePath, getCurrentPath, getTreemapView, openPalette,
+    probeStopSupport,
 } from "../../web/static/js/app/main.js";
 import * as __motion from "../../web/static/js/app/motion.js";
 window.__motion = __motion;
@@ -828,6 +833,92 @@ const ASSERTIONS_V2 = [
       $("btn-view-treemap").click();
       await wait(20);
       __assert(await __waitUntil(() => $("table-wrap").classList.contains("hidden"), 1500), "应恢复默认矩形图");
+    } },
+  { id: "A16", name: "U3.2：扫描控制卡与停止接口——404 特性检测隐藏停止按钮；扫描中态（停止按钮/计时/chips 三态）；停止→中止态（toast 文案/保存可用/无 K7 重复提示）",
+    fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const realFetch = window.fetch;
+      /* U3.2：脚本化状态机（参考 u31/u25 桩模式）——status 按脚本化状态返回：
+         abortedFlag 置位前 = running(40%)，置位后 = 中止（stop_reason="user"）。 */
+      const RUNNING = { running: true, roots: ["C:\\", "D:\\"], roots_done: 0, roots_total: 2, current_root: "C:\\", error: null, result_ready: false, save_ready: false, progress_pct: 40, scan_version: 7, stop_requested: false, stop_reason: null };
+      const ABORTED = { running: false, roots: ["C:\\", "D:\\"], roots_done: 1, roots_total: 2, current_root: null, error: null, result_ready: false, save_ready: false, progress_pct: 50, scan_version: 7, stop_requested: true, stop_reason: "user" };
+      let abortedFlag = false;
+      const scripted = (url, options) => {
+        const m = ((options && options.method) || "GET").toUpperCase();
+        const u = String(url).split("?")[0];
+        if (m === "POST" && u === "/api/fullscan/start") {
+          return __stubResponse({ ok: true, message: "全量扫描任务已提交，后台执行中", status: RUNNING });
+        }
+        if (m === "POST" && u === "/api/fullscan/stop") {
+          abortedFlag = true;
+          return __stubResponse({ ok: true, stopped: true, status: ABORTED });
+        }
+        if (m === "GET" && u === "/api/fullscan/status") {
+          return __stubResponse({ ok: true, status: abortedFlag ? ABORTED : RUNNING });
+        }
+        return null; // OPTIONS 探测等交回真实桩（routes 覆写控制 404/200）
+      };
+      /* 推进一次扫描中态渲染：点击开始（POST start 桩 → 立即 poll → running 状态机）。
+         用进度条 running 类等待（404 子例中停止按钮永不出现，不能以其可见性为锚） */
+      const driveScanning = async () => {
+        $("btn-fullscan").click();
+        await __waitUntil(() => $("progress").classList.contains("running"), 3000);
+      };
+      try {
+        window.fetch = function (url, options) {
+          const r = scripted(url, options);
+          if (r) return Promise.resolve(r);
+          return realFetch(url, options);
+        };
+        /* ① 404 特性检测：OPTIONS→404 → 停止按钮隐藏（扫描中也不出现） */
+        __smoke.routes["OPTIONS /api/fullscan/stop"] = { __status: 404 };
+        __assert(await probeStopSupport() === false, "OPTIONS 404 时应探测为不支持");
+        await driveScanning();
+        __assert($("btn-stop-scan").hasAttribute("hidden"), "404 特性检测：扫描中停止按钮必须隐藏");
+        __assert(!$("btn-fullscan").hasAttribute("hidden"), "不支持停止时开始按钮应保持可见（禁用态）");
+        /* 恢复：OPTIONS→200 → 停止按钮在下次扫描中出现 */
+        delete __smoke.routes["OPTIONS /api/fullscan/stop"];
+        __assert(await probeStopSupport() === true, "OPTIONS 200 时应探测为支持");
+        await wait(1100); // 等待 1s 轮询链下一拍按新探测值重渲染（扫描仍 running）
+        __assert(await __waitUntil(() => !$("btn-stop-scan").hasAttribute("hidden"), 3000),
+                 "探测恢复后扫描中应显示停止按钮");
+        /* ② 扫描中态装备：开始按钮变停止、计时器、chips 三态 */
+        __assert($("btn-fullscan").hasAttribute("hidden"), "扫描中开始按钮应隐藏（变停止）");
+        __assert($("btn-fullscan").disabled === true, "扫描中开始按钮应禁用");
+        __assert(/已用时 \d{2}:\d{2}:\d{2}/.test($("scan-elapsed").textContent),
+                 "扫描中应显示耗时（formatElapsed HH:MM:SS 口径），实际「" + $("scan-elapsed").textContent + "」");
+        __assert(!$("scan-elapsed").hasAttribute("hidden"), "扫描中计时器应可见");
+        __assert($("progress").classList.contains("running"), "扫描中进度条应有 running 类");
+        __assert($("progress").classList.contains("complete") === false, "扫描中进度条不得有 complete 类");
+        const chips = Array.from($("scan-roots").querySelectorAll(".chip"));
+        __assert(chips.length === 2, "chips 应含 2 个盘（C/ D），实际 " + chips.length);
+        __assert(chips[0].classList.contains("chip-current"), "第 1 盘应为进行中脉冲（chip-current）");
+        __assert(chips[1].classList.contains("chip-pending"), "第 2 盘应为灰待办（chip-pending）");
+        /* ③ 点击停止 → 中止态：toast 文案 + 状态行 + 保存可用 + 无 K7 提示 + chips 完成/灰 */
+        $("btn-stop-scan").click();
+        __assert(await __waitUntil(() => $("fullscan-status-text").textContent.indexOf("已停止") !== -1, 3000),
+                 "停止后状态行应显示中止文案（已停止），实际「" + $("fullscan-status-text").textContent + "」");
+        __assert(document.getElementById("toast-container").textContent.indexOf("已停止，已完成部分可浏览") !== -1,
+                 "中止 toast 应出现「已停止，已完成部分可浏览」");
+        __assert($("btn-save").disabled === false, "中止态且有部分根时「保存快照」应可用");
+        __assert($("save-prompt").classList.contains("hidden"), "中止不得弹保存提示（K7 语义：仅完整结果）");
+        __assert(!$("btn-fullscan").hasAttribute("hidden"), "中止态开始按钮应恢复可见");
+        __assert($("btn-fullscan").disabled === false, "中止态开始按钮应恢复可用");
+        __assert($("btn-stop-scan").hasAttribute("hidden"), "中止态停止按钮应隐藏");
+        __assert($("progress").classList.contains("running") === false, "中止态进度条不得再有 running 类");
+        __assert($("progress").classList.contains("complete") === false, "中止态进度条不得有 complete 类");
+        const chips2 = Array.from($("scan-roots").querySelectorAll(".chip"));
+        __assert(chips2[0].classList.contains("chip-done"), "中止态第 1 盘应为已完成（chip-done 可点击）");
+        __assert(chips2[1].classList.contains("chip-pending"), "中止态未完成盘应为灰待办（chip-pending）");
+        __assert($("scan-check").hasAttribute("hidden"), "中止态不得显示完成对勾");
+      } finally {
+        window.fetch = realFetch;
+        abortedFlag = false;
+        /* 复位全局状态：空闲态（中止不留运行链——轮询链已在 running:false 时自然终止） */
+        delete __smoke.routes["OPTIONS /api/fullscan/stop"];
+        __smoke.routes["GET /api/fullscan/status"] = SAMPLES.fullscanStatusIdle;
+        await wait(1200);
+      }
     } },
 ];
 

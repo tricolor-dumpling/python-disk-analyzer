@@ -866,7 +866,7 @@ const WORKSPACE_HTML =
     '<div id="overview-roots" class="overview-roots overview-roots-donut"><div class="overview-empty">暂无概览数据</div></div>' +
     '</section>' +
 
-    '<!-- 扫描控制卡（U3.2 状态机扩展，此处保留结构与全部行为） -->' +
+    '<!-- 扫描控制卡（U3.2 状态机四态：空闲/扫描中[#btn-stop-scan 红描边 L2-2+计时]/完成[L2-3 绿光+对勾]/中止；结构保留全部既有 id） -->' +
     '<section class="card" aria-label="全量扫描">' +
     '<div class="card-head"><h2>' +
     '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2"/><path d="M5.5 5.5 2 12l3.5 6.5"/><path d="M18.5 5.5 22 12l-3.5 6.5"/><rect x="4" y="3" width="8" height="18" rx="2"/><rect x="12" y="3" width="8" height="18" rx="2"/></svg>' +
@@ -875,14 +875,18 @@ const WORKSPACE_HTML =
     '<button id="btn-fullscan" class="btn btn-primary">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>' +
     '开始全量扫描</button>' +
+    '<button id="btn-stop-scan" class="btn btn-stop" hidden title="停止扫描（已完成部分可浏览）" aria-label="停止扫描">' +
+    '<svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>' +
+    '停止</button>' +
     '<button id="btn-save" class="btn btn-success" disabled title="全量扫描完成后可保存">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>' +
     '保存快照</button></div>' +
     '<div class="row"><button id="btn-export-csv" class="btn btn-sm" title="把最近一次全量结果导出为 CSV">导出 CSV</button>' +
     '<button id="btn-export-json" class="btn btn-sm" title="把最近一次全量结果导出为 JSON">导出 JSON</button></div>' +
     '<div class="progress-wrap"><div id="progress" class="progress"><div id="progress-fill" class="progress-fill"></div></div>' +
-    '<span id="progress-pct" class="progress-pct muted">0%</span></div>' +
-    '<div id="fullscan-status" class="status-line" role="status"><span class="dot"></span><span id="fullscan-status-text">尚未开始全量扫描</span></div>' +
+    '<span id="progress-pct" class="progress-pct muted">0%</span>' +
+    '<span id="scan-check" class="scan-check hidden" hidden aria-label="已完成"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>' +
+    '<div id="fullscan-status" class="status-line" role="status"><span class="dot"></span><span id="fullscan-status-text">尚未开始全量扫描</span><span id="scan-elapsed" class="scan-elapsed muted" hidden></span></div>' +
     '<div id="scan-roots" class="chips-row hidden"></div>' +
     '<div id="scan-progress-hint" class="notice notice-info hidden"></div>' +
     '<div id="save-prompt" class="notice notice-warn hidden"><div><b>全量扫描已完成。</b>是否保存本次快照？保存后可在「历史对比」中与基线对比。</div>' +

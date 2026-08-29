@@ -77,6 +77,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .btn-ghost{border-color:transparent;background:transparent;color:var(--muted)}
 .btn-sm{padding:5px 10px;font-size:var(--fs-xs)}
 .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+/* U3.2：.btn 自带 display:inline-flex 会覆盖 [hidden] 属性（nav-tabs 类坑）——
+   #btn-fullscan 扫描中（变「停止」）与 .btn 类成员的显隐必须显式关闭 */
+.btn[hidden]{display:none!important}
 .icon-btn{
   display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;
   border:none;border-radius:8px;background:transparent;color:inherit;cursor:pointer;
@@ -343,6 +346,80 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   animation:stripes 1.2s linear infinite;
 }
 .progress-pct{width:44px;text-align:right;font-size:var(--fs-xs);font-variant-numeric:var(--font-num)}
+
+/* ============================================================
+   U3.2：扫描控制卡状态机（L2-2 停止按钮 / L2-3 进度条完成态 / chips 三态 / 计时）
+   ——动画仅 transform/opacity；颜色只走既有 token（hex 0）；
+   时长全部读 token（--dur-scan-* 见 tokens.css U3.2 增补段）
+   ============================================================ */
+
+/* 停止按钮（扫描中显示；红描边 L2-2）——[hidden] 显隐双控（display 规则覆盖
+   [hidden] 属性，同 nav-tabs 类坑：.btn 自带 display:inline-flex） */
+.btn-stop[hidden]{display:none!important}
+.btn-stop{position:relative;overflow:hidden;border-color:var(--danger);background:var(--danger-soft);color:var(--danger)}
+.btn-stop:hover{border-color:var(--danger);background:var(--danger-soft)}
+.btn-stop .icon-sm{flex:none}
+/* L2-2 渐变流光（3s 循环；仅 transform——光带平移，底色为 danger-soft 静态） */
+.btn-stop.active::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--danger-border) 50%,transparent);
+  opacity:.4;transform:translateX(-100%);
+  animation:scan-flow var(--dur-scan-flow) linear infinite;
+  will-change:transform; /* 仅扫描期间存在（动画期间） */
+}
+/* L2-2 呼吸光环（2s 循环；仅 transform+opacity——描边环缩放呼吸，引用 --danger） */
+.btn-stop.active::after{
+  content:"";position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;
+  border:2px solid var(--danger);opacity:0;
+  animation:scan-halo var(--dur-scan-halo) ease-in-out infinite;
+  will-change:transform;
+}
+@keyframes scan-flow{to{transform:translateX(100%)}}
+@keyframes scan-halo{
+  0%{opacity:0;transform:scale(.96)}
+  50%{opacity:.6;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.06)}
+}
+
+/* L2-3 进度条：扫描中头部 8px 亮点 glow（跟随 pct 的 fill 右缘） */
+.progress{position:relative}
+.progress-fill{position:relative}
+.progress.running .progress-fill::after{
+  content:"";position:absolute;top:0;right:0;width:8px;height:100%;border-radius:999px;
+  background:var(--on-primary);opacity:.55;box-shadow:0 0 8px var(--primary);
+}
+/* L2-3 完成：绿光自左向右 600ms 单次（仅 transform+opacity；forwards 终态隐没）+
+   fill 转成功色（静态） */
+.progress.complete .progress-fill{background:var(--success);background-image:none}
+.progress.complete::after{
+  content:"";position:absolute;top:0;left:0;width:30%;height:100%;border-radius:999px;
+  background:var(--success);opacity:0;transform:translateX(-120%);pointer-events:none;
+  animation:scan-glow var(--dur-scan-glow) ease-out forwards;
+}
+@keyframes scan-glow{
+  0%{transform:translateX(-120%);opacity:0}
+  15%{opacity:.5}
+  85%{opacity:.45}
+  100%{transform:translateX(430%);opacity:0}
+}
+/* L2-3 条尾对勾（完成态；描边 400ms 由 motion.drawCheck 驱动 --dur-draw-check） */
+.scan-check{display:inline-flex;flex:none;color:var(--success);margin-left:-4px}
+.scan-check svg{width:20px;height:20px;display:block}
+.scan-check[hidden]{display:none!important}
+
+/* 耗时计时（前端 startTs + formatElapsed；随状态行内联，零额外行高） */
+.scan-elapsed{font-variant-numeric:var(--font-num);white-space:nowrap}
+.scan-elapsed[hidden]{display:none!important}
+
+/* 盘符 chips 三态：✓已完成（可点击） / 进行中脉冲 / 待办灰（禁用态） */
+.chip-done{color:var(--success);border-color:var(--success-border)}
+.chip-done svg{width:12px;height:12px;flex:none}
+.chip-current{
+  border-color:var(--primary);color:var(--primary);background:var(--primary-soft);
+  animation:chip-pulse var(--dur-scan-halo) ease-in-out infinite; /* 脉冲周期复用光环 2s */
+}
+@keyframes chip-pulse{50%{opacity:.45}}
+.chip-pending{color:var(--faint);opacity:.75;cursor:default}
 
 /* 快照卡（U2.4 升级为迷你卡，此处保留历史列表结构与行为） */
 .snapshot-list{

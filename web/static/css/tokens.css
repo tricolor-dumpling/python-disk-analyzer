@@ -29,6 +29,11 @@
      ⚠️ 手册验收「面板打开 <100ms」与 --dur-1(120ms) 冲突，按既有增补规则新增面板
      专用 token（方案二选一之「面板专场 token」），仅时长无颜色、未动既有值 */
   --dur-nav-underline:240ms; --dur-palette-open:80ms;
+  /* U3.2 增补：扫描卡专用时长——停止按钮「扫描中」L2-2 渐变流光 3s 循环与
+     呼吸光环 2s 循环；完成 L2-3 绿光自左向右扫过 600ms 单次（§3.5 索引表参数为
+     验收口径；斜纹 1.2s 沿用既有 stripes 规则、对勾描边 400ms 复用 --dur-draw-check、
+     粒子 600ms 复用 --dur-4）。同增补规则：无 hex、未动既有值 */
+  --dur-scan-flow:3000ms; --dur-scan-halo:2000ms; --dur-scan-glow:600ms;
   --ease-out:cubic-bezier(.16,1,.3,1); --ease-spring:cubic-bezier(.34,1.56,.64,1); --ease-inout:cubic-bezier(.65,0,.35,1);
   --radius-card:16px; --radius-ctl:10px; --radius-chip:999px;
   --font-num:tabular-nums;

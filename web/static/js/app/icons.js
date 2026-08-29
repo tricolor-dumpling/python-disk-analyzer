@@ -31,4 +31,10 @@ export const ICONS = {
     /* U2.5：F19 行内操作「下钻」（仅目录行显示） */
     drill:
         '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13"/><path d="m13 6 6 6-6 6"/></svg>',
+    /* U3.2：L2-3 完成对勾（条尾 SVG；motion.drawCheck 描边 400ms——--dur-draw-check） */
+    check:
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    /* U3.2：L2-2 停止方块（扫描中按钮变「停止」，红描边） */
+    stop:
+        '<svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>',
 };

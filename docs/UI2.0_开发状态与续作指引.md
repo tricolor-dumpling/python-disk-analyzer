@@ -1,14 +1,36 @@
 # UI 2.0 开发状态与续作指引
 
-更新时间：2026-08-29（**U3.1 完成会话更新**；执行事实以《UI2.0_开发执行手册.md》头部执行记录为准）
+更新时间：2026-08-29（**U3.2 完成会话更新**；执行事实以《UI2.0_开发执行手册.md》头部执行记录为准，含 U3.2 行——本文档仅为换机交接摘要）
 
 ## 当前状态
 
 - **分支**：`ui2.0`（= U3.1 合并后最新提交，已推送 GitHub origin；`main` 未动，仍是 P12 归档完成线）。
-- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) → `ffee6d1`(U2.1) → `3daa9d4`(U2.2) → `cc5317c`(U2.3) → `0cd0ef7`(U2.4) → `fa919c7`(U2.5) → `25f4f6a`(U2.5-doc 追记) → **UI2-U3.1**（见下）。
-- **进度**：U1.0–U1.3、U2.0–U2.5、**U3.1 全部完成**（实现 + 验收）；**下一步 = U3.2（扫描控制卡与停止接口——批次三唯一后端项）**，分支 `ui2-u3.2`（py 与 js 可两提交：`UI2-U3.2a: 后端` / `UI2-U3.2b: 前端`）；U3.3（快照页）/U3.4（对比页）可与 U3.2 并行。
+- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) → `ffee6d1`(U2.1) → `3daa9d4`(U2.2) → `cc5317c`(U2.3) → `0cd0ef7`(U2.4) → `fa919c7`(U2.5) → `25f4f6a`(U2.5-doc 追记) → `a961e58`(U3.1) → **`U3.2a`/`U3.2b`**（见下）。
+- **进度**：U1.0–U1.3、U2.0–U2.5、U3.1、**U3.2 全部完成**（实现 + 验收）；**下一步 = U3.3（快照页）/U3.4（对比页，可与 U3.5 并行）**，分支 `ui2-u3.3`；U3.5 为批次三闸门项（须先于 U4）。
 - ⚠️ 搁置/挂账（详见手册执行记录）：P13（test_budget 并发竞态，禁碰 snapshots.py）；F22 状态栏「已选 N 项」未接入（U4.x 补）。
-- 服务：Flask(5000) 与静态服务(8771) 仍在运行（U3.1 会话重启过 5000——**index.html 模板缓存陷阱：debug=False 下改 index.html 必须重启 Flask**；续作前先查端口残留）；工作区未跟踪项仍为 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》。
+- 服务：Flask(5000) 与静态服务(8771) 仍在运行（**U3.2 会话重启过 5000**）；工作区未跟踪项仍为 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》。
+
+## 本次会话完成内容：U3.2 扫描控制卡与停止接口（D10 唯一后端项）
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| 后端停止接口 | ✅ | `fullscan.py`：`USER_STOP_EVENT`（与停服 `CANCEL_EVENT` 严格分离）+ `_CancelOr` 组合取消源 + `request_stop()` + `start()` 双 clear + 停止记录重置；`cancel_scan()` 记 `stop_reason="shutdown"`；`status()` additive `stop_requested/stop_reason`；`app.py` `POST /api/fullscan/stop`（运行中 stopped=true / 空闲幂等 false，响应含 status 原样） |
+| 扫描卡状态机 | ✅ | scan.js 四态（空闲/扫描中[#btn-stop-scan 红描边 L2-2 + 计时 + chips 三态]/完成[L2-3 绿光+对勾 + L2-4 粒子先 toast 仅主页]/中止[toast+保存可用]）；完成/中止边沿保留 U3.1 纪律（markNavDot 先于守卫、概览仅主页）；页面重开恢复 + K7 防重复；`APP_STATE.scan` 启用 |
+| 停止特性探测 | ✅ | **OPTIONS** /api/fullscan/stop（零副作用——真 POST 在运行中会触发实际停止；手册「POST 探测」表述为源码偏差，已记）404 → 隐藏停止按钮 |
+| 动效 | ✅ | tokens +3（--dur-scan-flow 3000ms/--dur-scan-halo 2000ms/--dur-scan-glow 600ms）；style.css 新分区 hex 0（动画仅 transform/opacity；无新色） |
+| 门禁 | ✅ | smoke v2 **17/17**（A16 新接入；A8 已在 U3.1 就位不需重做）；unittest **266 OK**（+6；契约用例入 test_api_contract.py——test_web.py 已 U1.0 归档）；node **20/20**；hex **0** |
+| u32 验收探针（新建） | **54/54** ✅ | 桩态 38（①特性检测 ②装备/参数 ③重复停止 ⑤计时单调 ⑥chips 三态 ⑦完成庆祝 ⑧50 次无泄漏 ⑨双档零滚动+顶栏60px）+ reduced 8（L2-2/3/4 降级全部复核）+ 真机 8（真扫中点停止 → 1 轮询周期内中止 + toast + 保存可用 + 已完成根可浏览 + JS 异常 0） |
+| 回归 | ✅ | u31 **38/38**、u25 **46/46**、u24 **33/33**、u23 **29/29** |
+| 视觉多模态 | ✅ | 四态×亮暗×1366/1920 + 800×700 窄屏 + reduced 对，22 张截图目检通过 |
+| 顺手修复 | ✅ | U2.0 迁移遗留：scan.js chips 点击赋值未声明 `currentRoot`（严格模式 ReferenceError，入口从未生效）→ 改 `setCurrentRoot` 访问器 |
+
+**本次实施注记（下一会话须知）**：
+1. **`.btn[hidden]` 是 nav-tabs 类坑第二例**：`.btn` 自带 `display:inline-flex` 会覆盖 `[hidden]` 属性——新增被 `.btn` 复用的元素必须「模板只带 hidden 属性 + CSS `.xxx[hidden]{display:none!important}`」，**不要**在模板同时给 `class="hidden"`（JS 只 toggle 属性时会假显真隐；smoke 断言只查属性所以漏过，真实页截图才暴露）。
+2. **停止接口探测必须 OPTIONS**：真 POST 在运行中会实际触发停止（绝不能用于探测）；点击停止遇 404/405 → 隐藏按钮兜底在 `requestStopScan`。
+3. **探针 fx 粒子计数**：勿 Proxy 包装 Canvas 2D 上下文（原生宿主对象 → Illegal invocation）；用显式包装器计数 fillRect；fx 层扫描光斑会污染像素采样。
+4. **真机停止测试**：Everything 就绪下 500K+ 记录、真扫 ~15-20s/盘；探针 `--with-data` 会真实触发一次全量扫描并点停（即点即停，未扰数据）；扫描期间既有 L3-2 实时生长对在途盘 browse→409 属预存行为（非回归），真实页 console 断言已过滤资源状态日志。
+5. **GUI 常驻浏览器 A1 时序抖动**：主题 VT 80ms 断言在该浏览器实例偶发 >80ms（独立 Playwright 下 smoke 17/17 稳定）；断言语义未改，以独立 Playwright 跑 smoke 为准。
+6. Flask 5000 为 U3.2 会话托管实例（重启命令见手册 U3.1 记录）；改 index.html/静态资源无需重启（Flask 按 ETag 重发），改 py 才需重启。
 
 ## 本次会话完成内容：U3.1 顶栏与导航（徽章 popover / 命令面板 / 主题按钮 / L2-11 / N13 圆点 / 首启弹层）
 
