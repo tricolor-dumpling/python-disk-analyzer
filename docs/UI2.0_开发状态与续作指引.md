@@ -1,13 +1,60 @@
 # UI 2.0 开发状态与续作指引
 
-更新时间：2026-08-28（U2.3 完成会话修订，用于换机续作）
+更新时间：2026-08-28（U2.3 完成会话修订；**U2.4/U2.5 完成会话追记**——执行事实以《UI2.0_开发执行手册.md》头部执行记录为准）
 
 ## 当前状态
 
-- **分支**：`ui2.0`（已推送 GitHub origin，换机后 `git checkout ui2.0` 即可续作）；`main` 未动，仍是 P12 归档完成线。
-- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) → `ffee6d1`(U2.1) → `3daa9d4`(U2.2) →（本次：U2.3 交互与特效）。
-- **进度**：U1.0-U1.3、U2.0、U2.1、**U2.2、U2.3 全部完成**（实现 + 验收）；**下一步 = U2.4（存储概览卡：viz/donut.js + 盘符 chips D15 + 最近对比入口；可与 U2.5 并行）**。
-- 验收用 Flask(5000)/静态服务(8771) 由本会话启动/沿用，会话结束时仍在运行（续作前先查端口残留）；工作区仅 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》三个已知未跟踪项。
+- **分支**：`ui2.0`（= `fa919c7`，U2.5 已推送 GitHub origin；`main` 未动，仍是 P12 归档完成线）。
+- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) → `ffee6d1`(U2.1) → `3daa9d4`(U2.2) → `cc5317c`(U2.3) → `0cd0ef7`(U2.4) → **`fa919c7`(U2.5)**。（另：工作分支 `ui2-u2.5` 与 `ui2.0` 同指向 fa919c7，已推送。）
+- **进度**：U1.0–U1.3、**U2.0–U2.5 全部完成**（实现 + 验收）；**下一步 = U3.1（顶栏与导航：徽章 popover / 命令面板 N02 / 主题按钮 / L2-11 下划线 / 首启引导弹层）**，分支 `ui2-u3.1`，手册 §U3.1 全节。
+- ⚠️ 本会话两个**未完成/搁置**（已入 U2.5 执行记录）：①F22 状态栏「已选 N 项」未接入（手册 §U2.5 范围未列，U4.x 总验收补）；②本指引文件此前滞后（本轮追记，见下）。
+- 验收用 Flask(5000)/静态服务(8771) 本轮结束时仍在运行（预存实例；续作前先查端口残留）；工作区仅 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》三个已知未跟踪项。
+
+## 本次会话完成内容：U2.5 列表视图升级（排行/表格/多选/虚拟滚动；v1 断言在此退役）
+
+验收口径与结果（详细记录在《docs/UI2.0_开发执行手册.md》头部 U2.5 执行记录）：
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| components/list.js 新建（530 行） | ✅ | filteredEntries/renderEntries 列表部分自 workspace 迁出；workspace 保留接线（treemap 派发/视图切换/事件委托/浏览闭环） |
+| N08 多选 | ✅ | 首列 checkbox + 表头全选/半选态 + Shift 范围选（anchor=path）+ 页脚 sticky 固定行「共 N 项 · 已选 N 项 · [定位所选][导出所选 CSV]」；`APP_STATE.selection{keys,anchor}` 启用（切页不丢；导航清空） |
+| D9 导出所选 CSV | ✅ | 前端 Blob：`所选-{目录名}-{日期}.csv`；列 名称/路径/类型/大小(字节)/大小(可读)；BOM utf-8-sig；`csvEscape` 引号/逗号/换行（与 Python csv.writer 语义一致）；不动 `/api/export` |
+| 虚拟滚动 | ✅ | >200 行启用；缓冲上下 5 行；cozy 36px/compact 26px 固定行高（`.v-virtual`），**渲染后实测行高驱动窗口/间距计算（零漂移）**；排序/筛选/密度后重算；滚动窗口重渲染不重放 L1-2/L1-3；无跳行（u25 探针 5 处滚动位置首行=floor(scrollTop/rowH)-5 + 连续性 + 滚到底 4999） |
+| L1-2 / L1-3 | ✅ | 前 12 行 fadeSlide8 间隔 `--dur-stagger-row`(24ms)；占比条 width 0→目标 600ms（`--dur-4`）同屏同起点；reduced 直显 |
+| F19 行内操作 | ✅ | 三图标 下钻/定位(open-path 既有)/复制路径(既有)；**下钻仅目录行**；触屏长按 500ms `.row-actions-pin`；**修复既有 act-open/act-copy 点击连带触发下钻**（行点击对 `.row-actions` 设守卫——行为变化已记录） |
+| 默认视图裁决核销 | ✅ | 默认视图=**矩形图**（定稿 N01 接管；U2.2「默认排行至 U2.5」裁决终结）；view 状态对齐 §3.2：`browseView/compactDensity` → `APP_STATE.view.{mode,density}` |
+| 三视图 120ms 交叉淡化 | ✅ | `--dur-1`；两容器 absolute 叠加双可见 + WAAPI opacity；`viewSeq` 令牌（快速连点取最新终态）；reduced 直切 |
+| L1-5 骨架屏 / L2-9 缓存徽标 | ✅ | skel-* shimmer（`--dur-shimmer` 1400ms；仅 transform 扫光；reduced 静止）；spinner 从列表加载态移除（仅存于按钮）；缓存徽标 `.cache-badge-in` translateX(-8px)+fade `--dur-2`(200ms) 显示时重触发 |
+| v1/legacy 退役 | ✅ | smoke 删除 ASSERTIONS 注册表 / `?suite=legacy` 分支；红线#4 renderApiError 双形态（原 w13）并入 **A0**；A4/A5/A6 断言前显式切排行（默认矩形图迁移无静默破坏）；A12/A13 交叉淡化条件等待并恢复默认；**A15 新接入**（多选语义）；`u22_smoke_probe.mjs` suites 仅剩 v2 |
+| smoke v2 / unittest / hex / node | **16/16** / **260 OK** / **0** / **20/20** ✅ | P13 挂账本轮未复现；U2.5 零 py 改动；tokens.css +2（`--dur-shimmer`/`--dur-stagger-row`；120ms/200ms 复用 `--dur-1/2`） |
+| u25 验收探针（新建） | **50/50** ✅ | `scripts/dev/u25_acc_probe.mjs` = 阶段1 桩态 46（四断言语义 A4/A5 新 DOM、F19 不连带下钻、多选全套、CSV 内容抽查（引号·逗号·换行转义/文件名/BOM/列）、虚拟滚动无跳行、紧凑 26px、L1-3/L1-5/L2-9、120ms 交叉淡化、触屏长按、50 次切换 DOM 节点无增长、console 0）+ 阶段2 真实页 4（真实盘渲染/console 0/两档零滚动） |
+| 附录B 5000 行 mock 滚动 | **60.5 fps** ✅ | ≥50 达标（数值入档） |
+| 视觉多模态 | ✅ | 20 张截图（1366×768/1920×1080 亮暗 × 排行/表格选中/5000 行虚拟/紧凑 + 800×700 窄屏亮暗 + 真实页）目检通过 |
+| u21/u22acc/u23acc 探针适配 | ✅ | 状态行断言改「排行|表格|矩形图视图」兼容；u21 首步显式切排行（切页不丢语义需排行行） |
+
+**本次实施注记（下一会话须知）**：
+1. **默认视图 = 矩形图**（N01）：初始状态行为行 = 「矩形图视图 · …」；凡断言/探针依赖排行行的，先显式 `<btn-view-ranking>` 切换。
+2. **多选 checkbox 语义坑（Chromium）**：checkbox 的激活翻转**先于** click 处理器执行且 `preventDefault()` 无效——处理器内 `box.checked` 已是目标态（未选→点击后为 true），多选逻辑一律以此为准（合成/真实点击行为一致）。
+3. **三视图容器**：`#table-wrap` 与 `#treemap-wrap` 为 `.view-area` 的 **absolute 子元素**（交叉淡化期间双可见叠加）；`finishViewSwap` 负责终态 hidden——**勿再改回 flex 并排**（`.view-area .table-wrap{flex:1}` 旧规则已替换）。
+4. **视觉修复（既有缺陷）**：a) 静态文件行 `.size-track` flex 内 100% 子项致轨道 0 宽（占比条不可见）→ `.ranking-row-static .size-track{flex:2 1 auto;min-width:96px}`；b) `.ranking-row` 3 列 grid 时行内操作（grid 第 4 子项）换行到第二行 → 4 列 grid（虚拟模式改绝对定位 `.v-virtual .row-actions`）。
+5. **虚拟滚动行高**：`.dir-table tbody.v-virtual td{height:36px}` + `.v-virtual.compact-list td{height:26px}`；行内容 `.v-virtual .ranking-row/-static` 显式 height 36/26；窗口数学用**渲染后实测** rowH（`measureRowHeight`）——改行高 CSS 时务必同步实测逻辑。
+6. **u25_acc_probe 的 STUB_FN 转义**：探针以 `.mjs` 模板字面量内嵌页内桩（文件内 4 反斜杠 → 注入后 2 → JS 值 1）；**外部脚本提取该桩必须手工 `/\\\\\\\\/g→"\\\\"` 半减一次**，否则路径匹配落回样本（本轮已踩过）。
+7. **休眠项**：F22 状态栏「已选 N 项」未接（U4.x 补）；`docs/UI2.0_开发状态与续作指引.md` 本轮已追记（此前 U2.4 也未记，见下节）。
+
+## 本次会话完成内容：U2.4 存储概览卡（viz/donut.js + 盘符 chips D15 + 最近对比入口）（追记）
+
+验收口径与结果（详细记录在《UI2.0_开发执行手册.md》头部 U2.4 执行记录）：
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| viz/donut.js SVG 双弧环 | ✅ | 底弧 `--border-strong`/数据弧 `--grad-brand`（SVG 不能消费复合渐变 → tokens 增补 `--grad-brand-from/to` 逐 stop 镜像）；入场 sweep 800ms ease-inout（`--dur-donut-sweep`，cubicBezier 读 `--ease-inout`）+ 中心 count-up（L1-4）；扫描中不确定弧 1.2s（`--dur-donut-indeterminate`）；hover 外扩 + `--glow-drop-sm` |
+| 存储卡四态 | ✅ | 空/加载/数据/扫描中 齐全；`/api/overview` 无总容量字段（代码核对）→ 环形降级「已使用之环比」（选中盘/全部盘累计；总和 0 时弧隐藏） |
+| D15 / N04 | ✅ | 盘符 chips 点击只切环形数据不切目录（0 次 /api/browse，smoke A14）；「浏览此盘」= 唯一跳转浏览入口（恰 1 次 browse 且 path=所选盘）；扫描期自动跟随 + 手选锁定（pds:scan 驱动；本扫描期不复位） |
+| N06 快照迷你卡 + 最近对比迷你卡 | ✅ | 最近一份（时间+auto/manual 标签）+「管理快照」跳 #/snapshots + 空态；条目点击=与上一份对比（跳 #/compare 预填基线）；`state.compare.lastSummary` 预埋写入（U3.4 消费）；旧对比卡保留至 U3.4 |
+| 门禁 | ✅ | smoke A14 15/15 + legacy 7/7、u24 探针 37/37、u22 24/24、u23 29/29（修正既有等待竞态）、unittest 260、hex 0、node 20/20 |
+| 视觉多模态 | ✅ | 13 张截图目检；修复图例标签换行（nowrap）/ chips 空窗竞态（updateScanTick 补渲染） |
+
+**本次实施注记（下一会话须知）**：环形图卡在右栏 `#overview-roots` 内渲染，`#overview-chips/#overview-donut/#overview-legend/#btn-overview-browse` 为 U2.5 后仍有效的契约 id；扫描期 chips 空窗竞态修复点 = updateScanTick 发现 chips 为空且 st.roots 可用时补渲染（勿回退）。
 
 ## 本次会话完成内容：U2.3 Treemap 交互与特效
 
@@ -226,16 +273,15 @@
 - smoke：脚手架 = App Shell 结构（与真实页共用页面模板）；**A3 实装**。
 - 验收：v2 **12/12** + legacy 7/7 + 转场 120+240=360ms 口径（实测 144ms 换装）+ 切页不丢（探针）+ Console 0 + 三页视觉目检合格 + API 序列内容+顺序完全一致。
 
-## 下一步：U2.4（存储概览卡：viz/donut.js + 盘符 chips D15 + 最近对比入口）
+## 下一步：U3.1（顶栏与导航：徽章 popover / 命令面板 N02 / 主题按钮 / L2-11 下划线 / 首启引导弹层）
 
-按手册 §U2.4 全节执行（前置 U2.1；可与 U2.5 并行）：
+按手册 §U3.1 全节执行（分支 `ui2-u3.1`；可独立于 U3.2/U3.3/U3.4 并行）：
 
-- `js/app/viz/donut.js`：SVG 双弧环（底弧 --border-strong、数据弧 --grad-brand）；入场 sweep 800ms + 中心 count-up（L1-4）；扫描中不确定旋转弧 1.2s；hover 弧段外扩 2px + --glow-sm。
-- storage 卡装配：盘符 chips **只切环形数据不切目录（D15）**；全量扫描自动跟随 status 当前盘，用户手选后本扫描期锁定；「浏览此盘」→ browsePath(root)；图例两行（已使用/可用，▲无、纯静态）；空态/加载态文案按定稿 6.5。
-- ⚠️ 执行时核对 `/api/overview` 实际字段（app.py api_overview 已确认：roots[].total/total_human/index_ready/directory_count/file_count + 每盘 directories/files 前 10——**无「总容量」字段**，环形图以「已使用之环比」或降级「已用排行」形态实现，禁改后端）。
-- snapshot-mini：最近快照条目 +「管理快照」入口 + 空态（N06）；「最近对比」迷你卡（`state.compare.lastSummary`，空态引导文案）。
-- smoke v2 接入 A14（chips 点击不触发 /api/browse）。
-- **环境提示**：overview 探针可复用 u22/u23 模式；node 测试照旧 `--test-isolation=none` 变体。
+- 顶栏八元素：Logo｜导航标签×3（N13：下划线 L2-11 滑动 + 圆点提醒三触发：扫描完成/快照保存成功/对比完成，点击消除）｜健康徽章（三态+呼吸 L2-8；点击 popover：数据目录/驱动状态/重试按钮=红线 #8 门控迁入）｜搜索框 N02（240×36、kbd「Ctrl K」、占位「搜索或跳转…」）｜主题按钮（接 U1.1 switchTheme 移正）｜开始扫描（全局态随 scan；扫描中=微型进度环、点击回主页——U3.2 补状态机）｜设置。
+- **命令面板**：Ctrl/⌘K 或点击打开；数据源 = 页面×3 + 盘符 + 最近访问 + 浏览历史 + 快照 + 命令（开始扫描/保存快照/开始对比/导出/切换主题/打开设置/使用指引）；本地模糊匹配（子序列命中+首字母加权）；↑↓/Enter/Esc；玻璃面板居中 640px；**面板视作浮层进弹窗栈（红线 #9 扩展，A7 断言联动）**。
+- 首启引导弹层（4 步内容迁移，`pds_onboarding_dismissed_v1` 沿用）+「使用指引」重开入口（onboarding.js）。
+- ⚠️ **已知坑（本会话确认）**：a) 顶栏在 `index.html`（模板）——`debug=False` 下改 index.html **必须重启 Flask 5000**（起前 `Get-NetTCPConnection -LocalPort 5000 -State Listen` 查残留）；b) `tests/web/smoke.html` 的 `<header>` 为手写脚手架（目前**无**搜索框/开始扫描按钮/palette-slot——grep 已确认），顶栏新增 ids 与命令面板结构必须人工同步到 smoke 脚手架；c) 手册验收「面板打开 <100ms」与 `--dur-1`(120ms) 冲突——按增补规则新 token（如 `--dur-palette-open:80ms`）或 opacity 直切，禁魔法数；d) L2-11 240ms ease-inout → `--dur-nav-underline`；e) 顶栏 60px 高度预算不可破（§3.3），1366/1920 零滚动 + <900px 例外。
+- 建议新建 `scripts/dev/u31_acc_probe.mjs`（面板打开 <100ms/模糊匹配/键盘循环/面板入栈/圆点三触发/popover 三字段/下划线参数/50 次开合泄漏/双档零滚动 + 截图）。
 
 ## 当前未解决问题
 
@@ -250,6 +296,7 @@
 | 手册 P12 继承记录 | 3.14.3 | 3.1.3 |
 | U1.0 会话实测 | 3.11.8 | 3.0.2（`.venv` 为 `--system-site-packages` 重建，pip 断网） |
 | U1.1 验收会话实测 | 3.14.3 | 3.1.3（本机 `.venv`，`pip` 可用） |
+| U2.5 会话实测 | 3.11.8 | 未复测（以 `.venv\Scripts\python.exe -m unittest discover -s tests -t .` ≥260 OK 为环境确认口径；U1.1 行的 3.14.3 与 U1.0 行的 3.11.8 并存为历史记录，以本机实测为准） |
 
 两套环境 unittest 均 260 绿；依赖仅 `flask>=3.0.2`（requirements.txt）。**新电脑建好 venv 后先跑一次 unittest 确认环境**。npm 12.17+ / Node 24.x 可用，但保持零前端依赖、零构建链纪律。**node 动效测试**：`node --test scripts/dev/`（motion-core.test.mjs 等；本机沙箱需 `--test-isolation=none` 变体，见本次实施注记 2）。
 
@@ -263,11 +310,12 @@ U1.3 style.css 分区重构已把全部硬编码色值 token 化（hex 51→0，
 
 ### 5. 版本控制状态（已更新）
 
-本地分支 `ui2.0` 已推送 origin（U1.3 起含 U1.1 验收记录与交接文档）；工作区仅三个**已知未跟踪项**：`.venv/`、`dsh-image-gen/`、`docs/UI终版方案_SpaceLensPro视觉动效与功能补全_定稿.md`（U4.3 才入库）。提交时**不要 `git add -A`**，按文件精确添加（历史教训：以上三项混入过工作区）。每工作项一提交，message 格式 `UI2-U1.x: <摘要>`。
+本地分支 `ui2.0` 已推送 origin（**= `fa919c7` U2.5**；`ui2-u2.5` 工作分支同指向并已推送）；工作区仅三个**已知未跟踪项**：`.venv/`、`dsh-image-gen/`、`docs/UI终版方案_SpaceLensPro视觉动效与功能补全_定稿.md`（U4.3 才入库）。提交时**不要 `git add -A`**，按文件精确添加（历史教训：以上三项混入过工作区）。每工作项一提交，message 格式 `UI2-U1.x: <摘要>`。
+验收探针入库清单（`scripts/dev/`）：`u25_acc_probe.mjs`（U2.5，50/50，**STUB_FN 外部提取需手工反斜杠半减，见 U2.5 注记 6**）、`u24_acc_probe.mjs`（U2.4，37/37）、`u23_acc_probe.mjs`（U2.3，29/29）、`u22_acc_probe.mjs`（U2.2，24/24）、`u22_smoke_probe.mjs`（**仅 v2**——v1/legacy 已于 U2.5 退役）、`u21_page_probe.mjs`/`u20_network_probe.mjs`/`u13_viewport_probe.mjs`（U2.1/U2.0/U1.3）；`u12_acc_probe.user.js`/`u11_acc_probe.user.js`/`u11_scroll_probe.user.js`（U1.x）。
 
 ## 续作路线
 
-`U2.0 模块化 → U2.1 路由 → U2.2 Treemap → U2.3 交互特效 → U2.4 存储卡 → U2.5 列表 → U3.1-U3.5 → U4.1-U4.3 → 发版判定（v2.0.0）`（U1.0/U1.1/U1.2/U1.3 已完成）。
+`U1.x 地基 + U2.0-U2.5 核心可视化`（已完成）→ `U3.1 顶栏/命令面板（可独立）→ U3.3 快照页（并行）→ U3.5 弹窗族与引导`；`U3.2 扫描卡＋停止接口（唯一后端项，关键路径）→ U3.4 对比页（可并行）`；批次三闸门 → `U4.1 无障碍 → U4.2 性能与视觉验收（含 F22 状态栏「已选 N 项」补接）→ U4.3 文档与版本收口 → 发版判定（v2.0.0）`。单人执行建议按手册批次二后关键路径：先 U3.1（顶栏影响面大），再 U3.2（后端关键路径），U3.3/U3.4 视并行条件安排。
 
 ## 新电脑起手步骤
 
@@ -283,9 +331,9 @@ python -m venv .venv
 
 # 3. 门禁自查（三件套 + node 动效测试）
 .\.venv\Scripts\python.exe -X utf8 -W error::ResourceWarning -m unittest discover -s tests -t .
-powershell -Command "(Select-String -Path web\static\css\style.css -Pattern '#[0-9a-fA-F]{3,8}' -AllMatches).Matches.Count"   # 期望 ≤51
-node --test --test-isolation=none "scripts/dev/*.test.mjs"   # 期望全绿（真机可直接 node --test scripts/dev/）
-.\.venv\Scripts\python.exe -m http.server 8771 --bind 127.0.0.1 --directory .   # 然后浏览器开 /tests/web/smoke.html（U1.3 起默认 v2，4/5；v1 断言挂 ?suite=legacy，7/7）
+powershell -Command "(Select-String -Path web\static\css\style.css -Pattern '#[0-9a-fA-F]{3,8}' -AllMatches).Matches.Count"   # 期望 0（U1.3 起全量 token 化；tokens.css 豁免）
+node --test-isolation=none scripts/dev/motion-core.test.mjs scripts/dev/treemap.test.mjs   # 期望 20/20（⚠️ 勿用 `node --test scripts/dev/` 目录形式——会误载目录内 .py/.ps1 报 MODULE_NOT_FOUND）
+.\.venv\Scripts\python.exe -m http.server 8771 --bind 127.0.0.1 --directory .   # 然后浏览器开 /tests/web/smoke.html（U2.5 起仅 v2 门禁，16/16；v1/legacy 已退役）
 
 # 4. （可选）本地 Flask 手测
 .\.venv\Scripts\python.exe -X utf8 app.py --no-browser   # http://127.0.0.1:5000/
