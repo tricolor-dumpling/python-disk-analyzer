@@ -1,14 +1,39 @@
 # UI 2.0 开发状态与续作指引
 
-更新时间：2026-08-28（U2.3 完成会话修订；**U2.4/U2.5 完成会话追记**——执行事实以《UI2.0_开发执行手册.md》头部执行记录为准）
+更新时间：2026-08-29（**U3.1 完成会话更新**；执行事实以《UI2.0_开发执行手册.md》头部执行记录为准）
 
 ## 当前状态
 
-- **分支**：`ui2.0`（= `fa919c7`，U2.5 已推送 GitHub origin；`main` 未动，仍是 P12 归档完成线）。
-- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) → `ffee6d1`(U2.1) → `3daa9d4`(U2.2) → `cc5317c`(U2.3) → `0cd0ef7`(U2.4) → **`fa919c7`(U2.5)**。（另：工作分支 `ui2-u2.5` 与 `ui2.0` 同指向 fa919c7，已推送。）
-- **进度**：U1.0–U1.3、**U2.0–U2.5 全部完成**（实现 + 验收）；**下一步 = U3.1（顶栏与导航：徽章 popover / 命令面板 N02 / 主题按钮 / L2-11 下划线 / 首启引导弹层）**，分支 `ui2-u3.1`，手册 §U3.1 全节。
-- ⚠️ 本会话两个**未完成/搁置**（已入 U2.5 执行记录）：①F22 状态栏「已选 N 项」未接入（手册 §U2.5 范围未列，U4.x 总验收补）；②本指引文件此前滞后（本轮追记，见下）。
-- 验收用 Flask(5000)/静态服务(8771) 本轮结束时仍在运行（预存实例；续作前先查端口残留）；工作区仅 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》三个已知未跟踪项。
+- **分支**：`ui2.0`（= U3.1 合并后最新提交，已推送 GitHub origin；`main` 未动，仍是 P12 归档完成线）。
+- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) → `ffee6d1`(U2.1) → `3daa9d4`(U2.2) → `cc5317c`(U2.3) → `0cd0ef7`(U2.4) → `fa919c7`(U2.5) → `25f4f6a`(U2.5-doc 追记) → **UI2-U3.1**（见下）。
+- **进度**：U1.0–U1.3、U2.0–U2.5、**U3.1 全部完成**（实现 + 验收）；**下一步 = U3.2（扫描控制卡与停止接口——批次三唯一后端项）**，分支 `ui2-u3.2`（py 与 js 可两提交：`UI2-U3.2a: 后端` / `UI2-U3.2b: 前端`）；U3.3（快照页）/U3.4（对比页）可与 U3.2 并行。
+- ⚠️ 搁置/挂账（详见手册执行记录）：P13（test_budget 并发竞态，禁碰 snapshots.py）；F22 状态栏「已选 N 项」未接入（U4.x 补）。
+- 服务：Flask(5000) 与静态服务(8771) 仍在运行（U3.1 会话重启过 5000——**index.html 模板缓存陷阱：debug=False 下改 index.html 必须重启 Flask**；续作前先查端口残留）；工作区未跟踪项仍为 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》。
+
+## 本次会话完成内容：U3.1 顶栏与导航（徽章 popover / 命令面板 / 主题按钮 / L2-11 / N13 圆点 / 首启弹层）
+
+验收口径与结果（详细记录在《docs/UI2.0_开发执行手册.md》头部 U3.1 执行记录）：
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| 顶栏八元素 | ✅ | Logo｜导航×3（`#nav-underline` L2-11：translateX+scaleX 仅 transform、240ms ease-inout `--dur-nav-underline`；`.nav-dot` 圆点）｜徽章（N11 文案「已就绪·可开始扫描」）｜搜索框 N02（240×36 按钮态 + kbd）｜主题（switchTheme 归位）｜开始扫描（N05 骨架：pds:scan 全局态、扫描中=微型进度环）｜使用指引｜设置；60px 预算 1366/1920 零滚动实测；<900px 子项禁缩 + 横向滚动（修 flex 压缩竖排破相） |
+| 徽章 popover（F01） | ✅ | 点击=数据目录（settings.getDataDir）/驱动状态/DLL/重试环境检测（红线 #8 第二求值点：refreshHealth+evaluateEnvGate）；视图区引导条按定稿 6.3 保留（A8 断言未动） |
+| 命令面板（N02） | ✅ | `components/palette-cmd.js`：fuzzyScore（子序列+首字母加权）、↑↓循环/Enter/Esc（**入弹窗栈**=红线 #9 扩展）、Ctrl/⌘K 开合（其他弹窗忽略）、`/` 聚焦搜索（守卫）；执行器表/数据源 main.js 注入（页面×3/盘符/最近访问/浏览历史(getBrowseHistory)/快照/命令×9，全复用既有函数零新 API）；打开 19ms（<100ms 验收；`--dur-palette-open` 80ms 专场 token） |
+| L2-11 下划线 | ✅ | 240ms ease-inout（token 读取）；reduced 直切（≤0.01ms 实测）；resize/pds:navigate 同步 |
+| N13 圆点 | ✅ | `components/nav-dots.js`（叶子模块防环）：扫描完成（**边沿先于 DOM 守卫**——子页面完成也挂点）/快照保存成功/对比完成三触发；点击标签消除；仅非活动标签显示 |
+| 首启引导弹层（F02） | ✅ | hero 卡迁出为壳级弹层（4 步内容逐字保留+进度点）；`pds_onboarding_dismissed_v1` 沿用；入弹窗栈（Esc/背板不持久化、关闭按钮持久化） |
+| 门禁 | ✅ | smoke v2 **16/16**（A7 扩展面板入栈用例；A0 closeModal 清场）；unittest **260 OK**（首轮 1 fail=P13 复现，复跑即绿；零 py 改动）；hex **0**（tokens.css +2 token）；node **20/20**（node 24 需显式 `--test`） |
+| u31 验收探针（新建） | **45/45** ✅ | 桩态 38 + reduced 3 + 真实页 7（含 50 次开合节点稳定、双档零滚动、L2-11 参数、popover 三字段、圆点三触发真实路径） |
+| 回归 | ✅ | u25 **46/46**、u23 **29/29**、u24 **33/33**（u23/u24/u25 探针补「首启弹层 closeModal 栈安全 dismiss」——F02 迁移后新上下文首访 overlay 拦截真实指针点击，探针需自理） |
+| 视觉多模态 | ✅ | 1366/1920 亮暗 × 面板/popover/圆点态 + 800×700 窄屏截图目检通过 |
+
+**本次实施注记（下一会话须知）**：
+1. **浮动层栈语义（红线 #9 扩展）**：命令面板/徽章 popover/首启引导弹层均为 `.modal` 壳级浮层并**入弹窗栈**（openModal/closeModal 按 id 操作）；面板状态经 `pds:overlay-close` 事件联动。
+2. **首启弹层与探针**：新浏览器上下文首访会弹出 onboarding 拦截真实指针点击——smoke A0 已 closeModal 清场；**u23/u24/u25 探针需先 dismiss**（已补）；新建探针照抄 addInitScript localStorage 预置 + 页内 dismiss 两段。
+3. **探针 stub 注入**：必须 `page.addInitScript(STUB_FN)`（**字符串形式=函数体**）；`(src)=>eval("("+src+")")` 包裹语句会 SyntaxError 静默失败——U3.1 已踩（一度虚跑真实后端）；后续探针一律先校验 `window.__stub` 接管再继续。
+4. **node 测试命令**：Node v24 下 `node --test-isolation=none f1 f2` 只跑第一个文件；须显式 `--test`（`node --test-isolation=none --test scripts/dev/motion-core.test.mjs scripts/dev/treemap.test.mjs` = 20/20）。
+5. **Ctrl+K 语义变更**：旧=聚焦 browse-root；现=命令面板开合（palette-cmd.js；弹窗栈语义守卫在 modals.js hasOpenModal/isTopModal）。
+6. **getBrowseHistory 访问器**（workspace.js，副本返回）——命令面板浏览历史数据源；跨模块状态一律经访问器。
 
 ## 本次会话完成内容：U2.5 列表视图升级（排行/表格/多选/虚拟滚动；v1 断言在此退役）
 

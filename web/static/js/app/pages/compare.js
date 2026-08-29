@@ -14,6 +14,7 @@ import { browsePath, copyPath, getCurrentRoot, getCurrentPath, setCurrentRoot } 
 import { getSessionsCache, normRoot } from "./snapshots.js";
 import { pollFullscan } from "../components/scan.js";
 import { renderCompareMini } from "../components/snapshot-mini.js"; // U2.4：最近对比迷你卡
+import { markNavDot } from "../components/nav-dots.js"; // U3.1：N13 圆点提醒（对比完成；叶子模块）
 
 function deltaClass(v) {
     if (v > 0) return "grow";
@@ -61,6 +62,7 @@ export async function compareSnapshots(allowOtherMachine) {
             atText: new Date().toLocaleString(),
         };
         renderCompareMini();
+        markNavDot("/compare"); // U3.1：N13 圆点提醒（对比完成；停留在其他页时挂点，点击对比标签消除）
     } catch (e) {
         // P12·W2.13：异机基线 → 红字确认后二次提交携带 allow 字段
         if (e && e.code === "machine_mismatch") {

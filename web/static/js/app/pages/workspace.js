@@ -72,6 +72,8 @@ export function getCurrentRoot() { return currentRoot; }
 export function setCurrentRoot(v) { currentRoot = v; }
 export function getCurrentPath() { return currentPath; }
 export function resetBrowseHistory() { browseHistory = []; }
+/* U3.1：命令面板「浏览历史」数据源（跨模块可变状态经访问器；副本防外部篡改） */
+export function getBrowseHistory() { return browseHistory.slice(); }
 
 /* P12·W1.4 行动闭环：行内 hover 操作区（U2.5 起由 components/list.js 统一构建——
    F19 三图标 下钻/定位/复制路径；事件委托见 bindWorkspace 底部） */
@@ -771,19 +773,7 @@ const WORKSPACE_HTML =
     '<h1 class="sr-only" data-page-title>工作台</h1>' +
     '<main class="main-col">' +
 
-    '<!-- 首启引导：原「卡片折叠条」原样保留（U3.1 升级为弹层） -->' +
-    '<section id="onboarding" class="card hero hidden" aria-label="使用指引">' +
-    '<div class="hero-head"><h2>👋 欢迎使用 Python 磁盘扫描</h2>' +
-    '<button id="btn-onboarding-close" class="icon-btn" title="关闭引导">' +
-    '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
-    '</button></div>' +
-    '<p class="hero-sub">先扫描一次，建立空间索引。</p>' +
-    '<ol class="steps hidden">' +
-    '<li class="step"><span class="step-num">1</span><div><b>检查环境</b><p>确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。</p></div></li>' +
-    '<li class="step"><span class="step-num">2</span><div><b>全量扫描</b><p>点击「开始全量扫描」，程序在后台依次扫描 C、D 等所有本地盘，进度条实时显示。</p></div></li>' +
-    '<li class="step"><span class="step-num">3</span><div><b>保存快照</b><p>扫描完成会提示「是否保存本次快照」，保存后生成 C、D 各一份快照与清单；也可在设置中开启自动保存。</p></div></li>' +
-    '<li class="step"><span class="step-num">4</span><div><b>对比与清空</b><p>保存快照后，历史列表中每个盘符旁可「一键对比」；跨盘快照会先切换盘符再自动发起对比（次日即可回看变化）。设置里可一键清空数据目录（需输入确认文字）。</p></div></li>' +
-    '</ol></section>' +
+    '<!-- U3.1：首启引导 hero 卡迁出为壳级弹层（#onboarding，F02 弹层化——见 index.html 与 onboarding.js） -->' +
 
     '<!-- ===== 面包屑 / 工具栏行（48px 预算：F06 路径行 + N10 视图工具栏位） ===== -->' +
     '<div class="tool-row">' +

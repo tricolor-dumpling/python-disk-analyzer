@@ -129,6 +129,15 @@ window.fetch = function (url, options) {
         await page.addInitScript(STUB_FN);
         await page.goto(BASE, { waitUntil: "domcontentloaded" });
         await installWait(page);
+        // U3.1：首启引导迁为壳级弹层（F02）——新上下文首访会弹出并拦截真实指针点击；
+        // 经 closeModal 栈安全关闭（同 smoke A0 法，不残留弹窗栈）
+        await page.evaluate(async () => {
+            try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+            try {
+                const m = await import("/static/js/app/main.js");
+                if (m.closeModal) m.closeModal("onboarding");
+            } catch (e) { /* 旧结构忽略 */ }
+        }).catch(() => {});
 
         /* ---- ① 默认视图 = 矩形图（N01 接管）+ 三视图切换 120ms 交叉淡化 ---- */
         console.log("-- 默认视图与视图切换 --");
@@ -512,6 +521,13 @@ window.fetch = function (url, options) {
         page.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text()); });
         await page.goto(BASE, { waitUntil: "domcontentloaded" });
         await installWait(page);
+        await page.evaluate(async () => {
+            try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+            try {
+                const m = await import("/static/js/app/main.js");
+                if (m.closeModal) m.closeModal("onboarding");
+            } catch (e) { /* 旧结构忽略 */ }
+        }).catch(() => {});
         // 等真实 browse（真实目录或扫描中提示）
         await page.evaluate(() => window.__wait(() =>
             !document.getElementById("table-wrap").classList.contains("hidden") ||

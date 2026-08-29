@@ -104,6 +104,14 @@ window.fetch = function (url, options) {
         await page.addInitScript(STUB_FN);
         await page.goto(BASE, { waitUntil: "domcontentloaded" });
         await installWait(page);
+        // U3.1：首启引导弹层（F02）——closeModal 栈安全关闭，防拦截真实指针点击
+        await page.evaluate(async () => {
+            try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+            try {
+                const m = await import("/static/js/app/main.js");
+                if (m.closeModal) m.closeModal("onboarding");
+            } catch (e) { /* 旧结构忽略 */ }
+        }).catch(() => {});
         const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
         /* ---- 数据态就位 ---- */
@@ -394,6 +402,14 @@ window.fetch = function (url, options) {
         page.on("pageerror", (e) => errs.push("pageerror: " + e.message));
         await page.goto(BASE, { waitUntil: "domcontentloaded" });
         await installWait(page);
+        // U3.1：首启引导弹层（F02）——closeModal 栈安全关闭，防拦截真实指针点击
+        await page.evaluate(async () => {
+            try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+            try {
+                const m = await import("/static/js/app/main.js");
+                if (m.closeModal) m.closeModal("onboarding");
+            } catch (e) { /* 旧结构忽略 */ }
+        }).catch(() => {});
         const scanning = await page.evaluate(async () => {
             const w = (ms) => new Promise((r) => setTimeout(r, ms));
             const okIndet = await window.__wait(() => document.querySelector("#overview-donut .donut-box.is-indet") !== null, 15000);
@@ -426,6 +442,14 @@ window.fetch = function (url, options) {
         page.on("pageerror", (e) => errs.push("pageerror: " + e.message));
         await page.goto(BASE, { waitUntil: "domcontentloaded" });
         await installWait(page);
+        // U3.1：首启引导弹层（F02）——closeModal 栈安全关闭，防拦截真实指针点击
+        await page.evaluate(async () => {
+            try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+            try {
+                const m = await import("/static/js/app/main.js");
+                if (m.closeModal) m.closeModal("onboarding");
+            } catch (e) { /* 旧结构忽略 */ }
+        }).catch(() => {});
         const data = await page.evaluate(async () => {
             const w = (ms) => new Promise((r) => setTimeout(r, ms));
             const okChips = await window.__wait(() => document.querySelectorAll("#overview-chips .chip").length >= 1, 15000);

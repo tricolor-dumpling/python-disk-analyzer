@@ -17,6 +17,8 @@ import { setSessionsCache, renderSnapshotList } from "../pages/snapshots.js";
 let dataDir = "";
 
 export function setDataDir(v) { dataDir = v; }
+/* U3.1：徽章 popover 读取数据目录（跨模块可变状态经访问器） */
+export function getDataDir() { return dataDir; }
 
 export async function openSettings() {
     openModal("settings-modal"); // P12·W2.6（K1）：统一走弹窗工具

@@ -12,28 +12,149 @@ import { $, api } from "./api.js";
 import { APP_STATE } from "./state.js";
 import { switchTheme } from "./theme.js";
 import { createRouter } from "./router.js";
-import { loadGuide, bindOnboarding } from "./components/onboarding.js";
+import { loadGuide, bindOnboarding, showGuide } from "./components/onboarding.js";
 import { refreshOverview, bindOverview } from "./components/storage.js";
 import { bindSnapshotMini, renderCompareMini } from "./components/snapshot-mini.js";
 import {
     bindWorkspace, renderEntries, browsePath,
     getCurrentRoot, getCurrentPath, getLastRoots, setCurrentRoot, applyLastRoots,
-    renderWorkspace, unmountWorkspace, restoreWorkspaceView,
+    getBrowseHistory, renderWorkspace, unmountWorkspace, restoreWorkspaceView,
     getTreemapView, getTreemapTiles, setMergeTop, renderTreemapFromState,
 } from "./pages/workspace.js";
 import { evaluateEnvGate, refreshHealth, bindTopbar, bindWorkspaceGuide } from "./components/topbar.js";
-import { pollFullscan, setAutoSaveSetting, undoLastSave, bindScan, applyScanView } from "./components/scan.js";
+import { markNavDot } from "./components/nav-dots.js"; // U3.1：N13 圆点（探针/引导面再导出）
+import { pollFullscan, startFullscan, saveSnapshot, setAutoSaveSetting, undoLastSave, bindScan, applyScanView } from "./components/scan.js";
 import { refreshSnapshots, getSessionsCache, setSessionsCache, applySnapshotsView } from "./pages/snapshots.js";
-import { bindCompare, renderCompare, mountCompare, unmountCompare } from "./pages/compare.js";
+import { bindCompare, renderCompare, mountCompare, unmountCompare, compareSnapshots } from "./pages/compare.js";
 import { renderSnapshots, mountSnapshots, unmountSnapshots } from "./pages/snapshots.js";
-import { bindSettings, setDataDir, setStatusForSettingsHealth } from "./components/settings.js";
+import { bindSettings, openSettings, setDataDir, setStatusForSettingsHealth } from "./components/settings.js";
 import { bindModals, openModal, closeModal } from "./components/modals.js";
 import { renderApiError } from "./components/feedback.js";
+import {
+    setPaletteBuilder, bindPalette, openPalette, closePalette, isPaletteOpen, fuzzyScore,
+} from "./components/palette-cmd.js";
 
-/* 主题按钮（U1.1 临时入口：U3.1 顶栏改版时移正） */
+/* 主题按钮（U1.1 临时入口：U3.1 顶栏改版时移正——现按壳级接线保留在 start()，已归位） */
 function bindTheme() {
     const themeBtn = $("btn-theme");
     if (themeBtn) themeBtn.addEventListener("click", (ev) => switchTheme(undefined, ev));
+}
+
+/* ================= U3.1：顶栏「开始扫描」（N05 骨架：全局态随 pds:scan；
+   空闲=点击回主页并触发全量扫描；扫描中=微型进度环，点击回主页。
+   完整状态机（停止/计时/完成分支）U3.2 补——此处只做骨架与跳转） ================= */
+
+function navigateAndRun(route, action) {
+    if (APP_STATE.route === route) { action(); return; }
+    const onNav = (ev) => {
+        if (ev.detail && ev.detail.route === route) {
+            window.removeEventListener("pds:navigate", onNav);
+            action();
+        }
+    };
+    window.addEventListener("pds:navigate", onNav);
+    location.hash = "#" + route;
+}
+
+function bindScanTop() {
+    const btn = $("btn-scan-top");
+    if (!btn) return;
+    const label = btn.querySelector(".topbar-scan-label");
+    const ring = btn.querySelector(".topbar-scan-ring");
+    const arc = btn.querySelector(".scan-ring-arc");
+    const C = 2 * Math.PI * 9; // r=9（viewBox 24）；几何常量非时长/缓动魔法数
+    if (arc) arc.style.strokeDasharray = String(C);
+    let running = false;
+    btn.addEventListener("click", () => {
+        if (running) {
+            if (APP_STATE.route !== "/") location.hash = "#/"; // 扫描中点击=回主页
+            return;
+        }
+        navigateAndRun("/", startFullscan); // 空闲点击=回主页并触发全量扫描
+    });
+    window.addEventListener("pds:scan", (ev) => {
+        const st = ev.detail || {};
+        running = !!st.running;
+        btn.classList.toggle("is-scanning", running);
+        if (label) label.hidden = running;
+        if (ring) ring.hidden = !running;
+        btn.setAttribute("aria-label", running ? "扫描中，点击回到工作台" : "开始扫描");
+        btn.title = running ? "扫描中（点击回到工作台）" : "开始全量扫描";
+        if (arc) {
+            const v = Math.max(0, Math.min(100, Number(st.progress_pct) || 0));
+            // arc 初始 dashoffset = C（空环）；运行时按 pct 折算（微型进度环骨架）
+            arc.style.strokeDashoffset = String(running ? C * (1 - v / 100) : C);
+        }
+    });
+}
+
+function exportRaw(fmt) {
+    const root = encodeURIComponent(getCurrentRoot() || "");
+    window.open("/api/export?format=" + fmt + "&root=" + root, "_blank");
+}
+
+function browseDrive(root) {
+    navigateAndRun("/", () => {
+        setCurrentRoot(root);
+        const input = $("browse-root");
+        if (input) input.value = root;
+        browsePath(root);
+    });
+}
+
+/* ================= U3.1：命令面板数据源/执行器表（main.js 注入——
+   palette-cmd 零业务依赖；数据源走既有导出访问器；页面跳转=location.hash；
+   命令=复用既有函数入口，不新增 API） ================= */
+
+function buildPaletteItems() {
+    const items = [];
+    // 页面 ×3
+    [
+        { route: "/", label: "工作台", keywords: ["workspace", "home", "gzt"] },
+        { route: "/compare", label: "对比", keywords: ["compare", "diff", "db"] },
+        { route: "/snapshots", label: "快照", keywords: ["snapshots", "snapshot", "kz"] },
+    ].forEach((p) => items.push({
+        group: "页面", label: p.label, hint: "跳转到 #" + p.route, keywords: p.keywords,
+        exec: () => { if (APP_STATE.route !== p.route) location.hash = "#" + p.route; },
+    }));
+    // 盘符（datalist 静态建议；与「最近访问」互为去重同源）
+    const drives = new Set();
+    const dl = $("roots-suggest");
+    if (dl) dl.querySelectorAll("option").forEach((o) => drives.add(String(o.value || "").trim()));
+    drives.forEach((d) => {
+        if (!d) return;
+        items.push({ group: "盘符", label: d, hint: "浏览 " + d, keywords: ["drive", "root", d.replace(/\\/g, "").toLowerCase()], exec: () => browseDrive(d) });
+    });
+    // 最近访问（lastRoots）
+    getLastRoots().forEach((r) => items.push({
+        group: "最近访问", label: r, hint: "重新打开 " + r, keywords: ["recent", "last", r.replace(/\\/g, "").toLowerCase()], exec: () => browseDrive(r),
+    }));
+    // 浏览历史（browseHistory，最近 8 条倒序）
+    getBrowseHistory().slice(-8).reverse().forEach((p) => items.push({
+        group: "浏览历史", label: p, hint: "返回 " + p, keywords: ["history", "hist"], exec: () => browsePath(p),
+    }));
+    // 快照（会话 × 未跳过盘；执行=打开快照页）
+    getSessionsCache().slice(0, 6).forEach((s) => {
+        Object.values(s.roots || {}).forEach((r) => {
+            if (!r || r.skipped || !r.root) return;
+            items.push({
+                group: "快照",
+                label: r.root + " · " + String(s.created_at || "").replace("T", " "),
+                hint: "打开快照页", keywords: ["snapshot", "snap", "kz"],
+                exec: () => { if (APP_STATE.route !== "/snapshots") location.hash = "#/snapshots"; },
+            });
+        });
+    });
+    // 命令（复用既有函数入口）
+    items.push({ group: "命令", label: "开始扫描", hint: "全量扫描所有本地盘", keywords: ["scan", "start", "fullscan", "kssm"], exec: () => navigateAndRun("/", () => startFullscan()) });
+    items.push({ group: "命令", label: "保存快照", hint: "把最近一次全量结果保存为快照", keywords: ["save", "snapshot", "bckz"], exec: () => saveSnapshot(false) });
+    items.push({ group: "命令", label: "开始对比", hint: "与基线快照对比（回工作台）", keywords: ["compare", "diff", "ksdb"], exec: () => navigateAndRun("/", () => compareSnapshots()) });
+    items.push({ group: "命令", label: "导出 CSV", hint: "当前目录导出为 CSV", keywords: ["export", "csv", "dc"], exec: () => exportRaw("csv") });
+    items.push({ group: "命令", label: "导出 JSON", hint: "当前目录导出为 JSON", keywords: ["export", "json", "dc"], exec: () => exportRaw("json") });
+    items.push({ group: "命令", label: "切换主题", hint: "亮 / 暗主题", keywords: ["theme", "dark", "light", "qhzt"], exec: () => switchTheme(undefined, null) });
+    items.push({ group: "命令", label: "打开设置", hint: "自动保存、数据目录与危险区", keywords: ["settings", "config", "dksz"], exec: () => openSettings() });
+    items.push({ group: "命令", label: "使用指引", hint: "重新打开首启引导", keywords: ["guide", "help", "syzy"], exec: () => showGuide() });
+    return items;
 }
 
 /* 工作台页挂载（页面内容绑定集合 = 原 bind() 的页面段；组成见 U2.0 注记）
@@ -43,7 +164,6 @@ function bindTheme() {
    保证 Network 时序与重构前一致（验收①）。 */
 let _workspaceMountedOnce = false;
 function mountWorkspacePage() {
-    bindOnboarding();
     bindOverview();
     bindWorkspace();
     bindScan();
@@ -74,6 +194,10 @@ export async function start() {
     bindTheme();
     bindSettings();
     bindModals();
+    bindOnboarding();   // U3.1：引导弹层迁壳级（close 按钮绑定一次，不等页面挂载）
+    bindPalette();      // U3.1：命令面板（Ctrl/⌘K、/、面板内键盘）
+    bindScanTop();      // U3.1：顶栏开始扫描（N05 骨架）
+    setPaletteBuilder(buildPaletteItems); // U3.1：执行器表注入（palette 零业务依赖）
     router.init();
     loadGuide();
 
@@ -116,4 +240,7 @@ export {
     undoLastSave, renderEntries, openModal, closeModal, browsePath,
     getCurrentPath, getSessionsCache, setSessionsCache,
     getTreemapView, getTreemapTiles, setMergeTop, renderTreemapFromState,
+    /* U3.1：命令面板/圆点/访问器（探针与 smoke 断言面） */
+    openPalette, closePalette, isPaletteOpen, fuzzyScore, markNavDot,
+    getBrowseHistory,
 };

@@ -11,6 +11,10 @@
      使 A2「零滚动」断言的度量口径与真实页面一致（逻辑断言不受布局影响）。 */
   html, body { height: 100%; }
   * { box-sizing: border-box; }
+  /* U3.1：脚手架补 .hidden 显隐规则（与真实页 style.css 语义一致）——
+     U3.1 起壳级浮层（palette/popover/onboarding）与弹窗同为 body 子节点，
+     无此规则将占流式高度破坏 A2 零滚动度量口径 */
+  .hidden { display: none; }
   body {
     font-family: Consolas, "Microsoft YaHei", monospace;
     margin: 0; padding: 12px;
@@ -37,19 +41,76 @@
 
 <!-- ================= U2.1：脚手架 = App Shell 结构（顶栏 + 路由视区 + 弹窗族 + toast） =================
      页面内容（工作台/对比/快照）由 pages/* 渲染进 #route-view，与真实页面共用同一份模板源码，
-     断言所用 id 因此与真实页面保持同一（选择器不变）。 -->
+     断言所用 id 因此与真实页面保持同一（选择器不变）。
+     U3.1 壳级同构：顶栏八元素（导航下划线/圆点/搜索框/开始扫描）+ 命令面板 + 徽章 popover
+     + 首启引导弹层——与 index.html 逐字同构（人工保持；页面内容另由模板源码保证）。 -->
 <header>
   <button id="health-badge" class="badge" title=""><span id="health-text">正在检查环境…</span></button>
-  <button id="btn-guide"></button>
-  <button id="btn-theme"></button>
-  <button id="btn-settings"></button>
   <nav class="nav-tabs" aria-label="主导航">
-    <a class="nav-tab is-active" href="#/" aria-current="page">工作台</a>
-    <a class="nav-tab" href="#/compare">对比</a>
-    <a class="nav-tab" href="#/snapshots">快照</a>
+    <a class="nav-tab is-active" href="#/" aria-current="page">工作台<span class="nav-dot" hidden></span></a>
+    <a class="nav-tab" href="#/compare">对比<span class="nav-dot" hidden></span></a>
+    <a class="nav-tab" href="#/snapshots">快照<span class="nav-dot" hidden></span></a>
+    <span class="nav-underline" id="nav-underline" aria-hidden="true"></span>
   </nav>
+  <button id="btn-palette" class="topbar-search" type="button" aria-label="搜索或跳转">
+    <span class="topbar-search-placeholder">搜索或跳转…</span>
+    <kbd class="kbd">Ctrl K</kbd>
+  </button>
+  <button id="btn-theme"></button>
+  <button id="btn-scan-top" class="topbar-scan" type="button">
+    <span class="topbar-scan-label">开始扫描</span>
+    <span class="topbar-scan-ring" hidden><svg class="scan-ring-svg" viewBox="0 0 24 24"><circle class="scan-ring-track" cx="12" cy="12" r="9"/><circle class="scan-ring-arc" cx="12" cy="12" r="9"/></svg></span>
+  </button>
+  <button id="btn-guide"></button>
+  <button id="btn-settings"></button>
 </header>
 <div id="route-view" class="route-view"></div>
+
+<!-- U3.1 命令面板（与 index.html 同构：面板视作浮层入弹窗栈——A7 扩展断言） -->
+<div id="palette" class="modal palette-overlay hidden" role="dialog" aria-modal="true" aria-label="命令面板">
+  <div class="modal-panel palette-panel">
+    <div class="palette-input-row">
+      <input id="palette-input" type="search" placeholder="搜索或跳转…" autocomplete="off" spellcheck="false" aria-label="命令面板搜索">
+      <kbd class="kbd">Esc</kbd>
+    </div>
+    <div id="palette-results" class="palette-results" role="listbox" aria-label="命令结果">
+      <div class="palette-empty muted">输入以搜索页面、盘符、历史与命令</div>
+    </div>
+  </div>
+</div>
+<!-- U3.1 徽章 popover（同构：数据目录/驱动状态/重试） -->
+<div id="health-popover" class="modal health-popover hidden" role="dialog" aria-modal="true" aria-label="环境详情">
+  <div class="modal-panel popover-panel">
+    <div class="modal-head">
+      <h2>环境详情</h2>
+      <button class="icon-btn" data-close="health-popover" title="关闭">×</button>
+    </div>
+    <div class="popover-body">
+      <div class="popover-row"><span class="popover-label">数据目录</span><span id="popover-data-dir" class="popover-value">正在读取…</span></div>
+      <div class="popover-row"><span class="popover-label">驱动状态</span><span id="popover-health" class="popover-value">正在检查…</span></div>
+      <div id="popover-health-dll" class="popover-sub muted"></div>
+      <button id="btn-popover-retry" class="btn btn-sm">重试环境检测</button>
+    </div>
+  </div>
+</div>
+<!-- U3.1 首启引导弹层（同构：A0 关闭避免干扰后续断言） -->
+<div id="onboarding" class="modal onboarding-overlay hidden" role="dialog" aria-modal="true" aria-label="使用指引">
+  <div class="modal-panel onboarding-panel">
+    <div class="modal-head">
+      <h2>欢迎使用 Python 磁盘扫描</h2>
+      <button id="btn-onboarding-close" class="icon-btn" title="关闭引导">×</button>
+    </div>
+    <ol class="steps">
+      <li class="step"><span class="step-num">1</span><div><b>检查环境</b></div></li>
+      <li class="step"><span class="step-num">2</span><div><b>全量扫描</b></div></li>
+      <li class="step"><span class="step-num">3</span><div><b>保存快照</b></div></li>
+      <li class="step"><span class="step-num">4</span><div><b>对比与清空</b></div></li>
+    </ol>
+    <div class="onboarding-dots" aria-hidden="true">
+      <span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span>
+    </div>
+  </div>
+</div>
 
 <div id="settings-modal" class="modal hidden">
   <div class="modal-panel">
@@ -190,8 +251,8 @@ window.fetch = function (url, options) {
    ============================================================ */
 import {
     $, APP_STATE, switchTheme, renderApiError, refreshHealth,
-    setStatusForSettingsHealth, renderEntries, openModal,
-    browsePath, getCurrentPath, getTreemapView,
+    setStatusForSettingsHealth, renderEntries, openModal, closeModal,
+    browsePath, getCurrentPath, getTreemapView, openPalette,
 } from "../../web/static/js/app/main.js";
 import * as __motion from "../../web/static/js/app/motion.js";
 window.__motion = __motion;
@@ -277,6 +338,10 @@ const ASSERTIONS_V2 = [
     fn: async function () {
       __assert(typeof __assert === "function", "__assert 必须可用");
       __assert(typeof window.fetch === "function", "fetch 桩必须就位");
+      // U3.1：首启引导弹层（未 dismiss 时 loadGuide 弹出）——先关闭并记 dismissed，
+      // 避免浮层遮挡后续断言操作（A0 之外无断言依赖 hero 结构，此处仅清场）
+      try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+      closeModal("onboarding");
       // fetch 桩已接管：init 首拉 /api/settings 必须落在调用日志里
       const first = __smoke.fetchLog.find((e) => e.url === "/api/settings");
       __assert(first, "init 应首先拉取 /api/settings（fetch 桩计数生效）");
@@ -434,6 +499,46 @@ const ASSERTIONS_V2 = [
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       await new Promise((r) => setTimeout(r, 10));
       __assert($("settings-modal").classList.contains("hidden"), "第二次 Esc 关 settings-modal");
+      /* U3.1 扩展：命令面板视作浮层入栈（红线 #9）——Ctrl+K 开合、面板内 Tab 循环、
+         面板开启时 R 守卫、面板上叠设置后的 Esc 逆序（先设置后面板） */
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+      await new Promise((r) => setTimeout(r, 20));
+      __assert(!$("palette").classList.contains("hidden"), "Ctrl+K 应打开命令面板");
+      // Tab 循环：焦点不出面板
+      const palettePanel = $("palette").querySelector(".modal-panel");
+      $("palette-input").focus();
+      for (let i = 0; i < 3; i++) {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }));
+      }
+      __assert(palettePanel.contains(document.activeElement), "Tab 循环后焦点必须仍在命令面板内");
+      // R 守卫：面板开启时按 R 不触发浏览
+      const browseCallsBeforePalette = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "r", bubbles: true }));
+      await new Promise((r) => setTimeout(r, 10));
+      const browseCallsAfterPaletteR = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
+      __assert(browseCallsAfterPaletteR === browseCallsBeforePalette, "面板开启时按 R 不得触发浏览请求");
+      // 面板上叠设置：Esc 逆序关栈顶（设置 → 面板）
+      openModal("settings-modal");
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await new Promise((r) => setTimeout(r, 10));
+      __assert($("settings-modal").classList.contains("hidden"), "面板+设置时 Esc 应先关栈顶设置弹窗");
+      __assert(!$("palette").classList.contains("hidden"), "设置关闭后命令面板应保持开启");
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await new Promise((r) => setTimeout(r, 10));
+      __assert($("palette").classList.contains("hidden"), "第二次 Esc 应关命令面板（栈逆序）");
+      // Ctrl+K 开合 + 其他弹窗打开时忽略
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+      await new Promise((r) => setTimeout(r, 20));
+      __assert(!$("palette").classList.contains("hidden"), "Ctrl+K 应再次打开面板");
+      openModal("settings-modal");
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+      await new Promise((r) => setTimeout(r, 20));
+      __assert(!$("palette").classList.contains("hidden"),
+               "面板在栈内但设置弹窗居上时 Ctrl+K 应忽略（面板保持开启）");
+      closeModal("settings-modal");
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      await new Promise((r) => setTimeout(r, 10));
+      __assert($("palette").classList.contains("hidden"), "Esc 应关闭命令面板（栈逆序）");
     } },
   { id: "A8", name: "U2.0 移植（W2.1·红线#10）：busy health 徽章不降级、整页不进引导态",
     fn: async function () {

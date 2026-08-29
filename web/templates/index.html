@@ -44,27 +44,52 @@
             </div>
         </div>
         <!-- [N13] 导航标签（U2.1 接线：原生锚点 → hashchange → router 转场；
-             激活态 .is-active 由 router 维护；下划线滑动 L2-11 于 U3.1 补） -->
+             激活态 .is-active 由 router 维护；U3.1：L2-11 下划线滑动（#nav-underline，
+             仅 transform 动画）+ 非活动标签圆点提醒（.nav-dot，markNavDot 驱动，点击消除）） -->
         <nav class="nav-tabs" aria-label="主导航">
-            <a class="nav-tab is-active" href="#/" aria-current="page">工作台</a>
-            <a class="nav-tab" href="#/compare">对比</a>
-            <a class="nav-tab" href="#/snapshots">快照</a>
+            <a class="nav-tab is-active" href="#/" aria-current="page">工作台<span class="nav-dot" hidden></span></a>
+            <a class="nav-tab" href="#/compare">对比<span class="nav-dot" hidden></span></a>
+            <a class="nav-tab" href="#/snapshots">快照<span class="nav-dot" hidden></span></a>
+            <span class="nav-underline" id="nav-underline" aria-hidden="true"></span>
         </nav>
         <div class="topbar-right">
-            <button id="health-badge" class="badge" title="点击查看 Everything 状态">
+            <button id="health-badge" class="badge" title="点击查看环境详情">
                 <span id="health-text">正在检查环境…</span>
             </button>
-            <button id="btn-guide" class="btn btn-ghost btn-sm" title="重新打开使用指引">
-                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <circle cx="12" cy="12" r="9"/><path d="M9.2 9a2.8 2.8 0 0 1 5.6.6c0 1.8-2.6 2-2.6 3.4"/><circle cx="12" cy="17.2" r="0.4" fill="currentColor"/>
+            <!-- [N02] 搜索框（240×36 按钮态入口；点击/Ctrl ⌘K 打开命令面板；kbd 徽标） -->
+            <button id="btn-palette" class="topbar-search" type="button"
+                    title="搜索或跳转（Ctrl K）" aria-label="搜索或跳转">
+                <svg class="icon-sm topbar-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="11" cy="11" r="7"/><path d="m20.5 20.5-4.4-4.4"/>
                 </svg>
-                使用指引
+                <span class="topbar-search-placeholder">搜索或跳转…</span>
+                <kbd class="kbd">Ctrl K</kbd>
             </button>
             <button id="btn-theme" class="btn btn-ghost btn-sm" title="切换亮 / 暗主题">
                 <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
                 </svg>
                 主题
+            </button>
+            <!-- [N05 骨架] 开始扫描：空闲=按钮（点击回主页并触发全量扫描）；扫描中=微型进度环（点击回主页）。
+                 状态机（停止/计时/完成分支）U3.2 补，此处仅全局态随 pds:scan + 跳转 -->
+            <button id="btn-scan-top" class="btn btn-primary btn-sm topbar-scan" type="button" title="开始全量扫描">
+                <span class="topbar-scan-label">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                    开始扫描
+                </span>
+                <span class="topbar-scan-ring" hidden aria-hidden="true">
+                    <svg class="scan-ring-svg" viewBox="0 0 24 24">
+                        <circle class="scan-ring-track" cx="12" cy="12" r="9"/>
+                        <circle class="scan-ring-arc" cx="12" cy="12" r="9"/>
+                    </svg>
+                </span>
+            </button>
+            <button id="btn-guide" class="btn btn-ghost btn-sm" title="重新打开使用指引">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="12" cy="12" r="9"/><path d="M9.2 9a2.8 2.8 0 0 1 5.6.6c0 1.8-2.6 2-2.6 3.4"/><circle cx="12" cy="17.2" r="0.4" fill="currentColor"/>
+                </svg>
+                使用指引
             </button>
             <button id="btn-settings" class="btn btn-ghost btn-sm">
                 <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -88,8 +113,40 @@
     </footer>
 </div>
 
-<!-- [N02] 命令面板浮层位（U3.1 装配；全路由可用，Ctrl/⌘K 打开） -->
-<div class="palette-slot" data-slot="palette" hidden></div>
+<!-- [N02] 命令面板（U3.1：Ctrl/⌘K 或点击搜索框打开；数据源/执行器由 main.js 注入；
+     面板视作浮层入弹窗栈（红线 #9 扩展：Esc 逆序关栈顶、Tab 循环、R 守卫）；开合 80ms tok -->
+<div id="palette" class="modal palette-overlay hidden" role="dialog" aria-modal="true" aria-label="命令面板">
+    <div class="modal-panel palette-panel">
+        <div class="palette-input-row">
+            <svg class="icon palette-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20.5 20.5-4.4-4.4"/></svg>
+            <input id="palette-input" type="search" placeholder="搜索或跳转…" autocomplete="off" spellcheck="false" aria-label="命令面板搜索">
+            <kbd class="kbd">Esc</kbd>
+        </div>
+        <div id="palette-results" class="palette-results" role="listbox" aria-label="命令结果">
+            <div class="palette-empty muted">输入以搜索页面、盘符、历史与命令</div>
+        </div>
+    </div>
+</div>
+
+<!-- 健康徽章 popover（U3.1：点击徽章弹出——数据目录/驱动状态/重试环境检测。
+     重试 = evaluateEnvGate 第二求值点（红线 #8 语义保留：仅重评门控，15s 轮询不重评）；
+     视图区引导条（#browse-guide）按定稿 6.3 保留，A8 断言语义不变 -->
+<div id="health-popover" class="modal health-popover hidden" role="dialog" aria-modal="true" aria-label="环境详情">
+    <div class="modal-panel popover-panel">
+        <div class="modal-head">
+            <h2>环境详情</h2>
+            <button class="icon-btn" data-close="health-popover" title="关闭">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+        <div class="popover-body">
+            <div class="popover-row"><span class="popover-label">数据目录</span><span id="popover-data-dir" class="popover-value">正在读取…</span></div>
+            <div class="popover-row"><span class="popover-label">驱动状态</span><span id="popover-health" class="popover-value">正在检查…</span></div>
+            <div id="popover-health-dll" class="popover-sub muted"></div>
+            <button id="btn-popover-retry" class="btn btn-sm btn-primary">重试环境检测</button>
+        </div>
+    </div>
+</div>
 
 <!-- 设置弹窗 -->
 <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="设置">
@@ -171,6 +228,29 @@
         <div class="modal-foot">
             <button id="btn-confirm-ok" class="btn btn-danger">确定</button>
             <button id="btn-confirm-cancel" class="btn">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- [F02] 首启引导弹层（U3.1：由工作台 hero 卡迁出为壳级弹层；4 步内容不变；
+     pds_onboarding_dismissed_v1 沿用；「使用指引」按钮重开；入弹窗栈 -->
+<div id="onboarding" class="modal onboarding-overlay hidden" role="dialog" aria-modal="true" aria-label="使用指引">
+    <div class="modal-panel onboarding-panel">
+        <div class="modal-head">
+            <h2>👋 欢迎使用 Python 磁盘扫描</h2>
+            <button id="btn-onboarding-close" class="icon-btn" title="关闭引导">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+        <p class="onboarding-sub">先扫描一次，建立空间索引。</p>
+        <ol class="steps">
+            <li class="step"><span class="step-num">1</span><div><b>检查环境</b><p>确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。</p></div></li>
+            <li class="step"><span class="step-num">2</span><div><b>全量扫描</b><p>点击「开始全量扫描」，程序在后台依次扫描 C、D 等所有本地盘，进度条实时显示。</p></div></li>
+            <li class="step"><span class="step-num">3</span><div><b>保存快照</b><p>扫描完成会提示「是否保存本次快照」，保存后生成 C、D 各一份快照与清单；也可在设置中开启自动保存。</p></div></li>
+            <li class="step"><span class="step-num">4</span><div><b>对比与清空</b><p>保存快照后，历史列表中每个盘符旁可「一键对比」；跨盘快照会先切换盘符再自动发起对比（次日即可回看变化）。设置里可一键清空数据目录（需输入确认文字）。</p></div></li>
+        </ol>
+        <div class="onboarding-dots" aria-hidden="true">
+            <span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span>
         </div>
     </div>
 </div>

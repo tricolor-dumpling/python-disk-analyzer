@@ -15,6 +15,7 @@ import { confirmDialog } from "../components/modals.js";
 import { refreshSnapshots, getSessionsCache } from "../pages/snapshots.js";
 import { refreshOverview } from "../components/storage.js";
 import { getCurrentRoot, browsePath } from "../pages/workspace.js"; // 扫描盘 chips 与导出根
+import { markNavDot } from "../components/nav-dots.js"; // U3.1：N13 圆点提醒（叶子模块，防环）
 
 /* ================= K7：已处理的扫描代次持久化 ================= */
 export const HANDLED_SCAN_KEY = "pds_handled_scan_version_v1";
@@ -130,6 +131,10 @@ function renderFullscanState(st) {
     const wasRunning = _wasScanRunning;
     const runningNow = !!st.running;
     _wasScanRunning = runningNow;
+    /* U3.1：完成边沿的圆点提醒先于 DOM 守卫——子页面时也应挂点（N13 触发条件=
+       「用户停留在其他页时发生」；refeshOverview 仍按 U2.x 仅主页路径执行，
+       保持既有行为：概览自动刷新仅在主页完成）。 */
+    if (wasRunning && !runningNow && st.result_ready && !st.error) markNavDot("/");
     if (!$("progress-fill")) return; // U2.1：子页面时扫描卡不在 DOM（状态已记账，回主页即恢复渲染）
     const pct = Number(st.progress_pct) || 0;
     $("progress-fill").style.width = pct + "%";
@@ -208,6 +213,7 @@ export async function saveSnapshot(auto) {
         toast(data.message || "保存完成", "success");
         if (auto) toast("已自动保存快照；如需回退可点「撤销最近保存」", "info");
         refreshSnapshots();
+        markNavDot("/snapshots"); // U3.1：N13 圆点提醒（快照保存成功；点击快照标签消除）
     } catch (e) {
         toast(e.message, "error");
     } finally {

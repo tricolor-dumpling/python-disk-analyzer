@@ -46,6 +46,17 @@ export function closeModal(id) {
         confirmResolver = null;
         resolve(false);
     }
+    // U3.1：面板等浮层状态标志联动（palette-cmd 订阅；additive，不改变栈语义）
+    try { window.dispatchEvent(new CustomEvent("pds:overlay-close", { detail: { id: id } })); } catch (e) { /* ignore */ }
+}
+
+export function hasOpenModal() {
+    return modalStack.length > 0;
+}
+
+/* U3.1：面板/浮层判断自身是否为栈顶（Ctrl+K 关面板仅当面板在栈顶；其他弹窗上层时忽略） */
+export function isTopModal(id) {
+    return modalStack.length > 0 && modalStack[modalStack.length - 1] === id;
 }
 
 /* K1 焦点陷阱：Tab/Shift+Tab 在栈顶弹窗面板内循环，焦点不外逸 */
@@ -89,13 +100,8 @@ export function bindModalClose() {
     });
     // K2/K3：快捷键守卫与 Esc 关栈顶（废除写死数组顺序）
     document.addEventListener("keydown", (ev) => {
-        if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "k") {
-            ev.preventDefault();
-            if (modalStack.length) return; // 弹窗开着时忽略 Ctrl+K
-            $("browse-root").focus();
-            $("browse-root").select();
-            return;
-        }
+        // U3.1：Ctrl/⌘K 语义移交命令面板（palette-cmd.js 接管——定稿 N02），
+        // 本处理器不再消费；原「弹窗开着时忽略」守卫由 palette-cmd.hasOpenModal 保持。
         trapModalFocus(ev); // Tab 循环（仅在弹窗开启时接管）
         if (ev.key.toLowerCase() === "r" && !/input|textarea|select/i.test(document.activeElement.tagName)) {
             if (modalStack.length) return; // 弹窗开着时忽略 R 快捷刷新

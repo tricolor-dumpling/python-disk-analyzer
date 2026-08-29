@@ -95,6 +95,14 @@ const WAIT_FN = `(fn, timeout) => new Promise((resolve) => {
     /* ================= Phase A：真实页交互与特效 ================= */
     console.log("== 准备（真实页） ==");
     await page.goto(BASE, { waitUntil: "domcontentloaded" });
+    // U3.1：首启引导弹层（F02）——closeModal 栈安全关闭，防拦截真实指针点击
+    await page.evaluate(async () => {
+        try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+        try {
+            const m = await import("/static/js/app/main.js");
+            if (m.closeModal) m.closeModal("onboarding");
+        } catch (e) { /* 旧结构忽略 */ }
+    }).catch(() => {});
     await page.waitForFunction(() => {
         const t = document.getElementById("browse-status-text");
         // U2.5：默认视图=矩形图（N01 接管）——首等任一副本视图状态行即可
@@ -431,6 +439,14 @@ const WAIT_FN = `(fn, timeout) => new Promise((resolve) => {
     stubPage.on("console", (m) => { if (m.type() === "error") errs.push("[B] console: " + m.text()); });
     await stubPage.addInitScript(STUB_FN);
     await stubPage.goto(BASE, { waitUntil: "domcontentloaded" });
+    // U3.1：首启引导弹层（F02）——closeModal 栈安全关闭，防拦截真实指针点击
+    await stubPage.evaluate(async () => {
+        try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+        try {
+            const m = await import("/static/js/app/main.js");
+            if (m.closeModal) m.closeModal("onboarding");
+        } catch (e) { /* 旧结构忽略 */ }
+    }).catch(() => {});
     await stubPage.waitForFunction(() => {
         const t = document.getElementById("browse-status-text");
         // U2.5：默认视图=矩形图（N01 接管）——首等任一副本视图状态行即可
