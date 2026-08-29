@@ -177,8 +177,12 @@ export function bindCompare() {
     $("compare-baseline").addEventListener("keydown", (ev) => {
         if (ev.key === "Enter") compareSnapshots();
     });
-    // P12·W2.4：快照列表一键对比（同根直比；跨盘先切换再自动对比）
-    $("snapshot-list").addEventListener("click", (ev) => {
+    // P12·W2.4：快照列表一键对比——U3.3 起会话列表随 #/snapshots 子页面接管（F17），
+    // 该列表不再出现在工作台；快照页上的「对比此快照」= 预填 state.compare + 跳转
+    // （§6.4 跨页形态，见 pages/snapshots.js bindSnapshotsPage）。工作台侧不再绑定。
+    // 兼容守卫：若未来工作台出现同 id 列表，语义仍为「同根直比/跨盘先切再比」。
+    const snapList = $("snapshot-list");
+    if (snapList) snapList.addEventListener("click", (ev) => {
         const btn = ev.target.closest(".act-cmp-snap");
         if (!btn) return;
         const baseline = btn.getAttribute("data-baseline");

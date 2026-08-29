@@ -205,17 +205,23 @@ window.fetch = function (url, options) {
         ok("最近对比：空态引导文案（还没有对比记录）", /还没有对比记录/.test(compareMiniEmpty), compareMiniEmpty.slice(0, 50));
         await shot(page, "10-mini-cards");
 
-        // 全部会话折叠区（默认收起 → 展开可见完整列表）
-        const collBefore = await page.evaluate(() => document.getElementById("snapshot-mini-list").hidden);
-        await page.click("#btn-snapshot-expand");
-        await page.waitForTimeout(150);
-        const collAfter = await page.evaluate(() => ({
-            hidden: document.getElementById("snapshot-mini-list").hidden,
-            items: document.querySelectorAll("#snapshot-list .session-item").length,
+        // U3.3：全部会话折叠区/撤销/刷新已随子页面接线迁至 #/snapshots（F16/F17）——
+        // 工作台迷你卡只持最近一份；完整会话分组列表在快照页（stub 1 会话）
+        const collState = await page.evaluate(() => ({
+            expandBtn: !!document.getElementById("btn-snapshot-expand"),
+            listInWorkspace: !!document.getElementById("snapshot-list"),
+            undoInWorkspace: !!document.getElementById("btn-undo-save"),
         }));
-        ok("全部会话：默认收起、点击展开（1 会话条目）", collBefore === true && collAfter.hidden === false && collAfter.items === 1,
-           JSON.stringify(collAfter));
-        await shot(page, "11-snapshots-expanded");
+        ok("U3.3：迷你卡不再持有折叠区/撤销（全部会话迁 #/snapshots）",
+           collState.expandBtn === false && collState.listInWorkspace === false && collState.undoInWorkspace === false,
+           JSON.stringify(collState));
+        await page.evaluate(() => { location.hash = "#/snapshots"; });
+        await page.waitForTimeout(700);
+        const snapItems = await page.evaluate(() => document.querySelectorAll("#snapshot-list .session-item").length);
+        ok("全部会话：快照页列表渲染 1 会话条目（U3.3 迁移后落点）", snapItems === 1, "items=" + snapItems);
+        await shot(page, "11-snapshots-page");
+        await page.evaluate(() => { location.hash = "#/"; });
+        await page.waitForTimeout(700);
 
         // 最近对比摘要（compare 桩 → lastSummary → 迷你卡 ▲/▼ + 数值）
         await page.evaluate(() => {
@@ -244,10 +250,11 @@ window.fetch = function (url, options) {
         });
         const miniEmpty = await page.evaluate(() => ({
             text: String(document.querySelector("#snapshot-mini-entry").textContent || "").replace(/\s+/g, " ").trim(),
-            toolsHidden: document.getElementById("snapshot-mini-tools").hidden,
-            undoPresent: !!document.getElementById("btn-undo-save"),
+            openBtn: !!document.getElementById("btn-snapshot-mini-open"),
+            undoInWorkspace: !!document.getElementById("btn-undo-save"),
         }));
-        ok("N06 空态：文案 + 工具行隐藏（ids 保留）", /还没有快照/.test(miniEmpty.text) && miniEmpty.toolsHidden === true && miniEmpty.undoPresent,
+        ok("N06 空态：文案 + 「打开快照管理」按钮（U3.3：撤销已迁 #/snapshots 页头）",
+           /还没有快照/.test(miniEmpty.text) && miniEmpty.openBtn === true && miniEmpty.undoInWorkspace === false,
            JSON.stringify(miniEmpty));
         await shot(page, "13-mini-empty");
         // 恢复会话渲染（紧凑档断言依赖真实条目形态）

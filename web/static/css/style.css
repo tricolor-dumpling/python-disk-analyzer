@@ -150,6 +150,47 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .page-body-empty .empty-state{padding:48px 16px}
 
 /* ============================================================ */
+/* U3.3 快照管理页（#/snapshots）：页头 64px + 趋势卡×2 128px + 会话列表 flex:1 内滚 */
+/* ============================================================ */
+.page-head-row{flex-direction:row;align-items:center;justify-content:space-between;gap:16px}
+.page-head-titles{min-width:0;display:flex;flex-direction:column;gap:4px}
+.page-head-actions{display:flex;align-items:center;gap:8px;flex:none}
+
+/* 趋势区 128px（N07：较昨日/较上周）。
+   ⚠️ 降级注记：/api/snapshots 会话数据无逐次总量字段 → sparkline（L3-5）降级为
+   「两快照对比差值卡」——无折线，保留 ▲/▼ 与百分比；L3-5 后端补字段后启用 */
+.trend-row{flex:none;height:128px;display:flex;gap:12px}
+.trend-card{
+  flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px;
+  padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-card);
+  background:var(--card);color:var(--text);text-align:left;font:inherit;cursor:pointer;
+  transition:border-color var(--dur-1),box-shadow var(--dur-1);
+}
+.trend-card:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
+.trend-card:hover .trend-label{color:var(--primary)}
+.trend-card:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.trend-card.is-empty{cursor:default}
+.trend-card.is-empty:hover{border-color:var(--border);box-shadow:none}
+.trend-label-line{display:flex;align-items:baseline;gap:8px;min-width:0}
+.trend-label{font-size:var(--fs-sm);font-weight:600;white-space:nowrap}
+.trend-root{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trend-main{display:flex;align-items:baseline;gap:10px;min-width:0}
+.trend-delta{font-size:var(--fs-xl);font-weight:700;font-variant-numeric:var(--font-num);white-space:nowrap}
+.trend-pct{font-size:var(--fs-sm);color:var(--muted);font-variant-numeric:var(--font-num);white-space:nowrap}
+.trend-sub{font-size:var(--fs-xs);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trend-pending,.trend-empty{font-size:var(--fs-sm);color:var(--muted)}
+.trend-err{font-size:var(--fs-xs);color:var(--danger);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* 会话列表（F17：会话分组 + 逐盘对比/标签/跳过原因 tooltip——红线 #7 SKIP_REASON_TEXT） */
+.snapshots-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
+.snapshots-list-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:var(--fs-xs);color:var(--muted)}
+.snapshots-list-scroll{flex:1;min-height:0;overflow-y:auto;padding-right:2px}
+.session-roots{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:var(--fs-xs)}
+.session-roots li{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+.session-roots code{font-size:var(--fs-xs);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 6px;word-break:break-all;color:var(--text-2)}
+.skip-reason{color:var(--warning);cursor:help}
+
+/* ============================================================ */
 /* topbar：60px（品牌 + N13 导航标签位 + 右侧控件组）        */
 /* ============================================================ */
 
@@ -311,10 +352,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .snapshot-mini-empty{display:flex;flex-direction:column;gap:2px;padding:2px 2px 8px;color:var(--muted)}
 .snapshot-mini-empty b{color:var(--text);font-size:var(--fs-sm)}
 .snapshot-mini-empty span{font-size:var(--fs-xs)}
-.snapshot-mini-tools{margin:8px 0 0}
-.snapshot-mini-tools[hidden]{display:none!important}
-.snapshot-mini-list[hidden]{display:none!important}
-.snapshot-mini-list{margin-top:2px}
+.snapshot-mini-open-btn{margin-top:6px;align-self:flex-start}
 
 /* ---------- 「最近对比」迷你卡（U2.4；state.compare.lastSummary） ---------- */
 .compare-mini-card .card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -421,10 +459,10 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 @keyframes chip-pulse{50%{opacity:.45}}
 .chip-pending{color:var(--faint);opacity:.75;cursor:default}
 
-/* 快照卡（U2.4 升级为迷你卡，此处保留历史列表结构与行为） */
+/* 快照卡（U2.4 升级为迷你卡；U3.3：完整会话列表迁 #/snapshots 子页面——
+   列表不再限高，内滚由页面 .snapshots-list-scroll 承担） */
 .snapshot-list{
   list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;
-  max-height:320px;overflow:auto;
 }
 .session-item{display:flex;flex-direction:column;gap:4px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card);font-size:var(--fs-sm)}
 .session-head{display:flex;align-items:center;justify-content:space-between;gap:8px}

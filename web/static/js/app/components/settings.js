@@ -12,7 +12,7 @@ import { setStatus } from "../components/statusbar.js";
 import { GUIDE_KEY } from "../components/onboarding.js";
 import { setAutoSaveSetting, resetHandledScanVersion, pollFullscan, HANDLED_SCAN_KEY } from "../components/scan.js";
 import { applyLastRoots, resetBrowseHistory } from "../pages/workspace.js";
-import { setSessionsCache, renderSnapshotList } from "../pages/snapshots.js";
+import { setSessionsCache, applySnapshotsView } from "../pages/snapshots.js";
 
 let dataDir = "";
 
@@ -93,7 +93,8 @@ async function wipeData() {
         toast(data.message || "数据目录已清空", "success");
         closeModal("wipe-modal");
         closeModal("settings-modal");
-        renderSnapshotList([]);
+        // U3.3：清空 = 列表/迷你卡/基线建议/趋势卡全量复位（applySnapshotsView 从空缓存回灌）
+        applySnapshotsView();
         setStatus("snapshot-status", "", "数据目录已清空，历史快照为空");
         const compareResult = $("compare-result");
         if (compareResult) compareResult.classList.add("hidden");

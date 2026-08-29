@@ -117,7 +117,8 @@ async function runCase(theme, name) {
         rows: document.querySelectorAll("#dir-body .ranking-row, #dir-body .ranking-row-static").length,
         path: document.getElementById("breadcrumb").textContent.replace(/\s+/g, " ").trim(),
         activeTab: (document.querySelector(".nav-tabs .nav-tab.is-active") || {}).getAttribute ? document.querySelector(".nav-tabs .nav-tab.is-active").getAttribute("href") : null,
-        snapshots: document.querySelectorAll("#snapshot-list .session-item").length,
+        // U3.3：完整会话列表迁 #/snapshots 后，工作台仅存 N06 迷你条目（最近一份）
+        snapshots: document.querySelectorAll("#snapshot-mini-entry .snapshot-mini-item").length,
         scanStatus: document.getElementById("fullscan-status-text").textContent,
     }));
     await page.screenshot({ path: path.join(OUT, name + "-back-workspace.png") });

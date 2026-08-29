@@ -171,6 +171,18 @@ const SAMPLES = {
     files: [], total_dirs: 1, total_files: 0 },
   fullscanStatusIdle: { ok: true, status: { running: false, roots: ["C:\\"], roots_done: 0, roots_total: 1, current_root: null, error: null, result_ready: false, save_ready: false, progress_pct: 0, scan_version: 1, stop_requested: false, stop_reason: null } },
   snapshotsList: { ok: true, sessions: [ { session_id: "s-20260824-000000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T10:00:00", roots: { "D:\\": { root: "D:\\", snapshot: "D_20260824_100000_explicit_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260824_100000_explicit_aabbccd.snap.gz", skipped: false } } } ], count: 1 },
+  /* U3.3：多会话样本（跨 4 天 + 跳过盘）——趋势卡基线选取/降级差值卡/跳过原因 tooltip（红线#7）。
+     ⚠️ 键集合照抄后端：session 载荷无逐次总量字段（app.py api_snapshots/session.py 核对）→
+     无 sparkline 数据源，L3-5 降级为「两快照对比差值卡」（无折线，保留 ▲/▼ 与百分比） */
+  snapshotsTrend: { ok: true, sessions: [
+    { session_id: "s-20260824-120000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T12:00:00",
+      roots: { "D:\\": { root: "D:\\", snapshot: "D_20260824_120000_explicit_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260824_120000_explicit_aabbccd.snap.gz", skipped: false } } },
+    { session_id: "s-20260824-100000-aabbccdd", auto: true, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T10:00:00",
+      roots: { "D:\\": { root: "D:\\", snapshot: "D_20260824_100000_auto_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260824_100000_auto_aabbccd.snap.gz", skipped: false },
+               "C:\\": { root: "C:\\", snapshot: null, snapshot_path: null, skipped: true, skip_reason: "day_budget_exceeded", notice: "今日写入量已达上限，自动保存跳过" } } },
+    { session_id: "s-20260820-100000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-20T10:00:00",
+      roots: { "D:\\": { root: "D:\\", snapshot: "D_20260820_100000_explicit_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260820_100000_explicit_aabbccd.snap.gz", skipped: false } } }
+  ], count: 3 },
   compareReport: { ok: true, report: { root: "D:\\", total_baseline: 16000, total_current: 15990, delta_total: -10, truncated: false, legacy_count: 0, rows: [ { path: "D:\\data", baseline: 12000, current: 11990, delta: -10, growth_pct: -0.0833, removed: false, added: false } ] } },
   /* 错误双形态（RT-N04）：旧 {ok,error} 与 新 {ok,error,detail,code} */
   errorLegacyShape: { ok: false, error: "路径不存在: X:\\nope" },
@@ -257,7 +269,7 @@ import {
     $, APP_STATE, switchTheme, renderApiError, refreshHealth,
     setStatusForSettingsHealth, renderEntries, openModal, closeModal,
     browsePath, getCurrentPath, getTreemapView, openPalette,
-    probeStopSupport,
+    probeStopSupport, refreshSnapshots,
 } from "../../web/static/js/app/main.js";
 import * as __motion from "../../web/static/js/app/motion.js";
 window.__motion = __motion;
@@ -333,8 +345,9 @@ async function __waitUntil(fn, timeoutMs) {
 /* ================= U1.0/U1.3：双 suite 门禁派发（U2.5：v1/legacy 断言在此退役，
    门禁仅剩 v2；?suite=v2 与默认一致，未知 suite 回落 v2） =================
    - URL 带 ?suite=xxx → 跑对应注册表；默认 = v2（门禁主口径）；
-   - v1 注册表（ASSERTIONS）已于 U2.5 删除——v2-A4/A5/A6 语义核对通过后退役，
-     legacy 依赖的 ids（btn-undo-save/快照卡等）仅受 bind 函数依赖约束保留。 */
+   - v1 注册表（ASSERTIONS）已于 U2.5 删除——v2-A4/A5/A6 语义核对通过后退役；
+     U3.3 起 #btn-undo-save/#snapshot-list 随子页面接线迁至 #/snapshots 页头与
+     列表（bind 一律空守卫，见 scan.js/compare.js）。 */
 const __suiteMatch = window.location.search.match(/[?&]suite=([^&]+)/);
 const __currentSuite = __suiteMatch ? decodeURIComponent(__suiteMatch[1]) : "v2";
 
@@ -918,6 +931,100 @@ const ASSERTIONS_V2 = [
         delete __smoke.routes["OPTIONS /api/fullscan/stop"];
         __smoke.routes["GET /api/fullscan/status"] = SAMPLES.fullscanStatusIdle;
         await wait(1200);
+      }
+    } },
+  { id: "A17", name: "U3.3：快照管理页——页头装配（创建/撤销）· 趋势卡×2 降级差值卡（▲/▼+百分比+无折线）· 基线选取（≤24h/(24h,7d]）· 点击预填跳转 · 跳过原因 tooltip（红线#7）· 逐盘对比预填 · 撤销确认流",
+    fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const dayPath = "C:\\fake\\snapshots\\D_20260824_100000_auto_aabbccd.snap.gz";
+      const weekPath = "C:\\fake\\snapshots\\D_20260820_100000_explicit_aabbccd.snap.gz";
+      const latestPath = "C:\\fake\\snapshots\\D_20260824_120000_explicit_aabbccd.snap.gz";
+      try {
+        // ① 默认样本（1 会话 → 无基线）：页面装配 + 趋势卡空态 + 列表 1 条
+        location.hash = "#/snapshots";
+        __assert(await __waitUntil(() => APP_STATE.route === "/snapshots", 2500), "应切到快照页");
+        __assert($("btn-create-snapshot"), "页头应有「创建快照」按钮（F15）");
+        __assert($("btn-undo-save"), "页头应有「撤销最近保存」按钮（F16）");
+        __assert($("btn-create-snapshot").disabled === true, "无扫描结果时「创建快照」应置灰（N06）");
+        __assert($("btn-undo-save").disabled === false, "有会话时「撤销」应可用");
+        __assert(document.querySelectorAll(".trend-card").length === 2, "趋势区应渲染 2 张卡（较昨日/较上周）");
+        const empties = Array.from(document.querySelectorAll(".trend-card.is-empty"));
+        __assert(empties.length === 2 && empties.every((c) => c.textContent.indexOf("暂无对比基线") !== -1),
+                 "单份快照时两卡均应「暂无对比基线」（定稿 6.5）");
+        __assert(document.querySelectorAll("#snapshot-list .session-item").length === 1, "列表应渲染 1 个会话");
+        // ② 3 会话（跨 4 天 + 跳过盘）：趋势卡升级为差值卡（降级形态），各自恰 1 次 /api/compare
+        __smoke.routes["GET /api/snapshots"] = { ok: true, sessions: SAMPLES.snapshotsTrend.sessions, count: 3 };
+        __smoke.fetchLog.length = 0;
+        await refreshSnapshots();
+        __assert(await __waitUntil(() => document.querySelector(".trend-card[data-slot='day'] .trend-delta") &&
+                                         document.querySelector(".trend-card[data-slot='week'] .trend-delta"), 4000),
+                 "两卡应渲染差值（/api/compare 完成）");
+        const dayCard = document.querySelector(".trend-card[data-slot='day']");
+        const weekCard = document.querySelector(".trend-card[data-slot='week']");
+        __assert(dayCard.getAttribute("data-baseline") === dayPath, "较昨日基线应取 ≤24h 最近一份（08-24 10:00）");
+        __assert(weekCard.getAttribute("data-baseline") === weekPath, "较上周基线应取 (24h,7d] 最近一份（08-20 10:00）");
+        __assert(dayCard.getAttribute("data-root") === "D:\\", "趋势卡应带盘符根");
+        __assert(dayCard.getAttribute("data-target") === latestPath, "目标应=该盘最新快照");
+        const deltaText = dayCard.querySelector(".trend-delta").textContent;
+        __assert(deltaText.indexOf("▼") !== -1 && deltaText.indexOf("-10.00 B") !== -1,
+                 "差值卡应含 ▼ 与负值（色盲冗余符号），实际「" + deltaText + "」");
+        __assert(dayCard.querySelector(".trend-pct").textContent.indexOf("-0.06%") !== -1,
+                 "差值卡应含百分比 -0.06%，实际「" + dayCard.querySelector(".trend-pct").textContent + "」");
+        __assert(dayCard.querySelector(".trend-sub").textContent.indexOf("2026-08-24 10:00:00") !== -1 &&
+                 dayCard.querySelector(".trend-sub").textContent.indexOf("2026-08-24 12:00:00") !== -1,
+                 "副行应显示 基线→最新 时间");
+        const cmpCalls = __smoke.fetchLog.filter((e) => e.url === "/api/compare");
+        __assert(cmpCalls.length === 2, "两卡应各自恰 1 次 /api/compare（复用既有接口），实际 " + cmpCalls.length);
+        __assert(cmpCalls.every((c) => c.body && c.body.root === "D:\\" && c.body.baseline),
+                 "compare 载荷应含 root/baseline");
+        // 列表：3 会话（含跳过盘 + 原因 tooltip——红线 #7 SKIP_REASON_TEXT）
+        const items = Array.from(document.querySelectorAll("#snapshot-list .session-item"));
+        __assert(items.length === 3, "列表应渲染 3 个会话，实际 " + items.length);
+        const skipTag = document.querySelector("#snapshot-list .tag-skip");
+        __assert(skipTag, "应出现「跳过」标签");
+        const skipTitle = skipTag.getAttribute("title") || "";
+        __assert(skipTitle.indexOf("今日写入量已达上限") !== -1,
+                 "跳过原因 tooltip 应含 SKIP_REASON_TEXT（红线#7），实际「" + skipTitle + "」");
+        __assert(document.querySelector("#snapshot-list .skip-reason"), "跳过原因文本应可见");
+        __assert(document.querySelector("#snapshot-list .tag-auto"), "应出现「自动」标签");
+        // ③ 趋势卡点击 → #/compare 预填（APP_STATE 传递，不走 URL）
+        APP_STATE.compare.baseline = ""; APP_STATE.compare.target = ""; APP_STATE.compare.root = "";
+        dayCard.click();
+        __assert(await __waitUntil(() => APP_STATE.route === "/compare", 2500), "点击趋势卡应跳转 #/compare");
+        __assert(APP_STATE.compare.baseline === dayPath, "baseline 应预填较昨日基线，实际「" + APP_STATE.compare.baseline + "」");
+        __assert(APP_STATE.compare.target === latestPath, "target 应预填同盘符最新快照");
+        __assert(APP_STATE.compare.root === "D:\\", "root 应预填 D:\\");
+        // 回快照页：趋势卡应从缓存回灌（不重发 /api/compare——切页不丢）
+        location.hash = "#/snapshots";
+        __assert(await __waitUntil(() => APP_STATE.route === "/snapshots", 2500), "应回到快照页");
+        __assert(await __waitUntil(() => document.querySelector(".trend-card[data-slot='day'] .trend-delta"), 2000),
+                 "返回后较昨日卡应直接回灌差值");
+        const cmpAfterReturn = __smoke.fetchLog.filter((e) => e.url === "/api/compare").length;
+        __assert(cmpAfterReturn === 2, "返回不应重发 /api/compare（缓存回灌），实际 " + cmpAfterReturn);
+        // ④ 逐盘「对比此快照」→ 预填 + 跳转
+        APP_STATE.compare.baseline = ""; APP_STATE.compare.target = ""; APP_STATE.compare.root = "";
+        document.querySelector("#snapshot-list .act-cmp-snap").click();
+        __assert(await __waitUntil(() => APP_STATE.route === "/compare", 2500), "逐盘对比应跳转 #/compare");
+        __assert(APP_STATE.compare.baseline === latestPath, "逐盘对比应预填该盘快照基线");
+        __assert(APP_STATE.compare.target === latestPath, "target 应=该盘最新快照");
+        location.hash = "#/snapshots";
+        __assert(await __waitUntil(() => APP_STATE.route === "/snapshots", 2500), "应回到快照页");
+        // ⑤ 撤销最近保存（确认弹窗流 → POST /api/save/undo → 列表刷新）
+        __smoke.fetchLog.length = 0;
+        $("btn-undo-save").click();
+        await wait(80);
+        __assert(!$("confirm-modal").classList.contains("hidden"), "撤销应弹确认弹窗（红线确认流程）");
+        $("btn-confirm-ok").click();
+        __assert(await __waitUntil(() => __smoke.fetchLog.some((e) => e.url === "/api/save/undo"), 3000),
+                 "确认后应 POST /api/save/undo");
+        __assert(await __waitUntil(() => document.querySelectorAll("#snapshot-list .session-item").length === 3, 3000),
+                 "撤销后列表应刷新（refreshSnapshots 重拉）");
+      } finally {
+        delete __smoke.routes["GET /api/snapshots"];
+        APP_STATE.compare.baseline = ""; APP_STATE.compare.target = ""; APP_STATE.compare.root = "";
+        await refreshSnapshots();
+        location.hash = "#/";
+        await wait(600);
       }
     } },
 ];

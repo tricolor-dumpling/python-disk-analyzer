@@ -894,22 +894,13 @@ const WORKSPACE_HTML =
     '<button id="btn-save-later" class="btn btn-sm">暂不保存</button></div></div>' +
     '</section>' +
 
-    '<!-- [N06] 快照迷你卡（U2.4：最近一份 + 「管理快照」入口 + 空态；条目点击=与上一份对比。过渡期保留：刷新/撤销（legacy 门禁 + U3.3 前功能）与「全部会话」折叠区（完整列表 U3.3 子页面接管前唯一入口，默认收起），ids 与行为不变，见 components/snapshot-mini.js 注记） -->' +
+    '<!-- [N06] 快照迷你卡（U2.4：最近一份 +「管理快照」入口 + 空态；U3.3：撤销/刷新/全部会话折叠区随子页面接线迁至 #/snapshots 页头与列表——F16 撤销最近保存 + F17 完整会话分组列表；条目点击=与上一份对比） -->' +
     '<section class="card snapshot-mini-card" aria-label="快照">' +
     '<div class="card-head"><h2>' +
     '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>' +
     '快照</h2><button id="btn-manage-snapshots" class="btn btn-sm">管理快照</button></div>' +
     '<div id="snapshot-mini-entry" class="snapshot-mini-entry"><div class="snapshot-mini-empty"><b>正在加载快照…</b></div></div>' +
-    '<div class="row snapshot-mini-tools" id="snapshot-mini-tools" hidden>' +
-    '<button id="btn-refresh-snapshots" class="btn btn-sm" title="重新加载快照列表">' +
-    '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>' +
-    '刷新</button>' +
-    '<button id="btn-undo-save" class="btn btn-sm" disabled title="删除最近一次保存的快照文件与清单（无快照时不可用）">' +
-    '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3.5 13a9 9 0 1 0 2-9.3L3 7"/></svg>' +
-    '撤销最近保存</button>' +
-    '<button id="btn-snapshot-expand" class="btn btn-sm" aria-expanded="false">全部会话</button></div>' +
     '<div id="snapshot-status" class="status-line"><span class="dot"></span><span id="snapshot-status-text">正在加载历史快照…</span></div>' +
-    '<div id="snapshot-mini-list" class="snapshot-mini-list" hidden><ul id="snapshot-list" class="snapshot-list"></ul></div>' +
     '</section>' +
 
     '<!-- 历史对比（U3.4 迁 #/compare 子页面，主页仅留「最近对比」迷你入口） -->' +

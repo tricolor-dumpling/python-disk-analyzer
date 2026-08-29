@@ -200,6 +200,19 @@ export function applyScanView() {
     renderFullscanState(_lastScanStatus);
 }
 
+/* U3.3 访问器：最近一次 /api/fullscan/status 载荷（快照页「创建快照」可用性派生） */
+export function getLastScanStatus() { return _lastScanStatus; }
+
+/* U3.3：快照页「创建快照」可用性（镜像扫描卡保存按钮派生：
+   完成+save_ready / 中止+部分根；N06「无全量数据时置灰+提示」） */
+export function isSaveAvailable() {
+    const st = _lastScanStatus;
+    if (!st || st.running || st.error) return false;
+    if (st.result_ready && st.save_ready) return true;
+    if (st.stop_requested && (Number(st.roots_done) || 0) > 0) return true;
+    return false;
+}
+
 /* U3.2（L2-4）：完成庆祝粒子——先 toast（调用方）后粒子；仅主页可见时播：
    fx 层画布必须仍在文档中（isConnected）；reduced-motion 由 motion.confetti 直跳过。 */
 function playCompletionConfetti() {
@@ -403,7 +416,9 @@ export function bindScan() {
     $("btn-export-csv").addEventListener("click", () => window.open(exportUrl("csv"), "_blank"));
     $("btn-export-json").addEventListener("click", () => window.open(exportUrl("json"), "_blank"));
 
-    // 历史
-    $("btn-refresh-snapshots").addEventListener("click", refreshSnapshots);
-    $("btn-undo-save").addEventListener("click", undoLastSave);
+    // 历史（U3.3：刷新/撤销迁至 #/snapshots 页头——迷你卡不再持有；绑定时空守卫）
+    const refreshBtn = $("btn-refresh-snapshots");
+    if (refreshBtn) refreshBtn.addEventListener("click", refreshSnapshots);
+    const undoBtn = $("btn-undo-save");
+    if (undoBtn) undoBtn.addEventListener("click", undoLastSave);
 }

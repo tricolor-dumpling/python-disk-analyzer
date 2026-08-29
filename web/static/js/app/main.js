@@ -23,8 +23,8 @@ import {
 } from "./pages/workspace.js";
 import { evaluateEnvGate, refreshHealth, bindTopbar, bindWorkspaceGuide } from "./components/topbar.js";
 import { markNavDot } from "./components/nav-dots.js"; // U3.1：N13 圆点（探针/引导面再导出）
-import { pollFullscan, startFullscan, saveSnapshot, setAutoSaveSetting, undoLastSave, bindScan, applyScanView, probeStopSupport, isStopAvailable, requestStopScan } from "./components/scan.js";
-import { refreshSnapshots, getSessionsCache, setSessionsCache, applySnapshotsView } from "./pages/snapshots.js";
+import { pollFullscan, startFullscan, saveSnapshot, setAutoSaveSetting, undoLastSave, bindScan, applyScanView, probeStopSupport, isStopAvailable, requestStopScan, isSaveAvailable } from "./components/scan.js";
+import { refreshSnapshots, getSessionsCache, setSessionsCache, applySnapshotsView, setSnapshotsActions } from "./pages/snapshots.js";
 import { bindCompare, renderCompare, mountCompare, unmountCompare, compareSnapshots } from "./pages/compare.js";
 import { renderSnapshots, mountSnapshots, unmountSnapshots } from "./pages/snapshots.js";
 import { bindSettings, openSettings, setDataDir, setStatusForSettingsHealth } from "./components/settings.js";
@@ -199,6 +199,9 @@ export async function start() {
     bindScanTop();      // U3.1：顶栏开始扫描（N05 骨架；U3.2 完整态随状态机数据）
     probeStopSupport(); // U3.2：停止接口特性探测（OPTIONS 零副作用；404 → 隐藏停止按钮）
     setPaletteBuilder(buildPaletteItems); // U3.1：执行器表注入（palette 零业务依赖）
+    // U3.3：快照页页头动作注入（创建=保存流程 / 撤销=确认弹窗流程 / 可用性镜像扫描状态；
+    // 防 scan↔snapshots 环——snapshots.js 零 scan.js 依赖）
+    setSnapshotsActions({ create: () => saveSnapshot(false), undo: undoLastSave, canCreate: isSaveAvailable });
     router.init();
     loadGuide();
 
