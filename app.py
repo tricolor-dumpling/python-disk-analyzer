@@ -381,6 +381,16 @@ def api_fullscan_status():
     return _json_ok(status=fullscan.status())
 
 
+# U3.2（D10 唯一新增接口）：用户停止。请求体可空（{}）；运行中 → 置用户停止
+# 事件并返回 stopped=true；空闲 → stopped=false（幂等，不报错）。响应含
+# status 原样（additive：stop_requested/stop_reason）。停服路径（W2.10）不经过
+# 本接口——CANCEL_EVENT 由 atexit cancel_scan 单独承担，语义互不污染。
+@app.post("/api/fullscan/stop")
+def api_fullscan_stop():
+    stopped = fullscan.request_stop()
+    return _json_ok(stopped=stopped, status=fullscan.status())
+
+
 # =================【3. 保存 / 撤销】=================
 
 

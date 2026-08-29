@@ -28,6 +28,26 @@ GLOBAL_SCAN_LOCK = scan.SCAN_LOCK
 # 被消化，已完成根保留、state 记 cancelled。
 CANCEL_EVENT = threading.Event()
 
+# U3.2（D10）：用户停止事件——与停服 CANCEL_EVENT 严格分离（W2.10 语义不污染）：
+# 用户停止（POST /api/fullscan/stop）走本事件；status() 以 stop_reason 区分来源
+# （"user"|"shutdown"），前端据此分别显示「服务停止」与「已停止，已完成部分可浏览」。
+USER_STOP_EVENT = threading.Event()
+
+
+class _CancelOr:
+    """组合取消源（USER_STOP_EVENT ∪ CANCEL_EVENT）。
+
+    .is_set() 语义与 threading.Event 一致，供 scan_via_everything_sdk 的
+    cancel_event 参数消费（每 SCAN_PROGRESS_REFRESH_INTERVAL 条检查一次）——
+    任一事件置位即协作取消，由 fullscan._run 消化 ScanCancelledError。
+    """
+
+    def __init__(self, *events):
+        self._events = events
+
+    def is_set(self):
+        return any(ev.is_set() for ev in self._events)
+
 _STATE_LOCK = threading.Lock()
 
 
@@ -170,6 +190,10 @@ _STATE = {
     "current_root": None,
     "error": None,
     "cancelled": False,  # P12·W2.10：后台扫描被协作取消（停服）
+    # U3.2（D10）：停止请求记录——stop_requested 表示本次扫描曾被请求停止；
+    # stop_reason 记录来源（"user"|"shutdown"），置位时写入（request_stop/cancel_scan）。
+    "stop_requested": False,
+    "stop_reason": None,
     "scan_version": 0,
     "saved_scan_version": 0,
     "scan_finished_at": None,
@@ -234,7 +258,10 @@ def start(roots=None, everything=None):
         if _STATE["running"]:
             return False
         BROWSE_INDEX.clear()
-        CANCEL_EVENT.clear()  # P12·W2.10：新扫描前清取消位
+        # P12·W2.10：新扫描前清取消位（停服事件不可跨扫描残留）
+        CANCEL_EVENT.clear()
+        # U3.2（D10）：新扫描前同时清用户停止位，并重置停止记录
+        USER_STOP_EVENT.clear()
         _STATE.update(
             {
                 "running": True,
@@ -243,6 +270,8 @@ def start(roots=None, everything=None):
                 "current_root": None,
                 "error": None,
                 "cancelled": False,
+                "stop_requested": False,
+                "stop_reason": None,
                 "scan_version": scan_version,
                 "scan_finished_at": None,
                 "last_result": None,
@@ -271,9 +300,11 @@ def _run(roots, everything, scan_version):
                     current_root=str(root),
                     roots_done=index,
                 )
-                # P12·W2.10：透传 CANCEL_EVENT，停服时协作取消（不硬杀线程）
+                # P12·W2.10：透传取消事件（停服时协作取消，不硬杀线程）
+                # U3.2（D10）：用户停止与停服取消共用组合取消源（语义区分在 stop_reason）
                 sizes, _unused_contents = scan_via_everything_sdk(
-                    root, everything=everything, cancel_event=CANCEL_EVENT
+                    root, everything=everything,
+                    cancel_event=_CancelOr(CANCEL_EVENT, USER_STOP_EVENT),
                 )
                 rows = [
                     {"p": str(path), "s": int(size)}
@@ -319,13 +350,35 @@ def _run(roots, everything, scan_version):
         )
 
 
+def request_stop():
+    """用户请求停止后台全量扫描（U3.2·D10 唯一新增接口的支撑）。
+
+    运行中 → 置 USER_STOP_EVENT 并记录 stop_reason="user"（返回 True）；
+    空闲 → 幂等 no-op（返回 False，绝不误伤停服事件/后续扫描）。
+    与停服 cancel_scan() 严格分离：本函数只走 USER_STOP_EVENT，
+    停服仍由 CANCEL_EVENT 承担（W2.10 语义不污染）。
+    """
+    with _STATE_LOCK:
+        if not _STATE["running"]:
+            return False
+        _STATE["stop_requested"] = True
+        _STATE["stop_reason"] = "user"
+    USER_STOP_EVENT.set()
+    return True
+
+
 def cancel_scan(join_timeout=5.0):
     """协作取消后台全量扫描并等待收尾（P12·W2.10 R-2）。
 
     atexit 停服路径调用：置位 CANCEL_EVENT → 扫描主循环在下一检查点抛
     ScanCancelledError 收尾 → join(timeout) 等待线程退出；超时则放弃
     （daemon 线程随进程自然消亡），绝不硬杀。
+    U3.2（D10）：停服路径记录 stop_reason="shutdown"（仅运行中生效）。
     """
+    with _STATE_LOCK:
+        if _STATE.get("running"):
+            _STATE["stop_requested"] = True
+            _STATE["stop_reason"] = "shutdown"
     CANCEL_EVENT.set()
     with _STATE_LOCK:
         thread = _STATE.get("thread")
@@ -344,6 +397,8 @@ def status():
     字段：running / roots / roots_done / current_root / error / result_ready /
     save_ready / progress_pct / scan_version。save_ready 表示最近一次后台结果
     尚未被 mark_saved() 消费（全量完成即「可保存」）。
+    U3.2（D10）additive：stop_requested（本次扫描曾被请求停止）与
+    stop_reason（来源 "user"|"shutdown"|None）。
     """
     st = _copy_state()
     roots_count = len(st["roots"])
@@ -368,6 +423,9 @@ def status():
         "save_ready": save_ready,
         "progress_pct": progress_pct,
         "scan_version": st["scan_version"],
+        # U3.2（D10）additive：停止请求记录（前端中止态判据）
+        "stop_requested": bool(st["stop_requested"]),
+        "stop_reason": st["stop_reason"],
     }
 
 

@@ -442,5 +442,58 @@ class ApiContractTests(unittest.TestCase):
             resp.close()
 
 
+class FullscanStopContractTests(unittest.TestCase):
+    """U3.2（D10）：POST /api/fullscan/stop 契约——200 形态与空闲幂等。
+
+    ⚠️ 偏差注记：手册 §U3.2 提「tests/test_web.py 新增契约用例」——该文件已于
+    U1.0 归档至 tests/archive_pre_p12/（P12 前旧草稿），当前契约护栏以
+    tests/test_api_contract.py 为准（本文件编码规约：with-resp/close、additive 冻结）。
+    """
+
+    def setUp(self):
+        fullscan.USER_STOP_EVENT.clear()
+        self.addCleanup(fullscan.USER_STOP_EVENT.clear)
+        self.addCleanup(
+            fullscan._update_state,
+            running=False, thread=None, current_root=None,
+            error=None, cancelled=False, stop_requested=False,
+            stop_reason=None, last_result=None,
+        )
+
+    def test_stop_running_returns_stopped_true(self):
+        """运行中：200 + {ok:true, stopped:true, status}；status additive 报
+        stop_requested=true / stop_reason="user"；用户停止事件确实置位。"""
+        fullscan._update_state(running=True)
+        with app.test_client() as client:
+            resp = client.post("/api/fullscan/stop", json={})  # 可空体
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(
+                _keys(body), {"ok", "stopped", "status"},
+                f"契约键集合漂移: {_keys(body)}",
+            )
+            self.assertIs(body["ok"], True)
+            self.assertIs(body["stopped"], True)
+            self.assertIn("stop_requested", body["status"])
+            self.assertIn("stop_reason", body["status"])
+            self.assertIs(body["status"]["stop_requested"], True)
+            self.assertEqual(body["status"]["stop_reason"], "user")
+            resp.close()
+        self.assertTrue(fullscan.USER_STOP_EVENT.is_set())
+
+    def test_stop_idempotent_when_idle(self):
+        """空闲：200 + stopped=false（幂等不报错）；无事件、无状态污染。"""
+        with app.test_client() as client:
+            resp = client.post("/api/fullscan/stop", json={})
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertIs(body["ok"], True)
+            self.assertIs(body["stopped"], False)
+            self.assertIs(body["status"]["stop_requested"], False)
+            self.assertIsNone(body["status"]["stop_reason"])
+            resp.close()
+        self.assertFalse(fullscan.USER_STOP_EVENT.is_set())
+
+
 if __name__ == "__main__":
     unittest.main()
