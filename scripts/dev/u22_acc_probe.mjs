@@ -46,10 +46,11 @@ function ok(name, cond, detail) {
     await page.goto(BASE, { waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => {
         const t = document.getElementById("browse-status-text");
-        return t && /排行视图/.test(t.textContent);
+        // U2.5：默认视图=矩形图（N01 接管）——状态行按当前视图前缀兼容
+        return t && /(排行|表格|矩形图)视图/.test(t.textContent);
     }, { timeout: 15000 }).catch(() => {});
     const statusText = await page.textContent("#browse-status-text").catch(() => "");
-    ok("browse 已渲染（状态行: " + statusText + "）", /排行视图/.test(statusText));
+    ok("browse 已渲染（状态行: " + statusText + "）", /(排行|表格|矩形图)视图/.test(statusText));
 
     await page.click("#btn-view-treemap");
     await page.waitForTimeout(1100); // 入场 600ms + stagger 收束

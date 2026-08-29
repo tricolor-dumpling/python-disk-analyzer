@@ -115,9 +115,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .path-row input{min-width:0}
 .view-toolbar{flex:none;display:flex;align-items:center;gap:6px}
 
-/* 视图区（flex:1；面板内滚） */
-.view-area{flex:1;min-height:0;display:flex}
-.view-area .table-wrap{flex:1;min-width:0}
+/* 视图区（flex:1；面板内滚；U2.5：treemap/table 两容器 absolute 叠加共用视口——120ms 交叉淡化） */
+.view-area{flex:1;min-height:0;display:flex;position:relative}
+.view-area .table-wrap{position:absolute;inset:0;min-width:0}
 /* [N09] 迷你条带位（U2.3 装配 treemap 上级上下文，48px） */
 .strip-slot{flex:none;height:48px}
 
@@ -392,9 +392,26 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 }
 .dir-table tbody.compact-list td{padding-top:3px;padding-bottom:3px}
 .dir-table td{padding:7px 12px;border-bottom:1px solid var(--row-border);vertical-align:middle}
-.dir-table tbody tr:nth-child(even) td{background:var(--row-alt)}
+.dir-table tbody:not(.v-virtual) tr:nth-child(even) td{background:var(--row-alt)}
 .dir-table tbody tr:hover td{background:var(--primary-soft)}
 .dir-table tbody tr:focus-visible td{background:var(--primary-soft);outline:2px solid var(--primary);outline-offset:-2px}
+/* U2.5 虚拟滚动：行号奇偶按数据索引着色（滚动窗口重渲染时位置奇偶不稳定，data-alt 为真值） */
+.dir-table tbody.v-virtual tr[data-alt="1"] td{background:var(--row-alt)}
+.dir-table tbody.v-virtual td{height:36px;padding:0 12px;border:0;box-shadow:inset 0 -1px var(--row-border);white-space:nowrap}
+.dir-table tbody.v-virtual.compact-list td{height:26px;padding-top:0;padding-bottom:0}
+/* 虚拟模式下行内容固定行高（36/26 为虚拟窗口精确高度；实测值驱动窗口计算）；
+   行内操作区绝对定位（hover 浮现，不参与行高） */
+.dir-table tbody.v-virtual .ranking-row,
+.dir-table tbody.v-virtual .ranking-row-static{
+  position:relative;height:36px;box-sizing:border-box;
+  padding:6px 104px 6px 4px;
+}
+.dir-table tbody.v-virtual.compact-list .ranking-row,
+.dir-table tbody.v-virtual.compact-list .ranking-row-static{height:26px;padding:2px 104px 2px 4px}
+.dir-table tbody.v-virtual .row-actions{position:absolute;right:4px;top:50%;transform:translateY(-50%)}
+.dir-table tbody.v-virtual .row-actions .icon-btn{width:24px;height:24px}
+.dir-table tbody tr.v-spacer td{height:auto;padding:0;border:0;background:transparent!important;box-shadow:none}
+.dir-table tbody tr.v-spacer{pointer-events:none}
 .cell-name{display:flex;align-items:center;gap:8px;min-width:0}
 .cell-name .icon{color:var(--primary)}
 .cell-name .file{color:var(--faint)}
@@ -405,9 +422,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .col-share{width:140px}
 .col-type{width:64px;color:var(--muted)}
 .size-track{display:block;height:6px;border-radius:999px;background:var(--track-alt);overflow:hidden}
-.size-bar{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--brand-soft),var(--primary));transition:width .3s ease}
+.size-bar{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--brand-soft),var(--primary));transition:width var(--dur-4) var(--ease-out)}
 .ranking-row{
-  display:grid;grid-template-columns:minmax(120px,1fr) minmax(100px,2fr) auto;
+  display:grid;grid-template-columns:minmax(120px,1fr) minmax(100px,2fr) auto auto;
   align-items:center;gap:10px;padding:8px 4px;cursor:pointer;
 }
 .ranking-row:hover,.ranking-row:focus-visible{background:var(--primary-soft);box-shadow:inset 3px 0 var(--primary)}
@@ -417,6 +434,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* P12·W1.4：静态文件行与行内操作区（点击/键盘不产生请求） */
 .ranking-row-static{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:var(--radius-ctl);cursor:default}
 .ranking-row-static:hover{background:rgba(127,127,127,.08)}
+/* U2.5：静态文件行 flex 内占比条需显式弹性宽度（否则 100% 子项导致轨道 0 宽，占比条不可见） */
+.ranking-row-static .size-track{flex:2 1 auto;min-width:96px}
 .row-actions{display:inline-flex;gap:6px;margin-left:auto;opacity:0;transition:opacity .15s ease}
 .ranking-row:hover .row-actions,.ranking-row:focus-within .row-actions,
 .ranking-row-static:hover .row-actions,tr:hover .row-actions{opacity:1}
@@ -425,12 +444,46 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .empty-state b{color:var(--text)}
 .empty-state p{margin:0;max-width:420px}
 
+/* ---- U2.5：N08 多选首列 checkbox + 页脚固定行（sticky bottom） ---- */
+.cell-check{width:34px;text-align:center}
+.cell-check input[type=checkbox]{width:15px;height:15px;vertical-align:middle;accent-color:var(--primary);cursor:pointer}
+.dir-table th.cell-check{padding:8px 6px}
+.list-footer{
+  display:flex;align-items:center;gap:14px;position:sticky;bottom:0;z-index:2;
+  padding:6px 12px;background:var(--card);border-top:1px solid var(--border);
+  font-size:var(--fs-xs);color:var(--muted);
+}
+.list-stats{white-space:nowrap}
+.list-stats:last-child{margin-left:0}
+.list-footer-actions{display:inline-flex;gap:8px;margin-left:auto}
+.list-footer-actions[hidden]{display:none!important}
+.list-footer .btn-sm{min-height:24px;padding:2px 10px}
+
+/* ---- U2.5：F19 触屏长按呼出行操作（<900px 触屏场景） ---- */
+.row-actions-pin .row-actions{opacity:1}
+
+/* ---- U2.5：L1-5 骨架屏（shimmer 1.4s 循环；仅 transform 扫光；reduced 经全局降级静止） ---- */
+.loading-overlay{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--card);font-size:var(--fs-xs);color:var(--muted)}
+.skel-list{display:flex;flex-direction:column;gap:8px}
+.skel-row{display:flex;align-items:center;gap:12px;height:28px}
+.skel-check{flex:none;width:14px;height:14px;border-radius:4px;background:var(--track)}
+.skel-block{position:relative;flex:none;height:14px;border-radius:999px;background:var(--track);overflow:hidden}
+.skel-block::before{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,var(--track-alt),transparent);animation:shimmer var(--dur-shimmer) ease-in-out infinite}
+.skel-name{flex:1;min-width:0;max-width:55%}
+.skel-bar{flex:2}
+.skel-size{width:76px}
+@keyframes shimmer{to{transform:translateX(100%)}}
+
+/* ---- U2.5：L2-9 缓存徽标入场（translateX(-8px)+fade 200ms；--dur-2） ---- */
+.cache-badge-in{animation:cache-badge-in var(--dur-2) var(--ease-out) both}
+@keyframes cache-badge-in{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+
 /* ============================================================ */
 /* treemap：矩形图视图（U2.2；hex=0，颜色一律 tokens 引用）      */
 /* ============================================================ */
 
 .treemap-wrap{
-  flex:1;min-width:0;position:relative;
+  position:absolute;inset:0;min-width:0;
   border:1px solid var(--border);border-radius:var(--radius-md);
   background:var(--card);overflow:hidden;
 }

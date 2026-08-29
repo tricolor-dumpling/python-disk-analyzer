@@ -35,6 +35,17 @@
      折叠区，渲染在 components/snapshot-mini.js，ids 全保留）；新增「最近对比」
      迷你卡（state.compare.lastSummary，compare.js 对比成功后写入）。
      旧「历史对比」卡保留至 U3.4（#/compare 占位页接管前为唯一对比功能入口）。
+   - U2.5：列表视图升级——排行/表格渲染迁 components/list.js（filteredEntries/
+     renderList + N08 多选 + 虚拟滚动 + 页脚 + CSV 导出 + F19 行内操作三图标 +
+     L1-2/L1-3），本文件保留接线（treemap 派发/视图切换交叉淡化/事件委托/浏览闭环）；
+     · view 状态对齐 §3.2：browseView/compactDensity 模块状态迁入
+       APP_STATE.view.{mode,density}（默认 treemap——定稿 N01 接管，
+       旧「默认排行」裁决于本项核销）；
+     · 三视图切换 120ms 交叉淡化（--dur-1；reduced 直切）；
+     · 骨架屏 L1-5 替代 spinner（模板内 skel-*，shimmer 1.4s token）；
+     · 缓存徽标 L2-9（translateX(-8px)+fade 200ms token --dur-2）；
+     · F19 行内操作新增「下钻」图标（仅目录行；修复既有 act-open/act-copy
+       点击连带触发下钻的隐患——行点击对 .row-actions 设守卫）。
    - 跨模块可变状态经导出访问器读写（模块化拆分导出 setter/getter，行为等价）。
    ============================================================ */
 
@@ -46,7 +57,10 @@ import { colorFor, OTHER_COLOR } from "../palette.js";
 import { toast } from "../components/toast.js";
 import { setStatus } from "../components/statusbar.js";
 import { renderApiError } from "../components/feedback.js";
-import { flip as motionFlip, motionDur } from "../motion.js";
+import { flip as motionFlip, motionDur, motionEase, reducedMotion } from "../motion.js";
+import {
+    renderList, bindList, clearSelection, setDrillHandler,
+} from "../components/list.js";
 
 /* ================= 目录浏览 ================= */
 
@@ -59,15 +73,8 @@ export function setCurrentRoot(v) { currentRoot = v; }
 export function getCurrentPath() { return currentPath; }
 export function resetBrowseHistory() { browseHistory = []; }
 
-/* P12·W1.4 行动闭环：行内 hover 操作区（打开所在文件夹 / 复制路径） */
-function rowActions(path) {
-    return (
-        '<span class="row-actions">' +
-        '<button class="icon-btn act-open" data-act-path="' + esc(path) + '" title="打开所在文件夹" aria-label="打开所在文件夹">' + ICONS.folder + "</button>" +
-        '<button class="icon-btn act-copy" data-act-path="' + esc(path) + '" title="复制路径" aria-label="复制路径">' + ICONS.copy + "</button>" +
-        "</span>"
-    );
-}
+/* P12·W1.4 行动闭环：行内 hover 操作区（U2.5 起由 components/list.js 统一构建——
+   F19 三图标 下钻/定位/复制路径；事件委托见 bindWorkspace 底部） */
 
 /* 复制路径：clipboard API → execCommand 兜底（临时 textarea）→ toast */
 export async function copyPath(path) {
@@ -188,14 +195,15 @@ function setBrowseLoading(loading, text) {
     if (btn) btn.disabled = loading;
 }
 
-let browseView = "ranking";
-let compactDensity = false;
+/* U2.5：view 状态对齐 §3.2（browseView/compactDensity → APP_STATE.view.{mode,density}；
+   默认 = treemap（state.js 预置），定稿 N01「默认矩形图」由本项接管） */
 let treemapView = null; // U2.2：treemap 渲染器实例（宿主随路由重建；失连自动重建）
 let scanRunning = false; // U2.3：扫描进行中（pds:scan 事件记账；驱动 L3-2 实时生长/L3-3 扫掠）
 let liveTimer = 0;       // L3-2 实时刷新定时器（500ms 主页矩形图 / 2s 子页面低频）
 let liveSeq = 0;         // 实时刷新竞态令牌（用户导航后放弃迟到数据）
 let fullscreenVeil = null; // L3-8 背景压暗层
 let scanListenerBound = false; // window 级监听只绑一次（路由重挂不重复注册）
+let viewSeq = 0;         // 视图切换交叉淡化防抖令牌（快速连点取最新终态）
 
 /* ================= U2.2/U2.3：treemap 数据接入与交互 ================= */
 
@@ -294,7 +302,7 @@ function renderTreemap(data, mode) {
 function renderStrip() {
     const slot = $("strip-slot");
     if (!slot) return;
-    if (browseView !== "treemap" || !browseParent) {
+    if (APP_STATE.view.mode !== "treemap" || !browseParent) {
         slot.setAttribute("hidden", "");
         slot.innerHTML = "";
         return;
@@ -327,31 +335,82 @@ function renderStrip() {
     });
 }
 
-/* ---- 视图切换（排行/表格/矩形图三态；矩形图激活时表格隐藏、treemap 容器显示；
-   L1-1 入场由 setTiles 播；从 treemap 切走时暂停 rAF 省电；合并阈值组仅矩形图显示） ---- */
+/* ---- U2.5 三视图切换（共用视口容器 + 120ms 交叉淡化；矩形图激活时表格隐藏、
+   treemap 容器显示；L1-1 入场由 setTiles 播；从 treemap 切走时暂停 rAF 省电；
+   合并阈值组仅矩形图显示；reduced 直切。两个容器为 view-area 的 absolute
+   子元素——交叉淡化期间同时可见（叠加），结束后旧容器 display:none） ---- */
 function setBrowseView(mode) {
-    browseView = mode;
+    const prev = APP_STATE.view.mode;
+    APP_STATE.view.mode = mode; // U2.5：§3.2 对齐（切页不丢；跨路由保持）
+    const seq = ++viewSeq;
     $("btn-view-treemap").classList.toggle("btn-primary", mode === "treemap");
     $("btn-view-ranking").classList.toggle("btn-primary", mode === "ranking");
     $("btn-view-table").classList.toggle("btn-primary", mode === "table");
     const wrap = $("treemap-wrap");
-    if (wrap) {
-        if (mode === "treemap") {
-            wrap.removeAttribute("hidden");
-            if (APP_STATE.lastBrowseData) renderTreemap(APP_STATE.lastBrowseData);
-        } else {
-            wrap.setAttribute("hidden", "");
-            const v = getTreemapView();
-            if (v) v.pause();
-        }
-    }
     const tableWrap = $("table-wrap");
-    if (tableWrap) tableWrap.classList.toggle("hidden", mode === "treemap");
+    const showTreemap = mode === "treemap";
+    if (wrap && tableWrap) {
+        if (prev !== mode) {
+            crossfadeView(seq, showTreemap);
+        } else {
+            // 幂等：直接定态（bindWorkspace 首挂/重复点击当前视图）
+            finishViewSwap(tableWrap, wrap, showTreemap);
+            if (prev === "treemap" && APP_STATE.lastBrowseData) renderTreemap(APP_STATE.lastBrowseData);
+        }
+    } else if (wrap && showTreemap && APP_STATE.lastBrowseData) {
+        renderTreemap(APP_STATE.lastBrowseData);
+    }
+    if (wrap && showTreemap && prev !== mode) {
+        if (APP_STATE.lastBrowseData) renderTreemap(APP_STATE.lastBrowseData);
+    } else if (wrap && !showTreemap) {
+        const v = getTreemapView();
+        if (v) v.pause();
+    }
     const mergeGroup = $("merge-group");
-    if (mergeGroup) mergeGroup.toggleAttribute("hidden", mode !== "treemap"); // 仅矩形图显示（template 属性与 class 双控以 [hidden] 为准）
+    if (mergeGroup) mergeGroup.toggleAttribute("hidden", !showTreemap); // 仅矩形图显示（template 属性与 class 双控以 [hidden] 为准）
     syncSweep(); // 扫掠仅矩形图+扫描中
-    if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
+    if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData, { animate: true }); // 视图切换播列表入场
     renderStrip();
+}
+
+/* 120ms 交叉淡化（--dur-1；仅 opacity，WAAPI；reduced/token 缺失 → 直切） */
+function crossfadeView(seq, showTreemap) {
+    const wrap = $("treemap-wrap");
+    const tableWrap = $("table-wrap");
+    if (!wrap || !tableWrap) return;
+    const outEl = showTreemap ? tableWrap : wrap;
+    const inEl = showTreemap ? wrap : tableWrap;
+    // 双容器同时可见（绝对定位叠加）→ 交叉淡化
+    tableWrap.classList.remove("hidden");
+    wrap.removeAttribute("hidden");
+    tableWrap.classList.add("v-crossfade");
+    wrap.classList.add("v-crossfade");
+    const dur = motionDur("--dur-1") || 0; // 120ms（--dur-1）；reduced 直切
+    if (!dur || reducedMotion()) {
+        finishViewSwap(tableWrap, wrap, showTreemap);
+        return;
+    }
+    outEl.getAnimations().forEach((a) => a.cancel());
+    inEl.getAnimations().forEach((a) => a.cancel());
+    const ease = motionEase("--ease-out") || "linear";
+    outEl.style.opacity = "1";
+    inEl.style.opacity = "0";
+    const oa = outEl.animate([{ opacity: 1 }, { opacity: 0 }], { duration: dur, easing: ease, fill: "forwards" });
+    const ia = inEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, easing: ease, fill: "forwards" });
+    Promise.all([oa.finished.catch(() => {}), ia.finished.catch(() => {})]).then(() => {
+        if (seq !== viewSeq) return; // 已被更新的切换打断：终态由最新调用负责
+        finishViewSwap(tableWrap, wrap, showTreemap);
+    });
+}
+
+/* 交叉淡化终态：旧容器 display:none + 内联透明度清理 */
+function finishViewSwap(tableWrap, wrap, showTreemap) {
+    tableWrap.classList.toggle("hidden", showTreemap);
+    wrap.toggleAttribute("hidden", !showTreemap);
+    tableWrap.classList.remove("v-crossfade");
+    wrap.classList.remove("v-crossfade");
+    tableWrap.style.opacity = "";
+    wrap.style.opacity = "";
 }
 
 /* ---- L3-8 全屏（view-area fixed 铺满 + 背景压暗 veil + FLIP 300ms；Esc/按钮退出） ---- */
@@ -388,7 +447,7 @@ function toggleFullscreen() {
 /* ---- 返回上级（treemap 视图：反向播放 zoomOut + browse；手动/Backspace/返回按钮共用） ---- */
 function goUp() {
     if (!browseParent) return;
-    if (browseView === "treemap") {
+    if (APP_STATE.view.mode === "treemap") {
         const view = getTreemapView();
         if (view && !view.isTransitioning()) {
             const parentTiles = browsesCache.get(String(browseParent));
@@ -403,7 +462,7 @@ function goUp() {
 
 /* ---- L3-2 扫描实时生长（pds:scan 事件驱动；500ms 主页矩形图 / 2s 子页面低频） ---- */
 function liveDelay() {
-    return APP_STATE.route === "/" && browseView === "treemap" ? 500 : 2000;
+    return APP_STATE.route === "/" && APP_STATE.view.mode === "treemap" ? 500 : 2000;
 }
 function kickLive() {
     if (!scanRunning) return;
@@ -423,7 +482,7 @@ async function doLiveRefresh() {
         if (String(data.root || "") !== String(currentPath)) return; // 用户已导航：放弃
         if (data.scanning) {
             // 当前目录在扫描中无索引：保留现图，仅提示（不覆盖 tiles）
-            if (browseView === "treemap" && $("treemap-wrap")) {
+            if (APP_STATE.view.mode === "treemap" && $("treemap-wrap")) {
                 setStatus("browse-status", "warn", data.message || "该盘正在扫描中，完成后即可即时浏览");
             }
             return;
@@ -432,7 +491,7 @@ async function doLiveRefresh() {
         const tiles = buildTiles(data);
         cacheTiles(String(data.root || currentPath), tiles);
         APP_STATE.treemap.tiles = tiles;
-        if (browseView === "treemap" && $("treemap-wrap") && !$("treemap-wrap").hasAttribute("hidden")) {
+        if (APP_STATE.view.mode === "treemap" && $("treemap-wrap") && !$("treemap-wrap").hasAttribute("hidden")) {
             ensureTreemap().setTiles(tiles, { mode: "reflow" }); // L3-2：lerp 300ms + 新块光晕
             setStatus("browse-status", "ok", "矩形图实时生长 · 共 " + data.total_dirs + " 个子目录 / " + data.total_files + " 个文件");
         }
@@ -440,7 +499,7 @@ async function doLiveRefresh() {
 }
 function syncSweep() {
     const view = getTreemapView();
-    const active = scanRunning && browseView === "treemap" && APP_STATE.route === "/" &&
+    const active = scanRunning && APP_STATE.view.mode === "treemap" && APP_STATE.route === "/" &&
         !!$("treemap-wrap") && !$("treemap-wrap").hasAttribute("hidden");
     if (view) view.setSweep(active);
 }
@@ -454,7 +513,7 @@ export function setMergeTop(n) {
     APP_STATE.view.mergeTop = v;
     const label = $("merge-top-label");
     if (label) label.textContent = String(v);
-    if (APP_STATE.lastBrowseData && browseView === "treemap") renderTreemap(APP_STATE.lastBrowseData, "reflow");
+    if (APP_STATE.lastBrowseData && APP_STATE.view.mode === "treemap") renderTreemap(APP_STATE.lastBrowseData, "reflow");
 }
 
 /* 附录B 基准桥：注入 state.treemap.tiles（1000 块 mock）后调本函数触发重绘。 */
@@ -463,128 +522,21 @@ export function renderTreemapFromState() {
     if (view) view.setTiles(APP_STATE.treemap.tiles || [], { mode: "entry" });
 }
 
-function filteredEntries(data) {
-    const query = ($("browse-filter") && $("browse-filter").value || "").trim().toLowerCase();
-    const kind = ($("browse-kind") && $("browse-kind").value) || "all";
-    const sort = ($("browse-sort") && $("browse-sort").value) || "size-desc";
-    let entries = (data.directories || []).concat(data.files || []).filter((entry) => {
-        return (kind === "all" || (kind === "dir" ? entry.is_dir : !entry.is_dir)) && (!query || String(entry.name).toLowerCase().includes(query));
-    });
-    entries.sort((a, b) => sort === "name-asc" ? String(a.name).localeCompare(String(b.name), "zh-CN") : sort === "size-asc" ? Number(a.size) - Number(b.size) : Number(b.size) - Number(a.size));
-    return entries;
-}
-
-export function renderEntries(data) {
+/* U2.5：列表渲染已迁 components/list.js（renderList：排行/表格 + 多选 + 虚拟滚动 +
+   页脚 + CSV 导出 + L1-2/L1-3）；本文件保留视图派发与浏览数据接线。
+   opts.animate=true 时播 L1-2/L1-3（数据到达/视图切换/筛选重渲染）；
+   回灌（restoreWorkspaceView）与虚拟窗口滚动重渲染不播（L1-2「虚拟滚动中不重放」）。 */
+export function renderEntries(data, opts) {
     const body = $("dir-body");
     if (!body) return; // U2.1：子页面时列表不在 DOM（防迟到响应/重置路径）
     APP_STATE.lastBrowseData = data; // 先记账（treemap 视图下钻时同样生效——切页不丢/视图回灌依赖）
-    if (browseView === "treemap") {
+    if (APP_STATE.view.mode === "treemap") {
         // U2.2：矩形图视图——数据 → tiles（mergeTop 合并）→ L1-1 入场；
         // 筛选/排序行属排行/表格视图（定稿 F10），矩形图按组成渲染全部子项。
         renderTreemap(data);
         return;
     }
-    body.classList.toggle("compact-list", compactDensity);
-    const entries = filteredEntries(data);
-    // P12·W2.5-H：筛选空态——原始条目非空但被筛选清空时给出统一空态＋一键清除
-    const rawCount = (data.directories || []).length + (data.files || []).length;
-    const activeQuery = ($("browse-filter") && $("browse-filter").value || "").trim();
-    const activeKind = ($("browse-kind") && $("browse-kind").value) || "all";
-    if (!entries.length && rawCount > 0 && (activeQuery || activeKind !== "all")) {
-        body.innerHTML =
-            '<tr><td colspan="4"><div class="empty-state">' +
-            "<b>无匹配”" + esc(activeQuery || "(类型筛选)") + "“的结果</b>" +
-            '<p>试试更换关键词，或<button class="btn btn-sm" id="btn-clear-filter">清除筛选</button>后查看全部。</p>' +
-            "</div></td></tr>";
-        setStatus("browse-status", "warn", "没有匹配当前筛选的条目");
-        const clearBtn = document.getElementById("btn-clear-filter");
-        if (clearBtn) clearBtn.addEventListener("click", () => {
-            if ($("browse-filter")) $("browse-filter").value = "";
-            if ($("browse-kind")) $("browse-kind").value = "all";
-            if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
-        });
-        return;
-    }
-    if (browseView === "ranking") {
-        const max = Math.max(1, ...entries.map((entry) => Number(entry.size) || 0));
-        // P12·W1.4 渲染层区分（FE 方案 B）：目录行保留 role/tabindex/data-path，
-        // 文件行改用 .ranking-row-static（无 role/tabindex/data-path）——
-        // 点击与键盘 Enter/Space 天然只作用于目录行，文件行 0 个额外请求。
-        body.innerHTML = entries.map((entry) => {
-            const label = 'aria-label="' + esc(entry.name) + "，" + esc(entry.size_human) + '"';
-            const inner =
-                '<span class="ranking-name">' + (entry.is_dir ? ICONS.folder : ICONS.file) + esc(entry.name) + '</span>' +
-                '<span class="size-track"><span class="size-bar" style="width:' + Math.max(2, Number(entry.size) / max * 100) + '%"></span></span>' +
-                "<strong>" + esc(entry.size_human) + "</strong>";
-            if (entry.is_dir) {
-                return '<tr><td colspan="4"><div tabindex="0" role="button" class="ranking-row" data-path="' + esc(entry.path) + '" ' + label + ">" + inner + rowActions(entry.path) + "</div></td></tr>";
-            }
-            return '<tr><td colspan="4"><div class="ranking-row-static" ' + label + ">" + inner + rowActions(entry.path) + "</div></td></tr>";
-        }).join("") || '<tr><td colspan="4"><div class="empty-state"><b>暂无数据</b><p>扫描后显示目录排行。</p></div></td></tr>';
-        body.querySelectorAll(".ranking-row[data-path]").forEach((row) => {
-            row.addEventListener("click", () => browsePath(row.dataset.path));
-            row.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); browsePath(row.dataset.path); } });
-        });
-        setStatus("browse-status", "ok", "排行视图 · 共 " + data.total_dirs + " 个子目录 / " + data.total_files + " 个文件");
-        return;
-    }
-    if (!entries.length) {
-        body.innerHTML =
-            '<tr><td colspan="4"><div class="empty-state">' +
-            ICONS.empty +
-            "<b>（空目录）</b>" +
-            "<p>这里没有找到子目录或文件。可以「返回上级」，或换一个盘符 / 目录再浏览。</p>" +
-            "</div></td></tr>";
-        return;
-    }
-    let maxSize = 1;
-    entries.forEach((e) => {
-        if (Number(e.size) > maxSize) maxSize = Number(e.size);
-    });
-    const rows = entries.map((entry) => {
-        const isDir = !!entry.is_dir;
-        const nameCell = isDir
-            ? '<a href="#" class="dir-link" data-path="' + esc(entry.path) + '" title="进入 ' + esc(entry.path) + '">' +
-              ICONS.folder + '<span class="name">' + esc(entry.name) + "\\</span></a>"
-            : '<span class="cell-name">' + ICONS.file + '<span class="name">' + esc(entry.name) + "</span></span>";
-        const pct = Math.max(2, (Number(entry.size) / maxSize) * 100).toFixed(1);
-        return (
-            "<tr>" +
-            '<td class="cell-name">' + nameCell + "</td>" +
-            '<td class="col-size">' + esc(entry.size_human) + "</td>" +
-            '<td class="col-share"><span class="size-track"><span class="size-bar" style="width:' + pct + '%"></span></span></td>' +
-            '<td class="col-type"><span>' + (isDir ? "目录" : "文件") + "</span>" + rowActions(entry.path) + "</td>" +
-            "</tr>"
-        );
-    });
-    body.innerHTML = rows.join("");
-    body.querySelectorAll(".dir-link").forEach((link) => {
-        link.addEventListener("click", (ev) => {
-            ev.preventDefault();
-            browsePath(link.getAttribute("data-path"));
-        });
-    });
-    body.querySelectorAll("tr").forEach((row) => {
-        row.addEventListener("mouseenter", () => row.classList.add("row-highlight"));
-        row.addEventListener("mouseleave", () => row.classList.remove("row-highlight"));
-        row.setAttribute("tabindex", "0");
-        row.setAttribute("role", "row");
-        row.addEventListener("keydown", (ev) => {
-            if (ev.key !== "Enter" && ev.key !== " ") return;
-            const link = row.querySelector(".dir-link");
-            if (link) { ev.preventDefault(); link.click(); }
-        });
-    });
-
-    const extra = [];
-    if (Number(data.total_dirs) > 200) extra.push("目录仅显示最大的 200 个");
-    if (Number(data.total_files) > 200) extra.push("文件仅显示最大的 200 个");
-    const note = extra.length ? "（" + extra.join("；") + "）" : "";
-    setStatus(
-        "browse-status",
-        "ok",
-        "共 " + data.total_dirs + " 个子目录 / " + data.total_files + " 个文件" + note
-    );
+    renderList(data, opts);
 }
 
 /* P12·W2.8（N-1）：浏览竞态防护——每次 browsePath 取自增令牌，迟到响应丢弃 */
@@ -614,12 +566,24 @@ export async function browsePath(path, quiet) {
         }
         lastBrowse = { root: currentRoot, path: currentPath };
         $("browse-root").value = currentRoot;
-        $("browse-cache-badge").classList.toggle("hidden", !!data.scanning);
+        /* L2-9 缓存徽标：显示时 translateX(-8px)+fade 200ms（--dur-2；重触发 = 重播动画） */
+        const badge = $("browse-cache-badge");
+        if (badge) {
+            if (data.scanning) {
+                badge.classList.add("hidden");
+            } else {
+                badge.classList.remove("hidden");
+                badge.classList.remove("cache-badge-in");
+                void badge.offsetWidth; // 强制重排，重播入场动画
+                badge.classList.add("cache-badge-in");
+            }
+        }
         if (data.scanning) {
             setStatus("browse-status", "warn", data.message || "该盘正在扫描中，完成后即可即时浏览");
         }
         renderBreadcrumb(data.root, data.parent);
-        renderEntries(data);
+        clearSelection(); // N08：导航到新目录后清空多选（路径集合已失效）
+        renderEntries(data, { animate: true }); // L1-2/L1-3：数据到达播行 stagger + 占比条生长
         // 只在会话根层级记录「最近浏览」（进入子目录不算新根）
         if (data.root && !data.parent) updateRecentRoots(data.root, quiet);
     } catch (e) {
@@ -705,12 +669,22 @@ async function updateRecentRoots(root, quiet) {
 /* 本组件在 init 期的绑定（顺序等价：原 bind() 的视图工具栏/浏览/行内委托段） */
 export function bindWorkspace() {
     // 视图切换与密度（N10 工具栏位；U2.2 接入矩形图三态；U2.3 合并阈值/全屏；U2.5 扩展多选等）。
-    // 应用**当前**视图状态：首挂 = ranking；路由返回时保持用户选择（切页不丢）。
-    setBrowseView(browseView);
+    // 应用**当前**视图状态：首挂 = APP_STATE.view.mode（U2.5 默认矩形图，N01 接管）；
+    // 路由返回时保持用户选择（切页不丢，view 状态存 APP_STATE）。
+    setDrillHandler((path) => browsePath(path)); // list.js 行点击/下钻图标回调（防循环依赖）
+    bindList(); // U2.5：列表多选/页脚/虚拟滚动/触屏长按接线（每挂载容器新绑）
+    setBrowseView(APP_STATE.view.mode);
     $("btn-view-treemap").addEventListener("click", () => setBrowseView("treemap"));
     $("btn-view-ranking").addEventListener("click", () => setBrowseView("ranking"));
     $("btn-view-table").addEventListener("click", () => setBrowseView("table"));
-    $("btn-density").addEventListener("click", () => { compactDensity = !compactDensity; $("btn-density").setAttribute("aria-pressed", String(compactDensity)); $("btn-density").textContent = compactDensity ? "舒适列表" : "紧凑列表"; if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData); });
+    $("btn-density").addEventListener("click", () => {
+        // U2.5：密度状态存 APP_STATE.view.density（§3.2；紧凑 26px / 舒适 36px 行高）
+        APP_STATE.view.density = APP_STATE.view.density === "compact" ? "cozy" : "compact";
+        const compact = APP_STATE.view.density === "compact";
+        $("btn-density").setAttribute("aria-pressed", String(compact));
+        $("btn-density").textContent = compact ? "舒适列表" : "紧凑列表";
+        if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
+    });
     // U2.3：合并阈值 −/+（L3-9，步长 10）与全屏（L3-8）
     $("btn-merge-minus").addEventListener("click", () => setMergeTop(APP_STATE.view.mergeTop - 10));
     $("btn-merge-plus").addEventListener("click", () => setMergeTop(APP_STATE.view.mergeTop + 10));
@@ -725,7 +699,7 @@ export function bindWorkspace() {
                 if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
                 if (ev.isComposing) return; // 中文输入法组词中
                 if (document.querySelector(".modal:not(.hidden)")) return;
-                if (browseView === "treemap" && browseParent) { ev.preventDefault(); goUp(); }
+                if (APP_STATE.view.mode === "treemap" && browseParent) { ev.preventDefault(); goUp(); }
             } else if (ev.key === "Escape") {
                 if (document.querySelector(".modal:not(.hidden)")) return; // 弹窗栈优先（红线#9）
                 if (isFullscreen()) exitFullscreen();
@@ -772,7 +746,10 @@ export function bindWorkspace() {
     });
 
     // P12·W1.4 行动闭环：行内操作按钮事件委托（绑定一次，随渲染内容更新生效）
+    // U2.5（F19）：新增「下钻」图标（仅目录行渲染）——三图标 下钻/定位/复制路径
     $("dir-body").addEventListener("click", (ev) => {
+        const drillBtn = ev.target.closest(".act-drill");
+        if (drillBtn) { browsePath(drillBtn.getAttribute("data-act-path")); return; }
         const openBtn = ev.target.closest(".act-open");
         if (openBtn) { openInExplorer(openBtn.getAttribute("data-act-path")); return; }
         const copyBtn = ev.target.closest(".act-copy");
@@ -822,8 +799,8 @@ const WORKSPACE_HTML =
     '</div>' +
     '<!-- [N10] 视图工具栏位：三视图切换（U2.2 矩形图/排行/表格）+ 合并阈值 −/+（D11，仅矩形图）+ 全屏（L3-8） -->' +
     '<div class="view-toolbar" aria-label="视图切换与密度">' +
-    '<button id="btn-view-treemap" class="btn btn-sm" title="矩形图视图（新）">矩形图</button>' +
-    '<button id="btn-view-ranking" class="btn btn-sm btn-primary">排行</button>' +
+    '<button id="btn-view-treemap" class="btn btn-sm btn-primary" title="矩形图视图（默认，定稿 N01）">矩形图</button>' +
+    '<button id="btn-view-ranking" class="btn btn-sm">排行</button>' +
     '<button id="btn-view-table" class="btn btn-sm">表格</button>' +
     '<span class="merge-group" id="merge-group" hidden title="合并阈值（矩形图视图）：小于阈值的条目并入「其他」">' +
     '<button id="btn-merge-minus" class="btn btn-sm" title="减少合并数量（更多独立块）">−</button>' +
@@ -852,14 +829,34 @@ const WORKSPACE_HTML =
     '<div id="browse-error" class="notice notice-error hidden"><span id="browse-error-text"></span>' +
     '<span><button id="btn-browse-retry" class="btn btn-sm">重试</button></span></div>' +
 
-    '<!-- 视图区（flex:1；面板内滚） -->' +
+    '<!-- 视图区（flex:1；面板内滚；U2.5：treemap/table 两容器 absolute 叠加——120ms 交叉淡化共用视口） -->' +
     '<div class="view-area" id="view-area">' +
     '<div class="table-wrap" id="table-wrap">' +
+    '<!-- 加载态 L1-5 骨架屏（shimmer 1.4s；替代原 spinner——spinner 仅存于按钮） -->' +
     '<div id="browse-loading" class="loading-overlay hidden">' +
-    '<svg class="spinner spinner-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.56"/></svg>' +
+    '<div class="skel-list" aria-hidden="true">' +
+    '<div class="skel-row"><span class="skel-check"></span><span class="skel-block skel-name"></span><span class="skel-bar skel-block"></span><span class="skel-block skel-size"></span></div>' +
+    '<div class="skel-row"><span class="skel-check"></span><span class="skel-block skel-name"></span><span class="skel-bar skel-block"></span><span class="skel-block skel-size"></span></div>' +
+    '<div class="skel-row"><span class="skel-check"></span><span class="skel-block skel-name"></span><span class="skel-bar skel-block"></span><span class="skel-block skel-size"></span></div>' +
+    '<div class="skel-row"><span class="skel-check"></span><span class="skel-block skel-name"></span><span class="skel-bar skel-block"></span><span class="skel-block skel-size"></span></div>' +
+    '<div class="skel-row"><span class="skel-check"></span><span class="skel-block skel-name"></span><span class="skel-bar skel-block"></span><span class="skel-block skel-size"></span></div>' +
+    '<div class="skel-row"><span class="skel-check"></span><span class="skel-block skel-name"></span><span class="skel-bar skel-block"></span><span class="skel-block skel-size"></span></div>' +
+    '</div>' +
     '<span id="browse-loading-text">正在扫描目录，请稍候…</span></div>' +
-    '<table class="dir-table" aria-label="当前目录内容"><thead><tr><th>名称</th><th class="col-size">大小</th><th class="col-share">占比</th><th class="col-type">类型</th></tr></thead>' +
+    '<table class="dir-table" aria-label="当前目录内容"><thead><tr>' +
+    '<th class="cell-check"><input type="checkbox" id="check-all" aria-label="全选当前列表"></th>' +
+    '<th>名称</th><th class="col-size">大小</th><th class="col-share">占比</th><th class="col-type">类型</th>' +
+    '</tr></thead>' +
     '<tbody id="dir-body"></tbody></table>' +
+    '<!-- N08 页脚固定行（sticky bottom；「定位所选/导出所选 CSV」选中后出现；导出=D9 前端 Blob） -->' +
+    '<div class="list-footer" id="list-footer">' +
+    '<span id="list-count" class="list-stats">共 0 项</span>' +
+    '<span id="list-selected" class="list-stats">已选 0 项</span>' +
+    '<span class="list-footer-actions" id="list-selected-actions" hidden>' +
+    '<button id="btn-locate-selected" class="btn btn-sm" title="滚动到第一个已选条目">定位所选</button>' +
+    '<button id="btn-export-selected" class="btn btn-sm" title="把已选条目导出为 CSV（前端生成，Excel 可直接打开）">导出所选 CSV</button>' +
+    '</span>' +
+    '</div>' +
     '</div>' +
     '<!-- [N01] 矩形图视图（U2.2：viz/treemap.js 双层 canvas 渲染器 + tooltip） -->' +
     '<div class="treemap-wrap" id="treemap-wrap" hidden aria-label="目录空间矩形图"></div>' +
@@ -968,13 +965,14 @@ export function unmountWorkspace() {
 
 /* U2.1：路由返回时的视图恢复——模块级状态回灌新 DOM（切页不丢的完整语义：
    状态与显示均保持；browse 数据用缓存 (lastBrowseData)，不重复发请求）。
-   U2.2：treemap 视图回灌不经入场动画（数据未重新到达，直绘终帧）。 */
+   U2.2：treemap 视图回灌不经入场动画（数据未重新到达，直绘终帧）。
+   U2.5：列表回灌 animate:false（不作 L1-2/L1-3——「重进不重放」与虚拟滚动纪律一致）。 */
 export function restoreWorkspaceView() {
     if (!APP_STATE.lastBrowseData) return;
     const rootInput = $("browse-root");
     if (rootInput) rootInput.value = getCurrentRoot();
     renderBreadcrumb(getCurrentPath(), browseParent);
-    if (browseView === "treemap") renderTreemap(APP_STATE.lastBrowseData, "none");
-    else renderEntries(APP_STATE.lastBrowseData);
+    if (APP_STATE.view.mode === "treemap") renderTreemap(APP_STATE.lastBrowseData, "none");
+    else renderEntries(APP_STATE.lastBrowseData, { animate: false });
     renderStrip();
 }

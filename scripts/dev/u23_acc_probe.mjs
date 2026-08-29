@@ -97,7 +97,8 @@ const WAIT_FN = `(fn, timeout) => new Promise((resolve) => {
     await page.goto(BASE, { waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => {
         const t = document.getElementById("browse-status-text");
-        return t && /排行视图/.test(t.textContent);
+        // U2.5：默认视图=矩形图（N01 接管）——首等任一副本视图状态行即可
+        return t && /(排行|表格|矩形图)视图/.test(t.textContent);
     }, { timeout: 15000 });
     await page.click("#btn-view-treemap");
     await page.waitForFunction(() => {
@@ -432,7 +433,8 @@ const WAIT_FN = `(fn, timeout) => new Promise((resolve) => {
     await stubPage.goto(BASE, { waitUntil: "domcontentloaded" });
     await stubPage.waitForFunction(() => {
         const t = document.getElementById("browse-status-text");
-        return t && /排行视图/.test(t.textContent);
+        // U2.5：默认视图=矩形图（N01 接管）——首等任一副本视图状态行即可
+        return t && /(排行|表格|矩形图)视图/.test(t.textContent);
     }, { timeout: 15000 });
     await stubPage.click("#btn-view-treemap");
     await stubPage.waitForTimeout(800);

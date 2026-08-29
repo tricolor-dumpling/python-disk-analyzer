@@ -35,6 +35,12 @@ export function motionDur(name) {
     return durMs(name);
 }
 
+/* U2.5：对外导出 token 缓动读取（装配层编排三视图交叉淡化等需在组件外引用缓动；
+   语义与内部 easeCss 一致：token 缺失 → "linear"）。 */
+export function motionEase(name) {
+    return easeCss(name);
+}
+
 /* ---------- 降级查询 ---------- */
 
 /* prefers-reduced-motion（§3.5 降级总表统一查询点）。 */

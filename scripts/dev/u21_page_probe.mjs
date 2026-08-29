@@ -73,6 +73,11 @@ async function runCase(theme, name) {
     await page.goto(BASE, { waitUntil: "load" });
     await page.waitForTimeout(900); // init 链落定
 
+    // U2.5：默认视图=矩形图（N01 接管）——探针的「浏览状态保持」语义需排行行，
+    // 显式切排行视图（切页不丢断言按当前视图回灌）
+    await page.click("#btn-view-ranking").catch(() => {});
+    await page.waitForTimeout(200);
+
     const out = { name, errors };
 
     // 工作台截图 + 初始状态

@@ -189,9 +189,9 @@ window.fetch = function (url, options) {
      id/选择器全部不变）；传输层打桩在上一个经典脚本里（解析期执行）。
    ============================================================ */
 import {
-    $, APP_STATE, switchTheme, renderApiError, refreshSnapshots, refreshHealth,
-    setStatusForSettingsHealth, undoLastSave, renderEntries, openModal, closeModal,
-    browsePath, getCurrentPath, getSessionsCache, setSessionsCache, getTreemapView,
+    $, APP_STATE, switchTheme, renderApiError, refreshHealth,
+    setStatusForSettingsHealth, renderEntries, openModal,
+    browsePath, getCurrentPath, getTreemapView,
 } from "../../web/static/js/app/main.js";
 import * as __motion from "../../web/static/js/app/motion.js";
 window.__motion = __motion;
@@ -261,16 +261,32 @@ async function __waitUntil(fn, timeoutMs) {
   return fn();
 }
 
-/* ---- 断言注册表（四断言随 W1.4/W2.5/W2.6/W2.1 接入；0 为骨架自检） ---- */
-const ASSERTIONS = [
-  { id: "0", name: "骨架自检：app.js 启动完成且首拉 /api/settings、浏览样本已渲染到 #dir-body",
+/* ---- U2.5：v1 断言（ASSERTIONS）已退役删除——A4/A5/A6 以 v2 语义继续承担
+       红线 #11/#12 验证；renderApiError 双形态（原 w13）并入 A0。 ---- */
+
+/* ================= U1.0/U1.3：双 suite 门禁派发（U2.5：v1/legacy 断言在此退役，
+   门禁仅剩 v2；?suite=v2 与默认一致，未知 suite 回落 v2） =================
+   - URL 带 ?suite=xxx → 跑对应注册表；默认 = v2（门禁主口径）；
+   - v1 注册表（ASSERTIONS）已于 U2.5 删除——v2-A4/A5/A6 语义核对通过后退役，
+     legacy 依赖的 ids（btn-undo-save/快照卡等）仅受 bind 函数依赖约束保留。 */
+const __suiteMatch = window.location.search.match(/[?&]suite=([^&]+)/);
+const __currentSuite = __suiteMatch ? decodeURIComponent(__suiteMatch[1]) : "v2";
+
+const ASSERTIONS_V2 = [
+  { id: "A0", name: "骨架自检：页面加载、fetch 桩已接管、app 启动链完成（默认矩形图渲染）+ renderApiError 双形态容忍（红线#4，原 w13 并入）",
     fn: async function () {
-      __assert(document.querySelector("#dir-body .ranking-row"), "#dir-body 未渲染出行");
+      __assert(typeof __assert === "function", "__assert 必须可用");
+      __assert(typeof window.fetch === "function", "fetch 桩必须就位");
+      // fetch 桩已接管：init 首拉 /api/settings 必须落在调用日志里
       const first = __smoke.fetchLog.find((e) => e.url === "/api/settings");
-      __assert(first, "init 应首先拉取 /api/settings");
-    } },
-  { id: "w13", name: "W1.3：renderApiError 双形态容忍（新形态出码，旧形态无 code 区块）",
-    fn: async function () {
+      __assert(first, "init 应首先拉取 /api/settings（fetch 桩计数生效）");
+      // U2.5：默认视图=矩形图（定稿 N01）——启动链完成 = 矩形图已出布局（tiles≥1）
+      const view = getTreemapView();
+      __assert(view, "默认视图应为矩形图：treemap 渲染器应已创建");
+      __assert(view.getLayout().length >= 1, "矩形图应已有 tile 布局（启动链 browse→渲染完成）");
+      __assert(!$("treemap-wrap").hasAttribute("hidden"), "默认视图 treemap 容器应可见");
+      __assert($("table-wrap").classList.contains("hidden"), "默认视图表格容器应隐藏");
+      // 红线#4（原 legacy w13）：renderApiError 新形态出码、旧形态无 code 区块
       const box = document.createElement("div");
       renderApiError(box, { message: SAMPLES.errorTypedShape.error, code: SAMPLES.errorTypedShape.code, detail: SAMPLES.errorTypedShape.detail }, null);
       __assert(box.textContent.indexOf("错误码 2") !== -1, "新形态应显示错误码区块");
@@ -279,190 +295,6 @@ const ASSERTIONS = [
       renderApiError(box2, { message: SAMPLES.errorLegacyShape.error }, null);
       __assert(box2.textContent.indexOf("错误码") === -1, "旧形态不得出现 code 区块（RT-N04 降级）");
       __assert(box2.textContent.indexOf(SAMPLES.errorLegacyShape.error) !== -1, "旧形态仍显示主文案");
-    } },
-  { id: "1", name: "断言①（W1.4）：文件行零请求",
-    fn: async function () {
-      // 骨架样本 browseOk 含 2 目录 + 2 文件，init 门控已渲染进 #dir-body
-      __assert(document.querySelector("#dir-body .ranking-row[data-path]"), "应存在目录行");
-      const staticRow = document.querySelector("#dir-body .ranking-row-static");
-      __assert(staticRow, "应存在静态文件行（.ranking-row-static）");
-      __assert(!staticRow.hasAttribute("data-path"), "文件行不得携带 data-path");
-      __assert(!staticRow.hasAttribute("role"), "文件行不得有 role=button");
-      __assert(!staticRow.hasAttribute("tabindex"), "文件行不得有 tabindex");
-      __assert(document.querySelector('[data-path=""]') === null, "不得存在 data-path 为空字符串的行");
-
-      __smoke.fetchLog.length = 0;
-      staticRow.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      staticRow.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-      staticRow.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
-      let browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
-      __assert(browses === 0, "点击/键盘静态文件行应产生 0 个 /api/browse，实际 " + browses);
-
-      const dirRow = document.querySelector("#dir-body .ranking-row[data-path]");
-      dirRow.click();
-      await new Promise((r) => setTimeout(r, 40));
-      browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
-      __assert(browses === 1, "点击目录行应恰好 1 次 /api/browse，实际 " + browses);
-    } },
-  { id: "2", name: "断言②（W2.5）：筛选空态出现清除按钮",
-    fn: async function () {
-      try {
-        // D：空会话刷新后撤销按钮灰置（走真实 refreshSnapshots 路径）
-        const savedRoute = __smoke.routes["GET /api/snapshots"];
-        const savedCache = getSessionsCache();
-        __smoke.routes["GET /api/snapshots"] = { ok: true, sessions: [], count: 0 };
-        try {
-          await refreshSnapshots();
-          __assert($("btn-undo-save").disabled === true, "无会话时撤销按钮应灰置");
-          const toastCountBefore = document.querySelectorAll("#toast-container .toast").length;
-          await undoLastSave();
-          __assert($("confirm-modal").classList.contains("hidden"), "空会话不得弹出危险确认");
-          __assert(document.querySelectorAll("#toast-container .toast").length > toastCountBefore,
-                   "空会话撤销应出 info 提示");
-        } finally {
-          if (savedRoute === undefined) delete __smoke.routes["GET /api/snapshots"];
-          else __smoke.routes["GET /api/snapshots"] = savedRoute;
-          setSessionsCache(savedCache);
-        }
-
-        // H：筛选空态与一键清除
-        $("browse-filter").value = "不存在的关键词xyz";
-        if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
-        const btn = document.getElementById("btn-clear-filter");
-        __assert(btn, "筛选空态应出现「清除筛选」按钮");
-        __assert(document.getElementById("dir-body").textContent.indexOf("无匹配") !== -1,
-                 "空态文案应出现");
-        btn.click();
-        await new Promise((r) => setTimeout(r, 10));
-        __assert($("browse-filter").value === "", "点击清除后筛选参数应清空");
-        __assert(document.querySelector("#dir-body .ranking-row"), "应恢复渲染原条目");
-      } finally {
-        $("browse-filter").value = "";
-        $("browse-kind").value = "all";
-      }
-    } },
-  { id: "3", name: "断言③（W2.6）：双弹窗 Esc 按打开逆序关闭栈顶；Tab 循环；R 守卫",
-    fn: async function () {
-      const browseCallsBefore = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
-      openModal("settings-modal");
-      openModal("confirm-modal"); // 栈顶 = confirm-modal
-      __assert(!$("settings-modal").classList.contains("hidden"), "设置弹窗应开启");
-      __assert(!$("confirm-modal").classList.contains("hidden"), "确认弹窗应开启");
-      // R 守卫：弹窗开着时按 R 不触发浏览
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "r", bubbles: true }));
-      await new Promise((r) => setTimeout(r, 10));
-      const browseCallsAfterR = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
-      __assert(browseCallsAfterR === browseCallsBefore, "弹窗开启时按 R 不得触发浏览请求");
-      // Tab 循环：焦点不出栈顶面板
-      const panel = $("confirm-modal").querySelector(".modal-panel") || $("confirm-modal");
-      panel.querySelector("button,input,[tabindex]").focus();
-      for (let i = 0; i < 5; i++) {
-        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }));
-      }
-      __assert(panel.contains(document.activeElement), "Tab 循环后焦点必须仍在面板内");
-      // Esc 逆序：先关 confirm（栈顶），再关 settings
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-      await new Promise((r) => setTimeout(r, 10));
-      __assert($("confirm-modal").classList.contains("hidden"), "第一次 Esc 应关栈顶 confirm-modal");
-      __assert(!$("settings-modal").classList.contains("hidden"), "settings-modal 应保持开启");
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-      await new Promise((r) => setTimeout(r, 10));
-      __assert($("settings-modal").classList.contains("hidden"), "第二次 Esc 关 settings-modal");
-    } },
-  { id: "4", name: "断言④（W2.1）：busy health 徽章不降级、整页不进引导态、设置健康栏透出扫描中",
-    fn: async function () {
-      const savedRoute = __smoke.routes["GET /api/health"];
-      __smoke.routes["GET /api/health"] = SAMPLES.healthBusy;
-      try {
-        const classBefore = $("health-badge").className;
-        await refreshHealth();
-        __assert($("health-text").textContent.indexOf("扫描中") !== -1,
-                 "徽章文本应为中性「扫描中…」");
-        __assert($("health-badge").className === classBefore,
-                 "busy 时徽章 class 必须保持原状（不降级为 warn/err）");
-        __assert($("browse-guide").classList.contains("hidden"),
-                 "busy 不得把整页打回引导态（busy ≠ 未就绪）");
-        await setStatusForSettingsHealth();
-        __assert($("setting-health").value.indexOf("扫描中") !== -1,
-                 "设置健康栏应显示扫描中");
-      } finally {
-        if (savedRoute === undefined) delete __smoke.routes["GET /api/health"];
-        else __smoke.routes["GET /api/health"] = savedRoute;
-        await refreshHealth(); // 恢复正常健康态，避免污染其他断言
-      }
-    } },
-  { id: "w28", name: "W2.8：浏览竞态防护（迟到旧响应丢弃；旧失败不打断新结果）",
-    fn: async function () {
-      const realFetch = window.fetch;
-      let releaseA;
-      const gateA = new Promise((r) => { releaseA = r; });
-      let n = 0;
-      window.fetch = function (url, options) {
-        if (String(url).indexOf("/api/browse") !== -1) {
-          n += 1;
-          if (n === 1) return gateA.then(() => Promise.resolve(__stubResponse(SAMPLES.browseSlow)));
-          return Promise.resolve(__stubResponse(SAMPLES.browseFast));
-        }
-        return realFetch(url, options);
-      };
-      try {
-        // 场景一：慢 A 先发，快 B 后发且先回 → 页面为 B；A 迟到被丢弃
-        const pA = browsePath("D:\\slowDir");
-        const pB = browsePath("D:\\fastDir");
-        await pB;
-        await new Promise((r) => setTimeout(r, 10));
-        __assert(getCurrentPath() === "D:\\fastDir", "B 先回后页面应为 fastDir");
-        releaseA();
-        await pA;
-        await new Promise((r) => setTimeout(r, 10));
-        __assert(getCurrentPath() === "D:\\fastDir", "迟到的 A 不得覆盖 B 的渲染状态");
-
-        // 场景二：慢 A 将失败、快 B 成功 → A 的失败不得覆盖 B 的成功态
-        let releaseC;
-        const gateC = new Promise((r) => { releaseC = r; });
-        let m = 0;
-        window.fetch = function (url, options) {
-          if (String(url).indexOf("/api/browse") !== -1) {
-            m += 1;
-            if (m === 1) return gateC.then(() => Promise.resolve(__stubResponse(SAMPLES.errorLegacyShape, 400)));
-            return Promise.resolve(__stubResponse(SAMPLES.browseFast));
-          }
-          return realFetch(url, options);
-        };
-        $("browse-error").classList.add("hidden");
-        const pC = browsePath("D:\\slowDir");
-        const pD = browsePath("D:\\fastDir");
-        await pD;
-        await new Promise((r) => setTimeout(r, 10));
-        const errHiddenAtB = $("browse-error").classList.contains("hidden");
-        releaseC();
-        await pC.catch(() => {});
-        await new Promise((r) => setTimeout(r, 10));
-        __assert(errHiddenAtB === true, "B 成功时不应有错误框");
-        __assert($("browse-error").classList.contains("hidden") || getCurrentPath() === "D:\\fastDir",
-                 "旧失败晚于 B 到达不得打断成功态");
-      } finally {
-        window.fetch = realFetch;
-      }
-    } },
-];
-
-/* ================= U1.0/U1.3：双 suite 门禁派发 =================
-   - URL 带 ?suite=xxx → 跑对应注册表；**U1.3 起默认 = v2**（门禁主口径）；
-   - v1 注册表改挂 ?suite=legacy 保留（保 id 搬家的回归验证；U2.5 退役）；
-   - ?suite=v2 / ?suite=v1 仍可用（兼容 U1.0 起形成的调用习惯）。 */
-const __suiteMatch = window.location.search.match(/[?&]suite=([^&]+)/);
-const __currentSuite = __suiteMatch ? decodeURIComponent(__suiteMatch[1]) : "v2";
-
-const ASSERTIONS_V2 = [
-  { id: "A0", name: "骨架自检：页面加载、__assert 可用、fetch 桩已接管且 app.js 启动完成",
-    fn: async function () {
-      __assert(typeof __assert === "function", "__assert 必须可用");
-      __assert(typeof window.fetch === "function", "fetch 桩必须就位");
-      // fetch 桩已接管：init 首拉 /api/settings 必须落在调用日志里
-      const first = __smoke.fetchLog.find((e) => e.url === "/api/settings");
-      __assert(first, "init 应首先拉取 /api/settings（fetch 桩计数生效）");
-      __assert(document.querySelector("#dir-body .ranking-row"), "#dir-body 未渲染出行（app.js 启动链未完成）");
     } },
   { id: "A1", name: "U1.1：主题切换（data-theme 切换 + localStorage 写入 + reduced 直切分支）",
     fn: async function () {
@@ -526,8 +358,12 @@ const ASSERTIONS_V2 = [
       const activeTab = document.querySelector(".nav-tabs .nav-tab.is-active");
       __assert(activeTab && activeTab.getAttribute("href") === "#/", "激活标签应同步为工作台");
     } },
-  { id: "A4", name: "U2.0 移植（W1.4·红线#11）：静态文件行零请求",
+  { id: "A4", name: "U2.0 移植（W1.4·红线#11）：静态文件行零请求（U2.5：默认矩形图，先切排行）",
     fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      // U2.5 起默认视图=矩形图（N01）；红线#11 语义在排行行上验证 → 显式切换
+      $("btn-view-ranking").click();
+      await __waitUntil(() => document.querySelector("#dir-body .ranking-row"), 2000);
       const staticRow = document.querySelector("#dir-body .ranking-row-static");
       __assert(staticRow, "应存在静态文件行（.ranking-row-static）");
       __assert(!staticRow.hasAttribute("data-path"), "文件行不得携带 data-path");
@@ -541,17 +377,19 @@ const ASSERTIONS_V2 = [
       const browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
       __assert(browses === 0, "点击/键盘静态文件行应产生 0 个 /api/browse，实际 " + browses);
     } },
-  { id: "A5", name: "U2.0 移植（W1.4·红线#11）：目录行恰一请求",
+  { id: "A5", name: "U2.0 移植（W1.4·红线#11）：目录行恰一请求（U2.5：排行视图语义）",
     fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       const dirRow = document.querySelector("#dir-body .ranking-row[data-path]");
-      __assert(dirRow, "应存在目录行");
+      __assert(dirRow, "应存在目录行（A4 已切排行视图）");
       __smoke.fetchLog.length = 0;
       dirRow.click();
-      await new Promise((r) => setTimeout(r, 40));
+      await __waitUntil(() => __smoke.fetchLog.filter((e) => e.url === "/api/browse").length >= 1, 2000);
       const browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
       __assert(browses === 1, "点击目录行应恰好 1 次 /api/browse，实际 " + browses);
+      await wait(60); // 新数据渲染（browseOk 同构样本）
     } },
-  { id: "A6", name: "U2.0 移植（W2.5·红线#12）：筛选空态与一键清除",
+  { id: "A6", name: "U2.0 移植（W2.5·红线#12）：筛选空态与一键清除（U2.5：排行视图语义）",
     fn: async function () {
       try {
         $("browse-filter").value = "不存在的关键词xyz";
@@ -717,13 +555,14 @@ const ASSERTIONS_V2 = [
   { id: "A12", name: "U2.2：treemap 命中（目录 tile 恰 1 次 browse 且 path 正确；文件 tile 0 请求）",
     fn: async function () {
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-      // 进入矩形图视图（默认仍为排行——U2.2 裁决保持默认至 U2.5，此处显式切换）
+      // 进入矩形图视图（U2.5 起默认已是矩形图——此处显式切换为幂等；A4-A6 后视图为排行）
       $("btn-view-treemap").click();
-      await wait(60);
+      await __waitUntil(() => !$("treemap-wrap").hasAttribute("hidden"), 1500);
       const view = getTreemapView();
       __assert(view, "treemap 渲染器应已创建（getTreemapView 非空）");
-      __assert(!$("treemap-wrap").hasAttribute("hidden"), "treemap 容器应可见");
-      __assert($("table-wrap").classList.contains("hidden"), "排行/表格容器应隐藏");
+      // U2.5 交叉淡化 120ms（--dur-1）结束后旧容器才 display:none——条件等待
+      __assert(await __waitUntil(() => $("table-wrap").classList.contains("hidden"), 1500),
+               "交叉淡化结束表格容器应隐藏");
       let layout = view.getLayout();
       __assert(layout.length >= 1, "应已有 tile 布局，实际 " + layout.length);
       const canvas = view.canvas();
@@ -758,10 +597,11 @@ const ASSERTIONS_V2 = [
       await wait(500);
       browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
       __assert(browses === 0, "点击文件 tile 应 0 次 /api/browse，实际 " + browses);
-      // 恢复默认视图（排行），不污染后续断言（A13 于 U2.3 接入时位于后方）
-      $("btn-view-ranking").click();
+      // 恢复默认视图（U2.5：矩形图），不污染后续断言
+      $("btn-view-treemap").click();
       await wait(20);
-      __assert(!$("table-wrap").classList.contains("hidden"), "恢复排行后表格容器应可见");
+      __assert(await __waitUntil(() => $("table-wrap").classList.contains("hidden"), 1500),
+               "恢复默认矩形图后表格容器应隐藏");
     } },
   { id: "A13", name: "U2.3：双击回根防抖（双击恰 1 次 browse 且 path=本级根，不产生下钻的第三次请求）",
     fn: async function () {
@@ -804,7 +644,7 @@ const ASSERTIONS_V2 = [
       } finally {
         if (savedRoute === undefined) delete __smoke.routes["POST /api/browse"];
         else __smoke.routes["POST /api/browse"] = savedRoute;
-        $("btn-view-ranking").click();
+        $("btn-view-treemap").click(); // U2.5：恢复默认视图（矩形图），不污染后续断言
         await wait(20);
       }
     } },
@@ -843,9 +683,51 @@ const ASSERTIONS_V2 = [
       __assert(browses2[0] && browses2[0].body && browses2[0].body.path === d,
                "「浏览此盘」path 应为 " + d + "，实际 " + (browses2[0] && browses2[0].body && browses2[0].body.path));
     } },
+  { id: "A15", name: "U2.5：多选语义——表格视图 checkbox 首列 + Shift 范围选 + 表头全选/半选 + 页脚计数；排行视图同样可用（N08）",
+    fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      // 默认矩形图 → 切表格视图（U2.5 交叉淡化后行已渲染）
+      $("btn-view-table").click();
+      await __waitUntil(() => document.querySelectorAll("#dir-body .row-check").length === 4, 2000);
+      const boxes = () => Array.from(document.querySelectorAll("#dir-body .row-check"));
+      __assert(boxes().length === 4, "表格视图应渲染 4 个 checkbox（2 目录 + 2 文件），实际 " + boxes().length);
+      __assert($("list-count").textContent.indexOf("共 4 项") !== -1, "页脚应显示「共 4 项」，实际「" + $("list-count").textContent + "」");
+      __assert($("list-selected").textContent.indexOf("已选 0 项") !== -1, "初始应「已选 0 项」，实际「" + $("list-selected").textContent + "」");
+      __assert($("list-selected-actions").hasAttribute("hidden"), "无选中时操作组应隐藏");
+      // 单选 → 半选态 + 操作组出现
+      boxes()[0].click();
+      await wait(10);
+      __assert($("list-selected").textContent.indexOf("已选 1 项") !== -1, "单选后应「已选 1 项」");
+      __assert(!$("list-selected-actions").hasAttribute("hidden"), "选中后「定位所选/导出所选 CSV」应出现");
+      __assert($("check-all").indeterminate === true, "部分选中时表头应为半选态");
+      // Shift 范围选（anchor=item0 → 点击 item2：0..2 全选 = 3 项）
+      boxes()[2].dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: true }));
+      await wait(10);
+      __assert($("list-selected").textContent.indexOf("已选 3 项") !== -1, "Shift 范围选应「已选 3 项」（0..2），实际「" + $("list-selected").textContent + "」");
+      // 第 4 项普通点选 → 全选 + 表头 checked
+      boxes()[3].click();
+      await wait(10);
+      __assert($("list-selected").textContent.indexOf("已选 4 项") !== -1, "补选后应「已选 4 项」");
+      __assert($("check-all").checked === true, "全选后表头应为 checked 态");
+      // 表头点击 = 清选
+      $("check-all").click();
+      await wait(10);
+      __assert($("list-selected").textContent.indexOf("已选 0 项") !== -1, "表头点击后应清选");
+      __assert($("list-selected-actions").hasAttribute("hidden"), "清选后操作组应隐藏");
+      // 排行视图同样渲染 checkbox（N08 口径：表格/排行视图底部固定行 + 首列 checkbox）
+      $("btn-view-ranking").click();
+      await __waitUntil(() => document.querySelectorAll("#dir-body .ranking-row").length === 2, 2000);
+      __assert(document.querySelectorAll("#dir-body .ranking-row[data-path]").length === 2, "排行视图应仍有 2 个目录行");
+      __assert(document.querySelectorAll("#dir-body .row-check").length === 4, "排行视图也应渲染 checkbox 首列");
+      // 恢复默认矩形图（N01），不污染后续断言
+      $("btn-view-treemap").click();
+      await wait(20);
+      __assert(await __waitUntil(() => $("table-wrap").classList.contains("hidden"), 1500), "应恢复默认矩形图");
+    } },
 ];
 
-const __SUITE_REGISTRIES = { v2: ASSERTIONS_V2, v1: ASSERTIONS, legacy: ASSERTIONS };
+/* U2.5：门禁仅剩 v2（legacy 已退役）——未知 suite 回落 v2 */
+const __SUITE_REGISTRIES = { v2: ASSERTIONS_V2 };
 
 window.addEventListener("load", function () {
   // 标题与页头显示当前 suite 名

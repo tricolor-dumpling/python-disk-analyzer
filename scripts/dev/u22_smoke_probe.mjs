@@ -1,13 +1,14 @@
-/* U2.2 冒烟双 suite 探针（smoke.html，静态 8771）
-   用法：node scripts/dev/u22_smoke_probe.mjs [suite=all|v2|legacy]
+/* U2.2 冒烟 suite 探针（smoke.html，静态 8771）
+   用法：node scripts/dev/u22_smoke_probe.mjs [suite=all|v2]
    输出：每 suite 的 x/y 通过数与失败明细；收集 console/pageerror。
+   ⚠️ U2.5：v1/legacy 断言已退役——门禁仅剩 v2（suites 默认只跑 v2）。
    Playwright 依赖本机 profile（与项目零前端依赖纪律无关）。 */
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { chromium } = require("C:/Users/26024/.dsh/profiles/web/node_modules/playwright");
 
 const BASE = "http://127.0.0.1:8771/tests/web/smoke.html";
-const suites = process.argv[2] === undefined || process.argv[2] === "all" ? ["v2", "legacy"] : [process.argv[2]];
+const suites = ["v2"];
 
 (async () => {
   const browser = await chromium.launch();
