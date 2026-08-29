@@ -34,7 +34,9 @@
      历史快照卡升级 N06 迷你卡形态（最近一份 + 管理快照入口 + 空态 + 全部会话
      折叠区，渲染在 components/snapshot-mini.js，ids 全保留）；新增「最近对比」
      迷你卡（state.compare.lastSummary，compare.js 对比成功后写入）。
-     旧「历史对比」卡保留至 U3.4（#/compare 占位页接管前为唯一对比功能入口）。
+      U3.4：旧「历史对比」卡迁 #/compare 对比工作台整页（F18）并从本模板移除——
+      主页仅留「最近对比」迷你卡（ids #compare-baseline/#btn-compare/#compare-result
+      等随迁移入 pages/compare.js，工作台装配侧 bindCompare 一并摘除）。
    - U2.5：列表视图升级——排行/表格渲染迁 components/list.js（filteredEntries/
      renderList + N08 多选 + 虚拟滚动 + 页脚 + CSV 导出 + F19 行内操作三图标 +
      L1-2/L1-3），本文件保留接线（treemap 派发/视图切换交叉淡化/事件委托/浏览闭环）；
@@ -591,11 +593,18 @@ export async function browsePath(path, quiet) {
     } catch (e) {
         if (seq !== browseSeq) return; // 旧失败不打断新结果
         lastBrowse = { root: currentRoot, path: target };
-        // P12·W2.5（E）：失败回写输入框并聚焦全选，便于直接修正路径
-        $("browse-root").value = target;
-        $("browse-root").focus();
-        try { $("browse-root").select(); } catch (err) { /* 非文本态忽略 */ }
-        showBrowseError(e.message, e, () => browsePath($("browse-root").value.trim() || target));
+        // U3.4 补漏：子页面（#/compare）期间 browse 失败（如与对比 SDK 扫描锁竞争 409）
+        // 时输入框不在 DOM——仅记状态，显示侧由 showBrowseError 自守卫（空守卫纪律）
+        const rootInput = $("browse-root");
+        if (rootInput) {
+            // P12·W2.5（E）：失败回写输入框并聚焦全选，便于直接修正路径
+            rootInput.value = target;
+            rootInput.focus();
+            try { rootInput.select(); } catch (err) { /* 非文本态忽略 */ }
+            showBrowseError(e.message, e, () => browsePath(rootInput.value.trim() || target));
+        } else {
+            showBrowseError(e.message, e, null);
+        }
     } finally {
         if (seq === browseSeq) setBrowseLoading(false); // 仅最新请求有权解除 loading
     }
@@ -761,10 +770,12 @@ export function bindWorkspace() {
 
 /* ============================================================
    U2.1：工作台页面（路由契约 render/mount/unmount）
-   - 模板 = U1.3 index.html 工作台区域（左列 + 右栏三卡 + 对比卡）机械搬移，
-     结构/类/ID 逐字一致（视觉逐字节不变；browse-chart 已随 U2.0 删除）；
+   - 模板 = U1.3 index.html 工作台区域（左列 + 右栏卡）机械搬移，
+     结构/类/ID 逐字一致（视觉逐字节不变；browse-chart 已随 U2.0 删除；
+     U3.4 旧「历史对比」卡迁 #/compare 并移除）；
    - 绑定集合由 main.js 装配（bindOnboarding/bindOverview/bindWorkspace/
-     bindScan/bindCompare/bindWorkspaceGuide），避免 workspace↔scan 互引成环；
+     bindScan/bindWorkspaceGuide；U3.4 起 bindCompare 随对比卡摘除——
+     对比接线在 pages/compare.js mountCompare），避免 workspace↔scan 互引成环；
    - unmount：本阶段无 rAF/轮询归本页（扫描轮询属全局 scan 模块，
      切页期间经空守卫维持轮询，U3.2 顶栏微型环接管展示）。
    ============================================================ */
@@ -903,27 +914,8 @@ const WORKSPACE_HTML =
     '<div id="snapshot-status" class="status-line"><span class="dot"></span><span id="snapshot-status-text">正在加载历史快照…</span></div>' +
     '</section>' +
 
-    '<!-- 历史对比（U3.4 迁 #/compare 子页面，主页仅留「最近对比」迷你入口） -->' +
-    '<section class="card" aria-label="历史对比">' +
-    '<div class="card-head"><h2>' +
-    '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-6 4 3 5-7"/></svg>' +
-    '历史对比</h2><p class="card-sub">查看空间变化</p></div>' +
-    '<div class="row">' +
-    '<input id="compare-baseline" list="baseline-suggest" type="text" placeholder="基线快照路径（留空自动选最近一份）" aria-label="基线快照路径">' +
-    '<datalist id="baseline-suggest"></datalist>' +
-    '<button id="btn-compare" class="btn btn-primary">' +
-    '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v18"/><path d="M16 3v18"/><path d="M3 8h5"/><path d="M16 16h5"/></svg>' +
-    '开始对比</button></div>' +
-    '<div id="compare-status" class="status-line"><span class="dot"></span><span id="compare-status-text">先保存过快照或指定基线文件，再点击「开始对比」</span></div>' +
-    '<div id="compare-result" class="hidden">' +
-    '<div id="compare-summary" class="compare-summary"></div>' +
-    '<div id="compare-chart" class="compare-chart" aria-label="变化排行榜"></div>' +
-    '<div class="table-wrap"><table class="dir-table compare-table">' +
-    '<thead><tr><th style="width:110px">变化</th><th style="width:90px">增速</th><th>路径</th><th style="width:60px">操作</th></tr></thead>' +
-    '<tbody id="compare-body"></tbody></table></div></div>' +
-    '</section>' +
-
-    '<!-- [U2.4] 最近对比迷你卡（state.compare.lastSummary + 空态引导；点击跳 #/compare。旧「历史对比」卡保留至 U3.4 迁子页面（#/compare 现为占位页，此刻移除=功能回归），届时本卡成为主页唯一对比入口） -->' +
+    '<!-- [U3.4] 历史对比卡已随 #/compare 对比工作台迁整页（F18）；主页仅留「最近对比」迷你入口（本卡已移除，ids 迁 #/compare） -->' +
+    '<!-- [U2.4] 最近对比迷你卡（state.compare.lastSummary + 空态引导；点击跳 #/compare——U3.4 起为主页唯一对比入口） -->' +
     '<section class="card compare-mini-card" aria-label="最近对比">' +
     '<div class="card-head"><h2>' +
     '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-6 4 3 5-7"/></svg>' +

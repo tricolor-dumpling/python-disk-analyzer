@@ -25,7 +25,7 @@ import { evaluateEnvGate, refreshHealth, bindTopbar, bindWorkspaceGuide } from "
 import { markNavDot } from "./components/nav-dots.js"; // U3.1：N13 圆点（探针/引导面再导出）
 import { pollFullscan, startFullscan, saveSnapshot, setAutoSaveSetting, undoLastSave, bindScan, applyScanView, probeStopSupport, isStopAvailable, requestStopScan, isSaveAvailable } from "./components/scan.js";
 import { refreshSnapshots, getSessionsCache, setSessionsCache, applySnapshotsView, setSnapshotsActions } from "./pages/snapshots.js";
-import { bindCompare, renderCompare, mountCompare, unmountCompare, compareSnapshots } from "./pages/compare.js";
+import { renderCompare, mountCompare, unmountCompare } from "./pages/compare.js";
 import { renderSnapshots, mountSnapshots, unmountSnapshots } from "./pages/snapshots.js";
 import { bindSettings, openSettings, setDataDir, setStatusForSettingsHealth } from "./components/settings.js";
 import { bindModals, openModal, closeModal } from "./components/modals.js";
@@ -148,7 +148,21 @@ function buildPaletteItems() {
     // 命令（复用既有函数入口）
     items.push({ group: "命令", label: "开始扫描", hint: "全量扫描所有本地盘", keywords: ["scan", "start", "fullscan", "kssm"], exec: () => navigateAndRun("/", () => startFullscan()) });
     items.push({ group: "命令", label: "保存快照", hint: "把最近一次全量结果保存为快照", keywords: ["save", "snapshot", "bckz"], exec: () => saveSnapshot(false) });
-    items.push({ group: "命令", label: "开始对比", hint: "与基线快照对比（回工作台）", keywords: ["compare", "diff", "ksdb"], exec: () => navigateAndRun("/", () => compareSnapshots()) });
+    // U3.4：命令「开始对比」= 预填默认（最近一份）+ 跳 #/compare（替换旧工作台卡 compareSnapshots）
+    items.push({ group: "命令", label: "开始对比", hint: "对比工作台（基线默认最近一份）", keywords: ["compare", "diff", "ksdb"],
+        exec: () => {
+            APP_STATE.compare.baseline = "";
+            APP_STATE.compare.root = getCurrentRoot();
+            APP_STATE.compare.result = null; // 强制新一轮（默认基线）
+            if (APP_STATE.route === "/compare") {
+                const input = document.getElementById("compare-baseline");
+                if (input) input.value = ""; // 已在本页：清输入后重跑（默认基线）
+                const cmp = document.getElementById("btn-compare");
+                if (cmp) cmp.click();
+            } else {
+                location.hash = "#/compare";
+            }
+        } });
     items.push({ group: "命令", label: "导出 CSV", hint: "当前目录导出为 CSV", keywords: ["export", "csv", "dc"], exec: () => exportRaw("csv") });
     items.push({ group: "命令", label: "导出 JSON", hint: "当前目录导出为 JSON", keywords: ["export", "json", "dc"], exec: () => exportRaw("json") });
     items.push({ group: "命令", label: "切换主题", hint: "亮 / 暗主题", keywords: ["theme", "dark", "light", "qhzt"], exec: () => switchTheme(undefined, null) });
@@ -167,7 +181,8 @@ function mountWorkspacePage() {
     bindOverview();
     bindWorkspace();
     bindScan();
-    bindCompare();
+    // U3.4：bindCompare 随旧「历史对比」卡摘除——对比交互整体迁 #/compare 页
+    //（mountCompare 负责页面接线；主页仅剩「最近对比」迷你入口）
     bindSnapshotMini();   // U2.4：管理快照/全部会话折叠/最近对比入口
     renderCompareMini();  // U2.4：最近对比迷你卡（state.compare.lastSummary 回灌）
     bindWorkspaceGuide();

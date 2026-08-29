@@ -31,6 +31,24 @@ function pickBaseline(session) {
     return ok ? ok.snapshot_path : "";
 }
 
+/* U3.4：基线所属盘 + 该盘最新快照（迷你条目预填 trio；本地实现——
+   snapshot-mini ⇄ snapshots 互引会成环，勿 import，数据取渲染入参 sessions） */
+function ownerRootOf(sessions, baseline) {
+    for (const s of sessions) {
+        for (const r of Object.values(s.roots || {})) {
+            if (r && r.snapshot_path === baseline && r.root) return r.root;
+        }
+    }
+    return "";
+}
+function latestForRootOf(sessions, root) {
+    for (const s of sessions) {
+        const entry = Object.values(s.roots || {}).find((r) => r && r.root === root && !r.skipped && r.snapshot_path);
+        if (entry) return entry.snapshot_path;
+    }
+    return "";
+}
+
 /* N06 迷你条目渲染（refreshSnapshots / applySnapshotsView 调用） */
 export function renderSnapshotMini(sessions) {
     const entry = $("snapshot-mini-entry");
@@ -57,9 +75,17 @@ export function renderSnapshotMini(sessions) {
         '<span class="tag ' + (latest.auto ? "tag-auto" : "tag-manual") + '">' + (latest.auto ? "自动" : "手动") + "</span>" +
         "</button>";
     $("snapshot-mini-latest").addEventListener("click", () => {
-        // N06：与上一份对比——基线取上一会话同序可用快照；仅一份时以该份为基线
+        // N06：与上一份对比——基线取上一会话同序可用快照；仅一份时以该份为基线；
+        // U3.4：trio 预填（root=基线所属盘、target=该盘最新快照——#/compare 消费）
         const baseline = pickBaseline(list[1]) || pickBaseline(latest);
-        if (baseline) APP_STATE.compare.baseline = baseline;
+        if (baseline) {
+            APP_STATE.compare.baseline = baseline;
+            const root = ownerRootOf(list, baseline);
+            if (root) {
+                APP_STATE.compare.root = root;
+                APP_STATE.compare.target = latestForRootOf(list, root);
+            }
+        }
         location.hash = "#/compare";
     });
 }
@@ -72,7 +98,7 @@ export function renderCompareMini() {
     if (!s) {
         body.innerHTML =
             '<button class="compare-mini-empty" id="btn-compare-mini-open">' +
-            "<b>还没有对比记录</b><span>保存快照后在「历史对比」发起对比，最近结果会显示在这里。</span></button>";
+            "<b>还没有对比记录</b><span>在对比工作台发起对比，最近结果会显示在这里。</span></button>";
     } else {
         const d = Number(s.delta) || 0;
         const cls = d === 0 ? "flat" : d > 0 ? "grow" : "shrink";

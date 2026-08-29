@@ -191,6 +191,70 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .skip-reason{color:var(--warning);cursor:help}
 
 /* ============================================================ */
+/* U3.4 对比工作台页（#/compare）：页头 64px（基线 datalist+目标只读+开始对比）
+   → 摘要 3 卡 96px（count-up L1-4）→ 红绿发散图 240px（L3-6）
+   → 对比表格 flex:1 面板内滚（列：变化/增速/路径/操作 F19） */
+/* ============================================================ */
+.page-head-compare{min-height:64px}
+.page-head-compare .page-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px}
+.compare-controls{display:flex;align-items:center;gap:10px;flex:none;min-width:0}
+.compare-ctl{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.compare-ctl input{width:220px;font-size:var(--fs-sm)}
+.compare-ctl-target input{color:var(--muted);background:var(--bg)}
+.compare-controls .btn{flex:none}
+
+.page-compare-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
+/* 对比页空态（定稿 6.5「选择一份基线快照，开始对比两个时间点的空间变化。」） */
+.page-compare-empty{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;border:1px dashed var(--border-strong);border-radius:var(--radius-md);background:var(--card-soft)}
+.page-compare-empty[hidden]{display:none!important}
+/* L1-5 骨架屏（shimmer 复用 skel-* 类；reduced 经全局降级静止） */
+.compare-loading{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;justify-content:center;padding:24px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card)}
+.compare-loading[hidden]{display:none!important}
+.compare-loading .muted{font-size:var(--fs-xs)}
+.compare-result{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
+.compare-result[hidden]{display:none!important}
+
+/* 摘要 3 卡（96px；▲/▼ 符号冗余 + --up/--down 双编码；数字 tabular-nums） */
+.compare-summary-row{flex:none;height:96px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.compare-stat{display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-card);background:var(--card);overflow:hidden}
+.compare-stat-label{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.compare-stat-value{display:flex;align-items:baseline;gap:6px;font-size:var(--fs-xl);font-weight:700;font-variant-numeric:var(--font-num);white-space:nowrap;min-width:0}
+.compare-stat-arrow{font-size:var(--fs-sm);flex:none}
+.compare-stat-num{overflow:hidden;text-overflow:ellipsis}
+.compare-stat-sub{font-size:var(--fs-xs);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compare-legacy{flex:none;margin:0;padding:8px 12px}
+
+/* 红绿发散图（L3-6：中轴基线；增长条向左红(--up)、缩减条向右绿(--down)；
+   中轴生长 500ms --dur-diverge（仅 transform scaleX——动画只动 transform/opacity）；
+   徽标 pop-in scale .8→1（--dur-3 + --ease-spring，仅 transform/opacity）；
+   ▲/▼ 冗余；reduced 由全局降级直显终值） */
+.compare-diverge{flex:none;height:240px;display:flex;flex-direction:column;gap:3px;padding:6px 0;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card)}
+.diverge-row{
+  display:flex;align-items:center;gap:10px;flex:1;min-height:0;width:100%;padding:0 12px;
+  border:0;background:transparent;color:var(--text);text-align:left;font:inherit;
+  font-size:var(--fs-xs);cursor:pointer;border-radius:var(--radius-sm);
+}
+.diverge-row:hover,.diverge-row:focus-visible{background:var(--primary-soft)}
+.diverge-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.diverge-track{position:relative;flex:none;width:46%;height:8px;border-radius:999px;background:var(--track-alt)}
+.diverge-axis{position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;margin-left:-1px;border-radius:2px;background:var(--border-strong)}
+.diverge-bar{position:absolute;top:0;bottom:0;border-radius:999px;will-change:transform}
+.diverge-bar-grow{right:50%;background:var(--up);transform-origin:right center}
+.diverge-bar-shrink{left:50%;background:var(--down);transform-origin:left center}
+.diverge-bar-flat{left:50%;width:2px;margin-left:-1px;background:var(--faint);transform-origin:center}
+.diverge-meta{display:flex;align-items:center;gap:6px;flex:none;min-width:150px;justify-content:flex-end}
+.diverge-sign{flex:none;font-weight:700}
+.diverge-value{font-variant-numeric:var(--font-num);white-space:nowrap}
+.diverge-badge{flex:none;min-width:52px;padding:1px 8px;border-radius:999px;background:var(--track-alt);text-align:center;font-variant-numeric:var(--font-num);white-space:nowrap}
+.diverge-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:var(--fs-sm)}
+
+/* 对比表格（面板内滚；行 stagger L1-2 由 motion 驱动；F19 操作列 定位+复制路径） */
+.compare-table-wrap{flex:1;min-height:0;overflow:auto}
+.compare-table .delta-cell{font-variant-numeric:var(--font-num);white-space:nowrap}
+.compare-table .cmp-ops{white-space:nowrap}
+.compare-table .cmp-ops .icon-btn{width:26px;height:26px}
+
+/* ============================================================ */
 /* topbar：60px（品牌 + N13 导航标签位 + 右侧控件组）        */
 /* ============================================================ */
 
@@ -475,23 +539,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .tag-added{background:var(--danger-soft);color:var(--danger)}
 .tag-removed{background:var(--success-soft);color:var(--success)}
 
-/* 对比卡（U3.4 迁 #/compare，主页仅留「最近对比」迷你入口） */
-.compare-chart{display:flex;flex-direction:column;gap:8px;margin:10px 0}
-.change-row{
-  min-height:36px;display:grid;width:100%;grid-template-columns:minmax(90px,1fr) 2fr auto;
-  align-items:center;gap:10px;padding:6px 4px;border:0;background:transparent;color:var(--text);
-  text-align:left;font:inherit;font-size:var(--fs-xs);cursor:pointer;
-}
-.change-row:hover,.change-row:focus-visible{background:var(--primary-soft);box-shadow:inset 3px 0 var(--primary)}
-.change-row>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.change-bar{height:8px;border-radius:999px;background:var(--primary)}
-.change-bar.grow{background:var(--grow-orange)}
-.change-bar.shrink{background:var(--success)}
-.change-row.row-highlight{background:var(--primary-soft);box-shadow:inset 3px 0 var(--primary)}
-.compare-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0 12px}
-.stat{padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg)}
-.stat-label{display:block;font-size:var(--fs-xs);color:var(--muted)}
-.stat-value{display:block;margin-top:2px;font-size:var(--fs-lg);font-weight:700;font-variant-numeric:var(--font-num)}
+/* 对比卡（U3.4 迁 #/compare 整页——主页仅留「最近对比」迷你入口；旧卡样式死规则已删，
+   新版见下方「U3.4 对比工作台页」分区；.grow/.shrink/.flat 为 delta 配色，趋势卡共用保留） */
 .grow{color:var(--danger)}
 .shrink{color:var(--success)}
 .flat{color:var(--muted)}

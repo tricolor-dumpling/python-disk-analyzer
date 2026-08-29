@@ -243,7 +243,8 @@ function renderFullscanState(st) {
     $("progress-pct").textContent = pct + "%";
     $("progress").classList.toggle("running", runningNow);
     $("progress").classList.toggle("complete", completed);
-    $("btn-compare").disabled = runningNow; // W2.4：扫描中对比按钮保持禁用（既有行为）
+    const cmpBtn = $("btn-compare");
+    if (cmpBtn) cmpBtn.disabled = runningNow; // W2.4：扫描中对比按钮保持禁用（既有行为；U3.4 起对比页按钮由页面自身管理——此处仅余工作台路径的兼容守卫）
     /* L2-3：条尾对勾（完成态显示；drawCheck 仅边沿描边 400ms——--dur-draw-check） */
     const checkEl = $("scan-check");
     if (checkEl) {

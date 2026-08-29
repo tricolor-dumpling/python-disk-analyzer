@@ -184,6 +184,14 @@ const SAMPLES = {
       roots: { "D:\\": { root: "D:\\", snapshot: "D_20260820_100000_explicit_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260820_100000_explicit_aabbccd.snap.gz", skipped: false } } }
   ], count: 3 },
   compareReport: { ok: true, report: { root: "D:\\", total_baseline: 16000, total_current: 15990, delta_total: -10, truncated: false, legacy_count: 0, rows: [ { path: "D:\\data", baseline: 12000, current: 11990, delta: -10, growth_pct: -0.0833, removed: false, added: false } ] } },
+  /* U3.4：A18 富对比样本——增长/缩减/持平/新增 四行（摘要 3 卡 count-up 语义值 +
+     发散图红绿 + 表格 F19；delta_total = 2000 + 1000 - 1000 + 0 自洽） */
+  compareRich: { ok: true, report: { root: "D:\\", total_baseline: 20000, total_current: 21000, delta_total: 2000, truncated: false, legacy_count: 0, current_completed_at: "2026-08-29T12:00:00", rows: [
+    { path: "D:\\news", baseline: 0, current: 2000, delta: 2000, growth_pct: null, removed: false, added: true },
+    { path: "D:\\data", baseline: 5000, current: 6000, delta: 1000, growth_pct: 20, removed: false, added: false },
+    { path: "D:\\old", baseline: 9000, current: 8000, delta: -1000, growth_pct: -11.11, removed: false, added: false },
+    { path: "D:\\same", baseline: 3000, current: 3000, delta: 0, growth_pct: 0, removed: false, added: false }
+  ] } },
   /* 错误双形态（RT-N04）：旧 {ok,error} 与 新 {ok,error,detail,code} */
   errorLegacyShape: { ok: false, error: "路径不存在: X:\\nope" },
   errorTypedShape: { ok: false, error: "无法连接 Everything（未运行或权限不足）", code: 2, detail: "Session 0 服务态或未启动" },
@@ -1022,6 +1030,149 @@ const ASSERTIONS_V2 = [
       } finally {
         delete __smoke.routes["GET /api/snapshots"];
         APP_STATE.compare.baseline = ""; APP_STATE.compare.target = ""; APP_STATE.compare.root = "";
+        await refreshSnapshots();
+        location.hash = "#/";
+        await wait(600);
+      }
+    } },
+  { id: "A18", name: "U3.4：对比工作台页——页头装配（基线 datalist+目标只读+开始对比）· 三入口预填（趋势卡/迷你卡/直达默认最近一份）· 自动执行与骨架屏 · 摘要 3 卡 count-up · 红绿发散图 L3-6（中轴/增长红·缩减绿/▲▼/500ms 生长/pop-in 徽标）· 表格行+F19 定位/复制路径 · 空态（定稿 6.5）",
+    fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const dayPath = "C:\\fake\\snapshots\\D_20260824_100000_auto_aabbccd.snap.gz";
+      const latestPath = "C:\\fake\\snapshots\\D_20260824_120000_explicit_aabbccd.snap.gz";
+      const singlePath = "C:\\fake\\snapshots\\D_20260824_100000_explicit_aabbccd.snap.gz";
+      try {
+        /* ① 空态：无快照 → 页头三件套 + 只读目标 + 空态文案（定稿 6.5） */
+        __smoke.routes["GET /api/snapshots"] = { ok: true, sessions: [], count: 0 };
+        await refreshSnapshots();
+        location.hash = "#/compare";
+        __assert(await __waitUntil(() => APP_STATE.route === "/compare", 2500), "应切到 #/compare");
+        __assert(document.querySelector("#route-view [data-page='compare']"), "页面模板须保持 data-page=compare（A3 契约）");
+        __assert($("compare-baseline") && $("compare-target") && $("btn-compare"), "页头三件套（基线 datalist/目标只读/开始对比）");
+        __assert($("compare-target").readOnly === true, "目标输入应为只读（=同盘符最新快照展示口径）");
+        __assert($("compare-baseline").getAttribute("list") === "baseline-suggest", "基线输入应挂 baseline-suggest datalist");
+        __assert($("compare-empty") && !$("compare-empty").hasAttribute("hidden"), "无快照应显示空态");
+        const emptyText = $("compare-empty").textContent.replace(/\s+/g, " ");
+        __assert(emptyText.indexOf("选择一份基线快照") !== -1 && emptyText.indexOf("开始对比两个时间点的空间变化") !== -1,
+                 "空态文案=定稿 6.5，实际「" + emptyText + "」");
+        __assert($("compare-result").hasAttribute("hidden"), "无结果时结果区应隐藏");
+        /* ② 趋势卡点击 → trio 预填 + 结果共享渲染（不重发 /api/compare——A17 计数口径保持） */
+        location.hash = "#/snapshots";
+        __assert(await __waitUntil(() => APP_STATE.route === "/snapshots", 2500), "应切到快照页（趋势卡入口）");
+        __smoke.routes["GET /api/snapshots"] = { ok: true, sessions: SAMPLES.snapshotsTrend.sessions, count: 3 };
+        __smoke.fetchLog.length = 0;
+        await refreshSnapshots();
+        __assert(await __waitUntil(() => document.querySelector(".trend-card[data-slot='day'] .trend-delta"), 4000), "趋势卡差值就绪");
+        APP_STATE.compare.baseline = ""; APP_STATE.compare.root = ""; APP_STATE.compare.target = ""; APP_STATE.compare.result = null;
+        const beforeClick = __smoke.fetchLog.filter((e) => e.url === "/api/compare").length;
+        document.querySelector(".trend-card[data-slot='day']").click();
+        __assert(await __waitUntil(() => APP_STATE.route === "/compare", 2500), "趋势卡点击应跳 #/compare");
+        __assert(APP_STATE.compare.baseline === dayPath && APP_STATE.compare.root === "D:\\" &&
+                 APP_STATE.compare.target === latestPath,
+                 "趋势卡预填 trio（baseline/root/target），实际 " + JSON.stringify({ b: APP_STATE.compare.baseline, r: APP_STATE.compare.root, t: APP_STATE.compare.target }));
+        __assert(await __waitUntil(() => $("compare-summary") && $("compare-summary").querySelectorAll(".compare-stat").length === 3, 4000),
+                 "摘要 3 卡渲染（缓存共享回灌）");
+        __assert($("compare-target").value === latestPath, "目标只读框应显示同盘符最新快照");
+        const sharedCalls = __smoke.fetchLog.filter((e) => e.url === "/api/compare").length;
+        __assert(sharedCalls === beforeClick, "趋势卡点击 → 对比页落地渲染不重发（结果共享自趋势卡缓存），" + beforeClick + " → " + sharedCalls);
+        __assert($("baseline-suggest").querySelectorAll("option").length === 3, "datalist 应含 3 个快照路径");
+        /* ③ 直达（默认最近一份）+ 富样本：骨架屏 → 摘要 count-up → 发散图 L3-6 → 表格 F19 */
+        __smoke.routes["GET /api/snapshots"] = { ok: true, sessions: SAMPLES.snapshotsList.sessions, count: 1 };
+        __smoke.routes["POST /api/compare"] = SAMPLES.compareRich;
+        __smoke.fetchLog.length = 0;
+        await refreshSnapshots();
+        location.hash = "#/";
+        await wait(600);
+        APP_STATE.compare.baseline = ""; APP_STATE.compare.root = ""; APP_STATE.compare.target = ""; APP_STATE.compare.result = null;
+        __smoke.delayMs = 250; // 骨架屏可观测窗口（fetch 延迟返回；摘要/图/表渲染前可见）
+        location.hash = "#/compare";
+        __assert(await __waitUntil(() => APP_STATE.route === "/compare" && $("compare-loading") &&
+                                       !$("compare-loading").hasAttribute("hidden"), 2500),
+                 "开始对比应显示骨架屏（L1-5）");
+        __assert(await __waitUntil(() => $("compare-result") && !$("compare-result").hasAttribute("hidden"), 5000),
+                 "对比完成结果区应显示");
+        __smoke.delayMs = 0;
+        __assert($("compare-baseline").value === singlePath, "直达应默认预填最近一份快照");
+        __assert($("compare-target").value === singlePath, "直达目标只读=同盘符最新快照（单份=基线同路径）");
+        const nums = Array.from(document.querySelectorAll("#compare-summary .compare-stat-num")).map((el) => el.dataset.v);
+        __assert(nums.length === 3 && nums[0] === "2000" && nums[1] === "2000" && nums[2] === "1000",
+                 "摘要 count-up 记账：总变化 2000 / 最大增长 2000 / 可释放 1000，实际 " + JSON.stringify(nums));
+        const labels = Array.from(document.querySelectorAll("#compare-summary .compare-stat-label")).map((el) => el.textContent);
+        __assert(labels.join("|") === "总变化|最大增长|可释放", "摘要 3 卡标签，实际 " + labels.join("|"));
+        const statCls = Array.from(document.querySelectorAll("#compare-summary .compare-stat-value")).map((el) => el.className);
+        __assert(statCls[0].indexOf("grow") !== -1 && statCls[1].indexOf("grow") !== -1 && statCls[2].indexOf("shrink") !== -1,
+                 "摘要颜色语义 grow/grow/shrink，实际 " + JSON.stringify(statCls));
+        const tokenCol = (name) => { const d = document.createElement("div"); d.style.color = "var(" + name + ")"; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; };
+        const rows = Array.from(document.querySelectorAll("#compare-diverge .diverge-row"));
+        __assert(rows.length === 4, "发散图应渲染 4 行（Top8 切片），实际 " + rows.length);
+        __assert(document.querySelectorAll("#compare-diverge .diverge-bar-grow").length === 2 &&
+                 document.querySelectorAll("#compare-diverge .diverge-bar-shrink").length === 1,
+                 "发散图应 增长条×2 + 缩减条×1（持平行=中轴中性标记）");
+        const axis = document.querySelector("#compare-diverge .diverge-axis");
+        __assert(!!axis, "应有中轴（基线）");
+        const growBar = document.querySelector("#compare-diverge .diverge-bar-grow");
+        const shrinkBar = document.querySelector("#compare-diverge .diverge-bar-shrink");
+        __assert(growBar && growBar.classList.contains("diverge-bar-grow") && shrinkBar && shrinkBar.classList.contains("diverge-bar-shrink"),
+                 "增长/缩减条类名应存在（左红/右绿几何与颜色在 u34 探针按 style.css 实测）");
+        const growBarReal = document.querySelector("#compare-diverge .diverge-bar-grow");
+        const growAnim = (growBarReal && growBarReal.getAnimations()[0]) || null;
+        if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          __assert(true, "L3-6 生长/徽标按 reduced-motion 直显终值（动画参数断言降级跳过）");
+        } else {
+          __assert(growAnim && growAnim.effect && growAnim.effect.getTiming().duration === 500,
+                   "L3-6 中轴生长 500ms（--dur-diverge），实际 " + (growAnim && growAnim.effect && growAnim.effect.getTiming().duration));
+          const badgeAnim = document.querySelector("#compare-diverge .diverge-badge").getAnimations()[0];
+          __assert(badgeAnim && badgeAnim.effect && badgeAnim.effect.getTiming().duration === 320 &&
+                   /scale\(0?\.8\)/.test(String(badgeAnim.effect.getKeyframes()[0].transform)),
+                   "徽标 pop-in：320ms（--dur-3）+ scale .8→1（--ease-spring）");
+        }
+        const signs = Array.from(document.querySelectorAll("#compare-diverge .diverge-sign")).map((el) => el.textContent);
+        __assert(signs.filter((s) => s === "▲").length === 2 && signs.filter((s) => s === "▼").length === 1 && signs.filter((s) => s === "±").length === 1,
+                 "发散图 ▲/▼/± 冗余符号，实际 " + JSON.stringify(signs));
+        const trs = document.querySelectorAll("#compare-body tr");
+        __assert(trs.length === 4, "表格应渲染 4 行，实际 " + trs.length);
+        __assert(/▲ \+1\.95 KB/.test($("compare-body").rows[0].cells[0].textContent),
+                 "表格变化列应含 ▲+1.95 KB（D:\\news 2000），实际「" + $("compare-body").rows[0].cells[0].textContent + "」");
+        __assert($("compare-body").querySelector(".tag-added"), "新增行应带「新增」标签");
+        __assert($("compare-body").querySelectorAll(".act-open-cmp").length === 4 &&
+                 $("compare-body").querySelectorAll(".act-copy-cmp").length === 4,
+                 "F19 操作列应含 定位（open-path）+ 复制路径（copy）");
+        __assert($("compare-status-text").textContent.indexOf("对比完成") !== -1 &&
+                 $("compare-status-text").textContent.indexOf("当前数据时间 2026-08-29 12:00:00") !== -1,
+                 "状态行应报告对比完成与当前数据时间（W2.11）");
+        /* ③b 主页最近对比迷你卡（lastSummary → ▲/▼ 摘要） */
+        location.hash = "#/";
+        __assert(await __waitUntil(() => APP_STATE.route === "/" && $("compare-mini-body") &&
+                                       $("compare-mini-body").querySelector(".compare-mini-delta"), 2500),
+                 "主页最近对比迷你卡应显示摘要");
+        const miniDelta = $("compare-mini-body").querySelector(".compare-mini-delta").textContent;
+        __assert(miniDelta.indexOf("▲") !== -1 && miniDelta.indexOf("+1.95 KB") !== -1,
+                 "迷你卡摘要 ▲ +1.95 KB（lastSummary），实际「" + miniDelta + "」");
+        /* ④ 工作台快照迷你条目点击 → trio 预填（仅一份快照：基线=目标） + 自动执行 */
+        APP_STATE.compare.baseline = ""; APP_STATE.compare.root = ""; APP_STATE.compare.target = ""; APP_STATE.compare.result = null;
+        __assert($("snapshot-mini-latest"), "工作台应有快照迷你条目");
+        $("snapshot-mini-latest").click();
+        __assert(await __waitUntil(() => APP_STATE.route === "/compare", 2500), "迷你条目点击应跳 #/compare");
+        __assert(APP_STATE.compare.baseline === singlePath && APP_STATE.compare.root === "D:\\" &&
+                 APP_STATE.compare.target === singlePath,
+                 "迷你条目预填 trio（单份：基线=目标），实际 " + JSON.stringify({ b: APP_STATE.compare.baseline, r: APP_STATE.compare.root, t: APP_STATE.compare.target }));
+        __assert(await __waitUntil(() => $("compare-result") && !$("compare-result").hasAttribute("hidden"), 5000),
+                 "迷你条目自动对比应出结果");
+        /* ⑤ 路由往返回灌不重发 */
+        const post = __smoke.fetchLog.filter((e) => e.url === "/api/compare").length;
+        location.hash = "#/";
+        __assert(await __waitUntil(() => APP_STATE.route === "/", 2500), "应回主页");
+        location.hash = "#/compare";
+        __assert(await __waitUntil(() => APP_STATE.route === "/compare" && $("compare-result") && !$("compare-result").hasAttribute("hidden"), 2500),
+                 "往返 #/compare 应回灌结果");
+        const after = __smoke.fetchLog.filter((e) => e.url === "/api/compare").length;
+        __assert(after === post, "路由往返回灌不重发 /api/compare（" + post + " → " + after + "）");
+      } finally {
+        __smoke.delayMs = 0;
+        delete __smoke.routes["GET /api/snapshots"];
+        delete __smoke.routes["POST /api/compare"];
+        APP_STATE.compare.baseline = ""; APP_STATE.compare.root = ""; APP_STATE.compare.target = "";
+        APP_STATE.compare.result = null; APP_STATE.compare.lastSummary = null;
         await refreshSnapshots();
         location.hash = "#/";
         await wait(600);

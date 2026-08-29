@@ -240,8 +240,12 @@ window.fetch = function (url, options) {
         await wait(300);
         ok("⑤触发①快照保存成功 → 快照标签圆点出现",
             await page.evaluate(() => !document.querySelector(".nav-tab[href='#/snapshots'] .nav-dot").hidden));
-        // 三触发②：对比完成（btn-compare 真实路径）→ 对比标签圆点
-        await page.evaluate(() => { document.getElementById("compare-baseline").value = ""; document.getElementById("btn-compare").click(); });
+        // 三触发②：对比完成（compareSnapshots 真实路径——U3.4 起旧工作台对比卡迁
+        // #/compare 整页；跨页触发保持 DOM 无关：默认基线 + markNavDot 挂点）
+        await page.evaluate(async () => {
+            const cmp = await import("/static/js/app/pages/compare.js");
+            await cmp.compareSnapshots();
+        });
         await page.waitForFunction(() => window.__stub.fetchLog.filter((k) => k === "POST /api/compare").length >= 1, { timeout: 15000 }).catch(() => {});
         await wait(400);
         ok("⑤触发②对比完成 → 对比标签圆点出现",

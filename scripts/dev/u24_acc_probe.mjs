@@ -223,14 +223,19 @@ window.fetch = function (url, options) {
         await page.evaluate(() => { location.hash = "#/"; });
         await page.waitForTimeout(700);
 
-        // 最近对比摘要（compare 桩 → lastSummary → 迷你卡 ▲/▼ + 数值）
+        // 最近对比摘要（U3.4：对比卡已迁 #/compare 整页——经对比页真实路径 →
+        // lastSummary → 迷你卡 ▲/▼ + 数值；挂载即预填自动对比一次，随后改基线重跑）
+        await page.evaluate(() => { location.hash = "#/compare"; });
+        await page.waitForTimeout(900);
         await page.evaluate(() => {
-            document.getElementById("compare-baseline").value = "C:\\\\fake\\\\old.snap.gz";
+            document.getElementById("compare-baseline").value = "C:\\fake\\old.snap.gz";
         });
         await page.click("#btn-compare");
         await page.evaluate(async () => {
-            await window.__wait(() => document.querySelector("#compare-mini-body .compare-mini-delta") !== null, 8000);
+            await window.__wait(() => document.querySelector("#compare-summary .compare-stat") !== null, 8000);
         });
+        await page.evaluate(() => { location.hash = "#/"; });
+        await page.waitForTimeout(800);
         const cmpMini = await page.evaluate(() => ({
             delta: (document.querySelector("#compare-mini-body .compare-mini-delta") || {}).textContent || "",
             line: (document.querySelector("#compare-mini-body .compare-mini-item") || {}).textContent || "",

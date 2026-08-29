@@ -13,6 +13,7 @@ import { GUIDE_KEY } from "../components/onboarding.js";
 import { setAutoSaveSetting, resetHandledScanVersion, pollFullscan, HANDLED_SCAN_KEY } from "../components/scan.js";
 import { applyLastRoots, resetBrowseHistory } from "../pages/workspace.js";
 import { setSessionsCache, applySnapshotsView } from "../pages/snapshots.js";
+import { resetCompareData } from "../pages/compare.js"; // U3.4：清空联动（结果/迷你摘要复位 + 对比页回空态）
 
 let dataDir = "";
 
@@ -96,8 +97,9 @@ async function wipeData() {
         // U3.3：清空 = 列表/迷你卡/基线建议/趋势卡全量复位（applySnapshotsView 从空缓存回灌）
         applySnapshotsView();
         setStatus("snapshot-status", "", "数据目录已清空，历史快照为空");
-        const compareResult = $("compare-result");
-        if (compareResult) compareResult.classList.add("hidden");
+        // U3.4：清空 = 对比结果/最近对比迷你摘要复位（对比页在位则回空态；旧
+        // #compare-result 隐藏迁移至 resetCompareData——原直取 DOM 守卫移除）
+        resetCompareData();
         pollFullscan();
     } catch (e) {
         toast(e.message, "error");

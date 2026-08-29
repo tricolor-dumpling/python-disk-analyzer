@@ -353,6 +353,7 @@ async function fetchTrendCompare(slot, trend, key) {
             totalCurrent: Number(r.total_current) || 0,
             delta: delta,
             pct: totalBaseline ? (delta / totalBaseline) * 100 : 0,
+            report: r, // U3.4：整份 report 入库——趋势卡点击预填时与对比页结果缓存共享（落地即渲染不回源）
         });
     } catch (e) {
         trendCache.set(key, { status: "err", error: (e && e.message) || "对比失败" });
@@ -390,10 +391,28 @@ function prefillAndGoCompare(baseline, root, target) {
     // ⚠️ 注记：§3.2 compare 形状之外附加 root 键（U3.4 消费「目标=同盘符最新快照」需要根）
     APP_STATE.compare.root = root || "";
     APP_STATE.compare.target = target || findLatestForRoot(sessionsCache, root || "");
+    // U3.4：趋势卡已算过该基线 Δ → 结果缓存共享——#/compare 挂载时缓存命中
+    // 直接渲染（不重发 /api/compare；路由往返回灌不重发语义与趋势卡一致）
+    const cached = findTrendCachedResult(root || "", baseline || "");
+    APP_STATE.compare.result = cached
+        ? { root: root || "", baseline: baseline || "", report: cached.report, at: Date.now() }
+        : null;
     location.hash = "#/compare";
 }
 
-function findLatestForRoot(sessions, root) {
+/* trendCache 按 根+基线 找已算结果（趋势卡点击预填的缓存共享入口） */
+function findTrendCachedResult(root, baseline) {
+    for (const v of trendCache.values()) {
+        if (v && v.status === "ok" && v.report &&
+            String(v.root || "").replace(/\\+$/, "") === String(root || "").replace(/\\+$/, "") &&
+            String(v.baseline || "") === String(baseline || "")) {
+            return v;
+        }
+    }
+    return null;
+}
+
+export function findLatestForRoot(sessions, root) {
     for (const s of sessions) { // 时间倒序：首个命中即该盘最新
         const entry = Object.values(s.roots || {}).find((r) => r && r.root === root && !r.skipped && r.snapshot_path);
         if (entry) return entry.snapshot_path;
