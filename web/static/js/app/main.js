@@ -33,6 +33,7 @@ import { renderApiError } from "./components/feedback.js";
 import {
     setPaletteBuilder, bindPalette, openPalette, closePalette, isPaletteOpen, fuzzyScore,
 } from "./components/palette-cmd.js";
+import { bindKeyboard } from "./keyboard.js"; // U4.1：键盘矩阵（/ 聚焦筛选、g c/g s 连按跳页、treemap 方向键/Enter）
 
 /* 主题按钮（U1.1 临时入口：U3.1 顶栏改版时移正——现按壳级接线保留在 start()，已归位）
    U3.5：顶栏=亮/暗显式翻转（N03 太阳/月亮语义），与设置弹窗三态同源（theme.js 单一来源）；
@@ -212,7 +213,8 @@ export async function start() {
     bindSettings();
     bindModals();
     bindOnboarding();   // U3.1：引导弹层迁壳级（close 按钮绑定一次，不等页面挂载）
-    bindPalette();      // U3.1：命令面板（Ctrl/⌘K、/、面板内键盘）
+    bindPalette();      // U3.1：命令面板（Ctrl/⌘K、面板内键盘）
+    bindKeyboard();     // U4.1：键盘矩阵（/ 聚焦筛选、g c/g s 连按跳页、treemap 方向键/Enter）
     bindScanTop();      // U3.1：顶栏开始扫描（N05 骨架；U3.2 完整态随状态机数据）
     probeStopSupport(); // U3.2：停止接口特性探测（OPTIONS 零副作用；404 → 隐藏停止按钮）
     setPaletteBuilder(buildPaletteItems); // U3.1：执行器表注入（palette 零业务依赖）

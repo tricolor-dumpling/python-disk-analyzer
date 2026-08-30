@@ -6,7 +6,8 @@
    - 键盘：↑↓ 选择（循环）、Enter 执行、Esc 关闭（经弹窗栈逆序——红线 #9 扩展：
      面板视作浮层入栈，Tab 循环/R 守卫由 modals.js 栈机制覆盖）；
    - 全局快捷键：Ctrl/⌘K 开合面板（其他弹窗打开时忽略，语义与旧 Ctrl+K 一致）；
-     / 聚焦顶栏搜索框（守卫：非输入框/非可编辑 + isComposing 忽略）。
+     ⚠️ U4.1：`/` 快捷键移交 keyboard.js（定稿 7.4/semantics=聚焦筛选框
+     #browse-filter——旧「聚焦顶栏搜索框」语义废止；守卫同 keys.js 共享口径）。
    ============================================================ */
 
 import { $, esc } from "../api.js";
@@ -205,15 +206,7 @@ export function bindPalette() {
             openPalette();
             return;
         }
-        if (ev.key === "/" && !ev.ctrlKey && !ev.metaKey && !ev.altKey) {
-            const t = ev.target;
-            if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
-            if (ev.isComposing) return; // 中文输入法组词中
-            if (hasOpenModal()) return; // 弹窗打开时不抢焦点
-            ev.preventDefault();
-            const btn = $("btn-palette");
-            if (btn) btn.focus();
-        }
+        // U4.1：`/`（聚焦筛选框）与 g 序列已移交 keyboard.js（keys.js 共享守卫同口径）
     });
     // Esc/背板等经 modals.js closeModal 关闭（栈机制）→ 面板状态标志联动
     window.addEventListener("pds:overlay-close", (ev) => {

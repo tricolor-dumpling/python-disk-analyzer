@@ -213,7 +213,16 @@ const SAMPLES = {
       directories: [{ name: "data", path: "D:\\data", size: 3000000, size_human: "2.86 MB" }],
       files: [], directory_count: 200, file_count: 2000, record_count: 2200, completed_at: "2026-08-28T10:00:00" }
   ], completed_at: "2026-08-28T10:00:00" },
-  overviewEmpty: { ok: true, ready: false, scanning: false, empty_reason: "no_scan", roots: [] }
+  overviewEmpty: { ok: true, ready: false, scanning: false, empty_reason: "no_scan", roots: [] },
+  /* U4.1：A20 键盘矩阵样本——目录块为最大块（treemap 焦点 0 = data 目录：
+     Enter 下钻目标确定；files 仅 readme.txt 100B 不抢首块） */
+  browseFocus: { ok: true, root: "D:\\", parent: null,
+    directories: [
+      { name: "data", path: "D:\\data", is_dir: true, size: 12000, size_human: "11.72 KB" },
+      { name: "docs", path: "D:\\docs", is_dir: true, size: 4000, size_human: "3.91 KB" }
+    ],
+    files: [ { name: "readme.txt", path: "D:\\readme.txt", is_dir: false, size: 100, size_human: "100 B" } ],
+    total_dirs: 2, total_files: 1 }
 };
 
 /* ---- fetch 打桩 + 调用计数器 ---- */
@@ -291,6 +300,7 @@ import {
 } from "../../web/static/js/app/main.js";
 import * as __motion from "../../web/static/js/app/motion.js";
 import { toast } from "../../web/static/js/app/components/toast.js";
+import { isTypingEvent } from "../../web/static/js/app/keys.js"; // U4.1：A20 共享守卫直断言
 window.__motion = __motion;
 
 /* ---- 断言框架 ---- */
@@ -1303,6 +1313,142 @@ const ASSERTIONS_V2 = [
         closeModal("settings-modal");
         closeModal("wipe-modal");
         setThemePref("light", null);
+      }
+    } },
+  { id: "A20", name: "U4.1：无障碍与键盘矩阵——treemap 容器聚焦后方向键最近邻移动焦点块（静态描边像素可见）· Enter 下钻=单击语义恰 1 次 browse 且 path 正确（双击窗互斥不产生第三次）· / 聚焦筛选框（输入框守卫/其他路由空守卫）· g c/g s 连按跳页（输入框守卫/isComposing 忽略/超时重置/弹窗栈守卫）· keys.js 共享守卫（Backspace 打字态）",
+    fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const browseCount = () => __smoke.fetchLog.filter((e) => (e.method || "GET").toUpperCase() === "POST" && String(e.url).indexOf("/api/browse") === 0).length;
+      try {
+        /* ---- ① 前置：脚手架画布尺寸约束（无 style.css → flex 高度缺失致画布失控巨条；
+            像素采样需真实几何；真实页由 .main-col flex 布局保证） + 回工作台 + 样本接管 ---- */
+        $("treemap-wrap").style.width = "100%";
+        $("treemap-wrap").style.height = "360px";
+        await wait(150); // ResizeObserver → doResize 重排
+        location.hash = "#/";
+        __assert(await __waitUntil(() => APP_STATE.route === "/" && !!getTreemapView() && getTreemapView().getLayout().length >= 1, 8000),
+                 "应回到工作台且矩形图已有布局");
+        __smoke.routes["POST /api/browse"] = SAMPLES.browseFocus;
+        await browsePath("D:\\");
+        __assert(await __waitUntil(() => {
+          const v = getTreemapView();
+          return v && !v.isAnimating() && v.getLayout().length === 3; // data/docs/readme（≤mergeTop 24 无合并块）
+        }, 8000), "样本接管后应 3 块布局（data/docs/readme）");
+        const v = getTreemapView();
+
+        /* ---- ② 容器可聚焦 + 焦点块初始化（tabindex=0；focusin 从最大块起） ---- */
+        $("treemap-wrap").blur();
+        $("treemap-wrap").focus();
+        __assert(await __waitUntil(() => document.activeElement === $("treemap-wrap"), 2000), "treemap 容器应可聚焦（tabindex=0）");
+        __assert(v.getFocusIdx() === 0, "容器聚焦后焦点块应从最大块（下标 0）起，实际 " + v.getFocusIdx());
+        __assert(APP_STATE.treemap.focusIdx === 0, "APP_STATE.treemap.focusIdx 应同步（单一来源）");
+
+        /* ---- ③ 焦点块可见指示：静态描边像素采样（primary；不动画——reduced 不降级） ---- */
+        const ft = v.getFocusedTile();
+        __assert(!!ft && ft.name === "data", "焦点块应为最大目录 data，实际 " + (ft && ft.name));
+        const cnv = v.canvas();
+        const rect = cnv.getBoundingClientRect();
+        const scale = rect.width > 0 ? cnv.width / rect.width : 1;
+        const d = cnv.getContext("2d").getImageData(
+          Math.round((ft.x + 2) * scale), Math.round((ft.y + 2) * scale), 1, 1).data;
+        const dist = Math.max(Math.abs(d[0] - 0x25), Math.abs(d[1] - 0x63), Math.abs(d[2] - 0xeb));
+        __assert(dist < 24, "焦点块应有可见静态描边（像素≈primary #2563eb），实际 rgb(" + d[0] + "," + d[1] + "," + d[2] + ")");
+
+        /* ---- ④ 方向键最近邻移动 + 边界守卫 ---- */
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+        await wait(30);
+        __assert(v.getFocusIdx() >= 0 && v.getFocusIdx() !== 0, "ArrowRight 应移动焦点块（0 → " + v.getFocusIdx() + "）");
+        const after = v.getFocusIdx();
+        for (let i = 0; i < 12; i++) document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+        await wait(50);
+        const atBoundary = v.getFocusIdx();
+        for (let i = 0; i < 3; i++) document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+        await wait(50);
+        __assert(v.getFocusIdx() === atBoundary, "连按至边界后焦点块应静止（边界守卫）——" + atBoundary + " → " + v.getFocusIdx());
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+        await wait(30);
+        __assert(v.getFocusIdx() !== atBoundary, "ArrowLeft 应可回退（" + atBoundary + " → " + v.getFocusIdx() + "）");
+        __assert(after >= 0, "方向键后应有焦点块（" + after + "）");
+
+        /* ---- ⑤ Enter 下钻：恰 1 次 browse 且 path=焦点块（单击语义；不产生第三次请求） ---- */
+        $("treemap-wrap").blur();
+        $("treemap-wrap").focus();
+        await wait(50);
+        __assert(v.getFocusIdx() === 0, "重聚焦后焦点块应回下标 0");
+        const before = browseCount();
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+        __assert(await __waitUntil(() => browseCount() === before + 1, 5000), "Enter 应恰 1 次 browse（before=" + before + " after=" + browseCount() + "）");
+        await wait(320); // 双击窗（--dur-dblclick 300ms）内不得再发
+        __assert(browseCount() === before + 1, "Enter 后不得产生第三次请求（双击窗互斥），实际 +" + (browseCount() - before));
+        const drillReq = __smoke.fetchLog.filter((e) => (e.method || "GET").toUpperCase() === "POST" && String(e.url).indexOf("/api/browse") === 0).pop();
+        __assert(drillReq && drillReq.body && drillReq.body.path === "D:\\data",
+                 "Enter 下钻 path 应为焦点块路径 D:\\data，实际 " + JSON.stringify(drillReq && drillReq.body));
+
+        /* ---- ⑥ / 聚焦筛选框（工作台）+ 输入框守卫 + 其他路由空守卫 ---- */
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "/", bubbles: true }));
+        __assert(document.activeElement === $("browse-filter"), "/ 应聚焦筛选框（browse-filter）");
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "/", bubbles: true }));
+        __assert(document.activeElement === $("browse-filter"), "/ 在输入框内应保持既有焦点（守卫）");
+        location.hash = "#/compare";
+        __assert(await __waitUntil(() => APP_STATE.route === "/compare", 8000), "应跳到对比页（g 序列前先到子页）");
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "/", bubbles: true }));
+        await wait(60);
+        __assert(APP_STATE.route === "/compare" && document.activeElement !== $("browse-filter"),
+                 "对比页 / 应空守卫忽略（不抢焦点、不切视图）");
+
+        /* ---- ⑦ g c / g s：vim 风格连按跳页（800ms 窗口；守卫全系） ---- */
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "g", bubbles: true }));
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "s", bubbles: true }));
+        __assert(await __waitUntil(() => APP_STATE.route === "/snapshots", 8000), "g s 连按应跳快照页，实际 " + APP_STATE.route);
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "g", bubbles: true }));
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "c", bubbles: true }));
+        __assert(await __waitUntil(() => APP_STATE.route === "/compare", 8000), "g c 连按应跳对比页，实际 " + APP_STATE.route);
+        // isComposing 忽略：组词中的 g 不武装（不跳页）
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "g", bubbles: true, isComposing: true }));
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "s", bubbles: true, isComposing: true }));
+        await wait(400);
+        __assert(APP_STATE.route === "/compare", "isComposing 的 g 序列应被忽略（不跳页）");
+        // 超时重置：g 后 950ms 再按 c → 不跳
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "g", bubbles: true }));
+        await wait(950);
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "c", bubbles: true }));
+        await wait(300);
+        __assert(APP_STATE.route === "/compare", "g 序列超时（>800ms）应重置不跳页");
+        // 输入框内 g 序列被守卫（事件目标=输入框）
+        location.hash = "#/";
+        __assert(await __waitUntil(() => APP_STATE.route === "/", 8000), "应回工作台");
+        $("browse-filter").focus();
+        $("browse-filter").dispatchEvent(new KeyboardEvent("keydown", { key: "g", bubbles: true }));
+        $("browse-filter").dispatchEvent(new KeyboardEvent("keydown", { key: "c", bubbles: true }));
+        await wait(400);
+        __assert(APP_STATE.route === "/", "输入框内 g 序列应被守卫（不跳页），实际 " + APP_STATE.route);
+        // 弹窗栈守卫：设置弹窗打开时 g 序列忽略
+        openModal("settings-modal");
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "g", bubbles: true }));
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "c", bubbles: true }));
+        await wait(400);
+        __assert(APP_STATE.route === "/", "弹窗打开时 g 序列应被守卫（不跳页）");
+        closeModal("settings-modal");
+
+        /* ---- ⑧ keys.js 共享守卫（Backspace 同口径：输入框内不触发上级） ---- */
+        __assert(isTypingEvent({ target: $("browse-filter"), isComposing: false }) === true,
+                 "keys.js：输入框目标应按打字态处理（isTypingEvent=true）");
+        const backBefore = browseCount();
+        $("browse-filter").dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace", bubbles: true }));
+        await wait(150);
+        __assert(browseCount() === backBefore, "Backspace 输入框内不应触发浏览（守卫共享）");
+      } finally {
+        /* 清场：样本回退 + 弹窗关闭 + 回工作台（避免污染后续/下次运行） */
+        delete __smoke.routes["POST /api/browse"];
+        closeModal("settings-modal");
+        closeModal("palette");
+        $("treemap-wrap").style.width = "";
+        $("treemap-wrap").style.height = "";
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        location.hash = "#/";
+        await wait(500);
       }
     } },
 ];

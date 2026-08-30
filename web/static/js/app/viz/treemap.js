@@ -32,13 +32,20 @@
          峰值 opacity ≤0.06，composite lighter；reduced 关闭。
      - 纪律：动画只动 canvas 内容（canvas 内例外许可）与整画布 opacity；
        will-change 不用于常驻层；颜色只引用 tokens 变量/调色板；
-       ⚠️ 偏差注记：未单设 components/treemap-card.js——本渲染器自包含，
+                   - U4.1：键盘矩阵（§7.4）——treemap 聚焦后 ↑↓←→ 最近邻移动焦点块
+        （nearestFocusIndex 纯函数，按当前视口布局坐标；边界/单块/无 tiles 守卫
+        =无候选不动）；焦点块指示=静态描边（drawFinalFrame 终帧绘制，不动画，
+        reduced 不降级）；Enter=单击语义（activateFocus：取消待发单击后走
+        opts.onClick 既有下钻链——文件/合并块 0 请求且不产生第三次请求）；
+        focusIdx 经 APP_STATE.treemap.focusIdx 单一来源（-1 默认，尚未聚焦）。
+      - ⚠️ 偏差注记：未单设 components/treemap-card.js——本渲染器自包含，
        由 pages/workspace 装配进视图区（§3.1 表 components/treemap-card
        为设计占位，实际以 viz 模块承载）。
    ============================================================ */
 
 import { lerp, clamp01, cubicBezier } from "../motion-core.js";
 import { esc, humanBytes } from "../api.js";
+import { APP_STATE } from "../state.js"; // U4.1：焦点块索引单一来源（§3.2 treemap.focusIdx，-1 默认）
 
 /* ================= 布局纯函数（Bruls squarified） =================
 
@@ -138,6 +145,39 @@ export function layoutSquaried(items, x, y, w, h) {
 
 /* ================= Canvas 渲染器 ================= */
 
+/* U4.1：方向键最近邻焦点数学（纯函数，node --test 可测；实现落点见 §U4.1）。
+   rects: [{key,x,y,w,h}]（当前视口布局坐标）；from: 当前焦点下标（-1=无焦点）。
+   规则：目标块中心必须在方向上**严格前进**（允许另一轴任意），候选取与当前
+   中心欧氏距离最近者；无候选（边界）/无布局 → -1（焦点不动——边界守卫）；
+   无焦点时首按 → 0（最大块=布局首位，按面积降序）。
+   参考既有 hitTest 的几何口径（中心坐标来自同一布局数据）。 */
+export function nearestFocusIndex(rects, from, dx, dy) {
+    const ddx = Math.sign(dx || 0);
+    const ddy = Math.sign(dy || 0);
+    if (!ddx && !ddy) return from;
+    if (!Array.isArray(rects) || !rects.length) return -1;
+    const valid = Number.isInteger(from) && from >= 0 && from < rects.length;
+    if (!valid) return 0;
+    const cur = rects[from];
+    const cx = cur.x + cur.w / 2;
+    const cy = cur.y + cur.h / 2;
+    const EPS = 1e-6; // 浮点屏障（中心点重合邻近判定）
+    let best = -1;
+    let bestD = Infinity;
+    for (let i = 0; i < rects.length; i++) {
+        if (i === from) continue;
+        const r = rects[i];
+        const mx = r.x + r.w / 2;
+        const my = r.y + r.h / 2;
+        const dxOK = ddx === 0 || (ddx > 0 ? mx > cx + EPS : mx < cx - EPS);
+        const dyOK = ddy === 0 || (ddy > 0 ? my > cy + EPS : my < cy - EPS);
+        if (!dxOK || !dyOK) continue;
+        const d = Math.hypot(mx - cx, my - cy);
+        if (d < bestD - EPS) { bestD = d; best = i; }
+    }
+    return best;
+}
+
 const GAP = 1;               // 块间隙（几何常量，非动画参数）
 const LABEL_H1 = 48;         // 三级标签：≥48px 全量标签
 const LABEL_H2 = 24;         // 24–48px 仅名称；<24 无
@@ -208,6 +248,12 @@ export function createTreemap(host, opts = {}) {
     let cssW = 0;
     let cssH = 0;
     let dark = document.documentElement.getAttribute("data-theme") === "dark";
+
+    /* U4.1：键盘焦点块（键盘矩阵 §7.4：treemap 聚焦后 ↑↓←→ 最近邻移动焦点块）。
+       focusIdx 经 APP_STATE.treemap.focusIdx 单一来源（-1 = 无焦点）；
+       焦点块指示=静态描边（drawFinalFrame 终帧绘制，不动画——reduced 不降级）。 */
+    let focusIdx = typeof APP_STATE.treemap.focusIdx === "number" && APP_STATE.treemap.focusIdx >= -1
+        ? APP_STATE.treemap.focusIdx : -1;
 
     /* U2.3：单击/双击防抖 + 下钻/收缩转场 + 扫描扫掠 */
     let lastClickT = 0;
@@ -374,7 +420,24 @@ export function createTreemap(host, opts = {}) {
         }
         for (const t of layout) paintTile(t, t, 1, 1, hover && t.key === hoverKey);
         drawLabels();
+        drawFocusRing(); // U4.1：焦点块静态描边（终帧绘制；不动画/仅静态——reduced 不降级）
         prevFinal = new Map(layout.map((t) => [t.key, { x: t.x, y: t.y, w: t.w, h: t.h }]));
+    }
+
+    /* ---- U4.1：键盘焦点块指示（静态描边 2px primary，几何与 hover 高亮同口径） ---- */
+    function drawFocusRing() {
+        if (focusIdx < 0 || focusIdx >= layout.length) return;
+        const t = layout[focusIdx];
+        const x = t.x + GAP / 2;
+        const y = t.y + GAP / 2;
+        const w = Math.max(0, t.w - GAP);
+        const h = Math.max(0, t.h - GAP);
+        if (!(w > 0) || !(h > 0)) return;
+        sctx.save();
+        sctx.strokeStyle = cssVar("--primary") || "#2563eb";
+        sctx.lineWidth = 2;
+        sctx.strokeRect(x + 1, y + 1, Math.max(0, w - 2), Math.max(0, h - 2));
+        sctx.restore();
     }
 
     /* ---- L1-1 入场（drawFrame 插值；全新生长：prev 已清空） ---- */
@@ -730,6 +793,13 @@ export function createTreemap(host, opts = {}) {
     staticCanvas.addEventListener("pointermove", onPointerMove);
     staticCanvas.addEventListener("pointerleave", onPointerLeave);
     staticCanvas.addEventListener("click", onClickCanvas);
+    // U4.1：容器获得焦点（Tab/点击进入）且无焦点块时 → 从最大块起（焦点始可见）
+    host.addEventListener("focusin", () => {
+        if (focusIdx < 0 && layout.length) {
+            setFocusIdxRaw(0);
+            if (!animating && !transition) drawFinalFrame(hoverKey !== null);
+        }
+    });
 
     /* ---- 数据流入（模式化：entry / reflow / none） ---- */
     function dispatchPending() {
@@ -737,6 +807,39 @@ export function createTreemap(host, opts = {}) {
         const p = pending;
         pending = null;
         setTiles(p.tiles, { mode: p.mode });
+    }
+
+    /* ---- U4.1：焦点块状态（APP_STATE.treemap.focusIdx 单一来源） ---- */
+    function setFocusIdxRaw(i) {
+        focusIdx = Number.isInteger(i) && i >= -1 ? i : -1;
+        APP_STATE.treemap.focusIdx = focusIdx;
+    }
+
+    /* 方向键移动：最近邻数学（nearestFocusIndex 纯函数）→ 静态终帧重绘。
+       动画进行中（入场/重排/转场）只改索引，终帧收束时焦点描边随 drawFinalFrame 显示。 */
+    function moveFocus(dx, dy) {
+        const next = nearestFocusIndex(layout, focusIdx, dx, dy);
+        if (next >= 0 && next !== focusIdx) {
+            setFocusIdxRaw(next);
+            if (!animating && !transition) drawFinalFrame(hoverKey !== null);
+        }
+        return focusIdx;
+    }
+
+    /* Enter 下钻 = 单击语义：走 opts.onClick 既有下钻链（含目录/文件/合并块守卫——
+       文件与合并块 0 请求）；300ms 双击窗防抖语义：取消待发单击后再激活（同双击
+       路径，不产生第三次请求）。 */
+    function activateFocus() {
+        if (focusIdx < 0 || focusIdx >= layout.length) return;
+        clearTimeout(clickTimer);
+        clickTimer = 0;
+        lastClickT = 0;
+        const t = layout[focusIdx];
+        if (onClick) onClick(t);
+    }
+
+    function getFocusedTile() {
+        return focusIdx >= 0 && focusIdx < layout.length ? layout[focusIdx] : null;
     }
 
     function setTiles(next, opts = {}) {
@@ -749,9 +852,19 @@ export function createTreemap(host, opts = {}) {
         tiles = (next || []).slice();
         tiles.sort((a, b) => (Number(b.size) || 0) - (Number(a.size) || 0)); // 面积降序（stagger 排名 = 绘制顺序）
         if (!cssW || !cssH) doResize();
-        if (!cssW || !cssH) { layout = []; drawFinalFrame(false); return; }
+        if (!cssW || !cssH) { layout = []; setFocusIdxRaw(-1); drawFinalFrame(false); return; }
         const geo = layoutSquaried(tiles.map((t) => ({ key: t.key, value: t.size })), 0, 0, cssW, cssH);
         applyLayout(geo);
+        // U4.1：焦点块随数据换代同步——key 仍在→跟随新下标；越界/失效→无焦点
+        if (focusIdx >= 0) {
+            if (focusIdx >= layout.length) setFocusIdxRaw(-1);
+            else {
+                const k = layout[focusIdx].key;
+                const ni = layout.findIndex((t) => t.key === k);
+                if (ni < 0) setFocusIdxRaw(-1);
+                else if (ni !== focusIdx) setFocusIdxRaw(ni);
+            }
+        }
         cancelAnim();
         if (mode !== "reflow") prevFinal = new Map(); // entry/none：全新生长（数据到达直入场）
         const animate = mode !== "none" && !reducedMotion();
@@ -789,6 +902,15 @@ export function createTreemap(host, opts = {}) {
         cancelTransition: cancelTransition,
         isTransitioning: isTransitioning,
         setSweep: setSweep,
+        /* U4.1：键盘矩阵（方向键最近邻移动 / Enter 单击语义 / 焦点块访问器） */
+        moveFocus: moveFocus,
+        activateFocus: activateFocus,
+        getFocusIdx: () => focusIdx,
+        getFocusedTile: getFocusedTile,
+        setFocusIdx: (i) => {
+            setFocusIdxRaw(Number.isInteger(i) && i >= 0 && i < layout.length ? i : -1);
+            if (!animating && !transition) drawFinalFrame(hoverKey !== null);
+        },
         /* L2-5 联动方向②（外部行 hover → 本视图高亮对应块；120ms 立即态） */
         highlightKey: (key) => {
             hoverKey = key || null;

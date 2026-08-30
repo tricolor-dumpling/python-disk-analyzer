@@ -9,7 +9,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { layoutSquaried } from "../../web/static/js/app/viz/treemap.js";
+import { layoutSquaried, nearestFocusIndex } from "../../web/static/js/app/viz/treemap.js";
 
 const TOL = 1e-6;
 
@@ -119,4 +119,70 @@ test("layoutSquaried 输入顺序无关：相同集合不同排列给出相同�
         const o = byKey(rb).get(k);
         assert.deepEqual([o.x, o.y, o.w, o.h], [r.x, r.y, r.w, r.h], "键 " + k + " 布局应一致");
     }
+});
+
+/* ============ U4.1：方向键最近邻焦点数学（nearestFocusIndex 纯函数） ============ */
+
+/* 手造 4 块布局（直观行列）：
+   ┌─────────┬───────┬──────┐
+   │ A(0,0)  │ B(0,2)│ C(0,4)│   x 向右 / y 向下
+   ├─────────┴───┬───┴──────┤
+   │ D(2,0)      │ E(2,4)    │
+   └─────────────┴───────────┘ */
+const GRID = [
+    { key: "A", x: 0, y: 0, w: 4, h: 2 },
+    { key: "B", x: 0, y: 2, w: 2, h: 2 },
+    { key: "C", x: 0, y: 4, w: 2, h: 2 },
+    { key: "D", x: 4, y: 0, w: 2, h: 4 },
+    { key: "E", x: 4, y: 4, w: 4, h: 2 },
+];
+
+test("nearestFocusIndex 无焦点：首按任意方向 → 0（最大块=布局首位）", () => {
+    assert.equal(nearestFocusIndex(GRID, -1, 1, 0), 0);
+    assert.equal(nearestFocusIndex(GRID, -1, 0, -1), 0);
+    assert.equal(nearestFocusIndex(GRID, 99, 0, 1), 0); // 越界下标同无焦点
+});
+
+test("nearestFocusIndex 最近邻：方向不同取最近候选", () => {
+    // A(中心 2,1)：向右=候选 D(5,2)→√10≈3.16、E(6,5)→√32≈5.66 → D
+    assert.equal(nearestFocusIndex(GRID, 0, 1, 0), 3);
+    // A 向下：B(1,3)→√5≈2.24、C(1,5)→√17、D(5,2)→√10、E(6,5)→√32 → B
+    assert.equal(nearestFocusIndex(GRID, 0, 0, 1), 1);
+    // A 向左：B(1,3)→√5、C(1,5)→√17 → B
+    assert.equal(nearestFocusIndex(GRID, 0, -1, 0), 1);
+    // B(1,3) 向下：C(1,5) 距 2；E(6,5) 距 √29 → C
+    assert.equal(nearestFocusIndex(GRID, 1, 0, 1), 2);
+    // C(1,5) 向右：A(2,1)→√17≈4.12 最近（D(5,2) 与 E(6,5) 均 5）——最近邻按欧氏距离
+    assert.equal(nearestFocusIndex(GRID, 2, 1, 0), 0);
+    // E(6,5) 向上：D(5,2)→√10；B(1,3)→√29；A(2,1)→√32 → D
+    assert.equal(nearestFocusIndex(GRID, 4, 0, -1), 3);
+});
+
+test("nearestFocusIndex 边界守卫：无可前进候选 → -1（焦点不动）", () => {
+    // A 向上：无候选（y<1 的块没有）
+    assert.equal(nearestFocusIndex(GRID, 0, 0, -1), -1);
+    // B 向左：无候选（x<1 的块没有）
+    assert.equal(nearestFocusIndex(GRID, 1, -1, 0), -1);
+    // C 向下：无候选
+    assert.equal(nearestFocusIndex(GRID, 2, 0, 1), -1);
+    // E 向右 / 向下：无候选
+    assert.equal(nearestFocusIndex(GRID, 4, 1, 0), -1);
+    assert.equal(nearestFocusIndex(GRID, 4, 0, 1), -1);
+    // 单块：任何方向都无可候选
+    assert.equal(nearestFocusIndex([{ key: "only", x: 0, y: 0, w: 10, h: 10 }], 0, 1, 0), -1);
+    assert.equal(nearestFocusIndex([{ key: "only", x: 0, y: 0, w: 10, h: 10 }], 0, 0, -1), -1);
+});
+
+test("nearestFocusIndex 无 tiles / 缺源守卫：[]、畸形输入 → -1（无焦点）", () => {
+    assert.equal(nearestFocusIndex([], 0, 1, 0), -1);
+    assert.equal(nearestFocusIndex([], -1, 1, 0), -1);
+    assert.equal(nearestFocusIndex(null, 0, 1, 0), -1);
+    assert.equal(nearestFocusIndex(GRID, 0, 0, 0), 0); // 无方向：原样返回
+    assert.equal(nearestFocusIndex(GRID, 2, 0, 0), 2);
+});
+
+test("nearestFocusIndex 单位方向归一：dx/dy 非 ±1 一律按符号处理", () => {
+    assert.equal(nearestFocusIndex(GRID, 0, 7, 0), 3);   // +7 → 右
+    assert.equal(nearestFocusIndex(GRID, 0, -3, 0), 1);  // -3 → 左（B）
+    assert.equal(nearestFocusIndex(GRID, 0, 0, -9), -1); // 上（无候选）
 });

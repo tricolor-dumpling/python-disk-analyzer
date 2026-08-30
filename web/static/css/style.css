@@ -688,6 +688,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   border:1px solid var(--border);border-radius:var(--radius-md);
   background:var(--card);overflow:hidden;
 }
+/* U4.1：矩形图容器焦点环（键盘可达：聚焦后 ↑↓←→ 最近邻 + Enter 下钻；
+   与全局 :focus-visible 同参数 2px primary offset 2，此处显式声明便于逐元素核查） */
+.treemap-wrap:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 /* nav-tabs 坑：display 规则会覆盖 [hidden] 属性（作者样式 > UA），显式关闭 */
 .treemap-wrap[hidden]{display:none!important}
 .treemap-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -711,6 +714,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .strip-block:hover{filter:brightness(1.12)}
 .strip-block-static{cursor:default}
 .strip-block-static:hover{filter:none}
+/* U4.1：条带块键盘焦点（tabindex=0；inset 环——.strip-bar overflow:hidden 会裁剪外部 outline） */
+.strip-block:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--primary)}
 .strip-label{
   position:absolute;left:6px;top:50%;transform:translateY(-50%);
   max-width:calc(100% - 12px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;

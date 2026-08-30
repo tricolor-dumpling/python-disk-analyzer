@@ -311,7 +311,8 @@ window.fetch = function (url, options) {
         ok("⑧/ 守卫：输入框聚焦时不抢焦点", await page.evaluate(() => document.activeElement.id === "browse-filter"));
         await page.evaluate(() => { if (document.activeElement) document.activeElement.blur(); });
         await page.keyboard.press("/"); await wait(80);
-        ok("⑧/ 聚焦顶栏搜索框（btn-palette）", await page.evaluate(() => document.activeElement.id === "btn-palette"));
+        // U4.1：/ 语义=聚焦筛选框（定稿 7.4；旧「聚焦 btn-palette」语义归键盘矩阵 Q4.1）
+        ok("⑧/ 聚焦筛选框（browse-filter，U4.1 定稿 7.4 语义）", await page.evaluate(() => document.activeElement.id === "browse-filter"));
         await page.evaluate(async () => { const m = await import("/static/js/app/main.js"); m.openModal("settings-modal"); });
         await page.keyboard.press("Control+k"); await wait(120);
         ok("⑧设置弹窗打开时 Ctrl+K 被忽略", await page.evaluate(() => document.getElementById("palette").classList.contains("hidden")));

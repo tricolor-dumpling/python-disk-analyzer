@@ -35,7 +35,7 @@
 | F20 | 导出 CSV/JSON | 命令面板「导出 CSV/JSON」（/api/export 既有 + encodeURIComponent root）；表格页脚「导出所选 CSV」（D9 前端 Blob，文件/列/BOM/转义） | ✅ | U2.5+U3.1；u25（CSV 内容抽查）+ palette 命令执行器 |
 | F21 | Toast | 右上 toast 全路由可用；**U3.5·L2-6 全参数升级**：滑入 320ms spring（--dur-3/--ease-spring）+ 剩余时间线（自动消失进度 scaleX；TTL 4000/6500ms）+ 成功描边 300ms（--dur-toast-stroke）+ 错误脉动 2 次（--dur-toast-pulse 600ms，延迟至滑入结束）+ hover 暂停 + aria-live=polite；reduced：滑入 ≤120ms、装饰跳过、功能保留（时间线暂停） | ✅ | U3.5（本项）：u35 ③④⑧（全参数+reduced）+ smoke A19 ③ + 真机 console 0 |
 | F22 | 页脚（数据目录/版本） | 底部常驻状态栏 32px：左=数据目录·版本；右=Everything 纯文本（不可点，唯一交互=顶栏徽章 F01）；⚠️ **「已选 N 项」未接**（预存挂账，U4.x 补） | ✅⚠️ | U1.3（状态栏壳）+预存挂账（u25 注记 7：F22 已选 N 项 U4.x 补）；挂账见 §3-G3 |
-| F23 | 键盘可达（行 Enter 下钻） | 部分：Backspace 上级/Enter·空格键盘事件守卫/A4 键盘断言（U2.3/U2.5）；**全量键盘矩阵（7.4：Ctrl K/Esc 已接；treemap 方向键/路由快捷键等）属 U4.1 专项** | ◐⚠️ | U3.1（Ctrl K/Esc/Tab/R）+ U2.3（Backspace）+ 挂账 §3-G4（U4.1 前置=本闸门） |
+| F23 | 键盘可达（行 Enter 下钻） | 部分：Backspace 上级/Enter·空格键盘事件守卫/A4 键盘断言（U2.3/U2.5）；**全量键盘矩阵（7.4：Ctrl K/Esc 已接；treemap 方向键/路由快捷键等）属 U4.1 专项** | ◐⚠️ | U3.1（Ctrl K/Esc/Tab/R）+ U2.3（Backspace）+ 挂账 §3-G4（U4.1 前置=本闸门）；**U4.1 后核销（见 §3-G4）** |
 | F24 | 通用确认弹窗 | 保留（撤销保存等场景：confirm-modal 入弹窗栈 + confirmResolver Promise 语义冻结；换肤 token 化） | ✅ | U2.0/U3.3（F16 撤销流）；u33 |
 
 ## 二、N01–N13（设计图新元素）
@@ -63,7 +63,7 @@
 | G1 | F06 启动恢复上次浏览位置（pds_last_browse_v1）未实现 | 启动恢复=首根 D:\（getLastRoots[0]）；无 lastBrowse 读写 | U4.x（收口补；与 F22 同类） | §3.2 键表；workspace.js 无 pds_last_browse_v1 |
 | G2 | F07 浏览历史「下拉（时钟图标）」形态未落地 | 功能等价：面包屑栏 chips 闭环（最近 5）+ 命令面板浏览历史（最近 8） | U4.x（形态收口） | U3.1 面板数据源已接；chips 保留（workspace.js:121） |
 | G3 | F22 状态栏「已选 N 项」未接 | 状态栏 32px 已就位（数据目录/版本/Everything 纯文本）；已选计数缺 | U4.x（U2.5 u25 注记 7 预存挂账；勿顺手补） | 手册 U2.5 执行记录 |
-| G4 | F23 全量键盘矩阵（7.4） | 已接：Ctrl K/Esc/Tab 循环/R/Backspace/Enter·空格守卫；treemap 方向键/路由快捷键等未接 | U4.1（专项，前置=本闸门） | 手册 §U4.1 |
+| G4 | F23 全量键盘矩阵（7.4） | 已接：Ctrl K/Esc/Tab 循环/R/Backspace/Enter·空格守卫；treemap 方向键/路由快捷键等未接 | U4.1（专项，前置=本闸门） | 手册 §U4.1；**✅ 已于 U4.1 核销**（2026-08-30，分支 ui2-u4.1：keys.js 共享守卫 + keyboard.js 矩阵接线 + treemap 最近邻焦点块/Enter 单击语义 + / 聚焦筛选 + g c/g s 连按跳页；smoke A20 21/21 + u41 探针 46/46——见 U4.1 执行记录） |
 | G5 | N12 面包屑>6 层折叠「…」下拉未实现 | home 语义等价（首级可回根）；折叠缺失（视觉形态） | U4.x | workspace.js renderBreadcrumb |
 | G6 | L3-5 sparkline 降级差值卡（沿用） | /api/snapshots 无逐次总量字段（双核对）→ 趋势卡差值卡；零后端改动 | 后端补总量字段后启用（手册 U3.3 预案） | U3.3 执行记录（字段核对结论） |
 | G7 | P13 test_budget 并发保存竞态（预存） | 偶发/连续失败；复跑即绿窗口随负载变化；禁碰 snapshots.py | backlog/P13（既存） | U1.0 挂账；本轮复现见本文档 §四 |
@@ -82,3 +82,5 @@
 ## 五、结论
 
 **批次三闸门：通过。** F01–F24 全部有归宿（22 项 ✅ / 3 项 ◐ 功能等价降级 / F06·F22·F23 部分项挂账 G1/G3/G4）；N01–N13 全部落地（12 项 ✅ / N07 ◐ 降级差值卡 / N12 ◐ 折叠形态挂账 G5）；缺失 6 项均挂账有据（G1–G6）+ 环境性 2 项（G8/G9）。批次三 → U4.1 无障碍（键盘矩阵 G4 专项）。
+
+> 📌 2026-08-30 追记：**G4 已核销（U4.1 完成）**——F23 全量键盘矩阵落地（定稿 7.4：keys.js/keyboard.js/treemap 焦点块/`/`/g 序列），smoke A20 21/21、u41 探针 46/46；G1/G2/G3/G5（F06/F07/F22/N12）维持挂账 U4.x 收口项；u32⑧ DOM 节点漂移经 ui2.0 基线复现 = 预存（非本轮回归）。

@@ -60,6 +60,7 @@ import { toast } from "../components/toast.js";
 import { setStatus } from "../components/statusbar.js";
 import { renderApiError } from "../components/feedback.js";
 import { flip as motionFlip, motionDur, motionEase, reducedMotion } from "../motion.js";
+import { isTypingEvent } from "../keys.js"; // U4.1：单键守卫共享（Backspace 同口径）
 import {
     renderList, bindList, clearSelection, setDrillHandler,
 } from "../components/list.js";
@@ -294,12 +295,34 @@ function renderTreemap(data, mode) {
     cacheTiles(String(data.root || ""), tiles); // 条带/反向转场缓存
     const view = ensureTreemap();
     if (view) view.setTiles(tiles, { mode: mode || "entry" });
+    updateTreemapA11y(data); // U4.1：aria-label 摘要（「当前目录 X，共 N 项，最大子项 …」）
     setStatus(
         "browse-status",
         "ok",
         "矩形图视图 · 共 " + data.total_dirs + " 个子目录 / " + data.total_files + " 个文件"
     );
     renderStrip();
+}
+
+/* U4.1：treemap 容器 aria-label 摘要（定稿第八节可访问性：treemap 容器有
+   aria-label 摘要「当前目录 X，共 N 项，最大子项 …」——数据自本模块
+   browse 载荷经 renderTreemap 就地传入（非跨模块直读）） */
+function updateTreemapA11y(data) {
+    const host = $("treemap-wrap");
+    if (!host) return;
+    const root = String(data.root || getCurrentPath() || "");
+    const total = (Number(data.total_dirs) || 0) + (Number(data.total_files) || 0);
+    let biggest = null;
+    for (const it of (data.directories || []).concat(data.files || [])) {
+        const sz = Number(it.size) || 0;
+        if (!biggest || sz > (Number(biggest.size) || 0)) biggest = it;
+    }
+    let label = "当前目录 " + root + "，共 " + total + " 项";
+    if (biggest) {
+        label += "，最大子项 " + String(biggest.name || "") + "（" +
+            (biggest.size_human || humanBytes(Number(biggest.size) || 0)) + "）";
+    }
+    host.setAttribute("aria-label", label);
 }
 
 /* ---- L3-7 迷你条带（48px；仅矩形图视图 + 有上级 + 上级缓存命中；静态不动画） ---- */
@@ -326,6 +349,7 @@ function renderStrip() {
             return (
                 '<div class="strip-block' + (clickable ? "" : " strip-block-static") + '"' +
                 ' data-strip-path="' + esc(t.path || "") + '" title="' + title + '"' +
+                (clickable ? ' tabindex="0" role="button" aria-label="跳回 ' + esc(t.path || t.name) + '"' : "") +
                 ' style="width:' + Math.max(1, (t.pct * 100).toFixed(2)) + '%;background:' + t.color + '">' +
                 '<span class="strip-label">' + esc(t.name) + "</span></div>"
             );
@@ -333,6 +357,13 @@ function renderStrip() {
         "</div>";
     slot.querySelectorAll(".strip-block[data-strip-path]:not(.strip-block-static)").forEach((b) => {
         b.addEventListener("click", () => {
+            const p = b.getAttribute("data-strip-path");
+            if (p) browsePath(p);
+        });
+        // U4.1：条带块键盘可达（tabindex=0 + Enter/Space 同点击语义）
+        b.addEventListener("keydown", (ev) => {
+            if (ev.key !== "Enter" && ev.key !== " ") return;
+            ev.preventDefault();
             const p = b.getAttribute("data-strip-path");
             if (p) browsePath(p);
         });
@@ -497,6 +528,7 @@ async function doLiveRefresh() {
         APP_STATE.treemap.tiles = tiles;
         if (APP_STATE.view.mode === "treemap" && $("treemap-wrap") && !$("treemap-wrap").hasAttribute("hidden")) {
             ensureTreemap().setTiles(tiles, { mode: "reflow" }); // L3-2：lerp 300ms + 新块光晕
+            updateTreemapA11y(data); // U4.1：实时生长同样保持 aria-label 摘要新鲜
             setStatus("browse-status", "ok", "矩形图实时生长 · 共 " + data.total_dirs + " 个子目录 / " + data.total_files + " 个文件");
         }
     } catch (e) { /* 扫描期实时刷新失败静默（下次轮询再试） */ }
@@ -706,9 +738,7 @@ export function bindWorkspace() {
         scanListenerBound = true;
         document.addEventListener("keydown", (ev) => {
             if (ev.key === "Backspace") {
-                const t = ev.target;
-                if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
-                if (ev.isComposing) return; // 中文输入法组词中
+                if (isTypingEvent(ev)) return; // U4.1：keys.js 共享守卫（输入框/可编辑/isComposing）同口径
                 if (document.querySelector(".modal:not(.hidden)")) return;
                 if (APP_STATE.view.mode === "treemap" && browseParent) { ev.preventDefault(); goUp(); }
             } else if (ev.key === "Escape") {
@@ -859,8 +889,8 @@ const WORKSPACE_HTML =
     '</span>' +
     '</div>' +
     '</div>' +
-    '<!-- [N01] 矩形图视图（U2.2：viz/treemap.js 双层 canvas 渲染器 + tooltip） -->' +
-    '<div class="treemap-wrap" id="treemap-wrap" hidden aria-label="目录空间矩形图"></div>' +
+    '<!-- [N01] 矩形图视图（U2.2：viz/treemap.js 双层 canvas 渲染器 + tooltip；U4.1：tabindex=0 键盘可达——聚焦后 ↑↓←→ 最近邻 + Enter 下钻；aria-label 摘要由 renderTreemap 更新） -->' +
+    '<div class="treemap-wrap" id="treemap-wrap" hidden tabindex="0" aria-label="目录空间矩形图（当前目录数据加载后更新摘要）"></div>' +
     '</div>' +
 
     '<!-- [N09] 迷你条带位（视图区底部 48px；U2.3 装配 L3-7 上级构成，DOM 静态不动画） -->' +
