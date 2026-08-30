@@ -366,7 +366,8 @@ window.fetch = function (url, options) {
                      railScroll: (() => { const rail = document.querySelector(".side-rail"); return rail ? rail.scrollHeight - rail.clientHeight : -1; })() };
         });
         ok("紧凑档：环形图 112px（160→112）", compact.donut === 112, "donut=" + compact.donut);
-        ok("紧凑档：卡内 padding 收为 10/12", /10px/.test(compact.pad) && /12px/.test(compact.pad), compact.pad);
+        ok("紧凑档：卡内 padding 收为 6/12（U4.2 紧凑档收口：6px 纵向——三卡+1 卡 768px 高屏无内滚）",
+           /6px/.test(compact.pad) && /12px/.test(compact.pad), compact.pad);
         ok("紧凑档：快照迷你卡单行（sub 隐藏）", compact.miniSubHidden);
         ok("紧凑档：body 零滚动（窄高内滚归面板）", compact.bodyScroll <= 1, "Δ=" + compact.bodyScroll);
         ok("紧凑档：卡自身高度 ≤ 面板 66%（目检参考）", compact.panel <= 768 * 0.45, "panel=" + compact.panel);

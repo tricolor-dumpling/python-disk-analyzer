@@ -20,6 +20,7 @@ import {
     getCurrentRoot, getCurrentPath, getLastRoots, setCurrentRoot, applyLastRoots,
     getBrowseHistory, renderWorkspace, unmountWorkspace, restoreWorkspaceView,
     getTreemapView, getTreemapTiles, setMergeTop, renderTreemapFromState,
+    getStartupBrowsePath,
 } from "./pages/workspace.js";
 import { evaluateEnvGate, refreshHealth, bindTopbar, bindWorkspaceGuide } from "./components/topbar.js";
 import { markNavDot } from "./components/nav-dots.js"; // U3.1：N13 圆点（探针/引导面再导出）
@@ -240,8 +241,11 @@ export async function start() {
     refreshOverview();
 
     const firstRoot = getLastRoots()[0] || "D:\\";
-    setCurrentRoot(firstRoot);
-    $("browse-root").value = firstRoot;
+    /* F06（U4.2 G1 核销）：启动恢复上次浏览位置（pds_last_browse_v1——成功浏览时写入；
+       非法/缺失回落首根；恢复路径经既有 init 链同一 browse 调用加载——零额外请求） */
+    const startup = getStartupBrowsePath();
+    setCurrentRoot((startup && startup.root) || firstRoot);
+    $("browse-root").value = (startup && startup.path) || firstRoot;
 
     // P12·W1.3 init 门控（RT-02 边界：仅首拍求值；替换旧的无条件浏览）：
     // ready → 自动浏览首根；未就绪 → 引导态。15s 轮询只刷徽章不重评门控。

@@ -22,7 +22,7 @@ import { $, esc, humanBytes } from "../api.js";
 import { ICONS } from "../icons.js";
 import { APP_STATE } from "../state.js";
 import { staggerIn, motionDur, reducedMotion } from "../motion.js";
-import { setStatus } from "../components/statusbar.js";
+import { setStatus, renderStatusbarSelection } from "./statusbar.js";
 
 /* ---- 虚拟滚动参数（手册 §U2.5：>200 行启用；缓冲 5 行；行高 cozy 36/compact 26） ---- */
 const VIRTUAL_THRESHOLD = 200;
@@ -79,6 +79,8 @@ function refreshSelectionUI() {
     if (selEl) selEl.textContent = "已选 " + visibleSel + " 项";
     const actions = $("list-selected-actions");
     if (actions) actions.toggleAttribute("hidden", visibleSel === 0);
+    /* F22（G3 核销）：全局状态栏「已选 N 项」与本地页脚同源（APP_STATE.selection） */
+    renderStatusbarSelection(APP_STATE.selection.keys.length);
 }
 
 /* row-check 点击（事件委托入口；ev.shiftKey = Shift 范围选）

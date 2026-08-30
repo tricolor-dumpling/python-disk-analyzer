@@ -18,7 +18,7 @@ import { APP_STATE } from "../state.js";
 import { openModal, closeModal } from "./modals.js";
 import { getDataDir } from "./settings.js";
 import { bindNavDots } from "./nav-dots.js"; // U3.1：N13 圆点（叶子模块，防环）
-import { browsePath, getCurrentRoot } from "../pages/workspace.js";
+import { browsePath, getCurrentRoot, getStartupBrowsePath } from "../pages/workspace.js";
 import { showGuide } from "./onboarding.js";
 import { setStatus } from "./statusbar.js";
 
@@ -85,7 +85,10 @@ export function evaluateEnvGate(h) {
     }
     if (h.ready) {
         hideBrowseGuide();
-        browsePath(getCurrentRoot() || "D:\\", true);
+        /* F06（U4.2 G1 核销）：启动恢复上次浏览位置——优先恢复路径，缺失回落首根/默认 D:\；
+           恢复路径与旧「首根浏览」共用同一次 browse 调用（Network 时序不变，零额外请求） */
+        const startup = getStartupBrowsePath();
+        browsePath((startup && startup.path) || getCurrentRoot() || "D:\\", true);
     } else {
         showBrowseGuide(h);
     }

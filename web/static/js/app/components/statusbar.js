@@ -14,3 +14,13 @@ export function setStatus(id, kind, text) {
     const textEl = $(id + "-text");
     if (textEl) textEl.textContent = text;
 }
+
+/* F22（G3 核销）：状态栏右侧「已选 N 项」——多选时显示、清零隐藏；
+   由 list.js refreshSelectionUI 统一调用（selection 单一来源 APP_STATE.selection） */
+export function renderStatusbarSelection(n) {
+    const el = $("statusbar-selected");
+    if (!el) return; // smoke 脚手架无该元素（空守卫）
+    const count = Number(n) || 0;
+    el.hidden = count <= 0;
+    el.textContent = count > 0 ? "已选 " + count + " 项" : "";
+}

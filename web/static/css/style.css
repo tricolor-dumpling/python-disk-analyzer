@@ -61,8 +61,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .field label{display:block;font-size:var(--fs-xs);color:var(--muted);margin-bottom:4px}
 .field input{width:100%}
 
-/* 按钮 / 图标按钮 / 徽章 / 芯片（L2-1 hover-active 反馈保留） */
-.btn,.icon-btn,.chip,.badge{transition:background .16s ease,border-color .16s ease,color .16s ease,transform .12s ease,box-shadow .16s ease}
+/* 按钮 / 图标按钮 / 徽章 / 芯片（L2-1 hover-active 反馈保留；U4.2 红线终核：
+   过渡仅 transform/opacity——颜色/边框/阴影状态瞬时切换，不参与过渡（定稿性能红线#1）） */
+.btn,.icon-btn,.chip,.badge{transition:transform .12s ease,opacity .12s ease}
 .btn{
   min-height:36px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
   padding:8px 14px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);
@@ -164,7 +165,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px;
   padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-card);
   background:var(--card);color:var(--text);text-align:left;font:inherit;cursor:pointer;
-  transition:border-color var(--dur-1),box-shadow var(--dur-1);
+  /* U4.2 红线终核：hover 边框/阴影状态瞬时切换，不参与过渡（仅 transform/opacity） */
 }
 .trend-card:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
 .trend-card:hover .trend-label{color:var(--primary)}
@@ -300,7 +301,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   width:240px;height:36px;flex:none;display:inline-flex;align-items:center;gap:8px;
   padding:0 10px;border:1px solid var(--border-strong);border-radius:var(--radius-ctl);
   background:var(--card);color:var(--text-2);font-size:var(--fs-sm);cursor:pointer;
-  transition:border-color .16s ease,box-shadow .16s ease;
+  /* U4.2 红线终核：hover 边框状态瞬时切换 */
 }
 .topbar-search:hover{border-color:var(--faint)}
 .topbar-search:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
@@ -710,7 +711,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 
 /* ---- U2.3：迷你条带（L3-7 上级构成，48px；静态不动画，hover 提亮+title） ---- */
 .strip-bar{display:flex;width:100%;height:48px;border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;background:var(--card)}
-.strip-block{flex:0 0 auto;min-width:2px;height:100%;position:relative;overflow:hidden;cursor:pointer;transition:filter var(--dur-1)}
+.strip-block{flex:0 0 auto;min-width:2px;height:100%;position:relative;overflow:hidden;cursor:pointer}
 .strip-block:hover{filter:brightness(1.12)}
 .strip-block-static{cursor:default}
 .strip-block-static:hover{filter:none}
@@ -782,7 +783,6 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   display:block;padding:8px 6px;text-align:center;border:1px solid var(--border);
   border-radius:var(--radius-ctl);background:var(--card);color:var(--text-2);
   font-size:var(--fs-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  transition:background var(--dur-1) ease,border-color var(--dur-1) ease,color var(--dur-1) ease;
 }
 .theme-opt:hover span{border-color:var(--border-strong)}
 .theme-opt input:checked + span{background:var(--primary-soft);border-color:var(--primary);color:var(--primary);font-weight:600}
@@ -935,18 +935,37 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* 紧凑档：视口高 <820px（覆盖 1366×768 主流笔记本）——右栏三卡总高收紧 */
 @media (max-height:820px){
   .shell{gap:10px;padding:10px 16px}
-  .side-rail{gap:8px}
-  .card,.overview-panel{padding:10px 12px}
+  .side-rail{gap:4px}
+  .card,.overview-panel{padding:6px 12px}
   .card-head h2{font-size:var(--fs-md)}
   .card-sub{display:none} /* 定稿 3.3：紧凑档隐藏副标题 */
+  /* -- U4.2 紧凑档收口（定稿 3.3「三卡总高 ≤520px · 768px 高屏右栏无内滚无溢出」）：
+       折叠次级文案/状态行（主文案与动作保留，DOM 文本不变——探针 textContent 口径不受影响） */
+  .overview-head p{display:none}                    /* 存储卡「最近扫描：…」副行 */
+  .overview-empty span{display:none}                /* 空态指引二行（主标题保留） */
+  .snapshot-mini-card .status-line{display:none}    /* 迷你快照「已加载/已保存 N 会话」状态行 */
+  .compare-mini-empty span{display:none}            /* 最近对比空态指引二行（主标题保留） */
+  /* 卡内纵向收紧（仅右栏） */
+  .side-rail .row{margin:6px 0}
+  .side-rail .progress-wrap{margin:4px 0 2px}
+  .side-rail .status-line{margin:2px 0;font-size:11px}
+  .side-rail .chips-row{margin:4px 0 2px}
+  .side-rail .btn-sm{padding:3px 8px}
+  .side-rail .chip{padding:2px 8px}
+  .overview-roots{margin-top:4px}
+  .storage-row{margin-top:4px}
+  .overview-chips{margin-top:2px}
+  .overview-open{margin-top:6px}
+  .snapshot-mini-entry{margin-top:2px}
+  .compare-mini-body{margin-top:2px}
+  .donut-legend{gap:6px}
+  /* 图例两行改单行（标签+数值同行）——紧凑档纵向再收紧（信息不减：已使用/全部盘累计均保留） */
+  .donut-legend-row{flex-direction:row;align-items:baseline;gap:6px;white-space:nowrap}
   .snapshot-list{max-height:200px}
   .session-item{padding:8px 10px}
-  .overview-roots{margin-top:8px}
   .overview-roots-donut{min-height:140px}
-  .storage-row{margin-top:8px}
   .donut-box{width:112px;height:112px} /* 定稿 3.3：环形图直径 160→112px */
   .donut-value{font-size:var(--fs-md)}
-  .donut-legend{gap:6px}
   .snapshot-mini-sub{display:none} /* 定稿 3.3：迷你卡折叠为单行（图标+快照名+按钮） */
   .snapshot-mini-item{padding:6px 10px}
   .statusbar{font-size:11px}

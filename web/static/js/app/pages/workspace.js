@@ -601,6 +601,10 @@ export async function browsePath(path, quiet) {
             renderBrowseHistory();
         }
         lastBrowse = { root: currentRoot, path: currentPath };
+        /* F06（U4.2 G1 核销）：启动恢复上次浏览位置——成功浏览即写（失败分支不写，保持旧值） */
+        try {
+            localStorage.setItem("pds_last_browse_v1", JSON.stringify({ root: currentRoot, path: currentPath }));
+        } catch (e) { /* 存储不可用：静默（不影响浏览） */ }
         $("browse-root").value = currentRoot;
         /* L2-9 缓存徽标：显示时 translateX(-8px)+fade 200ms（--dur-2；重触发 = 重播动画） */
         const badge = $("browse-cache-badge");
@@ -647,6 +651,21 @@ export async function browsePath(path, quiet) {
 let lastRoots = [];
 
 export function getLastRoots() { return lastRoots; }
+
+/* F06（U4.2 G1 核销）：启动恢复目标读取——pds_last_browse_v1（§3.2 键表 {root,path}）。
+   非法/缺失 → null（调用方回落首根 D:\）；root 缺失/非法时仅 path 生效（root 由首根兜底）。 */
+export function getStartupBrowsePath() {
+    try {
+        const raw = localStorage.getItem("pds_last_browse_v1");
+        if (!raw) return null;
+        const v = JSON.parse(raw);
+        if (!v || typeof v.path !== "string" || !/^[A-Za-z]:\\/.test(v.path)) return null;
+        const root = (typeof v.root === "string" && /^[A-Za-z]:\\/.test(v.root)) ? v.root : null;
+        return { root: root, path: v.path };
+    } catch (e) {
+        return null;
+    }
+}
 
 /* 模块化拆分导出的赋值器：lastRoots 更新 + 重渲染（原 openSettings/init/wipeData 三处的
    lastRoots = …; renderRecentChips(); 的行为等价合并）。 */
