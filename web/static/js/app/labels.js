@@ -1,6 +1,6 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· labels.js 共享文案/纯映射（U2.0 从 app.js 迁入）
-   - SKIP_REASON_TEXT / skipReasonText 逐字迁自旧 app.js「P12·W2.2」段；
+   UI 2.0（SpaceLens Pro）· labels.js 共享文案/纯映射（U2.0 模块化迁入）
+   - SKIP_REASON_TEXT / skipReasonText 逐字迁自旧单体脚本「P12·W2.2」段；
    - 独立叶子模块：scan.js（保存 toast）与 snapshots.js（列表渲染）共用，
      避免 scan ↔ snapshots 模块互引成环（§U2.0 循环依赖纪律）。
    ============================================================ */

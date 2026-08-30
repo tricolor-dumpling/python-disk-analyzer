@@ -1,5 +1,5 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· components/settings.js（U2.0 从 app.js 迁入）
+   UI 2.0（SpaceLens Pro）· components/settings.js（U2.0 模块化迁入）
    - 设置弹窗（自动保存/数据目录/健康状态/主题三态/危险区）+ 清空确认弹窗（wipe）；
    - U3.5：主题三态（F03/N03——与顶栏按钮同源 theme.js，选择即生效）；
      危险区 L2-10（wipe-panel 红描边脉动 2.4s + 输入匹配「确认清空」后

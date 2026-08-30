@@ -1,5 +1,5 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· components/toast.js（U2.0 从 app.js 迁入）
+   UI 2.0（SpaceLens Pro）· components/toast.js（U2.0 模块化迁入）
    - U3.5·L2-6 全参数升级（驱动在 JS/WAAPI，样式在 style.css——同 compare.js
      L3-6 模式，参数可经 getAnimations 在 smoke 断言）：
      滑入 320ms spring（--dur-3/--ease-spring）+ 时间线（自动消失进度，

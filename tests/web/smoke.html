@@ -369,14 +369,15 @@ async function __waitUntil(fn, timeoutMs) {
 }
 
 /* ---- U2.5：v1 断言（ASSERTIONS）已退役删除——A4/A5/A6 以 v2 语义继续承担
-       红线 #11/#12 验证；renderApiError 双形态（原 w13）并入 A0。 ---- */
+       红线 #11/#12 验证；renderApiError 双形态（原 w13）并入 A0。
+       当前 smoke 仅保留 v2 断言注册表（见文件尾派发）；旧 v1 断言注册表
+       代码已物理删除，不再有旧套件分支。 ---- */
 
-/* ================= U1.0/U1.3：双 suite 门禁派发（U2.5：v1/legacy 断言在此退役，
-   门禁仅剩 v2；?suite=v2 与默认一致，未知 suite 回落 v2） =================
+/* ================= 门禁派发（U2.5 起仅有 v2 注册表：?suite=v2 与默认一致，
+   未知 suite 回落 v2） =================
    - URL 带 ?suite=xxx → 跑对应注册表；默认 = v2（门禁主口径）；
-   - v1 注册表（ASSERTIONS）已于 U2.5 删除——v2-A4/A5/A6 语义核对通过后退役；
-     U3.3 起 #btn-undo-save/#snapshot-list 随子页面接线迁至 #/snapshots 页头与
-     列表（bind 一律空守卫，见 scan.js/compare.js）。 */
+   - A0-A20 断言全部以 v2 语义组织（U3.3 起 #btn-undo-save/#snapshot-list
+     随子页面接线迁至 #/snapshots 页头与列表，bind 一律空守卫）。 */
 const __suiteMatch = window.location.search.match(/[?&]suite=([^&]+)/);
 const __currentSuite = __suiteMatch ? decodeURIComponent(__suiteMatch[1]) : "v2";
 
@@ -1453,7 +1454,7 @@ const ASSERTIONS_V2 = [
     } },
 ];
 
-/* U2.5：门禁仅剩 v2（legacy 已退役）——未知 suite 回落 v2 */
+/* 门禁仅剩 v2 注册表（U2.5 起 v1/legacy 退役）；未知 suite 回落 v2 */
 const __SUITE_REGISTRIES = { v2: ASSERTIONS_V2 };
 
 window.addEventListener("load", function () {

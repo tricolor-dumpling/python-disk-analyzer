@@ -1,5 +1,5 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· components/feedback.js（U2.0 从 app.js 迁出）
+   UI 2.0（SpaceLens Pro）· components/feedback.js（U2.0 模块化迁出）
    - renderApiError 统一 API 错误渲染器（§3.6 机制 #4）逐字保留；
    - 独立叶子模块：workspace（浏览错误）与 U3.2 扫描/对比共用，
      避免 workspace ↔ topbar 互引成环。

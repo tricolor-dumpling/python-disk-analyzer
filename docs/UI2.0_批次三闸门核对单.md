@@ -86,3 +86,5 @@
 > 📌 2026-08-30 追记：**G4 已核销（U4.1 完成）**——F23 全量键盘矩阵落地（定稿 7.4：keys.js/keyboard.js/treemap 焦点块/`/`/g 序列），smoke A20 21/21、u41 探针 46/46；G1/G2/G3/G5（F06/F07/F22/N12）维持挂账 U4.x 收口项；u32⑧ DOM 节点漂移经 ui2.0 基线复现 = 预存（非本轮回归）。
 >
 > 📌 2026-08-30 追记2（**U4.2 完成**）：**G1 已核销**（F06 启动恢复 pds_last_browse_v1——browsePath 成功写 {root,path}；start()/evaluateEnvGate 恢复路径零额外请求、非法回落首根；u42 ⑤ 桩态 2 项 + 真机实测 D:\虚拟机 reload 恢复）；**G3 已核销**（F22 状态栏「已选 N 项」——statusbar-selected 与 APP_STATE.selection 同源（list.js refreshSelectionUI）；u42 ⑤ 3 态断言）；**G2/G5 维持挂账**（U4.2 裁决不裁决：形态收口项，去向 U4.3/发版备注——功能等价已达成）。
+
+> 📌 2026-08-30 追记3（**U4.3 完成·批次四收口**）：**G2/G5 本项不裁决→保持挂账**（与 U4.2 处置一致；转发版备注语义——功能等价已达成）；U4.3 完成：README 升版 v2.0.0、《定稿》v1.2 回补入库（U1.1 注记④核销——`docs/UI终版方案_SpaceLensPro视觉动效与功能补全_定稿.md` 只读校验后入库）、死代码删除（app.js 空壳/legacy 注释残留/style.css `.page-body-empty`×2）清单入执行记录、本手册状态改「已完成」；门禁复跑：smoke 21/21、unittest 266 OK（P13 复跑即绿，挂账不变）、node 25/25、hex 0、u42 39/39、u41 31/31、u43_doc_probe（新建）48/48；G4/G1/G3 核销状态保持。

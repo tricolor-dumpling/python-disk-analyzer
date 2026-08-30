@@ -1,5 +1,5 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· components/onboarding.js（U2.0 从 app.js 迁入；U3.1 弹层化）
+   UI 2.0（SpaceLens Pro）· components/onboarding.js（U2.0 模块化迁入；U3.1 弹层化）
    - 首启引导弹层（F02）：4 步内容不变；GUIDE_KEY/showGuide/dismissGuide/loadGuide
      语义逐字保留（关闭记忆沿用 pds_onboarding_dismissed_v1）；
    - U3.1：DOM 由工作台 hero 卡迁出为壳级弹层（index.html #onboarding，

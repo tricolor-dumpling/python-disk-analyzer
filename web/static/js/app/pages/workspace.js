@@ -1,5 +1,5 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· pages/workspace.js（U2.0 从 app.js 迁入）
+   UI 2.0（SpaceLens Pro）· pages/workspace.js（U2.0 模块化迁入）
    - 目录浏览卡片全套逻辑逐一迁入（§3.6 机制 #1 browseSeq 竞态、
      #11 文件行零请求、#12 筛选空态清除）；
    - ⚠️ 偏差注记：映射表既定「browse-chart 与 renderComposition 删除（D12）」

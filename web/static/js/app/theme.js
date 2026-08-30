@@ -1,5 +1,5 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· theme.js 主题体系（U2.0 从 app.js 迁入，L0-1）
+   UI 2.0（SpaceLens Pro）· theme.js 主题体系（U2.0 模块化迁入，L0-1）
    - U3.5：三态偏好（亮/暗/跟随系统）——设置弹窗 F03/N03 语义；
      偏好持久化 pds_theme_v1（"light"|"dark"|"system"；缺失/非法 = system）；
      生效主题（data-theme）由偏好解析：system → matchMedia(prefers-color-scheme)，

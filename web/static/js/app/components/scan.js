@@ -1,5 +1,5 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· components/scan.js（U2.0 从 app.js 迁入；U3.2 状态机扩展）
+   UI 2.0（SpaceLens Pro）· components/scan.js（U2.0 模块化迁入；U3.2 状态机扩展）
    - 全量扫描卡全套：K7 已处理代次持久化（§3.6 机制 #2）、
      轮询单链 + _wasScanRunning 完成边沿（机制 #3）、
      SKIP_REASON_TEXT 经 labels.js（机制 #7,共享叶子避免循环依赖）；

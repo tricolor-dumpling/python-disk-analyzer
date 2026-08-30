@@ -1,5 +1,5 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· components/modals.js（U2.0 从 app.js 迁入）
+   UI 2.0（SpaceLens Pro）· components/modals.js（U2.0 模块化迁入）
    - 弹窗管理（§3.6 机制 #9：Esc 逆序关栈顶 + Tab 循环 + R 守卫）与
      通用确认弹窗（confirmDialog，映射表「通用 confirm」落点）逐字保留；
    - ⚠️ 偏差注记：映射表「components/settings + 通用 confirm」——

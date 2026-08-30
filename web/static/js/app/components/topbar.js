@@ -1,5 +1,5 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· components/topbar.js（U2.0 从 app.js 迁入；U3.1 顶栏改版）
+   UI 2.0（SpaceLens Pro）· components/topbar.js（U2.0 模块化迁入；U3.1 顶栏改版）
    - 顶栏徽章与引导态（§3.6 机制 #4/#8/#10）：
      refreshHealth / showBrowseGuide / hideBrowseGuide / evaluateEnvGate 逐字保留；
    - U3.1：

@@ -1,6 +1,6 @@
 /* ============================================================
    UI 2.0（SpaceLens Pro）· state.js APP_STATE 单一来源（U2.0 建，U2.1 对齐 §3.2）
-   - U2.0：迁入旧 app.js 的 { lastBrowseData, health }（行为等价优先）；
+   - U2.0：迁入旧单体脚本的 { lastBrowseData, health }（行为等价优先）；
    - U2.1：按手册 §3.2 目标形状落地全场命名空间——route 为本阶段真实字段
      （router 维护 + smoke A3 断言）；其余命名空间按 §3.2 默认值预置，
      随对应功能工作项启用（view→U2.2/U2.5、selection→U2.5、scan→U3.2、
