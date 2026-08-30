@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Python 磁盘扫描 · 本地磁盘空间分析</title>
     <script>
-      /* UI2·U1.1 防闪烁：样式表生效前定稿主题（localStorage → 系统偏好 → light） */
+      /* UI2·U1.1 防闪烁：样式表生效前定稿主题（localStorage → 系统偏好 → light）
+         U3.5：pds_theme_v1 三态（light|dark|system；缺失/非法=system）——非 light/dark
+         值一律经 matchMedia 解析 = 显式「跟随系统」与缺失 key 同路径（theme.js 同口径） */
       (function () {
         var t = null;
         try { t = localStorage.getItem("pds_theme_v1"); } catch (e) { /* ignore */ }
@@ -158,6 +160,26 @@
             </button>
         </div>
         <div class="modal-body">
+            <!-- [F03/N03] 主题三态（U3.5：与顶栏按钮同源 state.theme；「跟随系统」=
+                 缺失 key 或显式 system → matchMedia 解析，与 head 防闪烁脚本一致；
+                 选择即生效（localStorage 立即写），与「保存设置」按钮解耦 -->
+            <div class="field">
+                <label id="setting-theme-label">主题</label>
+                <div class="theme-switch-group" id="setting-theme" role="radiogroup" aria-labelledby="setting-theme-label">
+                    <label class="theme-opt">
+                        <input type="radio" id="setting-theme-light" name="setting-theme" value="light">
+                        <span>亮</span>
+                    </label>
+                    <label class="theme-opt">
+                        <input type="radio" id="setting-theme-dark" name="setting-theme" value="dark">
+                        <span>暗</span>
+                    </label>
+                    <label class="theme-opt">
+                        <input type="radio" id="setting-theme-system" name="setting-theme" value="system">
+                        <span>跟随系统</span>
+                    </label>
+                </div>
+            </div>
             <label class="switch-row">
                 <span>
                     <b>扫描完成自动保存</b>
@@ -190,9 +212,10 @@
     </div>
 </div>
 
-<!-- 清空确认弹窗 -->
+<!-- 清空确认弹窗（U3.5·L2-10：wipe-panel 红描边脉动 2.4s（--dur-breathe，仅 opacity）；
+     输入匹配「确认清空」后 3s 倒计时解锁 #btn-wipe（--dur-wipe-countdown） -->
 <div id="wipe-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="确认清空">
-    <div class="modal-panel modal-panel-sm">
+    <div class="modal-panel modal-panel-sm wipe-panel">
         <div class="modal-head">
             <h2>确认清空数据目录</h2>
             <button class="icon-btn" data-close="wipe-modal" title="关闭">

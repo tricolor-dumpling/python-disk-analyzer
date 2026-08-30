@@ -1,20 +1,40 @@
 # UI 2.0 开发状态与续作指引
 
-更新时间：2026-08-29（**U3.4 完成会话更新**；执行事实以《UI2.0_开发执行手册.md》头部执行记录为准，含 U3.4 行——本文档仅为换机交接摘要）
+更新时间：2026-08-30（**U3.5 完成会话更新**；执行事实以《UI2.0_开发执行手册.md》头部执行记录为准，含 U3.5 行——本文档仅为换机交接摘要）
 
 ## 当前状态
 
-- **分支**：`ui2.0`（= U3.4 合并后最新提交，已推送 GitHub origin；`main` 未动，仍是 P12 归档完成线）。
-- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) → `ffee6d1`(U2.1) → `3daa9d4`(U2.2) → `cc5317c`(U2.3) → `0cd0ef7`(U2.4) → `fa919c7`(U2.5) → `25f4f6a`(U2.5-doc 追记) → `a961e58`(U3.1) → `92ec485`/`2bb5d30`(U3.2a/b) → `8eff00f`(U3.2-doc) → `2e845f2`(U3.3) → **`<U3.4>`**（见下）。
-- **进度**：U1.0–U1.3、U2.0–U2.5、U3.1、U3.2、U3.3、**U3.4 全部完成**（实现 + 验收）；**下一步 = U3.5（弹窗族与引导收尾，批次三闸门项）**，分支 `ui2-u3.5`；U3.5 完成后为批次三闸门 → U4。
-- ⚠️ 搁置/挂账（详见手册执行记录）：P13（test_budget 并发竞态，禁碰 snapshots.py）；F22 状态栏「已选 N 项」未接入（U4.x 补）；L3-5 sparkline 仍为降级差值卡（后端补逐次总量字段后启用）。
-- 服务：**已按 U3.4 会话结束停服**（用户要求延续：Flask 5000 与静态服务 8771 均已释放，端口空闲）。续作起手：
-  ```powershell
-  Get-NetTCPConnection -LocalPort 5000,8771 -State Listen   # 先查残留（应无输出）
-  .\.venv\Scripts\python.exe -X utf8 app.py --no-browser     # Flask 5000（http://127.0.0.1:5000/）
-  .\.venv\Scripts\python.exe -m http.server 8771 --bind 127.0.0.1 --directory .   # 静态 8771（smoke 用）
-  ```
-- 工作区未跟踪项仍为 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》。
+- **分支**：`ui2.0`（= U3.5 合并后最新提交，已推送 GitHub origin；`main` 未动，仍是 P12 归档完成线）。
+- **提交链**：`5ec0061`(P12 尾) → `df01038`(U1.0) → `62281ab`(U1.1 实现) → `25faea2`(U1.1 验收记录) → `3d0e736`(换机交接文档) → `5466bde`(U1.2) → `83ebadd`(U1.2 顺手修复) → `b06c3ab`(U1.3) → `1e5d234`(U2.0) → `ffee6d1`(U2.1) → `3daa9d4`(U2.2) → `cc5317c`(U2.3) → `0cd0ef7`(U2.4) → `fa919c7`(U2.5) → `25f4f6a`(U2.5-doc 追记) → `a961e58`(U3.1) → `92ec485`/`2bb5d30`(U3.2a/b) → `8eff00f`(U3.2-doc) → `2e845f2`(U3.3) → `62e155b`(U3.4) → **`<U3.5>`**（见下）。
+- **进度**：U1.0–U1.3、U2.0–U2.5、U3.1–**U3.5 全部完成**（实现 + 验收）；**批次三闸门通过**（核对单 `docs/UI2.0_批次三闸门核对单.md` 入库：22✅/3◐/挂账 6 项有据）；**下一步 = U4.1（无障碍与键盘矩阵，批次四首个）**。
+- ⚠️ 搁置/挂账（详见手册执行记录 + 核对单 §3）：P13（test_budget 并发竞态，禁碰 snapshots.py）；F22 状态栏「已选 N 项」未接（U4.x 补）＋F06 启动恢复 pds_last_browse_v1、F07 历史下拉形态、N12 面包屑>6 层折叠（挂账 G1/G2/G5，U4.x 收口）；G4 F23 全量键盘矩阵 → **U4.1 专项**；L3-5 sparkline 仍为降级差值卡（后端补逐次总量字段后启用）。
+- 服务：**本会话结束时按用户要求停服**（Flask 5000 与静态服务 8771 已释放，端口空闲；续作起手命令见下）。⚠️ 本会话曾将服务保持运行做验收，结束时务必释放。
+- 工作区未跟踪项仍为 `.venv/`、`dsh-image-gen/`、未跟踪《定稿》（禁入提交）。
+
+## 本次会话完成内容：U3.5 弹窗族与引导收尾（批次三闸门项）
+
+验收口径与结果（详细记录在《docs/UI2.0_开发执行手册.md》头部 U3.5 执行记录）：
+
+| 项 | 结果 | 证据 |
+|---|---|---|
+| 设置弹窗主题三态（F03/N03） | ✅ | `#setting-theme` 分段单选（亮/暗/跟随系统；id 全不变）；`theme.js` 三值偏好（pds_theme_v1=light\|dark\|system；缺失/非法=system）→ matchMedia 解析（head 防闪烁同口径）；`setThemePref` 与 `switchTheme`（签名不变=A1 零适配）；顶栏=显式翻转+设置单选即生效，**同源联动**；OS 变化实时跟随（监听仅 system 激活，模块加载即挂）；保存设置 theme 报 resolvedTheme()（后端白名单不变，零 py 改动） |
+| 危险区 L2-10 | ✅ | wipe-panel 红描边脉动 2.4s（--dur-breathe，现有 badge-breathe 同值 token 化；仅 opacity）+ 输入匹配「确认清空」→3s 倒计时（--dur-wipe-countdown）禁用+显示秒数→解锁；失配重计/重开复位；wipeData 执行链不变（失败=原语义立即重试） |
+| Toast L2-6 | ✅ | 320ms spring 滑入（--dur-3/--ease-spring）+ 时间线（TTL 4000/6500ms；scaleX）+ 成功描边 300ms + 错误脉动 2 次（600ms、delay 320ms）+ hover 暂停 + aria-live；reduced：≤120ms 滑入/装饰跳过/功能保留；驱动在 WAAPI（参数可断言）样式在 style.css；调用方签名不变 |
+| 批次三闸门核对单 | ✅ | `docs/UI2.0_批次三闸门核对单.md` 新建入库：F01–F24（22✅/3◐/挂账 6 项）+ N01–N13（12✅/N07◐/N12◐），全部有归宿；缺失项挂账有据（G1–G6） |
+| 门禁 | ✅ | smoke v2 **20/20**（A19 新接入）；unittest **266 OK**（P13 复现 3 次复跑即绿——零 py 改动）；node **20/20**；hex **0**；tokens.css +4（--dur-breathe/--dur-wipe-countdown/--dur-toast-stroke/--dur-toast-pulse） |
+| u35 验收探针（新建） | **60/60** ✅ | 桩态 43（三态 13/危险区 11/toast 11/弹窗栈回归 2/双档零滚动+截图 3/console 0）+ reduced 7 + 真机 10（设置三态切换/清空流程真实走查：输入→倒计时→执行→**目录重建真实成功**/console 0 过滤资源日志/双档零滚动） |
+| 回归 | ✅ | u31 **38/38**、u24 **34/34**、u34 **48/48**（首轮真实页 1 项失败 = u35 真机清空走查后的环境态变化（快照被清）非代码回归——重扫+保存恢复 1 会话后复跑全绿） |
+| 视觉多模态 | ✅ | 11 张截图目检合格（亮/暗设置弹窗三态分段控件、清空弹窗红描边脉动+倒计时态、success 绿描边+绿时间线、error 红边+红时间线、reduced 静态、双档零滚动） |
+
+**本次实施注记（下一会话须知）**：
+1. **主题三值偏好语义**：`APP_STATE.theme` = 偏好（light|dark|system；缺 key=system）；`data-theme` = 解析生效值；`currentTheme()`/`resolvedTheme()` 双口径。A1 只测 switchTheme（显式 light|dark），**A19 才测三态**——改主题逻辑时 A1 断言语义勿动（switchTheme 签名/键值语义是红线）。
+2. **同源联动链路**：`setThemePref` → localStorage + data-theme + `syncThemeControls()`（设置单选回显）+ matchMedia 监听；顶栏按钮=翻转入口（显式偏好，退出 system）。设置弹窗单选**即生效**（不等「保存设置」）；保存设置只落 auto_save（+theme 报解析值，后端白名单 light|dark 内）。
+3. **toast 动画在 WAAPI**（参数可经 getAnimations 断言——smoke 无 style.css 也能测）；style.css 只留布局/类型色/降级显隐。hover 暂停=JS 计时器 + `tlAnim.pause()/play()` 同步；reduced 下时间线 JS 暂停+CSS 隐藏。**既有文案断言口径**：`#toast-container.textContent` 仍含消息文本（u32/u34 探针兼容）。
+4. **消抖弹窗倒计时**：`--dur-wipe-countdown` 经 `motionDur()` 读（禁魔法数）；倒计时是安全语义——reduced 不降级；按钮文案「确认清空（Ns）」期间 disabled；A19/u35 断言以「匹配→倒计时→解锁」为准（**勿把倒计时当成装饰动画跳过**）。
+5. **真机清空走查会真删数据**：本机数据目录可写 → u35 真机走查**真实执行成功**（目录重建）；若续作需要真实快照数据，重扫（~90s）+`POST /api/save` 即恢复（本会话已按此恢复 1 会话，u34 真实页复跑 48/48）。
+6. **smoke 页无 style.css**：CSS 层动画参数（wipe-pulse 2.4s 周期等）断言在 u35 探针（真实页 + getComputedStyle），smoke 只断 WAAPI 参数+DOM 语义——新断言新增同理。
+7. 服务：本会话验收期间 Flask 5000 / 静态 8771 持续运行；**结束已停服**（如下）。续作先查端口残留再启动；改 index.html 需重启 Flask（模板缓存；`debug=False`），改 js/css 无需。
+8. **批次三闸门已过**：下一步 U4.1（键盘矩阵全量落地——G4 专项；F23 全量键盘矩阵、todo 列表）。核对单 §3 G1/G2/G5（F06 last-browse/F07 历史下拉/N12 折叠）为 U4.x 收口事项，U4.1 时一并裁决。
 
 ## 本次会话完成内容：U3.4 对比工作台页（#/compare）
 

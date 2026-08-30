@@ -10,7 +10,7 @@
 
 import { $, api } from "./api.js";
 import { APP_STATE } from "./state.js";
-import { switchTheme } from "./theme.js";
+import { switchTheme, setThemePref, themePref, resolvedTheme, syncThemeControls } from "./theme.js"; // U3.5：三态偏好（设置弹窗/同源联动）
 import { createRouter } from "./router.js";
 import { loadGuide, bindOnboarding, showGuide } from "./components/onboarding.js";
 import { refreshOverview, bindOverview } from "./components/storage.js";
@@ -27,14 +27,16 @@ import { pollFullscan, startFullscan, saveSnapshot, setAutoSaveSetting, undoLast
 import { refreshSnapshots, getSessionsCache, setSessionsCache, applySnapshotsView, setSnapshotsActions } from "./pages/snapshots.js";
 import { renderCompare, mountCompare, unmountCompare } from "./pages/compare.js";
 import { renderSnapshots, mountSnapshots, unmountSnapshots } from "./pages/snapshots.js";
-import { bindSettings, openSettings, setDataDir, setStatusForSettingsHealth } from "./components/settings.js";
+import { bindSettings, openSettings, setDataDir, setStatusForSettingsHealth, openWipeModal } from "./components/settings.js";
 import { bindModals, openModal, closeModal } from "./components/modals.js";
 import { renderApiError } from "./components/feedback.js";
 import {
     setPaletteBuilder, bindPalette, openPalette, closePalette, isPaletteOpen, fuzzyScore,
 } from "./components/palette-cmd.js";
 
-/* 主题按钮（U1.1 临时入口：U3.1 顶栏改版时移正——现按壳级接线保留在 start()，已归位） */
+/* 主题按钮（U1.1 临时入口：U3.1 顶栏改版时移正——现按壳级接线保留在 start()，已归位）
+   U3.5：顶栏=亮/暗显式翻转（N03 太阳/月亮语义），与设置弹窗三态同源（theme.js 单一来源）；
+   翻转写入显式偏好（退出「跟随系统」），设置弹窗单选同步反映。 */
 function bindTheme() {
     const themeBtn = $("btn-theme");
     if (themeBtn) themeBtn.addEventListener("click", (ev) => switchTheme(undefined, ev));
@@ -255,6 +257,8 @@ start();
    U2.2：treemap 访问器（A12 命中断言 + 附录B 1000 块基准控制台桥）。 */
 export {
     $, APP_STATE, switchTheme,
+    /* U3.5：主题三态（设置弹窗接线 + smoke A19 断言面） */
+    setThemePref, themePref, resolvedTheme, syncThemeControls,
     renderApiError, refreshSnapshots, refreshHealth, setStatusForSettingsHealth,
     undoLastSave, renderEntries, openModal, closeModal, browsePath,
     getCurrentPath, getSessionsCache, setSessionsCache,
@@ -264,4 +268,6 @@ export {
     getBrowseHistory,
     /* U3.2：停止接口（探针与 smoke A16 断言面） */
     probeStopSupport, isStopAvailable, requestStopScan,
+    /* U3.5：清空确认弹窗（A19/探针走查入口） */
+    openWipeModal,
 };

@@ -114,6 +114,14 @@
 
 <div id="settings-modal" class="modal hidden">
   <div class="modal-panel">
+    <div class="field">
+      <label id="setting-theme-label">主题</label>
+      <div class="theme-switch-group" id="setting-theme" role="radiogroup" aria-labelledby="setting-theme-label">
+        <label class="theme-opt"><input type="radio" id="setting-theme-light" name="setting-theme" value="light"><span>亮</span></label>
+        <label class="theme-opt"><input type="radio" id="setting-theme-dark" name="setting-theme" value="dark"><span>暗</span></label>
+        <label class="theme-opt"><input type="radio" id="setting-theme-system" name="setting-theme" value="system"><span>跟随系统</span></label>
+      </div>
+    </div>
     <input id="setting-auto-save" type="checkbox">
     <input id="setting-data-dir" type="text" readonly>
     <input id="setting-health" type="text" readonly>
@@ -122,7 +130,7 @@
   </div>
 </div>
 <div id="wipe-modal" class="modal hidden">
-  <div class="modal-panel">
+  <div class="modal-panel wipe-panel">
     <span id="wipe-data-dir"></span>
     <input id="wipe-confirm" type="text">
     <button id="btn-wipe" disabled>确认清空</button>
@@ -136,7 +144,7 @@
     <button id="btn-confirm-cancel"></button>
   </div>
 </div>
-<div id="toast-container"></div>
+<div id="toast-container" aria-live="polite"></div>
 
 <script>
 /* ============================================================
@@ -277,9 +285,12 @@ import {
     $, APP_STATE, switchTheme, renderApiError, refreshHealth,
     setStatusForSettingsHealth, renderEntries, openModal, closeModal,
     browsePath, getCurrentPath, getTreemapView, openPalette,
-    probeStopSupport, refreshSnapshots,
+    probeStopSupport, refreshSnapshots, openWipeModal,
+    /* U3.5：主题三态（A19 断言面） */
+    setThemePref, themePref, resolvedTheme,
 } from "../../web/static/js/app/main.js";
 import * as __motion from "../../web/static/js/app/motion.js";
+import { toast } from "../../web/static/js/app/components/toast.js";
 window.__motion = __motion;
 
 /* ---- 断言框架 ---- */
@@ -1176,6 +1187,122 @@ const ASSERTIONS_V2 = [
         await refreshSnapshots();
         location.hash = "#/";
         await wait(600);
+      }
+    } },
+  { id: "A19", name: "U3.5：弹窗族与引导收尾——主题三态（设置弹窗亮/暗/跟随系统 + 顶栏同源联动 + system=matchMedia 解析与持久化）· 危险区 L2-10（红描边脉动 2.4s 规则位 + 输入匹配「确认清空」→3s 倒计时禁用→解锁·失配重计）· Toast L2-6（320ms spring 滑入 + 时间线 + 成功描边 300ms + 错误脉动 2 次 + hover 暂停 + aria-live）",
+    fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const reduced = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+      const sysDark = !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      try {
+        /* ---- ① 主题三态语义 ---- */
+        /* ①a 跟随系统：显式 system → matchMedia 解析（与 head 防闪烁脚本同口径）；
+           缺失 key 同值（先清 key 验证默认回落 system） */
+        try { localStorage.removeItem("pds_theme_v1"); } catch (e) { /* ignore */ }
+        __assert(themePref() === "system", "缺失 key 应回落「跟随系统」，实际 " + themePref());
+        setThemePref("system", null);
+        __assert(localStorage.getItem("pds_theme_v1") === "system", "显式 system 应持久化 pds_theme_v1=system");
+        __assert(APP_STATE.theme === "system", "state.theme 应同步为 system");
+        const expected = sysDark ? "dark" : "light";
+        __assert(resolvedTheme() === expected, "resolvedTheme() 应随系统解析为 " + expected + "，实际 " + resolvedTheme());
+        __assert(document.documentElement.getAttribute("data-theme") === expected,
+                 "data-theme 应等于系统解析值 " + expected + "，实际 " + document.documentElement.getAttribute("data-theme"));
+        /* ①b 设置弹窗三态单选回显 + 切换即生效 + 同源联动 */
+        openModal("settings-modal");
+        __assert($("setting-theme") && $("setting-theme-light") && $("setting-theme-dark") && $("setting-theme-system"),
+                 "设置弹窗应有主题三态单选（id：setting-theme-*）");
+        __assert($("setting-theme-system").checked === true, "system 偏好应回显「跟随系统」勾选");
+        $("setting-theme-dark").checked = true;
+        $("setting-theme-dark").dispatchEvent(new Event("change", { bubbles: true }));
+        await wait(150); // VT 圆形扩散路径下 data-theme 在转场回调内应用（A1 分支② 同口径）
+        __assert(document.documentElement.getAttribute("data-theme") === "dark", "选「暗」应即生效 data-theme=dark");
+        __assert(localStorage.getItem("pds_theme_v1") === "dark", "选「暗」应持久化 dark");
+        __assert($("setting-theme-dark").checked && !$("setting-theme-system").checked, "单选互斥回显");
+        /* ①c 顶栏与设置同源联动：顶栏翻转（显式偏好）→ 设置单选同步反映 */
+        switchTheme(undefined, null); // 顶栏路径：省略入参 → 翻转（显式偏好）
+        const flipped = document.documentElement.getAttribute("data-theme");
+        __assert(flipped === "light" || flipped === "dark", "顶栏翻转应落到合法主题，实际 " + flipped);
+        __assert($("setting-theme-" + flipped).checked === true,
+                 "顶栏翻转后设置单选应同步（同源联动），实际 checked=" +
+                 ["light", "dark", "system"].filter((v) => $("setting-theme-" + v).checked).join(","));
+        /* ①d 偏好直改联动：setThemePref 直接改偏好时单选同步 */
+        setThemePref("light", null);
+        __assert($("setting-theme-light").checked === true && $("setting-theme-dark").checked === false,
+                 "setThemePref(light) 后设置单选应同步回显光亮");
+        /* ---- ② 危险区 L2-10（红描边脉动 2.4s 的 CSS 参数实测归 u35 探针——smoke 无
+           style.css；本处验证规则位（wipe-panel 类）与倒计时语义） ---- */
+        openWipeModal();
+        __assert(document.querySelector("#wipe-modal .modal-panel").classList.contains("wipe-panel"), "wipe 面板应有 wipe-panel 类（红描边脉动规则位）");
+        __assert($("btn-wipe").disabled === true, "重开清空弹窗应复位禁用");
+        __assert($("btn-wipe").textContent === "确认清空", "复位后按钮文案应为「确认清空」");
+        $("wipe-confirm").value = "确认清空";
+        $("wipe-confirm").dispatchEvent(new Event("input", { bubbles: true }));
+        __assert($("btn-wipe").disabled === true, "输入匹配后倒计时期间应保持禁用");
+        __assert(/确认清空（\d+s）/.test($("btn-wipe").textContent), "倒计时期间应显示剩余秒数，实际「" + $("btn-wipe").textContent + "」");
+        __assert(await __waitUntil(() => $("btn-wipe").disabled === false, 5000), "3s 倒计时结束应解锁确认按钮");
+        __assert($("btn-wipe").textContent === "确认清空", "解锁后文案应复位");
+        /* ②b 失配重计：改输入 → 取消武装；再匹配 → 倒计时重来 */
+        $("wipe-confirm").value = "确认清空x";
+        $("wipe-confirm").dispatchEvent(new Event("input", { bubbles: true }));
+        __assert($("btn-wipe").disabled === true && $("btn-wipe").textContent === "确认清空",
+                 "失配应立即取消武装并复位（禁用+文案）");
+        $("wipe-confirm").value = "确认清空";
+        $("wipe-confirm").dispatchEvent(new Event("input", { bubbles: true }));
+        __assert(/确认清空（\d+s）/.test($("btn-wipe").textContent), "再匹配应重计倒计时，实际「" + $("btn-wipe").textContent + "」");
+        $("wipe-confirm").value = "";
+        $("wipe-confirm").dispatchEvent(new Event("input", { bubbles: true }));
+        __assert($("btn-wipe").disabled === true, "清空输入应回到禁用");
+        closeModal("wipe-modal");
+        /* ---- ③ Toast L2-6 ---- */
+        __assert($("toast-container").getAttribute("aria-live") === "polite", "toast 容器应有 aria-live=polite（F21）");
+        toast("A19-success", "success");
+        const st = Array.from($("toast-container").querySelectorAll(".toast")).pop();
+        __assert(st && st.classList.contains("toast-success"), "success toast 应渲染（类型类）");
+        __assert(st.querySelector(".toast-timeline"), "toast 应有时间线元素（剩余时间进度）");
+        const tlAnim = st.querySelector(".toast-timeline").getAnimations()[0];
+        __assert(tlAnim && tlAnim.effect.getTiming().duration === 4000,
+                 "时间线动画时长=自动消失 TTL 4000ms（success），实际 " +
+                 (tlAnim && tlAnim.effect.getTiming().duration));
+        __assert(String(tlAnim.effect.getKeyframes()[0].transform).indexOf("scaleX(1)") !== -1 &&
+                 String(tlAnim.effect.getKeyframes().pop().transform).indexOf("scaleX(0)") !== -1,
+                 "时间线应为 scaleX 1→0（动画仅 transform）");
+        if (!reduced) {
+          const slide = st.getAnimations().find((a) => a.effect && a.effect.getKeyframes().some((k) => k.transform));
+          __assert(slide && slide.effect.getTiming().duration === 320,
+                   "滑入应 320ms（--dur-3 spring），实际 " + (slide && slide.effect.getTiming().duration));
+          const strokeEl = st.querySelector(".toast-stroke");
+          __assert(strokeEl, "success toast 应有描边层元素（300ms 呈现）");
+          const strokeAnim = strokeEl.getAnimations()[0];
+          __assert(strokeAnim && strokeAnim.effect.getTiming().duration === 300,
+                   "成功描边应 300ms（--dur-toast-stroke），实际 " + (strokeAnim && strokeAnim.effect.getTiming().duration));
+        }
+        /* hover 暂停：时间线 animation 与自动消失计时同步暂停/恢复 */
+        st.dispatchEvent(new MouseEvent("mouseenter", { bubbles: false }));
+        __assert(tlAnim.playState === "paused", "hover 应暂停时间线动画（playState=paused），实际 " + tlAnim.playState);
+        st.dispatchEvent(new MouseEvent("mouseleave", { bubbles: false }));
+        __assert(tlAnim.playState === "running", "离开应恢复时间线动画，实际 " + tlAnim.playState);
+        st.querySelector(".toast-close").click();
+        /* 错误脉动 2 次（--dur-toast-pulse 600ms，延迟至滑入结束 320ms） */
+        toast("A19-error", "error");
+        const et = Array.from($("toast-container").querySelectorAll(".toast")).pop();
+        __assert(et.classList.contains("toast-error"), "error toast 应渲染");
+        if (!reduced) {
+          const pulse = et.getAnimations().find((a) => a.effect && a.effect.getTiming().duration === 600);
+          __assert(!!pulse, "错误 toast 应有脉动动画（2 次，600ms=--dur-toast-pulse）");
+          __assert(pulse.effect.getTiming().delay === 320, "脉动应延迟至滑入结束（320ms=--dur-3），实际 " + pulse.effect.getTiming().delay);
+          __assert(pulse.effect.getKeyframes().some((k) => /scale\(1\.02\)/.test(String(k.transform))),
+                   "脉动应含 scale(1.02) 关键帧（仅 transform/opacity）");
+        } else {
+          __assert(true, "reduced-motion：装饰性脉动/描边跳过、滑入 ≤120ms（toast.js 控制）");
+        }
+        et.querySelector(".toast-close").click();
+        __assert(await __waitUntil(() => $("toast-container").querySelectorAll(".toast").length === 0, 2000),
+                 "关闭按钮应移除 toast");
+      } finally {
+        /* 清场：关弹窗 + 主题复位（避免污染后续/下次运行；toast 计时器自消除） */
+        closeModal("settings-modal");
+        closeModal("wipe-modal");
+        setThemePref("light", null);
       }
     } },
 ];

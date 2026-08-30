@@ -13,7 +13,7 @@
 
 export const APP_STATE = {
     /* §3.2 目标形状（U2.1 起） */
-    theme: "light",                              // "light"|"dark"; 持久化 pds_theme_v1（index.html head 解析，U3.x 设置三态接线）
+    theme: "light",                              // U3.5 起为三态偏好 "light"|"dark"|"system"（缺 key=system）；持久化 pds_theme_v1（index.html head 解析；theme.js 维护）
     route: "/",                                  // 由 router 维护；"/"|"/compare"|"/snapshots"（未知回落 "/"）
     health: { state: "checking", detail: null }, // 语义对齐：U2.0 旧键 health 为载荷对象（见下），本命名空间 U3.1 徽章 popover 启用
     browse: { root: "D:\\", path: "D:\\", parent: null, history: [], seq: 0 }, // U2.3 面包屑联动/迷你条带启用（现由 workspace 模块级状态承载）

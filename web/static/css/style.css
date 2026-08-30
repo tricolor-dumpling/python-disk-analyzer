@@ -753,11 +753,35 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   border-radius:var(--radius-card);box-shadow:var(--shadow-lg);animation:modal-in .18s ease;
 }
 .modal-panel-sm{width:420px}
+/* U3.5 [L2-10] 清空确认弹窗红描边脉动（2.4s --dur-breathe；仅 opacity——动画红线不破；
+   ::before 独立于 modal-in 入场动画；reduced 由全局降级截断为静态红描边=危险提示保留） */
+.wipe-panel{position:relative}
+.wipe-panel::before{
+  content:"";position:absolute;inset:0;border:2px solid var(--danger);
+  border-radius:var(--radius-card);pointer-events:none;opacity:1;
+  animation:wipe-pulse var(--dur-breathe) ease-in-out infinite;
+}
+@keyframes wipe-pulse{0%,100%{opacity:.25}50%{opacity:.9}}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0}
 .modal-head h2{margin:0;font-size:var(--fs-lg)}
 .modal-body{padding:10px 20px}
 .modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px 18px}
 .divider{height:1px;background:var(--border);margin:16px 0 4px}
+
+/* U3.5 [F03/N03] 设置弹窗主题三态：分段单选（与顶栏按钮同源 state.theme；
+   选择即生效；checked=主色高亮，焦点环经 input:focus-visible 递达 span） */
+.theme-switch-group{display:flex;gap:8px}
+.theme-opt{position:relative;flex:1;min-width:0;cursor:pointer}
+.theme-opt input{position:absolute;opacity:0;pointer-events:none}
+.theme-opt span{
+  display:block;padding:8px 6px;text-align:center;border:1px solid var(--border);
+  border-radius:var(--radius-ctl);background:var(--card);color:var(--text-2);
+  font-size:var(--fs-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:background var(--dur-1) ease,border-color var(--dur-1) ease,color var(--dur-1) ease;
+}
+.theme-opt:hover span{border-color:var(--border-strong)}
+.theme-opt input:checked + span{background:var(--primary-soft);border-color:var(--primary);color:var(--primary);font-weight:600}
+.theme-opt input:focus-visible + span{outline:2px solid var(--primary);outline-offset:2px}
 
 .toast-container{
   position:fixed;top:16px;right:16px;z-index:1100;display:flex;flex-direction:column;gap:10px;
@@ -767,9 +791,37 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   display:flex;gap:10px;padding:12px 14px;background:var(--card);border:1px solid var(--border);
   border-left:4px solid var(--primary);border-radius:var(--radius-md);
   box-shadow:var(--shadow-md);font-size:var(--fs-sm);
+  position:relative;overflow:hidden; /* U3.5：时间线/描边伪元素的裁切容器 */
 }
 .toast-text{flex:1}
 .toast-close{border:0;background:transparent;color:var(--faint);cursor:pointer}
+
+/* U3.5 [L2-6·F21] Toast 升级（驱动在 toast.js/WAAPI——参数可经 getAnimations
+   在 smoke 断言；本分区仅布局与配色：类型色边 / 时间线 / 成功描边层 /
+   reduced 显隐。动画仅 transform/opacity；JS 侧 token 读时长） */
+.toast-success{border-left-color:var(--success)}
+.toast-warn{border-left-color:var(--warning)}
+.toast-error{border-left-color:var(--danger)}
+.toast-info{border-left-color:var(--primary)}
+.toast-success .toast-timeline{background:var(--success)}
+.toast-warn .toast-timeline{background:var(--warning)}
+.toast-error .toast-timeline{background:var(--danger)}
+.toast-info .toast-timeline{background:var(--primary)}
+/* 时间线（自动消失进度条；scaleX 1→0 动画由 toast.js 驱动，时长=TTL 内联） */
+.toast-timeline{
+  position:absolute;left:0;right:0;bottom:0;height:3px;
+  background:var(--primary);opacity:.85;transform-origin:left;
+}
+/* 成功描边层（300ms opacity 呈现由 toast.js 驱动；reduced 时 JS 跳过=保持透明） */
+.toast-stroke{
+  position:absolute;inset:0;border:2px solid var(--success);
+  border-radius:var(--radius-md);pointer-events:none;opacity:0;
+}
+/* reduced 降级：时间线隐藏（装饰性进度动画跳过；功能性保留=toast 仍出现/自动
+   消失，滑入 ≤120ms 由 toast.js 控制） */
+@media (prefers-reduced-motion:reduce){
+  .toast-timeline{opacity:0}
+}
 
 /* [N02] 命令面板（U3.1 装配；全路由可用；glass 居中 640px；
    开合 80ms（--dur-palette-open——验收「面板打开 <100ms」专用 token）；
@@ -852,7 +904,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* 未就绪/错误态徽章呼吸（就绪 badge-ok 静止；P12·W3.4 DEF-027） */
 @keyframes badge-breathe{0%,100%{opacity:1}50%{opacity:.72}}
 .badge:hover{filter:brightness(.95)}
-.badge:not(.badge-ok){animation:badge-breathe 2.4s ease-in-out infinite}
+.badge:not(.badge-ok){animation:badge-breathe var(--dur-breathe) ease-in-out infinite}
 
 /* 全局降级：系统「减弱动态效果」时循环动画近乎静止（§3.5 降级总表） */
 @media (prefers-reduced-motion:reduce){
