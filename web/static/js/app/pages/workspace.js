@@ -241,13 +241,20 @@ function buildTiles(data) {
     return tiles;
 }
 
-/* ---- L3-7 迷你条带数据源：上级 browse 响应缓存（path → tiles，LRU 16） ---- */
+/* ---- L3-7 迷你条带数据源：上级 browse 响应缓存（path → {tiles, source, source_at}，LRU 16） ----
+   阶段B（B-13/B-20）：缓存条目一并落地 source 与时间戳——任何浏览数据
+   （含缓存命中回灌）都携带来源，禁止靠字段缺失猜测来源（修订清单 #4）。 */
 const BROWSES_CACHE_MAX = 16;
 const browsesCache = new Map();
-function cacheTiles(path, tiles) {
+function cacheTiles(path, tiles, meta) {
     if (!path || !tiles) return;
+    const entry = { tiles: tiles };
+    if (meta && meta.source) {
+        entry.source = meta.source;
+        entry.source_at = meta.source_at || "";
+    }
     if (browsesCache.has(path)) browsesCache.delete(path);
-    browsesCache.set(path, tiles);
+    browsesCache.set(path, entry);
     while (browsesCache.size > BROWSES_CACHE_MAX) {
         browsesCache.delete(browsesCache.keys().next().value);
     }
@@ -292,7 +299,7 @@ function ensureTreemap() {
 function renderTreemap(data, mode) {
     const tiles = buildTiles(data);
     APP_STATE.treemap.tiles = tiles;
-    cacheTiles(String(data.root || ""), tiles); // 条带/反向转场缓存
+    cacheTiles(String(data.root || ""), tiles, { source: data.source, source_at: data.source_at }); // 条带/反向转场缓存（B-13：带 source 落地）
     const view = ensureTreemap();
     if (view) view.setTiles(tiles, { mode: mode || "entry" });
     updateTreemapA11y(data); // U4.1：aria-label 摘要（「当前目录 X，共 N 项，最大子项 …」）
@@ -334,7 +341,8 @@ function renderStrip() {
         slot.innerHTML = "";
         return;
     }
-    const parentTiles = browsesCache.get(String(browseParent));
+    const parentEntry = browsesCache.get(String(browseParent));
+    const parentTiles = parentEntry ? parentEntry.tiles : null;
     if (!parentTiles || !parentTiles.length) {
         slot.setAttribute("hidden", "");
         slot.innerHTML = "";
@@ -485,7 +493,8 @@ function goUp() {
     if (APP_STATE.view.mode === "treemap") {
         const view = getTreemapView();
         if (view && !view.isTransitioning()) {
-            const parentTiles = browsesCache.get(String(browseParent));
+            const parentEntry = browsesCache.get(String(browseParent));
+            const parentTiles = parentEntry ? parentEntry.tiles : null;
             const childRect = parentTiles && parentTiles.length
                 ? view.computeLayout(parentTiles).find((r) => r.key === getCurrentPath())
                 : null;
@@ -524,7 +533,7 @@ async function doLiveRefresh() {
         }
         APP_STATE.lastBrowseData = data;
         const tiles = buildTiles(data);
-        cacheTiles(String(data.root || currentPath), tiles);
+        cacheTiles(String(data.root || currentPath), tiles, { source: data.source, source_at: data.source_at });
         APP_STATE.treemap.tiles = tiles;
         if (APP_STATE.view.mode === "treemap" && $("treemap-wrap") && !$("treemap-wrap").hasAttribute("hidden")) {
             ensureTreemap().setTiles(tiles, { mode: "reflow" }); // L3-2：lerp 300ms + 新块光晕
@@ -578,6 +587,52 @@ export function renderEntries(data, opts) {
 /* P12·W2.8（N-1）：浏览竞态防护——每次 browsePath 取自增令牌，迟到响应丢弃 */
 let browseSeq = 0;
 
+/* 阶段B（B-13/B-14）：缓存徽章按后端明确 source 显示——禁止靠字段缺失猜测。
+   - index   →「来自全量扫描索引（完成于 …）」
+   - sdk     → 不显示缓存徽章（真实 SDK 直扫，无缓存语义；隐藏徽章）
+   - scanning→「扫描中」
+   - 旧响应无 source（后端旧版兼容）：回退既有 scanning 缺失逻辑（双向容忍） */
+function renderCacheBadge(data) {
+    const badge = $("browse-cache-badge");
+    if (!badge) return;
+    const src = data && data.source ? String(data.source) : "";
+    if (src === "sdk") {
+        badge.classList.add("hidden");
+        return;
+    }
+    let text = "";
+    if (src === "index") {
+        const at = data.source_at
+            ? "（完成于 " + String(data.source_at).replace("T", " ").replace(/:\d+$/, "") + "）"
+            : "";
+        text = "来自全量扫描索引" + at;
+        badge.classList.toggle("notice-info", true);
+    } else if (src === "scanning") {
+        text = "扫描中";
+        badge.classList.toggle("notice-warn", true);
+        badge.classList.toggle("notice-info", false);
+    } else {
+        // 旧响应兼容：仅 data.scanning 存在时隐藏（原逻辑）；否则视为 index
+        if (data && data.scanning) {
+            badge.classList.add("hidden");
+            return;
+        }
+        text = "来自内存缓存（无需重新扫描）";
+        badge.classList.toggle("notice-info", true);
+    }
+    badge.classList.remove("hidden");
+    badge.textContent = text;
+    badge.classList.remove("cache-badge-in");
+    void badge.offsetWidth; // 强制重排，重播入场动画
+    badge.classList.add("cache-badge-in");
+}
+
+/* L2-9 缓存徽标：显示时 translateX(-8px)+fade 200ms（--dur-2；重触发 = 重播动画）
+   阶段B：改为按 data.source 显隐/文案（B-14），回灌（restoreWorkspaceView）复用它 */
+export function applyBrowseBadgeFromCache(data) {
+    renderCacheBadge(data); // 回灌（restoreWorkspaceView/applyScanView 数据）复用同一渲染器
+}
+
 export async function browsePath(path, quiet) {
     const seq = ++browseSeq;
     const target = normalizeRoot(path) || currentRoot;
@@ -606,18 +661,8 @@ export async function browsePath(path, quiet) {
             localStorage.setItem("pds_last_browse_v1", JSON.stringify({ root: currentRoot, path: currentPath }));
         } catch (e) { /* 存储不可用：静默（不影响浏览） */ }
         $("browse-root").value = currentRoot;
-        /* L2-9 缓存徽标：显示时 translateX(-8px)+fade 200ms（--dur-2；重触发 = 重播动画） */
-        const badge = $("browse-cache-badge");
-        if (badge) {
-            if (data.scanning) {
-                badge.classList.add("hidden");
-            } else {
-                badge.classList.remove("hidden");
-                badge.classList.remove("cache-badge-in");
-                void badge.offsetWidth; // 强制重排，重播入场动画
-                badge.classList.add("cache-badge-in");
-            }
-        }
+        /* 阶段B（B-13/B-14）：缓存徽章按后端明确 source 显示（renderCacheBadge） */
+        renderCacheBadge(data);
         if (data.scanning) {
             setStatus("browse-status", "warn", data.message || "该盘正在扫描中，完成后即可即时浏览");
         }
@@ -998,6 +1043,8 @@ export function restoreWorkspaceView() {
     const rootInput = $("browse-root");
     if (rootInput) rootInput.value = getCurrentRoot();
     renderBreadcrumb(getCurrentPath(), browseParent);
+    // 阶段B（B-13/B-14）：回灌同样按 source 恢复缓存徽章（不重发请求）
+    renderCacheBadge(APP_STATE.lastBrowseData);
     if (APP_STATE.view.mode === "treemap") renderTreemap(APP_STATE.lastBrowseData, "none");
     else renderEntries(APP_STATE.lastBrowseData, { animate: false });
     renderStrip();

@@ -23,7 +23,7 @@
      恢复）、act-copy-cmp 复制路径、红线 #5 esc 全量转义、#11 对比行零请求。
    ============================================================ */
 
-import { $, postJson, humanBytes, signedBytes, esc } from "../api.js";
+import { $, api, postJson, humanBytes, signedBytes, esc } from "../api.js";
 import { ICONS } from "../icons.js";
 import { APP_STATE } from "../state.js";
 import { setStatus } from "../components/statusbar.js";
@@ -158,6 +158,23 @@ function showLoading() {
     if (empty) empty.toggleAttribute("hidden", true);
     if (loading) loading.toggleAttribute("hidden", false);
     if (result) result.toggleAttribute("hidden", true);
+    // 阶段B（B-2）：loading 骨架屏附加取消按钮与已用时
+    const cancelBtn = $("btn-compare-cancel");
+    if (cancelBtn) cancelBtn.classList.remove("hidden");
+    const elapsed = $("compare-loading-elapsed");
+    if (elapsed) {
+        elapsed.hidden = false;
+        elapsed.textContent = "已用时 0 秒";
+    }
+}
+
+function hideLoading() {
+    const loading = $("compare-loading");
+    if (loading) loading.toggleAttribute("hidden", true);
+    const cancelBtn = $("btn-compare-cancel");
+    if (cancelBtn) cancelBtn.classList.add("hidden");
+    const elapsed = $("compare-loading-elapsed");
+    if (elapsed) elapsed.hidden = true;
 }
 
 function showResult() {
@@ -169,10 +186,54 @@ function showResult() {
     if (result) result.toggleAttribute("hidden", false);
 }
 
-/* ================= 对比执行（W2.4/W2.13 语义保留；页面无关可跨页触发） ================= */
+/* ================= 对比执行（W2.4/W2.13 语义保留；B-1/B-2 异步化+超时收敛） ================= */
 
 let scanPending = false; // W2.4：409 时保持按钮禁用直到扫描完成（pds:scan 完成分支恢复）
 let scanRetries = 0;     // U3.4：409 锁竞争自动重试上限（启动期 浏览/索引 占用为瞬态）
+
+/* ---- 阶段B（B-1/B-2）：对比请求生命周期 ---- */
+let compareAbort = null;      // AbortController（30s 超时 + 用户取消共用）
+let compareNow = 0;           // 计时器句柄（已用时刷新）
+let compareJobTimer = null;   // /api/compare/status 轮询句柄
+let compareJobId = null;      // 202 异步任务 job_id
+let compareCancelled = false; // B-2：用户/超时取消标志（catch 识别终态）
+const COMPARE_TIMEOUT_MS = 30000; // B-2：30s 用户可感知阈值
+const COMPARE_STATUS_POLL_MS = 1500; // 202 任务轮询间隔
+let cancelEscBound = false; // B-2：Esc 取消的 document 级监听只绑一次（U1.3 纪律）
+
+function stopCompareTimers() {
+    if (compareNow) { clearInterval(compareNow); compareNow = 0; }
+    if (compareJobTimer) { clearInterval(compareJobTimer); compareJobTimer = 0; }
+}
+
+function startElapsedTick() {
+    const t0 = Date.now();
+    const el = $("compare-loading-elapsed");
+    if (el) el.textContent = "已用时 0 秒";
+    if (compareNow) clearInterval(compareNow);
+    compareNow = setInterval(() => {
+        const s = Math.floor((Date.now() - t0) / 1000);
+        const e = $("compare-loading-elapsed");
+        if (e) e.textContent = "已用时 " + s + " 秒";
+    }, 1000);
+}
+
+function setCompareBusyText(text) {
+    setStatus("compare-status", "busy", text);
+}
+
+/* 取消当前对比（Esc/取消按钮/超时共用）：中止 fetch + 停止轮询 + 按钮恢复 */
+function cancelCompare(restoreBtn) {
+    stopCompareTimers();
+    if (compareAbort) {
+        try { compareAbort.abort(); } catch (e) { /* ignore */ }
+        compareAbort = null;
+    }
+    compareCancelled = true;
+    compareJobId = null;
+    const btn = $("btn-compare");
+    if (btn && restoreBtn !== false) btn.disabled = false;
+}
 
 /* pds:scan 订阅（模块级一次——同 snapshots.js ensureScanListener 模式：
    DOM 空守卫 + 扫描中禁用/完成恢复（W2.4 语义镜像）；锁释放后自动重试一次）
@@ -198,8 +259,48 @@ function ensureScanListener() {
     });
 }
 
+/* 202 → 轮询 /api/compare/status 直到 done/error；返回 report 或抛错 */
+function pollCompareJob(jobId, jobRoot, jobBaseline) {
+    return new Promise((resolve, reject) => {
+        let polls = 0;
+        const maxPolls = Math.ceil(COMPARE_TIMEOUT_MS / COMPARE_STATUS_POLL_MS);
+        const tick = async () => {
+            polls += 1;
+            if (polls > maxPolls) {
+                reject(new Error("对比超时，可稍后重试"));
+                return;
+            }
+            let data;
+            try {
+                data = await api("/api/compare/status?job_id=" + encodeURIComponent(jobId));
+            } catch (e) {
+                reject(e);
+                return;
+            }
+            if (data.status === "done") {
+                resolve(data.report);
+                return;
+            }
+            if (data.status === "error") {
+                const err = new Error(data.error || "对比失败");
+                if (data.code) err.code = data.code;
+                reject(err);
+                return;
+            }
+            compareJobTimer = setTimeout(tick, COMPARE_STATUS_POLL_MS);
+        };
+        compareJobTimer = setTimeout(tick, COMPARE_STATUS_POLL_MS);
+        /* 超时兜底（AbortController 45s 硬上限，防轮询僵尸） */
+        setTimeout(() => {
+            if (compareJobTimer) { clearTimeout(compareJobTimer); compareJobTimer = 0; }
+            reject(new Error("对比超时，可稍后重试"));
+        }, COMPARE_TIMEOUT_MS + 15000);
+    });
+}
+
 /* 执行对比（opts={baseline,root,autoretry}；页内按钮直读表单，跨页调用默认取 state 缓存） */
 export async function compareSnapshots(opts, allowOtherMachine) {
+    cancelCompare(false); // 上一次对比仍在途则先取消（幂等）
     if (!(opts && opts.autoretry)) scanRetries = 0; // 用户/挂载发起 → 重试计数复位
     const input = $("compare-baseline");
     const btn = $("btn-compare");
@@ -225,17 +326,55 @@ export async function compareSnapshots(opts, allowOtherMachine) {
     if (btn) btn.disabled = true;
     setStatus("compare-status", "busy", "正在对比，请稍候…");
     showLoading();
+    startElapsedTick();
     scanPending = false;
+    compareCancelled = false; // 新请求复位（取消标志只属于上一次对比）
+    compareAbort = new AbortController();
+    /* B-2：30s 超时（AbortController）——超时 →「对比超时，可稍后重试/Esc 取消」+ 按钮恢复 */
+    const timeoutHandle = setTimeout(() => {
+        try { if (compareAbort) compareAbort.abort(); } catch (e) { /* ignore */ }
+    }, COMPARE_TIMEOUT_MS);
     try {
         const data = await postJson("/api/compare", {
             root: root,
             baseline: baseline,
             allow_other_machine: !!allowOtherMachine, // P12·W2.13 二次提交放行
-        });
+        }, { signal: compareAbort.signal });
+        /* B-1：202 + {job_id, status:"scanning"} → 轮询 /api/compare/status */
+        if (data && data.job_id && (data.status === "scanning" || data.status === "queued")) {
+            compareJobId = data.job_id;
+            setCompareBusyText("后台对比扫描进行中（可稍候自动完成，Esc 取消）…");
+            const report = await pollCompareJob(data.job_id, root, baseline);
+            if (compareCancelled || (compareAbort && compareAbort.signal.aborted)) return; // 已被取消/超时
+            scanRetries = 0;
+            renderReport(report, root, baseline);
+            if (btn) btn.disabled = false;
+            stopCompareTimers();
+            hideLoading();
+            return;
+        }
+        /* 同步 report（缓存命中或后端未启用异步）：既有路径 */
         scanRetries = 0; // 成功 = 锁竞争已解除（重试计数复位）
         renderReport(data.report, root, baseline);
         if (btn) btn.disabled = false;
+        stopCompareTimers();
+        hideLoading();
     } catch (e) {
+        clearTimeout(timeoutHandle);
+        stopCompareTimers();
+        hideLoading(); // 保证 loading 收敛（B-2：骨架屏不永久存在）
+        if (compareCancelled) {
+            // 用户主动取消（取消按钮/Esc）
+            setStatus("compare-status", "warn", "对比已取消");
+            if (btn) btn.disabled = false;
+            return;
+        }
+        if (compareAbort && compareAbort.signal.aborted) {
+            // 30s 超时：AbortError
+            setStatus("compare-status", "warn", "对比超时，可稍后重试（Esc 取消）");
+            if (btn) btn.disabled = false;
+            return;
+        }
         // P12·W2.13：异机基线 → 红字确认后二次提交携带 allow 字段
         if (e && e.code === "machine_mismatch") {
             const ok = await confirmDialog({
@@ -258,7 +397,15 @@ export async function compareSnapshots(opts, allowOtherMachine) {
             showEmpty();
             setStatus("compare-status", "warn", "对比暂不可用：扫描或索引占用中，完成后将自动重试（或稍后手动点击）");
         } else {
-            setStatus("compare-status", "err", e.message);
+            /* B-2：500/超时/网络错误终态文案区分 */
+            const msg = (e.message || "") + "";
+            if (msg.indexOf("对比超时") !== -1) {
+                setStatus("compare-status", "err", "对比超时，可稍后重试（Esc 取消）");
+            } else if (msg.indexOf("500") !== -1 || /基线快照加载失败/.test(msg)) {
+                setStatus("compare-status", "err", "对比失败（服务器错误）：" + msg);
+            } else {
+                setStatus("compare-status", "err", msg);
+            }
             showEmpty(); // 结果区隐藏（保持旧卡行为：错误态不残留旧结果）
             if (btn) btn.disabled = false;
         }
@@ -475,6 +622,28 @@ function bindComparePage() {
     $("compare-baseline").addEventListener("keydown", (ev) => {
         if (ev.key === "Enter") compareSnapshots();
     });
+    // 阶段B（B-2）：loading 骨架屏取消按钮——中止在途对比并恢复按钮
+    const cancelBtn = $("btn-compare-cancel");
+    if (cancelBtn) cancelBtn.addEventListener("click", () => {
+        cancelCompare();
+        setStatus("compare-status", "warn", "对比已取消");
+        showEmpty();
+        hideLoading();
+    });
+    // 阶段B（B-2）：Esc 取消在途对比（弹窗栈优先——红线 #9；document 级只绑一次）
+    if (!cancelEscBound) {
+        cancelEscBound = true;
+        document.addEventListener("keydown", (ev) => {
+            if (ev.key !== "Escape") return;
+            if (document.querySelector(".modal:not(.hidden)")) return;
+            if (compareAbort || compareJobId) {
+                cancelCompare();
+                setStatus("compare-status", "warn", "对比已取消（Esc）");
+                showEmpty();
+                hideLoading();
+            }
+        });
+    }
     // 基线输入变化 → 回写 state（切页不丢）+ 目标随同盘符联动（只读展示）
     $("compare-baseline").addEventListener("input", () => {
         const b = $("compare-baseline").value.trim();
@@ -544,7 +713,9 @@ const COMPARE_PAGE_HTML =
     '<div class="skel-row"><span class="skel-block skel-name"></span><span class="skel-bar skel-block"></span><span class="skel-block skel-size"></span></div>' +
     '<div class="skel-row"><span class="skel-block skel-name"></span><span class="skel-bar skel-block"></span><span class="skel-block skel-size"></span></div>' +
     "</div>" +
-    '<span class="muted">正在对比，请稍候…</span></div>' +
+    '<span class="muted">正在对比，请稍候…</span>' +
+    ' <span id="compare-loading-elapsed" class="muted scan-elapsed" hidden></span>' +
+    ' <button id="btn-compare-cancel" class="btn btn-sm hidden" type="button">取消</button></div>' +
     '<div id="compare-result" class="compare-result" hidden>' +
     '<div id="compare-summary" class="compare-summary-row" role="group" aria-label="对比摘要（总变化/最大增长/可释放）"></div>' +
     '<div id="compare-diverge" class="compare-diverge" role="group" aria-label="红绿发散条形图（增长向左红/缩减向右绿）"></div>' +

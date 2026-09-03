@@ -31,11 +31,12 @@ export async function api(url, options) {
     return data;
 }
 
-export function postJson(url, payload) {
+export function postJson(url, payload, options) {
     return api(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload || {}),
+        ...(options || {}), // additive：透传 signal 等（B-2 AbortController 超时/取消）
     });
 }
 
