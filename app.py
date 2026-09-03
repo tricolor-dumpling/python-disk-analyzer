@@ -714,15 +714,16 @@ def api_compare():
     baseline_path = data.get("baseline")
     if not raw_root or not baseline_path:
         return _json_error("缺少 root 或 baseline 参数")
-    # 阶段B（B-1 ④）：baseline 前置校验——必须命中快照文件命名（.snap.gz 后缀）
-    # 且为文件，否则 400「基线不是快照文件」（目录/任意文件不再落入 500）。
+    # 阶段B（B-1 ④）：baseline 前置校验——先报「不存在」（沿用原语义），
+    # 再校验必须是快照文件（.snap.gz 后缀 + 非目录），否则 400「基线不是快照文件」
+    # （目录/任意文件不再落入 500）。
     baseline_file = Path(baseline_path)
+    if not baseline_file.exists():
+        return _json_error(f"基线快照不存在: {baseline_file}")
     if baseline_file.is_dir() or not baseline_file.is_file():
         return _json_error(f"基线不是快照文件: {baseline_file}", status=400)
     if not str(baseline_file.name).endswith(".snap.gz"):
         return _json_error(f"基线不是快照文件: {baseline_file}", status=400)
-    if not baseline_file.exists():
-        return _json_error(f"基线快照不存在: {baseline_file}")
 
     if fullscan.is_running():
         return _json_error(
