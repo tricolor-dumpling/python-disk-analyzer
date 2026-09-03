@@ -298,6 +298,7 @@ import {
     /* U3.5：主题三态（A19 断言面） */
     setThemePref, themePref, resolvedTheme,
 } from "../../web/static/js/app/main.js";
+import { pollFullscan } from "../../web/static/js/app/components/scan.js"; // 阶段B：A16 复位显式同步状态（B-17 空闲轮询 6s）
 import * as __motion from "../../web/static/js/app/motion.js";
 import { toast } from "../../web/static/js/app/components/toast.js";
 import { isTypingEvent } from "../../web/static/js/app/keys.js"; // U4.1：A20 共享守卫直断言
@@ -922,7 +923,7 @@ const ASSERTIONS_V2 = [
         /* 恢复：OPTIONS→200 → 停止按钮在下次扫描中出现 */
         delete __smoke.routes["OPTIONS /api/fullscan/stop"];
         __assert(await probeStopSupport() === true, "OPTIONS 200 时应探测为支持");
-        await wait(1100); // 等待 1s 轮询链下一拍按新探测值重渲染（扫描仍 running）
+        await wait(2200); // 阶段B（B-17）：扫描中轮询 2s/拍——等待下一拍按新探测值重渲染（扫描仍 running）
         __assert(await __waitUntil(() => !$("btn-stop-scan").hasAttribute("hidden"), 3000),
                  "探测恢复后扫描中应显示停止按钮");
         /* ② 扫描中态装备：开始按钮变停止、计时器、chips 三态 */
@@ -955,12 +956,15 @@ const ASSERTIONS_V2 = [
         __assert(chips2[1].classList.contains("chip-pending"), "中止态未完成盘应为灰待办（chip-pending）");
         __assert($("scan-check").hasAttribute("hidden"), "中止态不得显示完成对勾");
       } finally {
+        /* 复位全局状态：空闲态——必须先恢复全局 fetch 桩（scripted 只有
+           RUNNING/ABORTED 两态），再 pollFullscan 显式拉 idle（B-17 空闲轮询
+           6s，不能依赖短等待）。 */
         window.fetch = realFetch;
         abortedFlag = false;
-        /* 复位全局状态：空闲态（中止不留运行链——轮询链已在 running:false 时自然终止） */
         delete __smoke.routes["OPTIONS /api/fullscan/stop"];
         __smoke.routes["GET /api/fullscan/status"] = SAMPLES.fullscanStatusIdle;
-        await wait(1200);
+        await pollFullscan();
+        await wait(200);
       }
     } },
   { id: "A17", name: "U3.3：快照管理页——页头装配（创建/撤销）· 趋势卡×2 降级差值卡（▲/▼+百分比+无折线）· 基线选取（≤24h/(24h,7d]）· 点击预填跳转 · 跳过原因 tooltip（红线#7）· 逐盘对比预填 · 撤销确认流",

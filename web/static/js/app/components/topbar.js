@@ -58,7 +58,8 @@ export async function refreshHealth() {
             }
             $("health-text").textContent = text;
             badge.title = title;
-            badge.className = "badge badge-warn"; // busy ≠ 未就绪：保持中性徽章（不降级 ok）
+            /* busy ≠ 未就绪（RT-02 / A8 红线）：busy 分支绝不降级徽章 class——
+               保持既有 class 原状（ready 分支才置 ok；非 busy 未就绪才置 warn） */
         } else {
             badge.className = "badge badge-warn";
             $("health-text").textContent = data.message || "Everything 未就绪";
