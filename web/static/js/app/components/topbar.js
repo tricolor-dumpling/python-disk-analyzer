@@ -33,8 +33,32 @@ export async function refreshHealth() {
             $("health-text").textContent = "已就绪·可开始扫描"; // U3.1：N11 文案统一
             badge.title = data.dll ? "Everything DLL：" + data.dll : "";
         } else if (data.busy) {
-            $("health-text").textContent = "扫描中…";
-            badge.title = "扫描中：" + (data.reason || "scanning");
+            /* 阶段B（B-18）：busy 文案按 lock_holder 细分——全量扫描进行中（x/y 盘）
+               可跳转扫描卡；对比/浏览占用显示占用方名称。busy ≠ 未就绪（RT-02，
+               ready/busy 语义零变更，仅文案细化）。 */
+            const holder = data.lock_holder || "";
+            const since = data.lock_since ? "（" + String(data.lock_since).replace("T", " ").replace(/:\d+$/, "") + " 起）" : "";
+            let text = "扫描中…";
+            let title = "扫描中：" + (data.reason || "scanning");
+            if (holder === "fullscan") {
+                const st = APP_STATE.scan || {};
+                text = "全量扫描进行中" + (Number.isFinite(Number(st.progress_pct))
+                    ? "（" + Number(st.done || 0) + "/" + (Number(st.roots && st.roots.length) || 0) + " 盘）"
+                    : "");
+                title = "正在全量扫描" + since + "，点击查看进度";
+            } else if (holder === "compare") {
+                text = "对比占用中";
+                title = "对比正在后台扫描" + since;
+            } else if (holder === "browse") {
+                text = "浏览扫描占用中";
+                title = "浏览正在直扫" + since;
+            } else if (holder) {
+                text = holder + " 占用中";
+                title = holder + " 正在使用扫描引擎" + since;
+            }
+            $("health-text").textContent = text;
+            badge.title = title;
+            badge.className = "badge badge-warn"; // busy ≠ 未就绪：保持中性徽章（不降级 ok）
         } else {
             badge.className = "badge badge-warn";
             $("health-text").textContent = data.message || "Everything 未就绪";

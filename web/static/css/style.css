@@ -512,6 +512,18 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .scan-elapsed{font-variant-numeric:var(--font-num);white-space:nowrap}
 .scan-elapsed[hidden]{display:none!important}
 
+/* 阶段B（B-12）：预计剩余（估算）——行尾 inline，与耗时同款样式 */
+.scan-eta{font-variant-numeric:var(--font-num);white-space:nowrap;color:var(--faint)}
+.scan-eta[hidden]{display:none!important}
+
+/* 阶段B（B-12）：「？」引导气泡按钮（扫描卡按钮行内；折叠/展开 #scan-progress-hint） */
+.scan-help-btn{flex:none;min-width:28px;border-radius:999px;font-weight:700}
+.scan-help-btn[hidden]{display:none!important}
+
+/* 阶段B（B-19）：扫描卡高亮脉动（顶栏「开始扫描」点击扫描中态时；仅 opacity，P7） */
+.scan-card-flash{animation:scan-card-pulse 1.2s ease-in-out 2}
+@keyframes scan-card-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+
 /* 盘符 chips 三态：✓已完成（可点击） / 进行中脉冲 / 待办灰（禁用态） */
 .chip-done{color:var(--success);border-color:var(--success-border)}
 .chip-done svg{width:12px;height:12px;flex:none}

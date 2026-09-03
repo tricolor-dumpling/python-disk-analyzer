@@ -87,14 +87,15 @@ export function setAutoSaveSetting(v) { autoSaveSetting = v; }
 export function resetHandledScanVersion() { handledScanVersion = 0; }
 
 /* U3.2：盘符 chips 三态（定稿 6.2 N05：✓已完成可点击 / 脉冲进行中 / 灰待办）。
-   契约 id 不变（#scan-roots）；aborted 时未完成盘一律灰（不伪称完成）。 */
-function renderScanRootChips(roots, rootsDone, running, aborted) {
+   契约 id 不变（#scan-roots）；aborted 时未完成盘一律灰（不伪称完成）。
+   阶段B（B-8）：queued（排队等锁）时 chips 保持待办灰 + 明确排队提示。 */
+function renderScanRootChips(roots, rootsDone, running, aborted, queued) {
     const box = $("scan-roots");
     if (!box) return; // U2.1：子页面时扫描卡不在 DOM（全局轮询容错：状态仍在后端/模块内）
     const hint = $("scan-progress-hint");
     if (!roots || !roots.length) {
         box.classList.add("hidden");
-        hint.classList.add("hidden");
+        if (hint) hint.classList.add("hidden");
         return;
     }
     const done = Number(rootsDone) || 0;
@@ -102,8 +103,9 @@ function renderScanRootChips(roots, rootsDone, running, aborted) {
         '<span class="chips-label">可浏览盘符：</span>' +
         roots
             .map((r, i) => {
+                // B-8：queued 时无一盘完成，全部待办灰（不显示误导性「0/2 扫描中」）
                 const complete = i < done || (!running && !aborted);
-                const current = running && i === done;
+                const current = running && !queued && i === done;
                 if (complete) {
                     return '<button class="chip chip-done" data-root="' + esc(r) + '" title="浏览 ' + esc(r) + '">' + ICONS.check + esc(r) + "</button>";
                 }
@@ -114,14 +116,23 @@ function renderScanRootChips(roots, rootsDone, running, aborted) {
             })
             .join("");
     box.classList.remove("hidden");
-    if (running && done < roots.length) {
-        hint.textContent = "正在扫描中：已完成盘可点击即时浏览，进行中盘完成后即可浏览。";
-        hint.classList.remove("hidden");
+    if (queued) {
+        if (hint) {
+            hint.textContent = "等待扫描引擎空闲（锁占用中），即将开始…";
+            hint.classList.remove("hidden");
+        }
+    } else if (running && done < roots.length) {
+        if (hint) {
+            hint.textContent = "正在扫描中：已完成盘可点击即时浏览，进行中盘完成后即可浏览。";
+            hint.classList.remove("hidden");
+        }
     } else if (aborted) {
-        hint.textContent = "已停止：已完成盘可点击浏览，未完成盘可在重新扫描后继续。";
-        hint.classList.remove("hidden");
+        if (hint) {
+            hint.textContent = "已停止：已完成盘可点击浏览，未完成盘可在重新扫描后继续。";
+            hint.classList.remove("hidden");
+        }
     } else {
-        hint.classList.add("hidden");
+        if (hint) hint.classList.add("hidden");
     }
     box.querySelectorAll(".chip[data-root]").forEach((chip) => {
         chip.addEventListener("click", () => {
@@ -152,18 +163,38 @@ export async function startFullscan() {
     }
 }
 
-/* P12·W3.2（L-5/DEF-017）：轮询单链收敛——任意时刻至多一条 1 秒待触发链，
-   杜绝多入口并发叠加；_wasScanRunning 支撑「扫描完成」边沿自动刷新概览。 */
+/* P12·W3.2（L-5/DEF-017）：轮询单链收敛——任意时刻至多一条待触发链，
+   杜绝多入口并发叠加；_wasScanRunning 支撑「扫描完成」边沿自动刷新概览。
+   阶段B（B-8/B-17）：排队期降频 2s、空闲降频 5s（running=false 且状态未变）。 */
 let _pollTimer = null;
 let _wasScanRunning = false;
 let _lastScanStatus = null; // U2.1：最近一次状态（路由返回时回灌扫描卡）
 
-export function schedulePollFullscan() {
+/* B-17①：空闲降频——running=false 且状态未变时不再 1s 轮询。
+   验收口径：运行中（扫描/排队）30s ≤15 次 ⇒ 间隔 ≥2s；空闲 30s ≤6 次 ⇒ 6s。 */
+let _idlePollCount = 0;
+const IDLE_POLL_INTERVAL_MS = 6000;
+const QUEUED_POLL_INTERVAL_MS = 2000; // B-8：排队期降频
+const RUNNING_POLL_INTERVAL_MS = 2000; // B-17：扫描中 2s（30s ≤15 次）
+
+function nextPollDelay(st) {
+    if (st && st.running) {
+        _idlePollCount = 0;
+        // B-8：排队期（phase=queued 或锁被非 fullscan 持有）与扫描中同为 2s
+        return QUEUED_POLL_INTERVAL_MS;
+    }
+    // 空闲：一律 6s（首次由动作触发的同步 pollFullscan 已即时收敛）
+    return IDLE_POLL_INTERVAL_MS;
+}
+
+export function schedulePollFullscan(delayMs) {
     if (_pollTimer !== null) return;
+    const st = _lastScanStatus || null;
+    const ms = (typeof delayMs === "number" && delayMs > 0) ? delayMs : nextPollDelay(st);
     _pollTimer = setTimeout(async () => {
         _pollTimer = null;
         await pollFullscan();
-    }, 1000);
+    }, ms);
 }
 
 export async function pollFullscan() {
@@ -191,7 +222,18 @@ export async function pollFullscan() {
     renderFullscanState(st);
     // U2.3：扫描状态广播（additive）——treemap 实时生长 L3-2 / 雷达扫掠 L3-3 订阅
     try { window.dispatchEvent(new CustomEvent("pds:scan", { detail: st })); } catch (e) { /* 环境差异忽略 */ }
-    if (st.running) schedulePollFullscan();
+    // 阶段B（B-8/B-17①）：单链持续调度——间隔由 nextPollDelay 自适应
+    //（扫描中 1s / 排队期 2s / 空闲 5s）；页面销毁经 applyUnmount 清定时器
+    schedulePollFullscan();
+}
+
+/* 阶段B（B-17①）：页面卸载/失联时停止轮询链（防后台空转；路由重入后由
+   applyScanView/start() 重新拉起） */
+export function stopPollFullscan() {
+    if (_pollTimer !== null) {
+        clearTimeout(_pollTimer);
+        _pollTimer = null;
+    }
 }
 
 /* U2.1：路由返回时的视图恢复（用最近状态重绘扫描卡；无状态时静默）。 */
@@ -238,6 +280,7 @@ function renderFullscanState(st) {
     const partialRoots = (Number(st.roots_done) || 0) > 0;
     if (finishedEdge && (completed || aborted)) markNavDot("/");
     if (!$("progress-fill")) return; // U2.1：子页面时扫描卡不在 DOM（状态已记账，回主页即恢复渲染）
+    updateExportButtons(); // 阶段B（B-15）：导出按钮可用性随状态同步（扫描中禁用）
     const pct = Number(st.progress_pct) || 0;
     $("progress-fill").style.width = pct + "%";
     $("progress-pct").textContent = pct + "%";
@@ -288,19 +331,68 @@ function renderFullscanState(st) {
             toast("已停止，已完成部分可浏览", "info");
         }
     }
-    renderScanRootChips(st.roots, st.roots_done, runningNow, aborted);
+    /* 阶段B（B-11/B-12）：预计剩余（估算）——基于根间均速推导，标注「估算」
+       且不闪跳（结果取整到秒，低于 30s 显示「即将完成」）；队/停止/空闲隐藏 */
+    const etaEl = $("scan-eta");
+    if (etaEl && st && st.running && !st.stop_requested) {
+        const done = Number(st.roots_done) || 0;
+        const total = Number(st.roots_total) || 0;
+        if (done > 0 && total > done && scanStartTs) {
+            const elapsedSec = (Date.now() - scanStartTs) / 1000;
+            const perRootSec = elapsedSec / done;
+            const remain = Math.max(0, Math.round(perRootSec * (total - done)));
+            etaEl.textContent = remain > 30
+                ? " · 预计剩余 ~" + formatElapsed(remain) + "（估算）"
+                : " · 预计剩余 即将完成";
+            etaEl.hidden = false;
+        } else if (done > 0 && total <= done) {
+            etaEl.textContent = " · 预计剩余 即将完成";
+            etaEl.hidden = false;
+        } else {
+            etaEl.hidden = true;
+        }
+    } else if (etaEl) {
+        etaEl.hidden = true;
+    }
+    /* 停止请求中（stop_requested && running）时 chips 保持当前态
+       不被重绘为「扫描中」文案——任何轮询渲染不得覆盖停止反馈 */
+    const stopping = !!(st.stop_requested && runningNow);
+    if (!stopping) renderScanRootChips(st.roots, st.roots_done, runningNow, aborted, st.phase === "queued");
     /* P12·W3.2：完成边沿——运行中→完成且结果就绪且无错误，概览自动刷新一次；
        U3.2：中止（用户停止）同属边沿——已完成根已变化，概览一并刷新（仅主页路径） */
     if (finishedEdge && !st.error && (completed || (aborted && partialRoots))) {
         refreshOverview();
     }
 
+    /* 阶段B（B-9）：stop_requested && running —— 状态栏固定「正在停止…（等待扫描引擎响应）」，
+       停止按钮禁用+闪烁已激活态（active 类保持）；必须在 st.running 分支之前判定。 */
+    if (stopping) {
+        $("btn-save").disabled = true;
+        const stopBtn = $("btn-stop-scan");
+        if (stopBtn) {
+            stopBtn.disabled = true; // 停止请求已受理：防重复点击
+            stopBtn.classList.add("active"); // 保持闪烁已激活态
+        }
+        setStatus("fullscan-status", "busy", "正在停止…（等待扫描引擎响应）");
+        return;
+    }
+
+    /* 阶段B（B-8）：排队中（queued）——「等待扫描引擎空闲…」，无「0/2」误导 */
+    if (st.phase === "queued" && runningNow) {
+        $("btn-save").disabled = true;
+        setStatus("fullscan-status", "busy", "等待扫描引擎空闲…（扫描任务已提交，正在排队）");
+        return;
+    }
+
     if (st.running) {
         $("btn-save").disabled = true;
+        /* 阶段B（B-12）：进度行整合——「总进度 % · 已完成 x/y 盘 · 当前 C:\」；
+           已用时/预计剩余由行尾 scan-elapsed/scan-eta 承担（formatElapsed 口径） */
         setStatus(
             "fullscan-status",
             "busy",
-            "正在扫描 " + st.roots_done + "/" + st.roots_total + "：" + (st.current_root || "准备中…")
+            "总进度 " + pct + "% · 已完成 " + st.roots_done + "/" + st.roots_total +
+            " 盘 · 当前 " + (st.current_root || "准备中…")
         );
         return;
     }
@@ -400,6 +492,81 @@ export async function undoLastSave() {
     }
 }
 
+/* ================= 阶段B（B-15）：Web 导出 =================
+   - 改 fetch → resp.ok 检查：失败 toast(resp 的 error 字段, "error")，不再
+     window.open 新开标签裸展示 404 JSON；
+   - 成功：Blob + URL.createObjectURL + 临时 <a download> 触发下载；
+     保留 Content-Disposition 文件名解析（attachment; filename=...）；
+   - 导出可用性 = isSaveAvailable() 同源（完成+save_ready 或 中止+部分根）——
+     部分根中止后导出应可用（后端 roots_map 有已完成根即可）。 */
+
+function exportFilenameFromDisposition(disposition, fallback) {
+    if (!disposition) return fallback;
+    const m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+    return m ? decodeURIComponent(m[1]) : fallback;
+}
+
+export function isExportAvailable() {
+    const st = _lastScanStatus;
+    if (!st || st.running || st.error) return false;
+    if (st.result_ready && st.save_ready) return true;
+    if (st.stop_requested && (Number(st.roots_done) || 0) > 0) return true;
+    return false;
+}
+
+/* 阶段B（B-15）：导出按钮可用性 = isExportAvailable()（完成/中止部分根可用；
+   扫描中/排队/停止中/空闲禁用——现状 renderFullscanState 只禁保存按钮，补上导出） */
+function updateExportButtons() {
+    const avail = isExportAvailable();
+    const csvBtn = $("btn-export-csv");
+    const jsonBtn = $("btn-export-json");
+    if (csvBtn) csvBtn.disabled = !avail;
+    if (jsonBtn) jsonBtn.disabled = !avail;
+}
+
+export async function downloadExport(fmt) {
+    const root = encodeURIComponent(getCurrentRoot() || "");
+    const url = "/api/export?format=" + fmt + "&root=" + root;
+    const btn = fmt === "csv" ? $("btn-export-csv") : $("btn-export-json");
+    if (btn) btn.disabled = true;
+    try {
+        const resp = await fetch(url, { cache: "no-store" });
+        if (!resp.ok) {
+            let message = "导出失败：" + resp.status;
+            try {
+                const data = await resp.json();
+                if (data && data.error) message = data.error;
+                if (data && data.reason === "scanning") {
+                    message = "扫描进行中，暂无可导出的结果，请等待扫描完成后再导出";
+                }
+            } catch (e) { /* 非 JSON 错误体保留状态码文案 */ }
+            toast(message, "error");
+            return;
+        }
+        const disposition = resp.headers.get("Content-Disposition") || "";
+        const blob = await resp.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = exportFilenameFromDisposition(disposition, "disk_report." + fmt);
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // 延迟释放 objectURL（下载已触发）
+        setTimeout(() => { try { URL.revokeObjectURL(objectUrl); } catch (e) { /* ignore */ } }, 3000);
+        // B-16：部分根导出提示行（响应头 X-Export-Partial）
+        if (resp.headers.get("X-Export-Partial") === "true") {
+            toast("已导出部分结果（扫描已中止，仅含已完成盘）", "warn");
+        } else {
+            toast("导出完成：" + a.download, "success");
+        }
+    } catch (e) {
+        toast("导出失败：" + (e.message || "网络错误"), "error");
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
 /* 本组件在 init 期的绑定（顺序等价：原 bind() 的全量扫描/导出/历史段） */
 export function bindScan() {
     // 全量扫描
@@ -409,13 +576,23 @@ export function bindScan() {
     $("btn-save-now").addEventListener("click", () => saveSnapshot(false));
     $("btn-save-later").addEventListener("click", () => $("save-prompt").classList.add("hidden"));
 
-    // P12·W2.7：Web 导出（CSV/JSON，经 Content-Disposition 触发下载）
-    const exportUrl = (fmt) => {
-        const root = encodeURIComponent(getCurrentRoot() || "");
-        return `/api/export?format=${fmt}&root=${root}`;
-    };
-    $("btn-export-csv").addEventListener("click", () => window.open(exportUrl("csv"), "_blank"));
-    $("btn-export-json").addEventListener("click", () => window.open(exportUrl("json"), "_blank"));
+    // 阶段B（B-12）：引导提示块折叠——「？」按钮展开/收起 #scan-progress-hint（可关闭）
+    const helpBtn = $("btn-scan-help");
+    if (helpBtn) helpBtn.addEventListener("click", () => {
+        const hint = $("scan-progress-hint");
+        if (!hint) return;
+        if (hint.classList.contains("hidden")) {
+            hint.classList.remove("hidden");
+            helpBtn.setAttribute("aria-expanded", "true");
+        } else {
+            hint.classList.add("hidden");
+            helpBtn.setAttribute("aria-expanded", "false");
+        }
+    });
+
+    // 阶段B（B-15）：Web 导出改 fetch/Blob（不再 window.open 裸展示错误 JSON）
+    $("btn-export-csv").addEventListener("click", () => downloadExport("csv"));
+    $("btn-export-json").addEventListener("click", () => downloadExport("json"));
 
     // 历史（U3.3：刷新/撤销迁至 #/snapshots 页头——迷你卡不再持有；绑定时空守卫）
     const refreshBtn = $("btn-refresh-snapshots");

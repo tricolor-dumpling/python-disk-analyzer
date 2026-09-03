@@ -9,6 +9,7 @@
    ============================================================ */
 
 import { $, api } from "./api.js";
+import { toast } from "./components/toast.js"; // B-19：顶栏扫描按钮反馈 toast
 import { APP_STATE } from "./state.js";
 import { switchTheme, setThemePref, themePref, resolvedTheme, syncThemeControls } from "./theme.js"; // U3.5：三态偏好（设置弹窗/同源联动）
 import { createRouter } from "./router.js";
@@ -24,7 +25,7 @@ import {
 } from "./pages/workspace.js";
 import { evaluateEnvGate, refreshHealth, bindTopbar, bindWorkspaceGuide } from "./components/topbar.js";
 import { markNavDot } from "./components/nav-dots.js"; // U3.1：N13 圆点（探针/引导面再导出）
-import { pollFullscan, startFullscan, saveSnapshot, setAutoSaveSetting, undoLastSave, bindScan, applyScanView, probeStopSupport, isStopAvailable, requestStopScan, isSaveAvailable } from "./components/scan.js";
+import { pollFullscan, startFullscan, saveSnapshot, setAutoSaveSetting, undoLastSave, bindScan, applyScanView, probeStopSupport, isStopAvailable, requestStopScan, isSaveAvailable, downloadExport } from "./components/scan.js";
 import { refreshSnapshots, getSessionsCache, setSessionsCache, applySnapshotsView, setSnapshotsActions } from "./pages/snapshots.js";
 import { renderCompare, mountCompare, unmountCompare } from "./pages/compare.js";
 import { renderSnapshots, mountSnapshots, unmountSnapshots } from "./pages/snapshots.js";
@@ -69,12 +70,68 @@ function bindScanTop() {
     const C = 2 * Math.PI * 9; // r=9（viewBox 24）；几何常量非时长/缓动魔法数
     if (arc) arc.style.strokeDasharray = String(C);
     let running = false;
+    /* 阶段B（B-19）：启动提交态——空闲点击立即给按钮态反馈（disabled→「启动中…」），
+       提交结果经 pds:scan 广播接管；3s 兜底恢复（POST 挂起不永久禁用）。
+       不触碰 label 内 SVG 结构（u32 断言 .topbar-scan-label 内容）——追加独立徽标。 */
+    let launching = false;
+    let launchTimer = 0;
+    let launchBadge = null;
+    function setLaunchBadge(on) {
+        if (on && !launchBadge && label) {
+            launchBadge = document.createElement("span");
+            launchBadge.className = "topbar-scan-launching";
+            launchBadge.textContent = "启动中…";
+            label.appendChild(launchBadge);
+            btn.title = "正在提交扫描任务…";
+            btn.setAttribute("aria-label", "正在启动全量扫描…");
+        } else if (!on && launchBadge) {
+            launchBadge.remove();
+            launchBadge = null;
+            btn.title = running ? "扫描中（点击回到工作台）" : "开始全量扫描";
+            btn.setAttribute("aria-label", running ? "扫描中，点击回到工作台" : "开始扫描");
+        }
+    }
+    /* B-19：扫描中点击（已在工作台）→ toast + 扫描卡高亮滚动 */
+    function highlightScanCard() {
+        const card = document.querySelector('section[aria-label="全量扫描"]');
+        if (card) {
+            try { card.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) { /* ignore */ }
+            card.classList.remove("scan-card-flash");
+            void card.offsetWidth;
+            card.classList.add("scan-card-flash"); // 仅 opacity 脉动（P7），CSS 见 style.css
+        }
+    }
+    function restoreLaunchLabel() {
+        launching = false;
+        clearTimeout(launchTimer);
+        launchTimer = 0;
+        setLaunchBadge(false);
+        btn.disabled = false;
+    }
     btn.addEventListener("click", () => {
-        if (running) {
-            if (APP_STATE.route !== "/") location.hash = "#/"; // 扫描中点击=回主页
+        if (running || launching) {
+            if (launching) return; // 提交中：等待广播，不重复提交
+            // B-19：扫描中点击——已在工作台 → toast+高亮滚动；不在 → 回主页
+            if (APP_STATE.route !== "/") { location.hash = "#/"; return; }
+            const st = APP_STATE.scan || {};
+            const pct = Number(st.progress_pct);
+            toast(
+                "扫描进行中" + (Number.isFinite(pct) ? " " + pct + "%" : "") +
+                "（" + (Number(st.done) || 0) + "/" + (Number(st.roots && st.roots.length) || 0) + " 盘）",
+                "info"
+            );
+            highlightScanCard();
             return;
         }
-        navigateAndRun("/", startFullscan); // 空闲点击=回主页并触发全量扫描
+        // B-19：空闲点击 → 立即按钮态反馈（disabled→「启动中…」→toast「已提交」）
+        launching = true;
+        btn.disabled = true;
+        setLaunchBadge(true);
+        clearTimeout(launchTimer);
+        launchTimer = setTimeout(() => {
+            if (launching && !running) restoreLaunchLabel(); // 兜底：POST 挂起恢复
+        }, 3000);
+        navigateAndRun("/", startFullscan);
     });
     window.addEventListener("pds:scan", (ev) => {
         const st = ev.detail || {};
@@ -84,6 +141,8 @@ function bindScanTop() {
         if (ring) ring.hidden = !running;
         btn.setAttribute("aria-label", running ? "扫描中，点击回到工作台" : "开始扫描");
         btn.title = running ? "扫描中（点击回到工作台）" : "开始全量扫描";
+        btn.disabled = false; // B-19：广播后解除启动禁用（提交已收敛到真实状态）
+        if (launching) { launching = false; clearTimeout(launchTimer); launchTimer = 0; setLaunchBadge(false); }
         if (arc) {
             const v = Math.max(0, Math.min(100, Number(st.progress_pct) || 0));
             // arc 初始 dashoffset = C（空环）；运行时按 pct 折算（微型进度环骨架）
@@ -93,8 +152,8 @@ function bindScanTop() {
 }
 
 function exportRaw(fmt) {
-    const root = encodeURIComponent(getCurrentRoot() || "");
-    window.open("/api/export?format=" + fmt + "&root=" + root, "_blank");
+    // 阶段B（B-15）：命令面板导出与扫描卡同源——fetch/Blob 下载（不再新开标签裸展示错误 JSON）
+    downloadExport(fmt);
 }
 
 function browseDrive(root) {
