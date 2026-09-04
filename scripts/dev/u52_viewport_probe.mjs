@@ -57,7 +57,11 @@ window.fetch = function (url, options) {
     return json({ ok: true, status: { ...base, running: true, roots_done: 0, current_root: "C:\\\\", result_ready: false, save_ready: false, progress_pct: 40, stop_requested: false, stop_reason: null, phase: "scanning", lock_holder: "fullscan", row_done: 100000, row_total: 400000, stop_ack_at: null } });
   }
   if (key === "GET /api/snapshots") return json({ ok: true, sessions: [], count: 0 });
-  if (key === "GET /api/overview") return json({ ok: true, ready: false, scanning: true, empty_reason: "scanning", roots: [], progress_pct: 40, current_root: "C:\\\\", roots_done: 0, roots_total: 2 });
+  if (key === "GET /api/overview") {
+    const s = window.__stub.scanState;
+    if (s === "done") return json({ ok: true, ready: true, roots: [ { root: "D:\\\\", total: 4800000, total_human: "4.58 MB", index_ready: true, index_valid: true, directories: [ { name: "data", path: "D:\\\\data", size: 3000000, size_human: "2.86 MB" } ], files: [], directory_count: 2, file_count: 2, record_count: 4, completed_at: "2026-08-24T10:00:00" } ], completed_at: "2026-08-24T10:00:00" });
+    return json({ ok: true, ready: false, scanning: true, empty_reason: "scanning", roots: [], progress_pct: 40, current_root: "C:\\\\", roots_done: 0, roots_total: 2 });
+  }
   return json({ ok: true });
 };
 `;
@@ -71,6 +75,11 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
         const page = await browser.newPage({ viewport: { width: vp.w, height: vp.h } });
         page.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text()); });
         page.on("pageerror", (e) => errs.push("pageerror: " + e.message));
+        // 预置引导关闭 + 主题（onboarding 弹层会遮挡扫描卡截图，必须关闭）
+        await page.addInitScript(() => {
+            try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { localStorage.setItem("pds_theme_v1", "light"); } catch (e) {}
+        });
         await page.addInitScript(STUB_FN);
         await page.goto(BASE, { waitUntil: "load", timeout: 20000 }).catch((e) => {
             RESULT.meta.gotoError = String(e);
@@ -85,6 +94,14 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
             { timeout: 10000 }
         ).catch(() => {});
         await wait(500);
+        // 窄屏（<640px 宽页面滚动属声明例外）：滚动扫描卡到视口内再截图，保证卡内可见
+        if (vp.w < 900) {
+            await page.evaluate(() => {
+                const card = document.querySelector('section[aria-label="全量扫描"]');
+                if (card) card.scrollIntoView({ block: "start", behavior: "instant" });
+            });
+            await wait(300);
+        }
         const f1 = `scan-running-${vp.w}x${vp.h}.png`;
         await page.screenshot({ path: path.join(OUT, f1), fullPage: false });
         RESULT.shots.push(f1);
@@ -97,6 +114,13 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
             { timeout: 10000 }
         ).catch(() => {});
         await wait(500);
+        if (vp.w < 900) {
+            await page.evaluate(() => {
+                const card = document.querySelector('section[aria-label="全量扫描"]');
+                if (card) card.scrollIntoView({ block: "start", behavior: "instant" });
+            });
+            await wait(300);
+        }
         const f2 = `scan-queued-${vp.w}x${vp.h}.png`;
         await page.screenshot({ path: path.join(OUT, f2), fullPage: false });
         RESULT.shots.push(f2);
@@ -109,6 +133,13 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
             { timeout: 10000 }
         ).catch(() => {});
         await wait(500);
+        if (vp.w < 900) {
+            await page.evaluate(() => {
+                const card = document.querySelector('section[aria-label="全量扫描"]');
+                if (card) card.scrollIntoView({ block: "start", behavior: "instant" });
+            });
+            await wait(300);
+        }
         const f3 = `scan-done-${vp.w}x${vp.h}.png`;
         await page.screenshot({ path: path.join(OUT, f3), fullPage: false });
         RESULT.shots.push(f3);
