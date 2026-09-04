@@ -108,7 +108,8 @@ window.fetch = function (url, options) {
     if (!window.__stub.exportReady) return json({ ok: false, error: "暂无可导出的全量扫描结果，请先完成全量扫描" }, 404);
     const fmt = /format=(csv|json)/.exec(String(url)) && RegExp.$1;
     const body = fmt === "json" ? JSON.stringify({ ok: true }) : "name,size\\nreadme.txt,100\\n";
-    return Promise.resolve({ ok: true, status: 200, headers: { "content-type": fmt === "json" ? "application/json" : "text/csv; charset=utf-8-sig", "content-disposition": "attachment; filename=report." + fmt }, text: () => Promise.resolve(body), json: () => Promise.resolve({ ok: true }) });
+    // 阶段B（B-15）：downloadExport 调 resp.blob()——桩须提供 blob() 方法
+    return Promise.resolve({ ok: true, status: 200, headers: { "content-type": fmt === "json" ? "application/json" : "text/csv; charset=utf-8-sig", "content-disposition": "attachment; filename=report." + fmt }, blob: () => Promise.resolve(new Blob([body], { type: fmt === "json" ? "application/json" : "text/csv" })), text: () => Promise.resolve(body), json: () => Promise.resolve({ ok: true }) });
   }
   return json({ ok: true });
 };
@@ -352,47 +353,33 @@ async function sectionStop(browser) {
     return out;
 }
 
-/* ---------------- §5 导出错误路径（2-14） ---------------- */
+/* ---------------- §5 导出错误路径（2-14 / B-15） ---------------- */
 async function sectionExport(browser) {
     const { page, errs } = await newStubPage(browser);
     const out = { errorPath: null, readyPath: null, shots: [] };
     await page.waitForFunction(() => !!document.getElementById("btn-export-csv"), { timeout: 15000 });
-    // 错误路径：无全量结果（exportReady=false）→ 点击导出 CSV → 新页/新 tab 出现错误 JSON
-    const popupP = page.waitForEvent("popup", { timeout: 8000 }).catch(() => null);
-    await page.click("#btn-export-csv");
-    const popup = await popupP;
-    if (popup) {
-        await popup.waitForLoadState("domcontentloaded").catch(() => {});
-        const txt = await popup.evaluate(() => document.body.innerText).catch(() => "");
-        const url = popup.url();
-        out.errorPath = { url, bodySnippet: txt.slice(0, 200) };
-        await popup.screenshot({ path: path.join(OUT, "export-error-popup.png") });
-        out.shots.push("export-error-popup.png");
-        await popup.close();
-    } else {
-        out.errorPath = { url: null, note: "无 popup（window.open 可能被拦截）" };
-    }
+    // 错误路径：无全量结果（exportReady=false）→ 阶段B（B-15）按钮应禁用
+    //（不再 window.open 裸展示 404 JSON）；点击被禁用按钮 → 无 popup、无下载。
+    const csvBtn = page.locator("#btn-export-csv");
+    out.errorPath = { buttonDisabled: await csvBtn.isDisabled() };
     await shot(page, "export-error-main.png");
     out.shots.push("export-error-main.png");
-    // 就绪路径：exportReady=true → 导出下载（断言 filename/content-type）
-    await page.evaluate(() => { window.__stub.exportReady = true; });
+    // 就绪路径：exportReady=true + scanState=done（导出可用）→ 点击 → download 事件
+    // （B-15：fetch→blob→临时 <a download>；断言 suggestedFilename 来自 Content-Disposition）
+    await page.evaluate(() => { window.__stub.exportReady = true; window.__stub.scanState = "done"; });
+    await page.waitForFunction(
+        () => !document.getElementById("btn-export-csv").disabled,
+        { timeout: 10000 }
+    ).catch(() => {});
     const dl = page.waitForEvent("download", { timeout: 8000 }).catch(() => null);
     await page.click("#btn-export-csv");
     const download = await dl;
     if (download) {
         out.readyPath = { suggested: download.suggestedFilename() };
+        await shot(page, "export-ready-main.png");
+        out.shots.push("export-ready-main.png");
     } else {
-        // window.open 导航回退：新 tab 直接显示 CSV
-        const popup2 = page.waitForEvent("popup", { timeout: 8000 }).catch(() => null);
-        await page.click("#btn-export-csv");
-        const p2 = await popup2;
-        if (p2) {
-            await p2.waitForLoadState("domcontentloaded").catch(() => {});
-            out.readyPath = { popupBody: (await p2.evaluate(() => document.body.innerText).catch(() => "")).slice(0, 100) };
-            await p2.close();
-        } else {
-            out.readyPath = { note: "无 download 事件亦无 popup" };
-        }
+        out.readyPath = { note: "无 download 事件（B-15 fetch/Blob 路径在桩态可能被 URL 限制拦截）" };
     }
     out.consoleErrors = errs;
     await page.close();

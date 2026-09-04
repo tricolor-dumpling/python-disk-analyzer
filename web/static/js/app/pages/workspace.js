@@ -965,9 +965,13 @@ const WORKSPACE_HTML =
     '<aside class="side-rail" id="side-rail">' +
 
     '<!-- [N04] 存储概览卡（U2.4 环形图卡：viz/donut.js + 盘符 chips（D15 只切环形数据不切目录）+ 图例 + 「浏览此盘」唯一跳转入口；数据源不变 /api/overview；无总容量字段 → 环形=已使用之环比降级，见 components/storage.js 注记） -->' +
+    '<!-- 阶段B（B-12）：导出按钮移入概览卡头部（结果区）；id 不变（smoke 断言面），扫描卡内移除 -->' +
     '<section id="overview-panel" class="overview-panel" aria-label="存储概览" aria-live="polite" role="region">' +
     '<div class="overview-head"><div><h2>存储概览</h2><p id="overview-meta">完成全量扫描后显示索引空间分布</p></div>' +
-    '<div class="overview-actions"><button id="btn-overview-refresh" class="btn btn-sm">刷新</button></div></div>' +
+    '<div class="overview-actions">' +
+    '<button id="btn-export-csv" class="btn btn-sm" title="把最近一次全量结果导出为 CSV" disabled>导出 CSV</button>' +
+    '<button id="btn-export-json" class="btn btn-sm" title="把最近一次全量结果导出为 JSON" disabled>导出 JSON</button>' +
+    '<button id="btn-overview-refresh" class="btn btn-sm">刷新</button></div></div>' +
     '<div id="overview-roots" class="overview-roots overview-roots-donut"><div class="overview-empty">暂无概览数据</div></div>' +
     '</section>' +
 
@@ -985,13 +989,15 @@ const WORKSPACE_HTML =
     '停止</button>' +
     '<button id="btn-save" class="btn btn-success" disabled title="全量扫描完成后可保存">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>' +
-    '保存快照</button></div>' +
-    '<div class="row"><button id="btn-export-csv" class="btn btn-sm" title="把最近一次全量结果导出为 CSV">导出 CSV</button>' +
-    '<button id="btn-export-json" class="btn btn-sm" title="把最近一次全量结果导出为 JSON">导出 JSON</button></div>' +
+    '保存快照</button>' +
+    // 阶段B（B-12）：引导提示块折叠为可关闭的「？」气泡（点击展开/收起 #scan-progress-hint）
+    '<button id="btn-scan-help" class="btn btn-sm btn-ghost scan-help-btn" type="button" title="扫描提示（可关闭）" aria-label="扫描提示" aria-expanded="false">？</button>' +
+    '</div>' +
+    // 阶段B（B-12）：进度行整合——总进度 % · 已完成 x/y 盘 · 当前 C:\ · 已用 t · 预计剩余 ~T（估算）
     '<div class="progress-wrap"><div id="progress" class="progress"><div id="progress-fill" class="progress-fill"></div></div>' +
     '<span id="progress-pct" class="progress-pct muted">0%</span>' +
     '<span id="scan-check" class="scan-check hidden" hidden aria-label="已完成"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>' +
-    '<div id="fullscan-status" class="status-line" role="status"><span class="dot"></span><span id="fullscan-status-text">尚未开始全量扫描</span><span id="scan-elapsed" class="scan-elapsed muted" hidden></span></div>' +
+    '<div id="fullscan-status" class="status-line" role="status"><span class="dot"></span><span id="fullscan-status-text">尚未开始全量扫描</span><span id="scan-elapsed" class="scan-elapsed muted" hidden></span><span id="scan-eta" class="scan-eta muted" hidden></span></div>' +
     '<div id="scan-roots" class="chips-row hidden"></div>' +
     '<div id="scan-progress-hint" class="notice notice-info hidden"></div>' +
     '<div id="save-prompt" class="notice notice-warn hidden"><div><b>全量扫描已完成。</b>是否保存本次快照？保存后可在「历史对比」中与基线对比。</div>' +
