@@ -323,11 +323,60 @@ export function pickTrendForSlot(sessions, slot) {
     return null;
 }
 
-function trendCardEmpty(slot) {
+/* 阶段C（C-4）：空态原因行推导（从 sessions）——
+   - 无任何会话 → 「还没有快照，先做全量扫描并保存」；
+   - 有会话但窗口内无同盘基线 → 「最近快照 <时间>，超出 7 天窗口，请保存新快照后查看」；
+   - 全部快照损坏/跳过 → 「基线快照不可用（已删除或损坏）」。
+   禁止改为误导性「无变化」（手册 2-4 注意点）。 */
+function trendEmptyReason(sessions, slot) {
+    const entries = collectDriveEntries(sessions);
+    if (!entries.length) {
+        return "还没有快照，先做全量扫描并保存";
+    }
+    const anyUsable = entries.some((e) => e.snapPath);
+    if (!anyUsable) {
+        return "基线快照不可用（已删除或损坏）";
+    }
+    // 与 pickTrendForSlot 同口径：每盘最新为「目标」，其同盘更早条目若有落在
+    // (minMs, windowMs] 的则非空；全部盘都没有 → 窗口外（给最近快照时间提示）。
+    const byRoot = new Map();
+    for (const e of entries) {
+        if (!byRoot.has(e.root)) byRoot.set(e.root, []);
+        byRoot.get(e.root).push(e);
+    }
+    let anyInWindow = false;
+    let latestMs = 0;
+    for (const list of byRoot.values()) {
+        const target = list[0];
+        if (target.createdMs > latestMs) latestMs = target.createdMs;
+        for (let i = 1; i < list.length; i++) {
+            const diff = target.createdMs - list[i].createdMs;
+            if (diff > slot.minMs && diff <= slot.windowMs) { anyInWindow = true; break; }
+            if (diff > slot.windowMs) break;
+        }
+    }
+    if (anyInWindow) return ""; // 有窗口内基线——空态不会出现（防御）
+    return "最近快照 " + slotTimeText(latestMs) +
+        "，超出 " + (slot.windowMs / DAY_MS).toFixed(0) + " 天窗口，请保存新快照后查看";
+}
+
+/* 窗口口径 tooltip（阶段C C-4：两卡分别注明窗口口径） */
+function trendSlotTooltip(slot) {
+    const label = slot.key === "day" ? "较昨日" : "较上周";
+    const caliber = slot.key === "day"
+        ? "同盘 0&lt;Δt≤24h 最近一份"
+        : "同盘 24h&lt;Δt≤7d 最近一份";
+    return label + "＝" + caliber + "；目标＝该盘最新快照";
+}
+
+function trendCardEmpty(slot, sessions) {
+    const reason = trendEmptyReason(sessions, slot);
     return (
-        '<div class="trend-card is-empty" data-slot="' + slot.key + '">' +
+        '<div class="trend-card is-empty" data-slot="' + slot.key + '"' +
+        ' title="' + esc(trendSlotTooltip(slot)) + '" aria-label="' + esc(slot.label + "：" + (reason || "暂无对比基线")) + '">' +
         '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span></span>" +
         '<span class="trend-empty">暂无对比基线</span>' +
+        (reason ? '<span class="trend-reason">' + esc(reason) + "</span>" : "") +
         "</div>"
     );
 }
@@ -336,7 +385,7 @@ function trendCardPending(slot, trend) {
     return (
         '<button class="trend-card" type="button" data-slot="' + slot.key + '"' +
         ' data-root="' + esc(trend.root) + '" data-baseline="' + esc(trend.baseline) + '"' +
-        ' data-target="' + esc(trend.target) + '" title="点击跳转对比页（基线已预填）">' +
+        ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，基线已预填）">' +
         '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span>" +
         '<span class="trend-root">' + esc(rootLabel(trend.root)) + "</span></span>" +
         '<span class="trend-pending">正在计算对比…</span>' +
@@ -350,7 +399,7 @@ function trendCardBody(slot, trend, cached) {
         return (
             '<button class="trend-card" type="button" data-slot="' + slot.key + '"' +
             ' data-root="' + esc(trend.root) + '" data-baseline="' + esc(trend.baseline) + '"' +
-            ' data-target="' + esc(trend.target) + '" title="点击跳转对比页（基线已预填）">' +
+            ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，基线已预填）">' +
             '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span>" +
             '<span class="trend-root">' + esc(rootLabel(trend.root)) + "</span></span>" +
             '<span class="trend-err" title="' + esc(cached.error || "对比失败") + '">对比失败：' +
@@ -364,7 +413,7 @@ function trendCardBody(slot, trend, cached) {
     return (
         '<button class="trend-card" type="button" data-slot="' + slot.key + '"' +
         ' data-root="' + esc(trend.root) + '" data-baseline="' + esc(trend.baseline) + '"' +
-        ' data-target="' + esc(trend.target) + '" title="点击跳转对比页（基线已预填）">' +
+        ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，基线已预填）">' +
         '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span>" +
         '<span class="trend-root">' + esc(rootLabel(trend.root)) + "</span></span>" +
         '<span class="trend-main">' +
@@ -406,7 +455,7 @@ function renderTrendCards(sessions) {
     const slots = TREND_SLOTS.map((slot) => ({ slot, trend: pickTrendForSlot(sessions, slot) }));
     row.innerHTML = slots
         .map(({ slot, trend }) => {
-            if (!trend) return trendCardEmpty(slot);
+            if (!trend) return trendCardEmpty(slot, sessions);
             const cached = trendCache.get(trendCacheKey(slot, trend));
             if (cached) return trendCardBody(slot, trend, cached);
             return trendCardPending(slot, trend);

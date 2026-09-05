@@ -674,6 +674,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* ---- U2.5：F19 触屏长按呼出行操作（<900px 触屏场景） ---- */
 .row-actions-pin .row-actions{opacity:1}
 
+/* 阶段C（C-4）：趋势卡空态原因行（从 sessions 推导；纯文本无动画） */
+.trend-reason{display:block;font-size:var(--fs-xs);color:var(--muted);margin-top:4px;line-height:1.5;max-width:260px}
+
 /* ---- U2.5：L1-5 骨架屏（shimmer 1.4s 循环；仅 transform 扫光；reduced 经全局降级静止） ---- */
 .loading-overlay{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--card);font-size:var(--fs-xs);color:var(--muted)}
 .skel-list{display:flex;flex-direction:column;gap:8px}
