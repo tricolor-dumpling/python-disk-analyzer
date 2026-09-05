@@ -177,7 +177,8 @@ async function newStubPage(browser, opts) {
     const errs = [];
     p.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text()); });
     p.on("pageerror", (e) => errs.push("pageerror: " + e.message));
-    await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+    await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
     if (opts.theme) {
         await p.addInitScript((t) => { try { localStorage.setItem("pds_theme_v1", t); } catch (e) {} }, opts.theme);
     }
@@ -901,7 +902,8 @@ console.log("== 阶段⑤：U4.x 收口项核销（G1/G3 裁决即修；G2/G5 �
         await p.addInitScript(() => {
             try { localStorage.setItem("pds_last_browse_v1", JSON.stringify({ root: "D:\\", path: "D:\\data" })); } catch (e) {}
         });
-        await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+        await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
         await p.addInitScript(STUB_FN);
         await p.goto(BASE, { waitUntil: "load" });
         await p.waitForFunction(() => !!document.getElementById("dir-body"), null, { timeout: 15000 }).catch(() => {});
@@ -926,7 +928,8 @@ console.log("== 阶段⑤：U4.x 收口项核销（G1/G3 裁决即修；G2/G5 �
         const ctx2 = await browser.newContext({ viewport: { width: 1366, height: 768 } });
         const p2 = await ctx2.newPage();
         await p2.addInitScript(() => { try { localStorage.setItem("pds_last_browse_v1", "{bad json"); } catch (e) {} });
-        await p2.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+        await p2.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
         await p2.addInitScript(STUB_FN);
         await p2.goto(BASE, { waitUntil: "load" });
         await p2.waitForTimeout(1600);
@@ -938,7 +941,8 @@ console.log("== 阶段⑤：U4.x 收口项核销（G1/G3 裁决即修；G2/G5 �
     {
         const ctx = await browser.newContext({ viewport: { width: 1366, height: 768 } });
         const p = await ctx.newPage();
-        await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+        await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
         await p.addInitScript(STUB_FN);
         await p.goto(BASE, { waitUntil: "load" });
         await p.waitForFunction(() => !!document.getElementById("dir-body"), null, { timeout: 15000 }).catch(() => {});

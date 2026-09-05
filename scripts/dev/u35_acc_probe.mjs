@@ -99,7 +99,8 @@ async function newStubPage(browser, w, h) {
     const errs = [];
     p.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text()); });
     p.on("pageerror", (e) => errs.push("pageerror: " + e.message));
-    await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+    await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
     await p.addInitScript(() => {
         window.addEventListener("load", () => {
             import("/static/js/app/main.js").then((m) => { try { m.closeModal("onboarding"); } catch (e) {} }).catch(() => {});
@@ -540,7 +541,8 @@ function toastAnims(page, sel) {
         const errs2 = [];
         p.on("console", (m) => { if (m.type() === "error") errs2.push("console: " + m.text()); });
         p.on("pageerror", (e) => errs2.push("pageerror: " + e.message));
-        await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+        await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
         await p.addInitScript(() => {
             window.addEventListener("load", () => {
                 import("/static/js/app/main.js").then((m) => { try { m.closeModal("onboarding"); } catch (e) {} }).catch(() => {});

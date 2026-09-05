@@ -95,6 +95,7 @@ async function openScenario(browser, mode, scan) {
         try { localStorage.setItem("pds_u55_mode", m); } catch (e) {}
         try { localStorage.setItem("pds_u55_scan", s); } catch (e) {}
         try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {}
         try { localStorage.setItem("pds_theme_v1", "light"); } catch (e) {}
     }, { m: mode, s: scan });
     await page.addInitScript(STUB_FN);

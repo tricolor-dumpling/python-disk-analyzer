@@ -20,7 +20,7 @@ import { setStatus } from "../components/statusbar.js";
 import { skipReasonText } from "../labels.js";
 import { confirmDialog } from "../components/modals.js";
 import { confetti, drawCheck } from "../motion.js"; // U3.2：L2-4 粒子 / L2-3 对勾描边
-import { formatElapsed } from "../motion-core.js";  // U3.2：耗时计时（HH:MM:SS 口径）
+import { formatElapsed, estimateRemainingSec, etaShouldUpdate } from "../motion-core.js";  // U3.2：耗时计时（HH:MM:SS 口径）；阶段D（D-3b）：ETA 估算纯函数
 import { refreshSnapshots, getSessionsCache } from "../pages/snapshots.js";
 import { refreshOverview } from "../components/storage.js";
 import { getCurrentRoot, browsePath, setCurrentRoot, getTreemapView } from "../pages/workspace.js"; // 扫描盘 chips 与导出根；U3.2 粒子挂点（fx 层）
@@ -39,8 +39,14 @@ function storeHandledScanVersion(v) {
 
 /* ================= 全量扫描 ================= */
 
-let autoSaveSetting = false;
+let autoSaveSetting = true; // 阶段D（D-2）：「扫描完成自动保存」默认开启（方案 A 自动模式裁定；设置弹窗/读取时同步）
 let handledScanVersion = loadHandledScanVersion(); // K7：localStorage 持久化
+
+/* 阶段D（D-3b）：ETA 不闪跳——估算剩余取整到秒后，仅当与上次显示值偏差 >10%
+   （或首次采样/跨越「即将完成」阈值）才更新文案；两次采样变化 <10% 不重绘。 */
+let _lastEtaSec = null;
+let _etaScanVersion = 0; // 阶段D（D-3b）：ETA 缓存按扫描代次隔离（重扫复位）
+function resetEtaCache() { _lastEtaSec = null; }
 
 /* U3.2（D10）：停止能力特性探测结果（启动探测一次；OPTIONS 零副作用——
    真 POST 会在扫描运行中触发实际停止，绝不能用作探测。POST 仍作兜底：
@@ -156,10 +162,13 @@ export async function startFullscan() {
         // P12·W2.5（G）：中性文案——任务是「提交」，不在点击瞬间完成
         toast(data.message || "全量扫描任务已提交，后台执行中", "info");
         scanStartTs = Date.now(); // U3.2：耗时计时起点（新扫描记拍）
+        resetEtaCache(); // 阶段D（D-3b）：新扫描复位 ETA 缓存（代次隔离）
         pollFullscan();
+        return true; // 阶段D（D-1）：提交成功语义（调用方=自动扫描触发判定；既有调用方忽略返回值）
     } catch (e) {
         toast(e.message, "error");
         pollFullscan(); // 同步真实状态（如“已在运行中”）
+        return false; // 阶段D（D-1）：提交失败——不写自动扫描保护键（下次刷新可自动重试）
     }
 }
 
@@ -305,6 +314,21 @@ function renderFullscanState(st) {
     if (startBtn) {
         startBtn.disabled = runningNow;
         startBtn.hidden = showStop; // 扫描中且支持停止 → 按钮变「停止」（同一 row 位次）
+        /* 阶段D（D-3a）：按钮语义——自动模式空闲变「重新扫描」（有结果/中止部分根时）；
+           失败/停止后保留手动重试入口（文案「重试扫描」，点击走同一 startFullscan 幂等链）。 */
+        const labelEl = document.getElementById("btn-fullscan-label");
+        if (labelEl) {
+            if (st.error) {
+                labelEl.textContent = "重试扫描";
+                startBtn.title = "扫描失败，点击重试";
+            } else if (!runningNow && (st.result_ready || (Number(st.roots_done) || 0) > 0)) {
+                labelEl.textContent = "重新扫描";
+                startBtn.title = "已有扫描结果，点击重新全量扫描";
+            } else {
+                labelEl.textContent = "开始全量扫描";
+                startBtn.title = "开始全量扫描";
+            }
+        }
     }
     if (stopBtn) {
         stopBtn.hidden = !showStop;
@@ -331,21 +355,30 @@ function renderFullscanState(st) {
             toast("已停止，已完成部分可浏览", "info");
         }
     }
-    /* 阶段B（B-11/B-12）：预计剩余（估算）——基于根间均速推导，标注「估算」
-       且不闪跳（结果取整到秒，低于 30s 显示「即将完成」）；队/停止/空闲隐藏 */
+    /* 阶段B（B-11/B-12）+ 阶段D（D-3b）：预计剩余（估算）——基于根间均速推导，
+       标注「估算」且不闪跳（估算值变化 >10% 才更新；低于 30s 显示「即将完成」）；
+       队/停止/空闲隐藏。ETA 缓存按扫描代次隔离（重扫/新扫描复位）。 */
     const etaEl = $("scan-eta");
     if (etaEl && st && st.running && !st.stop_requested) {
+        if (Number(st.scan_version) !== _etaScanVersion) {
+            _etaScanVersion = Number(st.scan_version) || 0;
+            _lastEtaSec = null;
+        }
         const done = Number(st.roots_done) || 0;
         const total = Number(st.roots_total) || 0;
-        if (done > 0 && total > done && scanStartTs) {
-            const elapsedSec = (Date.now() - scanStartTs) / 1000;
-            const perRootSec = elapsedSec / done;
-            const remain = Math.max(0, Math.round(perRootSec * (total - done)));
-            etaEl.textContent = remain > 30
-                ? " · 预计剩余 ~" + formatElapsed(remain) + "（估算）"
-                : " · 预计剩余 即将完成";
+        const remain = scanStartTs ? estimateRemainingSec((Date.now() - scanStartTs) / 1000, done, total) : null;
+        if (remain !== null) {
+            const soon = remain <= 30;
+            // 阶段D（D-3b）：变化 >10% 才更新（防数字抖动）；首次/阈值跨越必更新
+            if (etaShouldUpdate(remain, _lastEtaSec, soon)) {
+                _lastEtaSec = remain;
+                etaEl.textContent = soon
+                    ? " · 预计剩余 即将完成"
+                    : " · 预计剩余 ~" + formatElapsed(remain) + "（估算）";
+            }
             etaEl.hidden = false;
         } else if (done > 0 && total <= done) {
+            _lastEtaSec = 0;
             etaEl.textContent = " · 预计剩余 即将完成";
             etaEl.hidden = false;
         } else {
@@ -435,7 +468,14 @@ function maybePromptSave(st) {
     handledScanVersion = version;
     storeHandledScanVersion(version);
     if (autoSaveSetting) {
-        saveSnapshot(true);
+        // 阶段D（D-2）：自动保存失败不得吞掉错误——saveSnapshot(true) 内部对
+        // POST 失败已 toast(e.message)；此处补手动恢复入口（「立即保存」提示条 + 保存按钮）
+        saveSnapshot(true).then((ok) => {
+            if (!ok) {
+                const prompt = $("save-prompt");
+                if (prompt) prompt.classList.remove("hidden"); // 失败 → 保留手动保存入口
+            }
+        });
     } else {
         $("save-prompt").classList.remove("hidden");
     }
@@ -463,8 +503,10 @@ export async function saveSnapshot(auto) {
         if (auto) toast("已自动保存快照；如需回退可点「撤销最近保存」", "info");
         refreshSnapshots();
         markNavDot("/snapshots"); // U3.1：N13 圆点提醒（快照保存成功；点击快照标签消除）
+        return true; // 阶段D（D-2）：保存成功语义（调用方=自动保存失败恢复判定；既有调用方忽略）
     } catch (e) {
         toast(e.message, "error");
+        return false; // 阶段D（D-2）：保存失败——错误可见（toast），调用方补手动恢复入口
     } finally {
         pollFullscan();
     }

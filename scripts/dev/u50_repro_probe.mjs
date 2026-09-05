@@ -145,7 +145,8 @@ async function newStubPage(browser) {
     const errs = [];
     page.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text()); });
     page.on("pageerror", (e) => errs.push("pageerror: " + e.message));
-    await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+    await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
     await page.addInitScript(STUB_FN);
     await page.goto(BASE, { waitUntil: "load" });
     await installWait(page);

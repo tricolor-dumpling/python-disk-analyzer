@@ -86,7 +86,8 @@ for (const vp of VIEWPORTS) {
     }
     // --steady：预置首启引导「已关闭」，截图反映常态（首启引导态零滚动由首次运行记录佐证）
     if (STEADY) {
-        await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ } });
+        await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+        try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) { /* ignore */ } });
     }
     await page.addInitScript(new Function(STUB_FN));
     await page.goto(BASE, { waitUntil: "load" });

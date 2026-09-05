@@ -95,6 +95,7 @@ async function openRelate(browser, opts = {}) {
     await page.addInitScript(({ big }) => {
         try { localStorage.setItem("pds_u56_big", big ? "1" : "0"); } catch (e) {}
         try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {}
         try { localStorage.setItem("pds_theme_v1", "light"); } catch (e) {}
     }, { big: !!opts.big });
     await page.addInitScript(STUB_FN);

@@ -86,6 +86,7 @@ async function newPage(browser) {
     // 预置引导关闭标记 + 主题偏好（onboarding 弹层会拦截点击）
     await page.addInitScript(() => {
         try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {}
         try { localStorage.setItem("pds_theme_v1", "light"); } catch (e) {}
     });
     await page.addInitScript(STUB_FN);

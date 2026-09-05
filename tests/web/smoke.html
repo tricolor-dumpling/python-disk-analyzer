@@ -246,6 +246,10 @@ function __stubResponse(body, status) {
   };
 }
 
+/* 阶段D（D-1）：冒烟断言面隔离自动扫描——本页手动驱动扫描状态机，
+   预置一次性保护键使自动扫描不参与（防页面加载即 POST /api/fullscan/start 干扰断言时序）。 */
+try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) { /* ignore */ }
+
 window.fetch = function (url, options) {
   options = options || {};
   const method = (options.method || "GET").toUpperCase();

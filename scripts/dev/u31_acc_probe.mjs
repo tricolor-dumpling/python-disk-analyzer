@@ -104,7 +104,8 @@ window.fetch = function (url, options) {
         const errs = [];
         page.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text()); });
         page.on("pageerror", (e) => errs.push("pageerror: " + e.message));
-        await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+        await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
         await page.addInitScript(STUB_FN); // Playwright 字符串形式 = 函数体（先于页面脚本求值）
         await page.goto(BASE, { waitUntil: "load" });
         await installWait(page);
@@ -384,7 +385,8 @@ window.fetch = function (url, options) {
         const errs = [];
         page.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text()); });
         page.on("pageerror", (e) => errs.push("pageerror: " + e.message));
-        await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+        await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
         await page.addInitScript(STUB_FN); // 字符串形式 = 函数体
         await page.goto(BASE, { waitUntil: "load" });
         await page.waitForTimeout(2000);
@@ -416,7 +418,8 @@ window.fetch = function (url, options) {
             const errs = [];
             page.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text()); });
             page.on("pageerror", (e) => errs.push("pageerror: " + e.message));
-            await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+            await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
             await page.goto(BASE, { waitUntil: "load" });
             await page.waitForTimeout(2500);
             const layout = await page.evaluate(() => {
@@ -456,7 +459,8 @@ window.fetch = function (url, options) {
         const nerrs = [];
         narrow.on("console", (m) => { if (m.type() === "error") nerrs.push("console: " + m.text()); });
         narrow.on("pageerror", (e) => nerrs.push("pageerror: " + e.message));
-        await narrow.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+        await narrow.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
         await narrow.goto(BASE, { waitUntil: "load" });
         await narrow.waitForTimeout(2500);
         await shot(narrow, "narrow_800x700_topbar");

@@ -68,7 +68,8 @@ async function runCase(theme, name) {
     if (theme === "dark") {
         await page.addInitScript(() => { try { localStorage.setItem("pds_theme_v1", "dark"); } catch (e) { /* ignore */ } });
     }
-    await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ } });
+    await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+        try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) { /* ignore */ } });
     await page.addInitScript(new Function(STUB_FN));
     await page.goto(BASE, { waitUntil: "load" });
     await page.waitForTimeout(900); // init 链落定

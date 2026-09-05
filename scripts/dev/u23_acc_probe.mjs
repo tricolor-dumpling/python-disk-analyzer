@@ -98,6 +98,7 @@ const WAIT_FN = `(fn, timeout) => new Promise((resolve) => {
     // U3.1：首启引导弹层（F02）——closeModal 栈安全关闭，防拦截真实指针点击
     await page.evaluate(async () => {
         try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+        try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) { /* ignore */ }
         try {
             const m = await import("/static/js/app/main.js");
             if (m.closeModal) m.closeModal("onboarding");
@@ -442,6 +443,7 @@ const WAIT_FN = `(fn, timeout) => new Promise((resolve) => {
     // U3.1：首启引导弹层（F02）——closeModal 栈安全关闭，防拦截真实指针点击
     await stubPage.evaluate(async () => {
         try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+        try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) { /* ignore */ }
         try {
             const m = await import("/static/js/app/main.js");
             if (m.closeModal) m.closeModal("onboarding");

@@ -131,7 +131,8 @@ async function newStubPage(browser, opts) {
     const errs = [];
     p.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text()); });
     p.on("pageerror", (e) => errs.push("pageerror: " + e.message));
-    await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+    await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
     await p.addInitScript(() => {
         window.addEventListener("load", () => {
             import("/static/js/app/main.js").then((m) => { try { m.closeModal("onboarding"); } catch (e) {} }).catch(() => {});
@@ -540,7 +541,8 @@ if (WITH_DATA) {
         page.on("request", (r) => { if (r.url().indexOf("/api/browse") !== -1) console.log("  TRACE REQ", r.postData()); });
         page.on("response", (r) => { if (r.url().indexOf("/api/browse") !== -1) console.log("  TRACE RESP", r.status()); });
     }
-    await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+    await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
     await page.goto(BASE, { waitUntil: "load" });
     await installWait(page);
     // 启动期时间线诊断（真机环境态——每 2s 记录视图/路由/健康；仅 --with-data 打印）

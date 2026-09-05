@@ -122,7 +122,8 @@ async function newStubPage(browser, w, h) {
     const errs = [];
     p.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text()); });
     p.on("pageerror", (e) => errs.push("pageerror: " + e.message));
-    await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+    await p.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
     await p.addInitScript(() => {
         window.addEventListener("load", () => {
             import("/static/js/app/main.js").then((m) => { try { m.closeModal("onboarding"); } catch (e) {} }).catch(() => {});
@@ -444,7 +445,8 @@ function clearCompare(page) {
     const errs2 = [];
     p2.on("console", (m) => { if (m.type() === "error") errs2.push("console: " + m.text()); });
     p2.on("pageerror", (e) => errs2.push("pageerror: " + e.message));
-    await p2.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+    await p2.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
     await p2.addInitScript(() => {
         window.addEventListener("load", () => {
             import("/static/js/app/main.js").then((m) => { try { m.closeModal("onboarding"); } catch (e) {} }).catch(() => {});
@@ -481,7 +483,8 @@ function clearCompare(page) {
             errs3.push("console: " + m.text());
         });
         p3.on("pageerror", (e) => errs3.push("pageerror: " + e.message));
-        await p3.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
+        await p3.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {} });
         await p3.goto(BASE, { waitUntil: "load" });
         await p3.evaluate(() => new Promise((r) => setTimeout(r, 1500)));
         await p3.evaluate(() => { location.hash = "#/compare"; });

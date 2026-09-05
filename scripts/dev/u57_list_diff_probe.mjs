@@ -83,6 +83,7 @@ async function openStub(browser) {
     page.on("pageerror", (e) => errs.push("pageerror: " + e.message));
     await page.addInitScript(() => {
         try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {}
         try { localStorage.setItem("pds_theme_v1", "light"); } catch (e) {}
     });
     await page.addInitScript(STUB_FN);
@@ -233,6 +234,7 @@ async function waitListRows(page, n, timeoutMs) {
         await page.addInitScript(() => {
             try { localStorage.setItem("pds_u57_big", "1"); } catch (e) {}
             try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {}
         });
         await page.addInitScript(STUB_FN);
         await page.goto(BASE, { waitUntil: "load", timeout: 20000 }).catch((e) => { RESULT.meta.gotoError = String(e); });

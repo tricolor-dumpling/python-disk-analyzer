@@ -25,7 +25,7 @@ import {
 } from "./pages/workspace.js";
 import { evaluateEnvGate, refreshHealth, bindTopbar, bindWorkspaceGuide } from "./components/topbar.js";
 import { markNavDot } from "./components/nav-dots.js"; // U3.1：N13 圆点（探针/引导面再导出）
-import { pollFullscan, startFullscan, saveSnapshot, setAutoSaveSetting, undoLastSave, bindScan, applyScanView, probeStopSupport, isStopAvailable, requestStopScan, isSaveAvailable, downloadExport } from "./components/scan.js";
+import { pollFullscan, startFullscan, saveSnapshot, setAutoSaveSetting, undoLastSave, bindScan, applyScanView, probeStopSupport, isStopAvailable, requestStopScan, isSaveAvailable, downloadExport, getLastScanStatus } from "./components/scan.js";
 import { refreshSnapshots, getSessionsCache, setSessionsCache, applySnapshotsView, setSnapshotsActions } from "./pages/snapshots.js";
 import { renderCompare, mountCompare, unmountCompare } from "./pages/compare.js";
 import { renderSnapshots, mountSnapshots, unmountSnapshots } from "./pages/snapshots.js";
@@ -141,6 +141,20 @@ function bindScanTop() {
         if (ring) ring.hidden = !running;
         btn.setAttribute("aria-label", running ? "扫描中，点击回到工作台" : "开始扫描");
         btn.title = running ? "扫描中（点击回到工作台）" : "开始全量扫描";
+        /* 阶段D（D-3a）：顶栏按钮语义——空闲且有结果/失败时变「重新扫描/重试扫描」 */
+        const topText = document.getElementById("btn-scan-top-text");
+        if (topText && !running) {
+            if (st.error) {
+                topText.textContent = "重试扫描";
+                btn.title = "扫描失败，点击重试";
+            } else if (st.result_ready || (Number(st.roots_done) || 0) > 0) {
+                topText.textContent = "重新扫描";
+                btn.title = "已有扫描结果，点击重新全量扫描";
+            } else {
+                topText.textContent = "开始扫描";
+                btn.title = "开始全量扫描";
+            }
+        }
         btn.disabled = false; // B-19：广播后解除启动禁用（提交已收敛到真实状态）
         if (launching) { launching = false; clearTimeout(launchTimer); launchTimer = 0; setLaunchBadge(false); }
         if (arc) {
@@ -266,7 +280,88 @@ const router = createRouter(pages);
 
 export function __router() { return router; }
 
-/* 启动：壳绑定 → 路由初始化（首渲染）→ 工作台挂载 → 原 init 链 */
+/* ============ 阶段D（R3）· D-1 自动扫描触发（方案 A 裁定落地面，问题 5） ============
+   触发条件（evaluateEnvGate ready 分支，双保险防重复）：
+   1. fullscan.status() 无运行态（后端无扫描在跑）且 result_ready=false（尚无结果）；
+   2. 无已保存的「当日」快照会话（/api/snapshots 判断，防同日重复全扫/防刷新重复）；
+   3. 本页会话一次性保护键 pds_auto_started_v1 未写过（sessionStorage，冷启动无会话场景
+      恰好触发一次；【待办】后续版本把结果态纳入持久判定后放宽为允许重扫）；
+   4. POST /api/fullscan/start 成功后立即写保护键（启动即写，覆盖提交后刷新竞态）。
+   语义（阶段D 专属纪律）：
+   - 刷新：sessionStorage 保持 → 恢复轮询态，不重复触发；扫描中刷新 → 后端 running=true
+     → 恢复运行态，不重发；
+   - Everything 未就绪：门控不进入 ready 分支 → 不自动发起；就绪后不自动补触发
+     （保护键保持未写，用户可手动「重新扫描」，符合手册「或按决策补」=不补）；
+   - 失败恢复：startFullscan 内部的 POST 失败 toast 不吞错误，手动入口全部保留。 */
+const AUTO_START_KEY = "pds_auto_started_v1";
+
+function autoStartEnabled() {
+    try { return !sessionStorage.getItem(AUTO_START_KEY); } catch (e) { return true; } // 存储不可用退化为允许
+}
+
+function markAutoStarted() {
+    try { sessionStorage.setItem(AUTO_START_KEY, "1"); } catch (e) { /* ignore */ }
+}
+
+// D-1：当日快照会话判定（前端聚合口径；历史汇聚防「更早会话 + 今日补扫自动保存同帧」误判）
+function hasTodaySnapshotSession(sessions) {
+    const now = new Date();
+    const isToday = (iso) => {
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return false;
+        return d.getFullYear() === now.getFullYear() &&
+            d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+    };
+    return (sessions || []).some((s) =>
+        isToday(String(s && s.created_at || "")) ||
+        Object.values((s && s.roots) || {}).some((r) => r && isToday(String((r.notice || {}).date || "")))
+    );
+}
+
+// D-1：自动扫描发起（dispatch 后由 evaluateEnvGate 在 ready 分支调用；幂等防重入）
+export async function tryAutoStartFullscan() {
+    if (!autoStartEnabled()) return { autoStarted: false, reason: "already_started" };
+    let st = null;
+    try { st = getLastScanStatus() || ((await api("/api/fullscan/status")).status || null); } catch (e) { /* 状态不可得按无结果处理 */ }
+    if (st && (st.running || st.result_ready)) {
+        if (st.running) markAutoStarted(); // 扫描中刷新：恢复运行态（不再发起，但记键防后续误发）
+        return { autoStarted: false, reason: "running_or_ready", status: st };
+    }
+    let sessions = [];
+    try {
+        const data = await api("/api/snapshots");
+        sessions = data.sessions || [];
+    } catch (e) { /* 快照不可得 → 视为无会话（冷启动场景），继续走自动发起 */ }
+    if (hasTodaySnapshotSession(sessions)) {
+        markAutoStarted(); // 当日已有快照会话 → 本会话不再自动扫描（防同日重复全扫）
+        return { autoStarted: false, reason: "today_snapshot_exists", sessions: sessions.length };
+    }
+    try {
+        const ok = await startFullscan(); // D-1：POST 失败不写保护键（恢复入口纪律）
+        if (ok) markAutoStarted();
+        return { autoStarted: ok, reason: ok ? "auto_started" : "start_failed" };
+    } catch (e) { /* 意外异常同上：不写保护键 */ }
+    return { autoStarted: false, reason: "start_failed" };
+}
+
+function bindAutoScanStart() {
+    window.addEventListener("pds:auto-scan-start", () => { tryAutoStartFullscan(); });
+}
+
+// D-1：自动扫描「快照会话」前置检测（evaluateEnvGate ready 分支前的数据就绪信号）——
+// 返回 true = 无当日快照会话（可评估自动触发）；false = 已有当日会话（不自动扫描）。
+// 与 tryAutoStartFullscan 的双重检测互相兜底：此处做启动时序预检，发起处做最终幂等判定。
+async function ensureAutoScanEligible() {
+    if (!autoStartEnabled()) return false;
+    try {
+        const data = await api("/api/snapshots");
+        return !hasTodaySnapshotSession(data.sessions || []);
+    } catch (e) {
+        return true; // 快照不可得 → 冷启动语义（可自动发起，发起处再兜底）
+    }
+}
+
+/* 三、启动：壳绑定 → 路由初始化（首渲染） → 工作台挂载 → 原 init 链 */
 export async function start() {
     bindTopbar();
     bindTheme();
@@ -277,6 +372,7 @@ export async function start() {
     bindKeyboard();     // U4.1：键盘矩阵（/ 聚焦筛选、g c/g s 连按跳页、treemap 方向键/Enter）
     bindScanTop();      // U3.1：顶栏开始扫描（N05 骨架；U3.2 完整态随状态机数据）
     probeStopSupport(); // U3.2：停止接口特性探测（OPTIONS 零副作用；404 → 隐藏停止按钮）
+    bindAutoScanStart(); // 阶段D（D-1）：自动扫描触发事件（evaluateEnvGate ready 分支派发）
     setPaletteBuilder(buildPaletteItems); // U3.1：执行器表注入（palette 零业务依赖）
     // U3.3：快照页页头动作注入（创建=保存流程 / 撤销=确认弹窗流程 / 可用性镜像扫描状态；
     // 防 scan↔snapshots 环——snapshots.js 零 scan.js 依赖）
@@ -287,7 +383,9 @@ export async function start() {
     // 读取偏好（自动保存开关 + 最近浏览）
     try {
         const data = await api("/api/settings");
-        setAutoSaveSetting(!!data.settings.auto_save);
+        // 阶段D（D-2）：「扫描完成自动保存」默认开启——未显式存储（缺键）视为 ON；
+        // 显式 false 保持 OFF（设置弹窗保存路径不变）
+        setAutoSaveSetting(data.settings.auto_save !== false);
         setDataDir(data.data_dir || "");
         const roots = data.settings.last_roots;
         if (Array.isArray(roots) && roots.length) {
@@ -308,8 +406,11 @@ export async function start() {
 
     // P12·W1.3 init 门控（RT-02 边界：仅首拍求值；替换旧的无条件浏览）：
     // ready → 自动浏览首根；未就绪 → 引导态。15s 轮询只刷徽章不重评门控。
+    // 阶段D（D-1）：把自动扫描「快照检测已就绪」信号交给 evaluateEnvGate——
+    // 仅当 health ready（Everything 就绪）且无已保存当日快照时评估自动触发。
+    const autoScanEligible = await ensureAutoScanEligible();
     const h = await refreshHealth();
-    evaluateEnvGate(h);
+    evaluateEnvGate(h, autoScanEligible);
 
     setInterval(refreshHealth, 15000);
 }

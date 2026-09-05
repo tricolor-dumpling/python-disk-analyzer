@@ -102,8 +102,12 @@ export function hideBrowseGuide() {
 }
 
 /* 环境门控（RT-02 边界）：只在首次加载与「重试环境检测」两处求值；
-   15s 轮询只刷徽章、绝不重评本门控。ready → 自动浏览首根；否则进引导态。 */
-export function evaluateEnvGate(h) {
+   15s 轮询只刷徽章、绝不重评本门控。ready → 自动浏览首根；否则进引导态。
+   阶段D（D-1）：ready 分支追加自动扫描触发派发——autoScanEligible 为
+   main.js 预检的「无当日快照会话」信号（true=可评估自动扫描）；事件由
+   main.js 监听（tryAutoStartFullscan 做最终幂等判定：保护键/运行态/结果态）。
+   重试路径（retryEnvGate）不传该信号 → 不自动补触发（手册「或按决策补」=不补）。 */
+export function evaluateEnvGate(h, autoScanEligible) {
     if (!h) {
         showBrowseGuide(null);
         return;
@@ -114,6 +118,10 @@ export function evaluateEnvGate(h) {
            恢复路径与旧「首根浏览」共用同一次 browse 调用（Network 时序不变，零额外请求） */
         const startup = getStartupBrowsePath();
         browsePath((startup && startup.path) || getCurrentRoot() || "D:\\", true);
+        // 阶段D（D-1）：Everything 就绪 + 无当日快照会话 → 派发自动扫描评估
+        if (autoScanEligible === true) {
+            try { window.dispatchEvent(new CustomEvent("pds:auto-scan-start")); } catch (e) { /* ignore */ }
+        }
     } else {
         showBrowseGuide(h);
     }

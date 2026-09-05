@@ -78,6 +78,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
         // 预置引导关闭 + 主题（onboarding 弹层会遮挡扫描卡截图，必须关闭）
         await page.addInitScript(() => {
             try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {}
+            try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) {}
             try { localStorage.setItem("pds_theme_v1", "light"); } catch (e) {}
         });
         await page.addInitScript(STUB_FN);

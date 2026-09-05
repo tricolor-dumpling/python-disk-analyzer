@@ -133,6 +133,7 @@ window.fetch = function (url, options) {
         // 经 closeModal 栈安全关闭（同 smoke A0 法，不残留弹窗栈）
         await page.evaluate(async () => {
             try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+        try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) { /* ignore */ }
             try {
                 const m = await import("/static/js/app/main.js");
                 if (m.closeModal) m.closeModal("onboarding");
@@ -523,6 +524,7 @@ window.fetch = function (url, options) {
         await installWait(page);
         await page.evaluate(async () => {
             try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+        try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) { /* ignore */ }
             try {
                 const m = await import("/static/js/app/main.js");
                 if (m.closeModal) m.closeModal("onboarding");

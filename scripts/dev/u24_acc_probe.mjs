@@ -107,6 +107,7 @@ window.fetch = function (url, options) {
         // U3.1：首启引导弹层（F02）——closeModal 栈安全关闭，防拦截真实指针点击
         await page.evaluate(async () => {
             try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+        try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) { /* ignore */ }
             try {
                 const m = await import("/static/js/app/main.js");
                 if (m.closeModal) m.closeModal("onboarding");
@@ -418,6 +419,7 @@ window.fetch = function (url, options) {
         // U3.1：首启引导弹层（F02）——closeModal 栈安全关闭，防拦截真实指针点击
         await page.evaluate(async () => {
             try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+        try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) { /* ignore */ }
             try {
                 const m = await import("/static/js/app/main.js");
                 if (m.closeModal) m.closeModal("onboarding");
@@ -458,6 +460,7 @@ window.fetch = function (url, options) {
         // U3.1：首启引导弹层（F02）——closeModal 栈安全关闭，防拦截真实指针点击
         await page.evaluate(async () => {
             try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) { /* ignore */ }
+        try { sessionStorage.setItem("pds_auto_started_v1", "1"); } catch (e) { /* ignore */ }
             try {
                 const m = await import("/static/js/app/main.js");
                 if (m.closeModal) m.closeModal("onboarding");
