@@ -537,6 +537,12 @@ function kickLive() {
 }
 async function doLiveRefresh() {
     const seq = ++liveSeq;
+    /* 阶段D（D-1）冷启动竞态修复：自动扫描路径的启动浏览已延后（扫描完成后走索引）。
+       此时 lastBrowseData 为空（无已渲染数据可生长）→ 跳过实时刷新——避免在扫描
+       queued/首盘扫描期反复 POST /api/browse 撞后端 409（SDK 锁被 fullscan 持有）
+       → 消除 409 控制台噪声（阶段D console 0 验收）；
+       重新扫描（已有数据）路径不受影响：lastBrowseData 存在 → 继续 L3-2 实时生长。 */
+    if (!APP_STATE.lastBrowseData) return;
     try {
         const data = await postJson("/api/browse", { root: currentRoot, path: currentPath });
         if (seq !== liveSeq || !scanRunning) return;

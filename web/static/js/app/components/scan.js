@@ -351,6 +351,10 @@ function renderFullscanState(st) {
         if (completed) {
             toast("全量扫描已完成，结果就绪" + (st.save_ready ? "，可保存快照" : ""), "success");
             playCompletionConfetti();
+            /* 阶段D（D-1）：冷启动自动扫描路径的延后浏览——完成且结果就绪时
+               派发 pds:browse-after-scan（topbar 已挂一次性监听），browse 命中
+               全量索引 → 零 409、零重复 SDK 直扫（u20 网络时序纪律） */
+            try { window.dispatchEvent(new CustomEvent("pds:browse-after-scan")); } catch (e) { /* ignore */ }
         } else if (aborted) {
             toast("已停止，已完成部分可浏览", "info");
         }

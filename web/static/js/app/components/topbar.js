@@ -106,7 +106,10 @@ export function hideBrowseGuide() {
    阶段D（D-1）：ready 分支追加自动扫描触发派发——autoScanEligible 为
    main.js 预检的「无当日快照会话」信号（true=可评估自动扫描）；事件由
    main.js 监听（tryAutoStartFullscan 做最终幂等判定：保护键/运行态/结果态）。
-   重试路径（retryEnvGate）不传该信号 → 不自动补触发（手册「或按决策补」=不补）。 */
+   启动时序（D-1 冷启动竞态修复）：自动扫描与启动浏览必须避免在同一瞬间竞争
+   SDK 锁（真机实测：并发触发产生 5×409 browse console 噪声）——当自动扫描
+   可评估时，**先派发自动扫描（拿锁）**，把启动浏览延后到扫描完成后（走索引，
+   零 409）；不可评估时保持既有立即浏览（u20 网络时序不变）。 */
 export function evaluateEnvGate(h, autoScanEligible) {
     if (!h) {
         showBrowseGuide(null);
@@ -114,13 +117,21 @@ export function evaluateEnvGate(h, autoScanEligible) {
     }
     if (h.ready) {
         hideBrowseGuide();
-        /* F06（U4.2 G1 核销）：启动恢复上次浏览位置——优先恢复路径，缺失回落首根/默认 D:\；
-           恢复路径与旧「首根浏览」共用同一次 browse 调用（Network 时序不变，零额外请求） */
         const startup = getStartupBrowsePath();
-        browsePath((startup && startup.path) || getCurrentRoot() || "D:\\", true);
-        // 阶段D（D-1）：Everything 就绪 + 无当日快照会话 → 派发自动扫描评估
+        const target = (startup && startup.path) || getCurrentRoot() || "D:\\";
         if (autoScanEligible === true) {
+            /* 冷启动自动扫描路径：先派发扫描（SDK 锁由扫描持有），再延后浏览。
+               pds:browse-after-scan 由 scan.js 完成边沿（result_ready）触发，
+               browse 命中全量索引 → 零 409、零重复 SDK 直扫（u20 纪律）。 */
+            window.addEventListener("pds:browse-after-scan", function onBrowse() {
+                window.removeEventListener("pds:browse-after-scan", onBrowse);
+                browsePath(target, true);
+            }, { once: true });
             try { window.dispatchEvent(new CustomEvent("pds:auto-scan-start")); } catch (e) { /* ignore */ }
+        } else {
+            /* F06（U4.2 G1 核销）：启动恢复上次浏览位置——优先恢复路径，缺失回落首根/默认 D:\；
+               恢复路径与旧「首根浏览」共用同一次 browse 调用（Network 时序不变，零额外请求） */
+            browsePath(target, true);
         }
     } else {
         showBrowseGuide(h);
