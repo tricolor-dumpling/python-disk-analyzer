@@ -108,11 +108,13 @@
         <div id="route-view" class="route-view" aria-live="polite"></div>
     </div>
 
-    <!-- ============ 状态栏（32px；F22） ============ -->
+    <!-- ============ 状态栏（32px；F22） ============
+         阶段E（E-6，D4 裁定落地）：删除固定说明文案（数据保存路径 / Everything 驱动 /
+         本地监听地址——信息已迁入设置弹窗 setting-data-dir 与健康徽章 popover），
+         精简为「版本号（.statusbar-left 保留类名，u43 断言面兼容）+ 已选 N 项」。 -->
     <footer class="statusbar">
-        <span class="statusbar-left">数据保存在 %LOCALAPPDATA%\PythonDiskScanner（快照、清单与配置） · v2.0.0</span>
+        <span class="statusbar-left">v2.0.0</span>
         <span class="statusbar-right">
-            <span class="statusbar-everything">Everything 驱动 · 本地服务仅监听 127.0.0.1</span>
             <span id="statusbar-selected" class="statusbar-selected" hidden></span>
         </span>
     </footer>
@@ -148,6 +150,8 @@
             <div class="popover-row"><span class="popover-label">数据目录</span><span id="popover-data-dir" class="popover-value">正在读取…</span></div>
             <div class="popover-row"><span class="popover-label">驱动状态</span><span id="popover-health" class="popover-value">正在检查…</span></div>
             <div id="popover-health-dll" class="popover-sub muted"></div>
+            <!-- 阶段E（E-6）：删除的状态栏「本地服务仅监听 127.0.0.1」信息迁入此处（信息不丢） -->
+            <div class="popover-row"><span class="popover-label">监听地址</span><span class="popover-value">127.0.0.1（本地服务）</span></div>
             <button id="btn-popover-retry" class="btn btn-sm btn-primary">重试环境检测</button>
         </div>
     </div>
