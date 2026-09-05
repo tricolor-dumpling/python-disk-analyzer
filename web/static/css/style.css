@@ -603,6 +603,14 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   position:sticky;top:0;z-index:1; /* 面板内滚时表头固定 */
 }
 .dir-table tbody.compact-list td{padding-top:3px;padding-bottom:3px}
+/* 阶段C（C-8）：紧凑档信息密度差异（手册 2-12 推荐方向）——
+   compact 隐藏尺寸占比条与排行行图标（仅数值，极简高密度）；
+   cozy 保持完整 icon + 占比条（信息完整）。DOM 保留（aria/选择器不变）。 */
+.dir-table tbody.compact-list .size-track{display:none}
+.dir-table tbody.compact-list .ranking-name > .icon{display:none}
+.dir-table tbody.compact-list .cell-name > .icon{display:none}
+.dir-table tbody.compact-list .dir-link > .icon{display:none}
+.dir-table tbody.compact-list .col-share{width:0;padding-left:0;padding-right:0}
 .dir-table td{padding:7px 12px;border-bottom:1px solid var(--row-border);vertical-align:middle}
 .dir-table tbody:not(.v-virtual) tr:nth-child(even) td{background:var(--row-alt)}
 .dir-table tbody tr:hover td{background:var(--primary-soft)}
@@ -1032,6 +1040,11 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   position:absolute;inset:0;overflow:auto;padding:4px 0;
   outline:none;background:var(--card);display:flex;flex-direction:column;
 }
+/* 阶段C（C-7）防回归：relate-tree 显式 display:flex 覆盖 [hidden] UA 默认
+   （nav-tabs 类坑）——非 relate 模式下 hideRelate() 必须真正隐藏，否则
+   透明 flex 容器铺满 table-wrap 覆盖表格（elementFromPoint 实证：表格行
+   位置命中 relate-tree，截图全白） */
+.relate-tree[hidden]{display:none!important}
 .relate-tree:focus-visible{box-shadow:inset 0 0 0 2px var(--primary)}
 .relate-row{
   display:flex;align-items:center;gap:8px;min-height:36px;box-sizing:border-box;
