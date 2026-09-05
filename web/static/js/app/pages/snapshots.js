@@ -25,6 +25,8 @@ import { ICONS } from "../icons.js";
 import { APP_STATE } from "../state.js";
 import { setStatus } from "../components/statusbar.js";
 import { skipReasonText } from "../labels.js";
+import { confirmDialog } from "../components/modals.js"; // 阶段C（C-3）：删除确认弹窗（红线 #9 弹窗栈）
+import { toast } from "../components/toast.js"; // 阶段C（C-3）：删除结果反馈
 import { renderSnapshotMini } from "../components/snapshot-mini.js"; // U2.4：N06 迷你条目
 
 let sessionsCache = [];
@@ -156,15 +158,20 @@ export function renderSnapshotList(sessions) {
                           }
                           // P12·W2.4：每盘子行尾「对比此快照」一键入口（U3.3 迁移到
                           // 快照页：点击=预填 state.compare + 跳 #/compare——§6.4 跨页形态）
+                          // 阶段C（C-3）：追加「删除」按钮（单盘删除，D1 主入口）
                           const cmpBtn = r.snapshot_path
                               ? '<button class="btn btn-sm act-cmp-snap" data-baseline="' + esc(r.snapshot_path) +
                                 '" data-root="' + esc(r.root || "") + '">对比此快照</button>'
+                              : "";
+                          const delBtn = r.snapshot_path || r.root
+                              ? '<button class="btn btn-sm btn-ghost act-del-snap" data-session="' + esc(s.session_id || "") +
+                                '" data-root="' + esc(r.root || "") + '" title="删除该盘快照（其他盘保留）">删除</button>'
                               : "";
                           return (
                               "<li>" + ICONS.drive +
                               "<span>" + esc(r.root || "?") + " →</span>" +
                               "<code>" + esc(r.snapshot || "缺快照") + "</code>" +
-                              cmpBtn + "</li>"
+                              cmpBtn + delBtn + "</li>"
                           );
                       })
                       .join("") +
@@ -176,6 +183,8 @@ export function renderSnapshotList(sessions) {
                 '<span class="session-title">' + ICONS.clock +
                 esc(formatCreatedAt(s.created_at || s.session_id)) + "</span>" +
                 (s.auto ? '<span class="tag tag-auto">自动</span>' : '<span class="tag tag-manual">手动</span>') +
+                '<button class="btn btn-sm btn-ghost act-del-session" data-session="' + esc(s.session_id || "") +
+                '" title="删除整个会话（全部盘快照与清单）">删除整会话</button>' +
                 "</div>" +
                 '<div class="session-sub">' + esc(s.session_id) + "</div>" +
                 rootLines +
@@ -224,6 +233,34 @@ const TREND_SLOTS = [
 
 const trendCache = new Map(); // key "slotKey:root:baseline" → {status:"ok",...}|{status:"err",error}
 const trendInflight = new Set(); // 防止并发渲染双发 /api/compare（缓存未落前重复渲染）
+
+/* 阶段C（C-3）：删除成功清 trendCache 中涉及被删基线的条目（防趋势卡缓存陈旧）。
+   根可空（整会话删除时清全部）；基线路径可空（按根清）。
+   ⚠️ 键含 Windows 盘符冒号，不能 split(":") 解析——按条目值元数据（root/baseline）匹配。 */
+export function clearTrendCacheForDeleted({ root, baseline } = {}) {
+    const normRoot = (x) => String(x || "").replace(/\\+$/, "").toUpperCase();
+    const rootKey = root ? normRoot(root) : null;
+    const baselineKey = baseline ? String(baseline) : null;
+    for (const [key, entry] of Array.from(trendCache.entries())) {
+        if (!entry) continue;
+        const eRoot = normRoot(entry.root);
+        const eBase = String(entry.baseline || "");
+        const rootHit = !rootKey || eRoot === rootKey;
+        const baselineHit = !baselineKey || eBase === baselineKey;
+        if (rootHit && baselineHit) trendCache.delete(key);
+    }
+    for (const key of Array.from(trendInflight)) {
+        trendInflight.delete(key); // 在途请求的结果到达时会重渲染；删除后整表刷新，清空在途标记防陈旧回填
+    }
+}
+
+/* 阶段C（C-2/C-3）：调用删除 API（单盘/整会话）；返回 {ok, data} 或抛错。 */
+async function deleteSnapshot(sessionId, root) {
+    const payload = { session_id: sessionId };
+    if (root) payload.root = root;
+    const data = await postJson("/api/snapshot/delete", payload);
+    return data;
+}
 
 function trendCacheKey(slot, trend) {
     return slot.key + ":" + trend.root + ":" + trend.baseline;
@@ -420,6 +457,36 @@ export function findLatestForRoot(sessions, root) {
     return "";
 }
 
+/* 阶段C（C-3）：删除确认 → API → 刷新 + 清趋势缓存。root 空 = 整会话。 */
+async function doDeleteSnapshot(sessionId, root) {
+    if (!sessionId) return;
+    const isWhole = !root;
+    const ok = await confirmDialog({
+        title: isWhole ? "删除整个会话？" : "删除该盘快照？",
+        text: isWhole
+            ? "将删除该会话全部盘的快照文件与清单。此操作不可撤销，确认继续？"
+            : "将删除该盘快照文件并从会话清单移除（其他盘保留）。此操作不可撤销，确认继续？",
+        okLabel: "删除",
+        okClass: "btn-danger",
+    });
+    if (!ok) return;
+    try {
+        const data = await deleteSnapshot(sessionId, root);
+        // 清 trendCache 中涉及被删基线的条目（阶段C 纪律#15：防趋势卡缓存陈旧）
+        clearTrendCacheForDeleted({ root: root || undefined, baseline: undefined });
+        if (data && (data.deleted || []).length) {
+            toast("已删除 " + data.deleted.length + " 份快照" + (data.already && data.already.length ? "（" + data.already.length + " 份已不存在）" : ""), "success");
+        } else if (data && (data.already || []).length) {
+            toast("快照已不存在（幂等），已清理清单", "warn");
+        } else if (data && (data.failed || []).length) {
+            toast("删除部分失败：" + data.failed.map((f) => f.error).join("；"), "error");
+        }
+        await refreshSnapshots(); // 删除成功后刷新列表（已删项不再出现）
+    } catch (e) {
+        toast((e && e.message) || "删除失败", "error");
+    }
+}
+
 function bindSnapshotsPage() {
     const createBtn = $("btn-create-snapshot");
     if (createBtn) createBtn.addEventListener("click", () => { if (snapActions.create) snapActions.create(false); });
@@ -428,13 +495,29 @@ function bindSnapshotsPage() {
     // 逐盘「对比此快照」→ 预填 + 跳转（§6.4 跨页形态；U3.4 消费自动对比）
     const list = $("snapshot-list");
     if (list) list.addEventListener("click", (ev) => {
-        const btn = ev.target.closest(".act-cmp-snap");
-        if (!btn) return;
-        prefillAndGoCompare(
-            btn.getAttribute("data-baseline") || "",
-            btn.getAttribute("data-root") || "",
-            ""
-        );
+        const cmpBtn = ev.target.closest(".act-cmp-snap");
+        if (cmpBtn) {
+            prefillAndGoCompare(
+                cmpBtn.getAttribute("data-baseline") || "",
+                cmpBtn.getAttribute("data-root") || "",
+                ""
+            );
+            return;
+        }
+        // 阶段C（C-3）：单盘删除（确认弹窗 → API → 刷新 + 清趋势缓存）
+        const delBtn = ev.target.closest(".act-del-snap");
+        if (delBtn) {
+            doDeleteSnapshot(
+                delBtn.getAttribute("data-session") || "",
+                delBtn.getAttribute("data-root") || ""
+            );
+            return;
+        }
+        // 阶段C（C-3）：整会话删除
+        const delSessionBtn = ev.target.closest(".act-del-session");
+        if (delSessionBtn) {
+            doDeleteSnapshot(delSessionBtn.getAttribute("data-session") || "", "");
+        }
     });
     // 趋势卡点击 → 预填 + 跳转（N07：点击卡片跳 #/compare 并自动填基线）
     const row = $("trend-row");
