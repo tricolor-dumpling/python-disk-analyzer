@@ -665,6 +665,11 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   padding:6px 12px;background:var(--card);border-top:1px solid var(--border);
   font-size:var(--fs-xs);color:var(--muted);
 }
+/* 阶段C（C-7）：页脚显式 display 覆盖 [hidden] UA 默认（同
+   .list-footer-actions[hidden] 模式）——relate 树激活时页脚必须真正隐藏，
+   否则 sticky+z2 悬浮盖住树首行（命中测试实证：elementFromPoint 首行返回
+   list-footer） */
+.list-footer[hidden]{display:none!important}
 .list-stats{white-space:nowrap}
 .list-stats:last-child{margin-left:0}
 .list-footer-actions{display:inline-flex;gap:8px;margin-left:auto}
@@ -1019,3 +1024,36 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   body{overflow:auto}
   .app{height:auto;overflow:visible}
 }
+
+/* ---- 阶段C（C-7）：关系目录树（父子层级；viz/relate.js；与表格互斥显示） ----
+   容器 = table-wrap 内独立块；行高与 list.js ROW_HEIGHT 同口径
+   （cozy 36 / compact 26——u24 断言面一致）；动画仅 opacity/transform（P7）。 */
+.relate-tree{
+  position:absolute;inset:0;overflow:auto;padding:4px 0;
+  outline:none;background:var(--card);display:flex;flex-direction:column;
+}
+.relate-tree:focus-visible{box-shadow:inset 0 0 0 2px var(--primary)}
+.relate-row{
+  display:flex;align-items:center;gap:8px;min-height:36px;box-sizing:border-box;
+  padding:6px 12px 6px 8px;cursor:pointer;border-bottom:1px solid var(--row-border);
+  white-space:nowrap;transition:opacity var(--dur-1) var(--ease-out);
+}
+.relate-row:hover{background:var(--primary-soft)}
+.relate-row:focus-visible,.relate-row.is-focus{background:var(--primary-soft);outline:2px solid var(--primary);outline-offset:-2px}
+.relate-tree.compact-list .relate-row{min-height:26px;padding-top:2px;padding-bottom:2px}
+.relate-caret{flex:none;width:14px;color:var(--muted);font-size:10px;transition:transform var(--dur-2) var(--ease-out)}
+.relate-dir .relate-caret{transform:rotate(90deg)}
+.relate-caret-leaf{visibility:hidden}
+.relate-icon{flex:none;color:var(--primary);display:inline-flex}
+.relate-icon .icon{width:16px;height:16px}
+.relate-file .relate-icon{color:var(--faint)}
+.relate-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:var(--font-num)}
+.relate-size{flex:none;color:var(--muted);font-size:var(--fs-xs);font-variant-numeric:var(--font-num)}
+.relate-actions{flex:none;display:inline-flex;gap:6px;opacity:0;transition:opacity var(--dur-2) var(--ease-out)}
+.relate-row:hover .relate-actions,.relate-row:focus-within .relate-actions{opacity:1}
+.relate-tree.v-virtual .relate-row{height:36px;border:0;box-shadow:inset 0 -1px var(--row-border)}
+.relate-tree.v-virtual.compact-list .relate-row{height:26px}
+.relate-spacer{flex:none;pointer-events:none}
+.relate-empty{padding:36px 16px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:8px;align-items:center}
+.relate-empty b{color:var(--text)}
+.relate-empty p{margin:0;max-width:420px}

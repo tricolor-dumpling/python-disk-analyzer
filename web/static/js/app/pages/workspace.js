@@ -64,6 +64,12 @@ import { isTypingEvent } from "../keys.js"; // U4.1：单键守卫共享（Backs
 import {
     renderList, bindList, clearSelection, setDrillHandler,
 } from "../components/list.js";
+/* 阶段C（C-7）：关系目录父子层级树（D3 裁定；懒展开单击复用 browse 加载；
+   与 treemap/排行/表格互斥终态——防 2-2 残留重演） */
+import {
+    renderRelateTree, renderRelateEmpty, showRelate, hideRelate,
+    pushPath, popPath, resetPathStack, getPathStack, handleRelateKey,
+} from "../viz/relate.js";
 
 /* ================= 目录浏览 ================= */
 
@@ -389,9 +395,13 @@ function setBrowseView(mode) {
     $("btn-view-treemap").classList.toggle("btn-primary", mode === "treemap");
     $("btn-view-ranking").classList.toggle("btn-primary", mode === "ranking");
     $("btn-view-table").classList.toggle("btn-primary", mode === "table");
+    /* 阶段C（C-7）：关系按钮高亮（与三视图同语义） */
+    const relateBtn = $("btn-view-relate");
+    if (relateBtn) relateBtn.classList.toggle("btn-primary", mode === "relate");
     const wrap = $("treemap-wrap");
     const tableWrap = $("table-wrap");
     const showTreemap = mode === "treemap";
+    const showRelateMode = mode === "relate";
     if (wrap && tableWrap) {
         if (prev !== mode) {
             crossfadeView(seq, showTreemap);
@@ -408,6 +418,13 @@ function setBrowseView(mode) {
     } else if (wrap && !showTreemap) {
         const v = getTreemapView();
         if (v) v.pause();
+    }
+    /* 阶段C（C-7）：relate 视图互斥收口——树显示则表格隐藏、反之亦然
+       （防 2-2 残留：两容器终态互斥由 showRelate/hideRelate 内联保证） */
+    if (showRelateMode) {
+        showRelate();
+    } else {
+        hideRelate();
     }
     const mergeGroup = $("merge-group");
     if (mergeGroup) mergeGroup.toggleAttribute("hidden", !showTreemap); // 仅矩形图显示（template 属性与 class 双控以 [hidden] 为准）
@@ -581,6 +598,18 @@ export function renderEntries(data, opts) {
         renderTreemap(data);
         return;
     }
+    /* 阶段C（C-7）：关系目录树（D3 父子层级树；懒展开单击复用 browse 加载；
+       >200 子项虚拟化在 relate.js；与排行/表格互斥终态由 setBrowseView 收口） */
+    if (APP_STATE.view.mode === "relate") {
+        const entries = (data.directories || []).concat(data.files || []);
+        if (!entries.length) {
+            renderRelateEmpty(data);
+        } else {
+            renderRelateTree(data, { animate: !!opts && !!opts.animate, density: APP_STATE.view.density });
+        }
+        setStatus("browse-status", "ok", "关系目录 · 共 " + data.total_dirs + " 个子目录 / " + data.total_files + " 个文件");
+        return;
+    }
     renderList(data, opts);
 }
 
@@ -644,6 +673,7 @@ export async function browsePath(path, quiet) {
     setBrowseLoading(true);
     setStatus("browse-status", "busy", "正在扫描目录，请稍候…");
     $("dir-body").innerHTML = "";
+    const prevPath = currentPath; // 浏览前位置（relate 栈增删判定用）
     try {
         const data = await postJson("/api/browse", { root: currentRoot, path: target });
         if (seq !== browseSeq) return; // 迟到的旧响应：不渲染、不改 currentPath/history
@@ -668,7 +698,35 @@ export async function browsePath(path, quiet) {
         }
         renderBreadcrumb(data.root, data.parent);
         clearSelection(); // N08：导航到新目录后清空多选（路径集合已失效）
+        /* 阶段C（C-7）：关系树路径栈同步——树层级 = 从会话根到当前层的目录链。
+           下钻（新位置是前位置的子目录）→ push 新层；
+           返回上级/跳转（新位置不是子目录）→ 弹出栈尾直至与新位置对齐；
+           回会话根（无上级）→ 重置为 [根]。 */
+        if (data.parent) {
+            if (String(prevPath || "") !== String(data.root) &&
+                String(prevPath || "").replace(/[\\/]+$/, "").toUpperCase() ===
+                String(data.parent || "").replace(/[\\/]+$/, "").toUpperCase()) {
+                pushPath(data.root); // 下钻：prevPath 即新位置的 parent
+            } else {
+                const stack = getPathStack();
+                while (stack.length && String(stack[stack.length - 1]).replace(/[\\/]+$/, "").toUpperCase() !==
+                    String(data.root).replace(/[\\/]+$/, "").toUpperCase()) {
+                    popPath();
+                }
+            }
+        } else {
+            resetPathStack([data.root]); // 会话根：树从根开始
+        }
         renderEntries(data, { animate: true }); // L1-2/L1-3：数据到达播行 stagger + 占比条生长
+        /* 阶段C（C-7）：relate 键盘连续性——drill 后树内 HTML 重建会丢焦点到 body，
+           键盘导航（←/↑↓）即失效；relate 激活且树可见时把焦点放回树容器。
+           防抖避免与点击目标抢焦点（点击时事件已完成，此后再聚焦不干扰） */
+        if (APP_STATE.view.mode === "relate") {
+            const rt = $("relate-tree");
+            if (rt && !rt.hasAttribute("hidden")) {
+                setTimeout(() => { try { rt.focus({ preventScroll: true }); } catch (e) { /* 忽略 */ } }, 0);
+            }
+        }
         // 只在会话根层级记录「最近浏览」（进入子目录不算新根）
         if (data.root && !data.parent) updateRecentRoots(data.root, quiet);
     } catch (e) {
@@ -784,6 +842,37 @@ export function bindWorkspace() {
     $("btn-view-treemap").addEventListener("click", () => setBrowseView("treemap"));
     $("btn-view-ranking").addEventListener("click", () => setBrowseView("ranking"));
     $("btn-view-table").addEventListener("click", () => setBrowseView("table"));
+    /* 阶段C（C-7）：关系目录按钮（父子层级树视图） */
+    const relateBtn = $("btn-view-relate");
+    if (relateBtn) relateBtn.addEventListener("click", () => setBrowseView("relate"));
+    /* 阶段C（C-7）：关系树容器键盘（↑↓ 移动、→/Enter 下钻展开、← 上级、
+       Home/End 首尾；U4.1 矩阵）——与 treemap 键盘互斥（各视图容器独立） */
+    const relateTree = $("relate-tree");
+    if (relateTree) {
+        relateTree.addEventListener("keydown", (ev) => {
+            if (APP_STATE.view.mode !== "relate") return;
+            if (isTypingEvent(ev)) return; // U4.1：输入框/可编辑守卫同口径
+            const handled = handleRelateKey(ev, (p) => browsePath(p), () => { if (browseParent) goUp(); });
+            if (handled) ev.stopPropagation();
+        });
+        /* 关系树行点击委托：目录行单击 = 展开下钻（复用 browse 加载）；
+           行内按钮（下钻/定位/复制）不触发行级下钻（F19 语义） */
+        relateTree.addEventListener("click", (ev) => {
+            if (APP_STATE.view.mode !== "relate") return;
+            const btn = ev.target.closest(".act-drill, .act-open, .act-copy");
+            if (btn) {
+                const p = btn.getAttribute("data-act-path");
+                if (btn.classList.contains("act-drill")) { if (p) browsePath(p); return; }
+                if (btn.classList.contains("act-open")) { openInExplorer(p); return; }
+                if (btn.classList.contains("act-copy")) { copyPath(p); return; }
+            }
+            const row = ev.target.closest(".relate-row[data-path]");
+            if (row) {
+                const p = row.getAttribute("data-path");
+                if (p && row.classList.contains("relate-dir")) browsePath(p);
+            }
+        });
+    }
     $("btn-density").addEventListener("click", () => {
         // U2.5：密度状态存 APP_STATE.view.density（§3.2；紧凑 26px / 舒适 36px 行高）
         APP_STATE.view.density = APP_STATE.view.density === "compact" ? "cozy" : "compact";
@@ -897,6 +986,8 @@ const WORKSPACE_HTML =
     '<button id="btn-view-treemap" class="btn btn-sm btn-primary" title="矩形图视图（默认，定稿 N01）">矩形图</button>' +
     '<button id="btn-view-ranking" class="btn btn-sm">排行</button>' +
     '<button id="btn-view-table" class="btn btn-sm">表格</button>' +
+    '<!-- 阶段C（C-7）：关系目录（父子层级树，D3 裁定；懒展开单击复用 browse 加载） -->' +
+    '<button id="btn-view-relate" class="btn btn-sm" title="关系目录（父子层级树，单击展开子目录）">关系</button>' +
     '<span class="merge-group" id="merge-group" hidden title="合并阈值（矩形图视图）：小于阈值的条目并入「其他」">' +
     '<button id="btn-merge-minus" class="btn btn-sm" title="减少合并数量（更多独立块）">−</button>' +
     '<span id="merge-top-label" class="merge-label">24</span>' +
@@ -927,6 +1018,8 @@ const WORKSPACE_HTML =
     '<!-- 视图区（flex:1；面板内滚；U2.5：treemap/table 两容器 absolute 叠加——120ms 交叉淡化共用视口） -->' +
     '<div class="view-area" id="view-area">' +
     '<div class="table-wrap" id="table-wrap">' +
+    '<!-- 阶段C（C-7）：关系目录树容器（与 #dir-body 表格互斥显示；懒展开父子层级树） -->' +
+    '<div id="relate-tree" class="relate-tree" hidden tabindex="0" aria-label="关系目录树（父子层级；↑↓ 移动，→/Enter 展开子目录，← 收起）"></div>' +
     '<!-- 加载态 L1-5 骨架屏（shimmer 1.4s；替代原 spinner——spinner 仅存于按钮） -->' +
     '<div id="browse-loading" class="loading-overlay hidden">' +
     '<div class="skel-list" aria-hidden="true">' +
@@ -1052,6 +1145,13 @@ export function restoreWorkspaceView() {
     // 阶段B（B-13/B-14）：回灌同样按 source 恢复缓存徽章（不重发请求）
     renderCacheBadge(APP_STATE.lastBrowseData);
     if (APP_STATE.view.mode === "treemap") renderTreemap(APP_STATE.lastBrowseData, "none");
+    else if (APP_STATE.view.mode === "relate") {
+        // 阶段C（C-7）：关系树回灌——显示树容器 + 隐藏表格（互斥终态）
+        showRelate();
+        const entries = (APP_STATE.lastBrowseData.directories || []).concat(APP_STATE.lastBrowseData.files || []);
+        if (entries.length) renderRelateTree(APP_STATE.lastBrowseData, { animate: false, density: APP_STATE.view.density });
+        else renderRelateEmpty(APP_STATE.lastBrowseData);
+    }
     else renderEntries(APP_STATE.lastBrowseData, { animate: false });
     renderStrip();
 }
