@@ -32,8 +32,11 @@ export async function openSettings() {
     syncThemeControls(); // U3.5：主题单选回显（同源：与顶栏按钮改一处另一处反映）
     try {
         const data = await api("/api/settings");
-        setAutoSaveSetting(!!data.settings.auto_save);
-        $("setting-auto-save").checked = !!data.settings.auto_save;
+        // 阶段D（D-2）：「扫描完成自动保存」默认开启——未显式存储（缺键）视为 ON；
+        // 显式 false 保持 OFF（与 main.js 启动读取同口径）
+        const autoSaveOn = data.settings.auto_save !== false;
+        setAutoSaveSetting(autoSaveOn);
+        $("setting-auto-save").checked = autoSaveOn;
         dataDir = data.data_dir || "";
         if (dataDir) $("setting-data-dir").value = dataDir;
         const roots = data.settings.last_roots;
