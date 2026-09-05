@@ -119,16 +119,24 @@ export function evaluateEnvGate(h, autoScanEligible) {
         hideBrowseGuide();
         const startup = getStartupBrowsePath();
         const target = (startup && startup.path) || getCurrentRoot() || "D:\\";
+        /* 阶段F（R6）回归修复：启动（首根）浏览是工作台专属行为——browsePath 会
+           操作工作台 DOM（#dir-body / #browse-root 等），冷启动直达 #/compare 或
+           #/snapshots 时这些容器不在 DOM，无条件 browse 触发 null 解引用
+           （"Cannot set properties of null (setting 'innerHTML'/'value')" 未处理
+           运行时错误，console 0 纪律）。仅在当前路由为工作台（"/"）时触发；
+           非工作台路由不发起启动浏览（该页无浏览容器，恢复上次浏览位置在切回
+           工作台时由既有工作台挂载路径完成——零行为变化、零额外请求）。 */
+        const onWorkspace = APP_STATE.route === "/";
         if (autoScanEligible === true) {
             /* 冷启动自动扫描路径：先派发扫描（SDK 锁由扫描持有），再延后浏览。
                pds:browse-after-scan 由 scan.js 完成边沿（result_ready）触发，
                browse 命中全量索引 → 零 409、零重复 SDK 直扫（u20 纪律）。 */
             window.addEventListener("pds:browse-after-scan", function onBrowse() {
                 window.removeEventListener("pds:browse-after-scan", onBrowse);
-                browsePath(target, true);
+                if (APP_STATE.route === "/") browsePath(target, true);
             }, { once: true });
             try { window.dispatchEvent(new CustomEvent("pds:auto-scan-start")); } catch (e) { /* ignore */ }
-        } else {
+        } else if (onWorkspace) {
             /* F06（U4.2 G1 核销）：启动恢复上次浏览位置——优先恢复路径，缺失回落首根/默认 D:\；
                恢复路径与旧「首根浏览」共用同一次 browse 调用（Network 时序不变，零额外请求） */
             browsePath(target, true);

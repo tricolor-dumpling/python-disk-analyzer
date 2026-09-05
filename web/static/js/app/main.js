@@ -399,10 +399,16 @@ export async function start() {
 
     const firstRoot = getLastRoots()[0] || "D:\\";
     /* F06（U4.2 G1 核销）：启动恢复上次浏览位置（pds_last_browse_v1——成功浏览时写入；
-       非法/缺失回落首根；恢复路径经既有 init 链同一 browse 调用加载——零额外请求） */
+       非法/缺失回落首根；恢复路径经既有 init 链同一 browse 调用加载——零额外请求）
+       阶段F（R6）回归修复：`#browse-root` 是工作台专属元素，冷启动直达 `#/compare`
+       等非工作台路由时 DOM 不存在——补 null 守卫，杜绝 `.value` 对 null 赋值的
+       未处理运行时错误（console 0 纪律）。工作台路由行为不变。 */
     const startup = getStartupBrowsePath();
     setCurrentRoot((startup && startup.root) || firstRoot);
-    $("browse-root").value = (startup && startup.path) || firstRoot;
+    const browseRootEl = $("browse-root");
+    if (browseRootEl) {
+        browseRootEl.value = (startup && startup.path) || firstRoot;
+    }
 
     // P12·W1.3 init 门控（RT-02 边界：仅首拍求值；替换旧的无条件浏览）：
     // ready → 自动浏览首根；未就绪 → 引导态。15s 轮询只刷徽章不重评门控。
