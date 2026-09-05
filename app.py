@@ -622,6 +622,178 @@ def api_save_undo():
     )
 
 
+# =================【3.5 快照删除（阶段C C-2，additive 新接口）】=================
+# 删除粒度（D1 裁定）：{session_id, root}（单盘）或 {session_id}（整会话）。
+# 设计要点：
+# - 目录边界校验复用 api_save_undo 的 resolve().relative_to(snapshots_root) 模式；
+# - 幂等：目标已不存在 → {deleted:true, already:true} 不报错；
+# - 扫描中禁止删除 → 409（fullscan.is_running()，绝不触碰线程）；
+# - 台账一致性：删除单盘后 ledger 中该根条目移除（与 undo 回滚同口径的「删除后
+#   不再抑制下次自动保存」语义）；整会话同理按该会话各根清理；
+# - 会话无剩余条目 → 删 session 文件；响应含逐目标成败清单（deleted/failed/already）。
+
+
+def _resolve_snapshot_path(snapshot_path, snapshots_root):
+    """目录边界校验：resolve 后必须位于 snapshots_root 内；越界返回 None。"""
+    try:
+        resolved = Path(snapshot_path).resolve()
+        resolved.relative_to(snapshots_root)
+    except (ValueError, OSError):
+        return None
+    return resolved
+
+
+def _drop_ledger_roots(roots, snap_dir):
+    """删除后台账一致性：从 ledger 移除被删根的条目（整会话=全部 roots；单盘=该根）。
+    失败仅记录（不影响文件删除结果）。返回错误文案列表。"""
+    errors = []
+    try:
+        ledger = snapshots.load_ledger(snap_dir)
+        changed = False
+        for root in roots:
+            key = str(root)
+            if key in ledger:
+                ledger.pop(key, None)
+                changed = True
+        if changed:
+            snapshots.save_ledger(ledger, snap_dir)
+    except OSError as exc:
+        errors.append(f"台账清理失败: {exc}")
+    return errors
+
+
+@app.post("/api/snapshot/delete")
+def api_snapshot_delete():
+    """删除指定快照（单盘）或整会话（阶段C C-2）。
+
+    请求体：{"session_id": str, "root": str(可选)}——root 省略 = 整会话删除。
+    响应：{ok:true, session_id, root?, deleted:[...], already:[...], failed:[...],
+          session_removed:bool}
+    - 会话不存在 → 404「快照会话不存在」；
+    - 会话 JSON 损坏 → 500「快照会话清单损坏」；
+    - 单盘 root 未在该会话 roots 内 → 404「该会话没有此盘快照」；
+    - 扫描中 → 409「全量扫描进行中，请等待完成后再删除」；
+    - 越界路径跳过（failed 带「越界」文案），绝不 unlink 目录外文件；
+    - 文件缺失 → already:true（幂等，不报错）；
+    - 删除文件失败 → failed 带错误文案。
+    """
+    data = request.get_json(silent=True) or {}
+    session_id = str(data.get("session_id") or "").strip()
+    raw_root = data.get("root")
+    if not session_id:
+        return _json_error("缺少 session_id 参数")
+
+    # 扫描中禁止删除（阶段C 纪律#9：409；绝不触碰线程，仅查询状态）
+    if fullscan.is_running():
+        return _json_error(
+            "全量扫描进行中，请等待完成后再删除快照",
+            status=409,
+        )
+
+    sessions = session.list_sessions()
+    target = None
+    sid_norm = session_id if session_id.endswith(".json") else session_id + ".json"
+    for p in sessions:
+        if p.name == sid_norm:
+            target = p
+            break
+    if target is None:
+        return _json_error(f"快照会话不存在: {session_id}", status=404)
+    latest = session.load_session(target)
+    if not latest:
+        return _json_error("快照会话清单损坏，无法删除", status=500)
+
+    roots_map = latest.get("roots") or {}
+    if raw_root is not None:
+        root_key = str(raw_root)
+        entry = roots_map.get(root_key)
+        if entry is None:
+            # 兼容大小写/尾斜杠差异：按目录语义匹配
+            matched_key = next(
+                (k for k in roots_map if Path(k) == Path(root_key)), None
+            )
+            entry = roots_map.get(matched_key) if matched_key else None
+            if entry is None:
+                return _json_error(
+                    f"该会话没有此盘快照: {root_key}", status=404
+                )
+            root_key = matched_key
+        targets = [root_key]
+        whole_session = False
+    else:
+        targets = list(roots_map.keys())
+        whole_session = True
+
+    try:
+        snapshots_root = Path(snapshots.get_snapshot_dir()).resolve()
+    except OSError:
+        snapshots_root = None
+
+    deleted = []
+    already = []
+    failed = []
+    for root_key in targets:
+        entry = roots_map.get(root_key) or {}
+        snapshot_path = entry.get("snapshot_path")
+        if not snapshot_path:
+            already.append({"root": root_key, "reason": "no_snapshot_path"})
+            continue
+        if snapshots_root is None:
+            failed.append({"root": root_key, "error": "快照目录不可用"})
+            continue
+        resolved = _resolve_snapshot_path(snapshot_path, snapshots_root)
+        if resolved is None:
+            failed.append(
+                {"root": root_key, "error": f"越界路径已跳过: {snapshot_path}"}
+            )
+            continue
+        try:
+            if resolved.exists():
+                resolved.unlink()
+                deleted.append({"root": root_key, "snapshot": resolved.name})
+            else:
+                already.append({"root": root_key, "snapshot": resolved.name})
+        except OSError as exc:
+            failed.append({"root": root_key, "error": f"{snapshot_path}: {exc}"})
+
+    # 台账一致性：删除成功的根从 ledger 移除（与 undo 回滚同口径）
+    ledger_errors = _drop_ledger_roots(
+        [d.get("root") for d in deleted if d.get("root")],
+        snapshots.get_snapshot_dir(),
+    )
+
+    # 更新 session JSON：移除已删除根条目；无剩余条目则删 session 文件
+    session_removed = False
+    for root_key in targets:
+        roots_map.pop(root_key, None)
+    if whole_session or not roots_map:
+        try:
+            session_removed = session.delete_session(target)
+        except OSError as exc:
+            failed.append({"root": None, "error": f"会话清单删除失败: {exc}"})
+    else:
+        try:
+            latest["roots"] = roots_map
+            session.save_session(latest, dir_path=target.parent)
+        except OSError as exc:
+            failed.append({"root": None, "error": f"会话清单更新失败: {exc}"})
+
+    # 台账清理失败信息并入 failed 清单（响应含逐目标成败清单）
+    for err in ledger_errors:
+        failed.append({"root": None, "error": err})
+
+    return _json_ok(
+        message="删除完成",
+        session_id=session_id,
+        root=root_key if not whole_session else None,
+        whole_session=whole_session,
+        deleted=deleted,
+        already=already,
+        failed=failed,
+        session_removed=session_removed,
+    )
+
+
 # =================【4. 历史 / 对比】=================
 
 
