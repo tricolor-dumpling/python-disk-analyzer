@@ -150,10 +150,14 @@ async function runBrowser(channel) {
         const wipeB = rects.wipe;
         const aligned = wipeB && btns.length === 2 && btns.every((bb) => Math.abs(bb.bottom - wipeB.bottom) <= 3) && wipeB.x < btns[0].x;
         b.checks.push({ name: "[" + tag + ":" + theme + "] modal-foot 基线对齐（一键清空与保存/关闭 bottom 对齐，wipe 最左）", pass: !!aligned, detail: JSON.stringify({ wipe: { x: wipeB && wipeB.x, bottom: wipeB && wipeB.bottom }, foot: btns }) });
-        /* ③ theme-opt 三档等高（±1px） */
+        /* ③ theme-opt 三档等高（±1px）+ 横向并排（x 递增同行——防 E-5 误删
+           .theme-switch-group{display:flex} 导致纵向堆叠回归，Luna 判读曾抓出） */
         const opts = (rects.themeOpts || []).filter(Boolean);
         const hEq = opts.length === 3 && Math.max(...opts.map((o) => o.h)) - Math.min(...opts.map((o) => o.h)) <= 1;
-        b.checks.push({ name: "[" + tag + ":" + theme + "] theme-opt 三档等高（±1px）", pass: !!hEq, detail: JSON.stringify(opts) });
+        const xAsc = opts.length === 3 && opts[0].x < opts[1].x && opts[1].x < opts[2].x;
+        const ySame = opts.length === 3 && Math.max(...opts.map((o) => o.y)) - Math.min(...opts.map((o) => o.y)) <= 2;
+        const trioOk = hEq && xAsc && ySame;
+        b.checks.push({ name: "[" + tag + ":" + theme + "] theme-opt 三档横向并排等高同行（±1px，x 递增）", pass: !!trioOk, detail: JSON.stringify(opts) });
         /* ④ 基线逐像素对比（同参数控制在 1366×768；基线图用 chromium 截） */
         const baseFile = path.join(BASELINE, `settings-baseline-${theme}.png`);
         let diff = null;
