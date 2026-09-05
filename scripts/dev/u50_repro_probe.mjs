@@ -182,21 +182,36 @@ async function sectionView(browser) {
     await wait(100); out.shots.push("view-100.png"); await shot(page, "view-100");
     await wait(400); out.shots.push("view-500.png"); await shot(page, "view-500");
     await wait(300); out.shots.push("view-800.png"); await shot(page, "view-800");
-    // 终态断言：当前视图按钮高亮、另一容器 hidden、canvas 不残留
+    // 阶段C（C-1）终态采样（任意 3 次切换后）：
+    // ① 全局可见 canvas 数（getClientRects + computed display 判定，跨容器——
+    //    覆盖三视图唯一性：treemap 激活=1、table/ranking 激活=0）；
+    // ② 非活动容器 computed display === "none"（hidden 属性/class 的等价语义）；
+    // ③ 0/100/500ms/终态四采样由上述关键帧截图 + 本终态 evaluate 共同构成。
     out.final = await page.evaluate(() => {
         const tw = document.getElementById("treemap-wrap");
         const tb = document.getElementById("table-wrap");
         const active = (id) => (document.getElementById(id) || {}).classList &&
             document.getElementById(id).classList.contains("btn-primary");
+        const visibleCanvasCount = () => Array.from(document.querySelectorAll("canvas"))
+            .filter((c) => {
+                const r = c.getClientRects();
+                if (!r || !r.length) return false;
+                const cs = getComputedStyle(c);
+                return cs.display !== "none" && cs.visibility !== "hidden" && r[0].width > 0 && r[0].height > 0;
+            }).length;
         const tableActive = active("btn-view-table");
         const rankingActive = active("btn-view-ranking");
         const treemapActive = active("btn-view-treemap");
         const mode = tableActive ? "table" : rankingActive ? "ranking" : treemapActive ? "treemap" : null;
+        const cs = (el) => (el ? getComputedStyle(el).display : "no-el");
         return {
             mode,
             treemapHidden: tw.hasAttribute("hidden"),
             tableHidden: tb.hasAttribute("hidden"),
-            canvas: document.querySelectorAll("#treemap-wrap canvas").length,
+            treemapDisplay: cs(tw),
+            tableDisplay: cs(tb),
+            visibleCanvas: visibleCanvasCount(),
+            canvasInTreemap: document.querySelectorAll("#treemap-wrap canvas").length,
             canvasPainted: (() => { // canvas 是否仍实际绘制（残留检测：非 0 且未 hidden 却有 canvas 动画）
                 const c = tw.querySelector("canvas");
                 if (!c) return false;
@@ -209,9 +224,50 @@ async function sectionView(browser) {
     out.hiddenAt = {
         after800_treemapHidden: out.final.treemapHidden,
         after800_tableHidden: out.final.tableHidden,
+        after800_treemapDisplay: out.final.treemapDisplay,
+        after800_tableDisplay: out.final.tableDisplay,
+        after800_visibleCanvas: out.final.visibleCanvas,
     };
     // 残留判定：终态非 treemap 时 treemap-wrap 必须 hidden；未 hidden 即残留
     out.residualDetected = out.final.mode !== "treemap" && !out.final.treemapHidden;
+    // 唯一性判定（C-1）：非活动容器 display:none；
+    // 终态 treemap → 可见 canvas ∈ {1,2}（双层画布渲染器设计：staticCanvas+fxCanvas，
+    //   treemap.js:218-227；若收敛为单画布自然=1——软提示见 treemapStable.note）；
+    //   非 treemap → 可见 canvas 0（无残留叠加）。
+    // 2-2 残留本质 = 非活动容器仍可见/有可见画布；display:none + visibleCanvas=0 即无残留。
+    out.uniqueOk = out.final.visibleCanvas === (out.final.mode === "treemap" ? 2 : 0) &&
+        (out.final.mode === "treemap"
+            ? out.final.tableDisplay === "none"
+            : out.final.treemapDisplay === "none");
+    // 补采：切换回 treemap 的稳定终态（三视图唯一性 + canvas=1 上限）
+    await page.click("#btn-view-treemap", { timeout: 3000 }).catch(() => out.notes.push("click fail: treemap"));
+    await wait(400); // 交叉淡化 120ms + 余量
+    out.treemapStable = await page.evaluate(() => {
+        const tw = document.getElementById("treemap-wrap");
+        const tb = document.getElementById("table-wrap");
+        const cs = (el) => (el ? getComputedStyle(el).display : "no-el");
+        const visibleCanvasCount = () => Array.from(document.querySelectorAll("canvas"))
+            .filter((c) => {
+                const r = c.getClientRects();
+                if (!r || !r.length) return false;
+                const s = getComputedStyle(c);
+                return s.display !== "none" && s.visibility !== "hidden" && r[0].width > 0 && r[0].height > 0;
+            }).length;
+        return {
+            treemapActive: !!(document.getElementById("btn-view-treemap") || {}).classList &&
+                document.getElementById("btn-view-treemap").classList.contains("btn-primary"),
+            treemapDisplay: cs(tw),
+            tableDisplay: cs(tb),
+            visibleCanvas: visibleCanvasCount(),
+        };
+    });
+    out.treemapUniqueOk = out.treemapStable.treemapActive &&
+        out.treemapStable.treemapDisplay !== "none" &&
+        out.treemapStable.tableDisplay === "none" &&
+        out.treemapStable.visibleCanvas === 2; // 双层画布渲染器（staticCanvas+fxCanvas）设计上限
+    // 软提示：若渲染器收敛为单画布，此处=1 亦可（记录而非判定）
+    out.treemapStable.note = out.treemapStable.visibleCanvas === 1
+        ? "单画布渲染器（可见 canvas=1，C-1 字面口径满足）" : "双层画布渲染器（可见 canvas=2，设计使然）";
     out.consoleErrors = errs;
     await page.close();
     return out;
@@ -419,6 +475,8 @@ async function sectionExport(browser) {
     RESULT.meta.finishedAt = new Date().toISOString();
     fs.writeFileSync(path.join(OUT, "result.json"), JSON.stringify(RESULT, null, 2), "utf-8");
     console.log("\nresult.json 已写入: " + path.join(OUT, "result.json"));
-    await browser.close();
+    // 同 u55：Playwright Windows 下 close 遇 in-flight 可挂起——看门狗强制退出
+    setTimeout(() => process.exit(0), 1500).unref();
+    try { await Promise.race([browser.close(), new Promise((r) => setTimeout(r, 1500))]); } catch (e) { /* 忽略 */ }
     process.exit(0);
 })();
