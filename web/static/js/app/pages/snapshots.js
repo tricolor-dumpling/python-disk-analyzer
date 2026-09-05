@@ -82,6 +82,23 @@ function ensureScanListener() {
     scanSubscribed = true;
     window.addEventListener("pds:scan", (ev) => {
         if (ev && ev.detail) lastScanStatusForTrend = ev.detail;
+        /* 阶段C（C-5）时序修复：快照页冷启动/切页早于首拍 pds:scan 时，
+           lastScanStatusForTrend 为空 → fetchTrendCompare 误判「先做全量扫描」
+           并缓存 err（fullscan-first）。事件到达且 result_ready 后必须清除
+           该误置缓存并重算——否则趋势卡永久停在「对比不可用」。 */
+        if (ev && ev.detail && ev.detail.result_ready && !ev.detail.running) {
+            let cleared = false;
+            for (const [key, entry] of Array.from(trendCache.entries())) {
+                if (entry && entry.status === "err" && entry.hint === "fullscan-first") {
+                    trendCache.delete(key);
+                    cleared = true;
+                }
+            }
+            if (cleared) {
+                trendInflight.clear(); // 在途残留标记一并清（其结果到达时按新缓存态渲染）
+                renderTrendCards(sessionsCache);
+            }
+        }
         syncCreateAvailability();
     });
 }
