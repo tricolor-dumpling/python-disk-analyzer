@@ -183,12 +183,15 @@
                     </label>
                 </div>
             </div>
+            <!-- 阶段E（E-5）：自动保存行改 label 左、开关右的两列布局（旧结构文案+开关同行挤压） -->
             <label class="switch-row">
-                <span>
+                <span class="switch-label">
                     <b>扫描完成自动保存</b>
                     <span class="switch-hint">全量扫描完成后立即生成快照，可随时「撤销最近保存」</span>
                 </span>
-                <input id="setting-auto-save" type="checkbox" class="switch">
+                <span class="switch-control">
+                    <input id="setting-auto-save" type="checkbox" class="switch">
+                </span>
             </label>
             <div class="field">
                 <label>数据目录</label>
@@ -201,14 +204,16 @@
             <div class="divider"></div>
             <h3>危险操作</h3>
             <p class="muted">一键清空会删除数据目录下的全部快照、保存清单与配置文件，随后重建为空结构；配置将恢复默认。此操作不可恢复。</p>
-            <button id="btn-wipe-open" class="btn btn-danger">
+        </div>
+        <!-- 阶段E（E-5）：一键清空移入 modal-foot 左侧——与「保存设置/关闭」基线对齐
+             （截图 6 红按钮与右下按钮未对齐；危险区标题/说明保留在 body） -->
+        <div class="modal-foot">
+            <button id="btn-wipe-open" class="btn btn-danger modal-foot-left">
                 <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
                 </svg>
                 一键清空数据目录…
             </button>
-        </div>
-        <div class="modal-foot">
             <button id="btn-settings-save" class="btn btn-primary">保存设置</button>
             <button class="btn" data-close="settings-modal">关闭</button>
         </div>

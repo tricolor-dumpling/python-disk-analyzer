@@ -800,18 +800,29 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0}
 .modal-head h2{margin:0;font-size:var(--fs-lg)}
 .modal-body{padding:10px 20px}
-.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px 18px}
+.modal-foot{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:14px 20px 18px}
+/* 阶段E（E-5）：一键清空移入 modal-foot 左侧与常规按钮基线对齐（截图 6 修复） */
+.modal-foot .modal-foot-left{margin-right:auto}
 .divider{height:1px;background:var(--border);margin:16px 0 4px}
 
-/* U3.5 [F03/N03] 设置弹窗主题三态：分段单选（与顶栏按钮同源 state.theme；
-   选择即生效；checked=主色高亮，焦点环经 input:focus-visible 递达 span） */
-.theme-switch-group{display:flex;gap:8px}
-.theme-opt{position:relative;flex:1;min-width:0;cursor:pointer}
-.theme-opt input{position:absolute;opacity:0;pointer-events:none}
+/* 阶段E（E-5）：设置弹窗「扫描完成自动保存」行——label 左、开关右两列布局
+   （旧结构文案+开关同行挤压；.switch-row 原无样式）。开关列 flex:none 保证
+   控件不被文案挤压；窄屏（<420px）整行纵向换行（label 上、开关下）。 */
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 0;cursor:pointer}
+.switch-row .switch-label{display:flex;flex-direction:column;gap:3px;min-width:0}
+.switch-row .switch-label b{font-size:var(--fs-sm);color:var(--text);font-weight:600}
+.switch-row .switch-hint{font-size:var(--fs-xs);color:var(--muted);line-height:1.4}
+.switch-row .switch-control{flex:none;display:flex;align-items:center}
+.switch-row .switch{width:40px;height:22px;accent-color:var(--primary);cursor:pointer;margin:0}
+
+/* 阶段E（E-5）：主题三项控件（.theme-opt）高度/圆角/字号统一——
+   旧实现 span 仅 padding:8px 6px，三档高度随文案行数不同；
+   现统一 min-height + 行高 + 内边距，三档视觉等高等宽。 */
 .theme-opt span{
-  display:block;padding:8px 6px;text-align:center;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;min-height:38px;padding:8px 10px;
+  text-align:center;border:1px solid var(--border);
   border-radius:var(--radius-ctl);background:var(--card);color:var(--text-2);
-  font-size:var(--fs-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-size:var(--fs-sm);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .theme-opt:hover span{border-color:var(--border-strong)}
 .theme-opt input:checked + span{background:var(--primary-soft);border-color:var(--primary);color:var(--primary);font-weight:600}
@@ -1037,6 +1048,16 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 @media (max-height:639px){
   body{overflow:auto}
   .app{height:auto;overflow:visible}
+}
+
+/* 阶段E（E-5）：窄屏（<420px）设置弹窗换行规则——
+   自动保存行纵向堆叠（label 上、开关下），modal-foot 按钮允许换行不溢出 */
+@media (max-width:419px){
+  .switch-row{flex-direction:column;align-items:flex-start;gap:8px}
+  .switch-row .switch-control{align-self:flex-end}
+  .theme-opt span{min-height:34px;padding:6px 4px;font-size:var(--fs-xs)}
+  .modal-foot{flex-wrap:wrap}
+  .modal-foot .btn{flex:1;min-width:0}
 }
 
 /* ---- 阶段C（C-7）：关系目录树（父子层级；viz/relate.js；与表格互斥显示） ----
