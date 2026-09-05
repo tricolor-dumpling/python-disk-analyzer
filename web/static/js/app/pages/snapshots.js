@@ -74,10 +74,16 @@ function syncCreateAvailability() {
 /* pds:scan 订阅（模块级一次；快照页挂载后「创建快照」可用性随扫描状态同步——
    与扫描卡保存按钮同派生，事件 detail=status 原样） */
 let scanSubscribed = false;
+/* 阶段C（C-5）：最近一次扫描状态（result_ready 等；事件 detail=status 原样）。
+   趋势卡在无全量结果时据此提示「先做全量扫描」而非后台直扫。 */
+let lastScanStatusForTrend = null;
 function ensureScanListener() {
     if (scanSubscribed) return;
     scanSubscribed = true;
-    window.addEventListener("pds:scan", () => syncCreateAvailability());
+    window.addEventListener("pds:scan", (ev) => {
+        if (ev && ev.detail) lastScanStatusForTrend = ev.detail;
+        syncCreateAvailability();
+    });
 }
 
 /* ================= 刷新与回灌（切页不丢：mount 时从缓存回灌，不重发） ================= */
@@ -396,14 +402,19 @@ function trendCardPending(slot, trend) {
 
 function trendCardBody(slot, trend, cached) {
     if (cached.status === "err") {
+        const isHint = cached.hint === "fullscan-first";
+        const errText = isHint ? "对比不可用" : "对比失败";
+        const errDetail = isHint
+            ? "请先完成全量扫描，保存快照后再查看趋势"
+            : (cached.error || "对比失败");
         return (
             '<button class="trend-card" type="button" data-slot="' + slot.key + '"' +
             ' data-root="' + esc(trend.root) + '" data-baseline="' + esc(trend.baseline) + '"' +
             ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，基线已预填）">' +
             '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span>" +
             '<span class="trend-root">' + esc(rootLabel(trend.root)) + "</span></span>" +
-            '<span class="trend-err" title="' + esc(cached.error || "对比失败") + '">对比失败：' +
-            esc(cached.error || "") + "</span></button>"
+            '<span class="trend-err" title="' + esc(errDetail) + '">' + esc(errText) + "：" +
+            esc(errDetail) + "</span></button>"
         );
     }
     const d = Number(cached.delta) || 0;
@@ -424,9 +435,68 @@ function trendCardBody(slot, trend, cached) {
     );
 }
 
+/* 阶段C（C-5）：Δ 计算复用 B-1（/api/compare 异步化）——
+   - 响应 200+report → 直接入库（缓存命中同步路径）；
+   - 响应 202+job_id → 轮询 /api/compare/status（≤30s 超时；B-2 同款节奏）；
+   - 无全量结果（result_ready=false 且非扫描中）→ 提示先做全量扫描，不静默
+     触发后台 SDK 直扫（分钟级，G8）。
+   三态文案：计算中（pending）/ 失败（err）/ 无基线（empty 原因行）。
+   禁止把「暂无对比基线」改为误导性「无变化」（手册 2-4 注意点）。 */
+const TREND_COMPARE_TIMEOUT_MS = 30000;
+
+async function pollCompareJob(jobId) {
+    const deadline = Date.now() + TREND_COMPARE_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 5000);
+        try {
+            const data = await api("/api/compare/status?job_id=" + encodeURIComponent(jobId), { signal: ctrl.signal });
+            if (data && data.status === "done" && data.report) return { ok: true, report: data.report };
+            if (data && data.status === "error") {
+                return { ok: false, error: data.error || "对比失败" };
+            }
+        } catch (e) {
+            if (e && e.name === "AbortError") return { ok: false, error: "对比超时（30s），可稍后重试" };
+            // 轮询瞬时网络错误：继续（短暂抖动可容忍）
+        } finally {
+            clearTimeout(timer);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000)); // 2s 轮询节奏（B-17 同频）
+    }
+    return { ok: false, error: "对比超时（30s），可稍后重试" };
+}
+
 async function fetchTrendCompare(slot, trend, key) {
+    // 阶段C（C-5）：无全量结果（result_ready=false 且非扫描中）→ 提示先做全量扫描，
+    // 不静默触发后台直扫（B-1 异步任务仅在全量索引存在时秒级；否则 SDK 直扫分钟级）。
+    const scanSt = lastScanStatusForTrend || {};
+    if (!scanSt.result_ready && !scanSt.running) {
+        trendCache.set(key, {
+            status: "err",
+            error: "暂无全量扫描结果，请先完成全量扫描后再查看趋势",
+            hint: "fullscan-first",
+        });
+        applySnapshotsView();
+        return;
+    }
     try {
-        const data = await postJson("/api/compare", { root: trend.root, baseline: trend.baseline });
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), TREND_COMPARE_TIMEOUT_MS);
+        let data;
+        try {
+            data = await postJson("/api/compare", { root: trend.root, baseline: trend.baseline }, { signal: ctrl.signal });
+        } finally {
+            clearTimeout(timer);
+        }
+        if (data && data.status === "scanning" && data.job_id) {
+            // B-1 异步任务：轮询 status 直到 done/error（复用 /api/compare/status）
+            const polled = await pollCompareJob(data.job_id);
+            if (!polled.ok) {
+                trendCache.set(key, { status: "err", error: polled.error });
+                return;
+            }
+            data = { report: polled.report };
+        }
         const r = (data && data.report) || {};
         const totalBaseline = Number(r.total_baseline) || 0;
         const delta = Number(r.delta_total) || 0;

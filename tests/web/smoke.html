@@ -177,7 +177,10 @@ const SAMPLES = {
   browseFast: { ok: true, root: "D:\\fastDir", parent: null,
     directories: [{ name: "fdir", path: "D:\\fastDir\\fdir", is_dir: true, size: 20, size_human: "20 B" }],
     files: [], total_dirs: 1, total_files: 0 },
-  fullscanStatusIdle: { ok: true, status: { running: false, roots: ["C:\\"], roots_done: 0, roots_total: 1, current_root: null, error: null, result_ready: false, save_ready: false, progress_pct: 0, scan_version: 1, stop_requested: false, stop_reason: null } },
+  // 阶段C（C-5）：趋势卡 Δ 复用 B-1 异步 compare——无全量结果时前端提示「先做全量扫描」
+  // 不再静默触发后台直扫。smoke 世界为「数据就绪」态：result_ready=true（compare 同步出报告），
+  // save_ready 保持 false（A17 N06「无扫描结果时创建快照置灰」断言面不变：isSaveAvailable 仍 false）。
+  fullscanStatusIdle: { ok: true, status: { running: false, roots: ["C:\\"], roots_done: 1, roots_total: 1, current_root: null, error: null, result_ready: true, save_ready: false, progress_pct: 100, scan_version: 1, stop_requested: false, stop_reason: null } },
   snapshotsList: { ok: true, sessions: [ { session_id: "s-20260824-000000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T10:00:00", roots: { "D:\\": { root: "D:\\", snapshot: "D_20260824_100000_explicit_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260824_100000_explicit_aabbccd.snap.gz", skipped: false } } } ], count: 1 },
   /* U3.3：多会话样本（跨 4 天 + 跳过盘）——趋势卡基线选取/降级差值卡/跳过原因 tooltip（红线#7）。
      ⚠️ 键集合照抄后端：session 载荷无逐次总量字段（app.py api_snapshots/session.py 核对）→
