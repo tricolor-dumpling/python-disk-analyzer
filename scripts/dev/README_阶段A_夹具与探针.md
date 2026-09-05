@@ -77,13 +77,31 @@ node scripts/dev/u50_repro_probe.mjs [--base http://127.0.0.1:5000/] [--out <目
 
 识图/判读必须由图像能力模型（opentoken 网关 `gpt-5.6-luna`，声明 `input:["image","text"]`）执行。DSH 部署中普通 `subagent` 工具强制继承默认模型（无图像能力）；**可指定模型通道 = workflow 工具的 `agent(prompt, {provider:"opentoken", model:"gpt-5.6-luna"})`**。已用该通道完成：
 - 7 张既有截图逐图判读（对应手册贰章）；
-- u50 探针关键帧判读（2-2/2-6/2-11）。
+- u50 探针关键帧判读（2-2/2-6/2-11）；
+- 阶段 D：u52/u60 三视口×三态（running/queued/done × 1366/1920/357）+ u59 进度四要素截图判读（11 张全 PASS）。
 
 > ⚠️ 判读环境注记：截图流必须给 **绝对路径**（Luna 子代理工作目录与父代理不同，相对路径会误报「文件不存在」）。
 
 ---
 
-## 4. 证据包
+## 4. 阶段 D 探针（u58-u60，2026-09-05 新增）
+
+### u58_auto_scan_probe.mjs（D-1 自动扫描恰一次）
+- 冷启动（无会话）→ `/api/fullscan/start` POST 计数=1 + 保护键写入；刷新（sessionStorage 保持）→ 0；扫描中刷新 → 恢复运行态不重发；Everything 未就绪 → 0；当日已有快照会话 → 0；自动保存恰一次（save POST=1）；保存失败 → 错误 toast + 手动「立即保存」入口恢复。11/11 PASS。
+- ⚠️ 场景 1/6/7 **不得 reset()**（自动扫描链在页面加载即触发，reset 会清掉计数）。
+
+### u59_progress_probe.mjs（D-3b 进度四要素 + ETA 稳定性）
+- running 态状态行四要素（总进度 %/已完成 x/y 盘/当前盘/已用时）+ ETA 标注「估算」；两次采样变化 <10% 不更新文案（不闪跳）；queued 无「0/2」误导；reduced-motion 直显。11/11 PASS。
+
+### u60_scan_layout_probe.mjs（D-3b 三视口扫描卡布局）
+- 三视口（1366×768/1920×1080/357×651）× 三态（running/queued/done）截图 + 元素 rect 采样（父子嵌套排除后的无重叠判定）+ console 0。9 张 Luna 判读全 PASS。
+
+### 探针隔离纪律（阶段 D 起）
+- 旧探针（u13-u57）与 smoke.html 预置 `sessionStorage.pds_auto_started_v1 = "1"`——自动扫描不干扰手动驱动扫描状态机的断言时序；u58 不预置（专测冷启动恰一次）。
+
+---
+
+## 5. 证据包
 
 阶段 A 复现证据（门禁②）：
 ```
