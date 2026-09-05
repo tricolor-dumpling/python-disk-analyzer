@@ -372,10 +372,13 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* hover 弧段外扩 ≈2px（r=52 显示半径随档位 48–69px，scale 1.035 居中带内近似；
    光晕为静态 filter 状态变化（--glow-drop-sm，暗色有效/亮色 none），不参与过渡） */
 .donut-box.is-hover .donut-arc-g{transform:scale(1.035);filter:var(--glow-drop-sm)}
-/* 不确定弧（扫描中 22% 弧段旋转 1.2s：仅 transform；reduced 见 motion 区） */
+/* 不确定弧（扫描中 22% 弧段旋转 1.2s：仅 transform；reduced 见 motion 区）。
+   阶段E（E-1）：transform-origin/transform-box 显式声明（viewBox 120×120 的
+   几何中心 60 60 = transform-box:view-box 下的 50% 50%；防浏览器默认值漂移
+   造成旋转中心偏移——与 SVG 属性 rotate(-90 60 60) 同源） */
 .donut-indet{display:none;fill:none;stroke:url(#pds-donut-grad);stroke-width:10;stroke-linecap:round}
 .donut-box.is-indet .donut-indet{
-  display:block;transform-box:fill-box;transform-origin:center;will-change:transform;
+  display:block;transform-box:view-box;transform-origin:60px 60px;will-change:transform;
   animation:donut-spin var(--dur-donut-indeterminate,1200ms) linear infinite;
 }
 .donut-box.is-indet .donut-arc-g{display:none}
@@ -930,8 +933,11 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 @keyframes stripes{to{background-position:22px 0}}
 @keyframes fade-in{from{opacity:0}}
 @keyframes modal-in{from{transform:translateY(10px);opacity:0}}
-/* U2.4：环形图扫描中不确定弧旋转（仅 transform；reduced 经全局降级规则静止） */
-@keyframes donut-spin{to{transform:rotate(360deg)}}
+/* U2.4：环形图扫描中不确定弧旋转（仅 transform；reduced 经全局降级规则静止）。
+   阶段E（E-1）：from -90° → to 270° = 每循环整 360° 无回跳——旧写法仅 to{360°}
+   从元素 SVG 属性 rotate(-90 60 60) 的 -90° 插值到 360°，每 1.2s 转 450°、
+   循环结束回跳 90°（问题 2-6，u50 scan 段实测 -76° 跳变）；现首尾同姿态无缝衔接。 */
+@keyframes donut-spin{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}
 /* 未就绪/错误态徽章呼吸（就绪 badge-ok 静止；P12·W3.4 DEF-027） */
 @keyframes badge-breathe{0%,100%{opacity:1}50%{opacity:.72}}
 .badge:hover{filter:brightness(.95)}
