@@ -174,8 +174,20 @@ async function wipeData() {
     }
 }
 
-/* U3.5：设置弹窗主题三态接线——单选即生效（theme.js 单一来源）；
-   VT 扩散原点取所选选项中心（change 事件无坐标，还原 L0-1 点击扩散语义）。 */
+/* U3.5：设置弹窗主题三态接线——单选即生效（theme.js 单一来源）。
+   阶段E（E-4）：真实鼠标坐标链路——问题 2-15 根因：change 事件无坐标，旧实现用
+   pointFrom(input) 取选项控件矩形中心模拟坐标 → 用户在选项内任意位置点击，扩散中心
+   永远在控件中心。现改为：
+   ① pointerdown 记录 ev.clientX/clientY（label 捕获，input 为 opacity:0 +
+      pointer-events:none 的隐藏单选——点击实际落在 label 上，冒泡到 group）；
+   ② change（由点击或键盘/无障碍触发）优先用 300ms 内匹配的最近指针坐标 →
+      setThemePref(pref, {clientX, clientY})；
+   ③ 无坐标（键盘/触摸屏无指针事件/屏幕阅读器/程序化 change）→ 回退控件中心
+      （pointFrom，与旧语义一致，A19 断言面兼容）；
+   ④ 切换后清 lastPointer（防旧坐标被后续键盘 change 复用）。 */
+const POINTER_TTL_MS = 300;
+let lastThemePointer = null; // {clientX, clientY, at, value}
+
 function bindThemeGroup() {
     const group = $("setting-theme");
     if (!group) return;
@@ -183,10 +195,33 @@ function bindThemeGroup() {
         const r = (input.parentElement || input).getBoundingClientRect();
         return { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
     };
+    // ① pointerdown 记录真实指针坐标（label 捕获；input pointer-events:none 时
+    //    target 是 label/span，向上找 .theme-opt 内的 input）
+    group.addEventListener("pointerdown", (ev) => {
+        const opt = ev.target && ev.target.closest ? ev.target.closest(".theme-opt") : null;
+        if (!opt) return;
+        const input = opt.querySelector('input[name="setting-theme"]');
+        if (!input) return;
+        lastThemePointer = {
+            clientX: typeof ev.clientX === "number" ? ev.clientX : null,
+            clientY: typeof ev.clientY === "number" ? ev.clientY : null,
+            at: Date.now(),
+            value: input.value,
+        };
+    });
+    // ② change：优先真实坐标；无坐标（键盘/程序化）→ 控件中心兜底
     group.addEventListener("change", (ev) => {
         const input = ev.target;
         if (!input || !input.matches('input[name="setting-theme"]')) return;
-        setThemePref(input.value, pointFrom(input));
+        let pt = null;
+        if (lastThemePointer &&
+            Date.now() - lastThemePointer.at <= POINTER_TTL_MS &&
+            lastThemePointer.value === input.value &&
+            typeof lastThemePointer.clientX === "number") {
+            pt = { clientX: lastThemePointer.clientX, clientY: lastThemePointer.clientY };
+        }
+        lastThemePointer = null; // ④ 消费后清（防旧坐标复用）
+        setThemePref(input.value, pt || pointFrom(input));
     });
 }
 
