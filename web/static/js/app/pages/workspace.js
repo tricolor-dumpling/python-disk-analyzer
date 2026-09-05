@@ -1076,7 +1076,7 @@ const WORKSPACE_HTML =
     '<div class="row">' +
     '<button id="btn-fullscan" class="btn btn-primary">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>' +
-    '开始全量扫描</button>' +
+    '<span id="btn-fullscan-label">开始全量扫描</span></button>' +
     '<button id="btn-stop-scan" class="btn btn-stop" hidden title="停止扫描（已完成部分可浏览）" aria-label="停止扫描">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>' +
     '停止</button>' +

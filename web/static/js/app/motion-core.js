@@ -48,6 +48,33 @@ export function formatElapsed(sec) {
     return pad(h) + ":" + pad(m) + ":" + pad(s);
 }
 
+/* 阶段D（D-3b）：估算剩余秒数（根间平台期口径——「已完成根均耗时 × 剩余根数」）。
+   - 纯函数、零 DOM：node --test 可测；浏览器侧与扫描卡 ETA 渲染共用；
+   - 输入：elapsedSec（已完成根累计耗时，秒）、done（已完成根数）、total（总根数）；
+   - done<=0 或 total<=done → 返回 null（无法估算）；
+   - 结果取整到秒（向上），最低 1s；估算值随 elapsed 增长单调不减（均速假设下）。 */
+export function estimateRemainingSec(elapsedSec, done, total) {
+    const d = Number(done) || 0;
+    const t = Number(total) || 0;
+    if (d <= 0 || t <= d) return null;
+    const elapsed = Number(elapsedSec) || 0;
+    if (elapsed <= 0) return null;
+    const perRoot = elapsed / d;
+    return Math.max(1, Math.ceil(perRoot * (t - d)));
+}
+
+/* 阶段D（D-3b）：ETA 不闪跳判定——估算值相对上次显示值变化 >10% 才视为「应更新」。
+   - 纯函数：输入 (remain, lastRemain, soon) → bool；
+   - soon（剩余 ≤30s 的「即将完成」档）与 lastRemain 跨档 → 必更新；
+   - 首采样（lastRemain===null）→ 必更新；变化 ≤10% → 不更新（防数字抖动）。 */
+export function etaShouldUpdate(remain, lastRemain, soon) {
+    if (lastRemain === null || lastRemain === undefined) return true;
+    if (soon && Number(lastRemain) > 30) return true;
+    if (!soon && Number(lastRemain) <= 30) return true;
+    const diff = Math.abs(Number(remain) - Number(lastRemain));
+    return diff > Math.max(1, Math.round(Math.abs(Number(lastRemain)) * 0.1));
+}
+
 /* FNV-1a 32 位哈希（§3.4 treemap 调色板取色：fnv1a(目录名) % 10）。
    hash 状态按 int32 中间量运算（XOR/`Math.imul`），最终 `>>> 0` 归一到
    uint32 ∈ [0, 2^32-1]；同输入恒同输出、异名高概率异色。 */

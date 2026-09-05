@@ -18,6 +18,8 @@ import {
     formatElapsed,
     fnv1a,
     cubicBezier,
+    estimateRemainingSec,
+    etaShouldUpdate,
 } from "../../web/static/js/app/motion-core.js";
 
 test("lerp 两端：t=0 精确等于 a、t=1 精确等于 b", () => {
@@ -108,4 +110,35 @@ test("cubicBezier 线性镜像：cubic-bezier(0,0,1,1) 为恒等映射", () => {
     assert.ok(Math.abs(l(0.25) - 0.25) < 1e-3);
     assert.ok(Math.abs(l(0.5) - 0.5) < 1e-3);
     assert.ok(Math.abs(l(0.8) - 0.8) < 1e-3);
+});
+
+/* 阶段D（D-3b）：估算剩余（根间平台期口径）与 ETA 不闪跳纯函数 */
+test("estimateRemainingSec：已完成根均耗时 × 剩余根数，向上取整", () => {
+    // 已完成 1 根耗时 100s，剩余 1 根 → ~100s（允许多 1s 取整误差）
+    assert.equal(estimateRemainingSec(100, 1, 2), 100);
+    assert.equal(estimateRemainingSec(100, 1, 3), 200); // 剩 2 根 → 2×100
+    assert.equal(estimateRemainingSec(50, 2, 4), 50);   // 均 25s/根 × 剩 2 根
+    assert.equal(estimateRemainingSec(30, 1, 2), 30);
+    assert.equal(estimateRemainingSec(30.5, 1, 2), 31); // ceil（向上取整）
+});
+
+test("estimateRemainingSec：无法估算返回 null（0 根已完/已完尽/无耗时）", () => {
+    assert.equal(estimateRemainingSec(100, 0, 2), null);  // done<=0
+    assert.equal(estimateRemainingSec(100, 2, 2), null);  // total<=done
+    assert.equal(estimateRemainingSec(0, 1, 2), null);    // elapsed=0
+    assert.equal(estimateRemainingSec(-5, 1, 2), null);   // 负数按 0
+    assert.equal(estimateRemainingSec(100, 1, 0), null);  // total=0
+});
+
+test("etaShouldUpdate：首采样/阈值跨越必更新；变化 ≤10% 不更新（不闪跳）", () => {
+    assert.equal(etaShouldUpdate(500, null, false), true);   // 首采样必更新
+    assert.equal(etaShouldUpdate(500, 500, false), false);   // 无变化 → 不更新
+    assert.equal(etaShouldUpdate(505, 500, false), false);   // Δ5 ≤ 50（10%）→ 不更新
+    assert.equal(etaShouldUpdate(500, 460, false), false);   // Δ40 ≤ 46（460 的 10%）→ 不更新
+    assert.equal(etaShouldUpdate(507, 460, false), true);    // Δ47 > 46 → 更新
+    assert.equal(etaShouldUpdate(551, 500, false), true);    // Δ51 > 50 → 更新
+    // 阈值跨越（soon 档/普通档互跨）
+    assert.equal(etaShouldUpdate(25, 31, true), true);       // 进入 soon（≤30）→ 必更新
+    assert.equal(etaShouldUpdate(25, 25, true), false);      // soon 内微小变化 → 不更新
+    assert.equal(etaShouldUpdate(35, 25, false), true);      // 离开 soon → 必更新
 });
