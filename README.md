@@ -574,6 +574,40 @@ pyinstaller main.py
 Everything SDK DLL（程序按「exe 目录\everything-SDK\dll\ → exe 目录\」
 顺序查找，打包后程序目录即 exe 所在目录）。
 
+## 发布说明（阶段 F = R6 全量回归、发布与归档，2026-09-05）
+
+- **版本号**：`v2.0.0`（发布制品 = `releases\PythonDiskScanner-web\` 打包产物）。
+- **发布包**：`PythonDiskScanner-web.zip`（9.65 MB，分发包）内含 `PythonDiskScanner.exe`
+  （9.74 MB，windowed 无黑窗）+ `everything-SDK\dll\Everything32/64.dll`（随包提供）+
+  `使用说明.txt`。打包命令 `.\scripts\build_web.ps1`（PyInstaller 6.11.0 验证通过）。
+- **打包冒烟（P-10 核销）**：`--no-browser` 启动 ≤15s 进入确定态（实测 0.75s health
+  `ready:true`）、页面 console 0、DLL 随包存在——发布前必做项已通过。
+- **发布说明**：
+  - 21 项问题全部给出关闭标记（问题 2 登记「未复现」不关闭；其余已修复/已确认，
+    详见《问题逐项核查报告_待修复.md》「阶段F关闭矩阵」节）；
+  - 阶段 F 回归修复 3 件套：compare 大根对比 O(n²)→O(n)（问题 1）、冷启动非工作台
+    路由 null 解引用（console 0 纪律）；
+  - 门禁全绿：unittest 312 / ResourceWarning 312 / node 38 / smoke 21/21 /
+    u50–u67 探针全量（详见《问题核查复现与修改定位清单.md》五-G）。
+- **归档路径**：本仓库 `docs/问题核查资料_20260902/`（问题关闭矩阵 + 测试报告 +
+  发布说明资料包）与 `docs/exec/`（阶段交付报告）；发布包不入库（按显式约定仅登记）。
+- **已知限制（发布期登记，不擅自实现）**：
+  - **P-2 浏览历史下拉**（时钟图标形态）未落地：功能等价已达成（面包屑 chips 最近 5 +
+    命令面板最近 8），视觉形态保持挂账；
+  - **P-3 面包屑 >6 层折叠**未落地：home 语义等价（首级可点回根），折叠形态保持挂账；
+  - **P-4 趋势卡 sparkline 数据源**未落地：`/api/snapshots` 无逐次总量字段，趋势卡降级为
+    两快照差值卡；若需 sparkline 需后端 additive `total_by_root` + 前端启用（独立变更集）；
+  - **P-5 C 盘口径**：D5 已定稿 = 逻辑尺寸 + UI 全处标注「逻辑尺寸，未计硬链接重叠」——
+    **标注未落地**（storage.js tooltip / 设置弹窗均未标注），登记待用户裁定后补齐；
+  - **P-9 cli.py 非法转义**：Python 3.11.8 下 `py_compile -W error::SyntaxWarning` 不告警
+    （3.14 告警面差异），代码卫生批次未并入功能修复；
+  - **P13 快照锁竞态**：`.snapshot.lock` 并发竞态挂账不变（禁碰 snapshots.py），
+    复现率随负载波动（阶段 F 专项 50 轮 26/50 复现），复跑即绿不判失败；
+  - **2-2 视图残留**：六轮（A–F）未复现，登记「未复现」不关闭（红线：确定性复现
+    不绿≠关闭依据）；
+  - **真机 Everything 分钟级 busy（G8）**：SDK 直扫分钟级为环境常态，真机验收按
+    「请求发起态」口径记录（compare 无缓存走 202 异步 + 前端 30s 超时已兜底）。
+
 ## 常见问题
 
 ### Web 版显示「Everything 尚未就绪」引导态
