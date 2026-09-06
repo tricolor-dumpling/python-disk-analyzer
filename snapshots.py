@@ -510,15 +510,68 @@ def _pid_alive(pid):
         return True  # 查询异常保守视为存活，交 TTL 兜底
 
 
+def _read_lock_pid_win(lock_path):
+    """Windows：以 FILE_SHARE_DELETE 打开锁文件读 PID（P13-FIX 方案①核心）。
+
+    P-1（P13）根因：旧实现 ``Path.read_text()`` 的隐式打开**不带
+    FILE_SHARE_DELETE**——持锁线程 _release_lock unlink 时被读方句柄拒绝
+    （错句柄共享冲突），锁文件残留 + PID 存活 → 并发请求 SnapshotBusyError
+    → 测试重试窗耗尽失败。本函数 CreateFileW(GENERIC_READ | FILE_SHARE_READ |
+    FILE_SHARE_WRITE | FILE_SHARE_DELETE, OPEN_EXISTING) + ReadFile 读内容，
+    读句柄允许他人删除/改名该文件，从根上消除 unlink 竞态。
+    任何失败返回 None（语义与旧实现「读不到 = PID 未知 → 仅 TTL 生效」一致）。
+    """
+    try:
+        kernel32 = ctypes.windll.kernel32
+        GENERIC_READ = 0x80000000
+        FILE_SHARE_READ = 0x1
+        FILE_SHARE_WRITE = 0x2
+        FILE_SHARE_DELETE = 0x4
+        OPEN_EXISTING = 3
+        # 句柄为指针宽整数：显式 restype 防 64 位截断（默认 c_int 会把
+        # INVALID_HANDLE_VALUE(0xFFFF…FF) 截成 -1，比较仍成立；显式更稳）
+        create_file = kernel32.CreateFileW
+        create_file.restype = ctypes.c_void_p
+        create_file.argtypes = [
+            ctypes.c_wchar_p, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p,
+        ]
+        handle = create_file(
+            str(lock_path), GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            None, OPEN_EXISTING, 0x80, None,  # FILE_ATTRIBUTE_NORMAL
+        )
+        if not handle or handle == ctypes.c_void_p(-1).value:
+            return None  # 打不开（不存在/被删/权限）→ PID 未知
+        try:
+            buf = ctypes.create_string_buffer(64)
+            read = ctypes.c_ulong(0)
+            ok = kernel32.ReadFile(handle, buf, 63, ctypes.byref(read), None)
+            if not ok:
+                return None
+            raw = buf.raw[: read.value].decode("utf-8", errors="replace").strip()
+            return raw or None
+        finally:
+            kernel32.CloseHandle(handle)
+    except Exception:
+        return None  # 保守：读不到按 PID 未知处理，交 TTL 兜底
+
+
 def _is_stale(lock_path):
     """判断既有锁文件是否为陈旧锁（P12·W2.3，DEF-021）。
 
     - 内容可解析为 PID 且进程仍存活 → 非陈旧（**活进程优先于 TTL**）；
     - 内容非法按 PID 未知处理，仅 TTL 生效；
     - PID 死亡/未知时：mtime 超过 STALE_LOCK_TTL_SECONDS 才判陈旧。
+    - P13-FIX（方案①）：Windows 读取改用 FILE_SHARE_DELETE 打开（消灭
+      读句柄阻塞 unlink 的竞态）；非 Windows 保持 read_text 原语义。
     """
     try:
-        raw = Path(lock_path).read_text(encoding="utf-8").strip()
+        raw = (
+            _read_lock_pid_win(lock_path)
+            if os.name == "nt" and ctypes is not None
+            else Path(lock_path).read_text(encoding="utf-8").strip()
+        )
         pid = int(raw) if raw else None
     except (OSError, ValueError):
         pid = None
@@ -568,6 +621,19 @@ def _acquire_lock(directory):
 
 
 def _release_lock(lock_path):
+    """删除锁文件（P13-FIX 方案①：unlink 失败重试 3 次 50/100/200ms）。
+
+    读方句柄已改 FILE_SHARE_DELETE（_read_lock_pid_win），unlink 一般直接成功；
+    残留的极端窗口（读句柄正创建/清理中）用有限重试兜底——等读者句柄释放。
+    重试仍失败：保持旧语义（静默吞掉，绝不抛穿持锁流程——清理失败只影响
+    后续并发获取，由陈旧锁 TTL 兜底），杜绝把一次性竞态放大为持锁异常。
+    """
+    for delay in (0.05, 0.10, 0.20):
+        try:
+            lock_path.unlink()
+            return
+        except OSError:
+            time.sleep(delay)
     try:
         lock_path.unlink()
     except OSError:
