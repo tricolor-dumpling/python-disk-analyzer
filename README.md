@@ -714,8 +714,11 @@ python -W error::ResourceWarning -m unittest discover -s tests -t .
 
 > 说明：`-t .` 显式指定顶层目录，保证 `tests/__init__.py`（含 Windows +
 > Python 3.13+ 下 tempfile 私有目录 ACL 的沙盒兼容垫片）随发现流程加载。
-> 本机开发环境为 Python 3.14 + 项目内 `.venv`（Web 版依赖 Flask，CLI/TUI
-> 仍零第三方依赖）；Web 版依赖见 `requirements.txt`。
+> 本机开发环境基线（**阶段 H 裁定（2026-09-06）：文档基线以环境实测为准**）：
+> Python 3.11.8 + 项目内 `.venv`（Web 版依赖 Flask 3.0.2，CLI/TUI
+> 仍零第三方依赖）；Node v24.19.0（探针/前端纯函数测试）。规划阶段文档
+> 曾标注 Python 3.14.3/Flask 3.1.3/node 25（阶段 A 起挂账「待环境对齐」），
+> 已在本阶段落定为文档事实、不据此改动环境；Web 版依赖见 `requirements.txt`。
 
 前端门禁（UI 2.0 起，改 `web/static/js/app/` 任何模块提交前必跑）：
 `tests/web/smoke.html` 冒烟页（默认 `?suite=v2`，A0–A20 共 21 项断言；
