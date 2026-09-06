@@ -41,8 +41,21 @@ from exceptions import EverythingEnvironmentError, EverythingQueryError
 from flask import Response
 
 BASE_DIR = Path(__file__).resolve().parent
-TEMPLATE_DIR = BASE_DIR / "web" / "templates"
-STATIC_DIR = BASE_DIR / "web" / "static"
+# 打包（frozen）路径解析：最小 exe 方案的 web/ 静态资源外部化在 exe 同级 web\，
+# 由 build_min.ps1 随包拷贝（Flask 从 exe 目录加载模板/静态，exe 体积不含 web/）。
+# 兼容回退：既有内嵌 spec（datas 打包 web/ 到 _MEIPASS）仍可用——exe 同级 web\ 缺失时
+# 回退 _MEIPASS 内嵌目录。源码运行（未打包）恒为脚本目录（与旧行为一致）。
+def _resolve_web_dirs():
+    if getattr(sys, "frozen", False):
+        ext = utils.SCRIPT_DIR / "web"
+        if (ext / "templates").is_dir() and (ext / "static").is_dir():
+            return ext / "templates", ext / "static"
+        meipass = Path(getattr(sys, "_MEIPASS", BASE_DIR))
+        return meipass / "web" / "templates", meipass / "web" / "static"
+    return BASE_DIR / "web" / "templates", BASE_DIR / "web" / "static"
+
+
+TEMPLATE_DIR, STATIC_DIR = _resolve_web_dirs()
 
 app = Flask(
     __name__,

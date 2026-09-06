@@ -564,6 +564,22 @@ pip install pyinstaller
 另有同名 zip 分发包。图标由 `scripts\make_icon.py`（纯标准库）生成；
 spec 位于 `packaging\pyinstaller\python-disk-scanner-web.spec`。
 
+**Web 版最小 exe（阶段 H 收尾追加）**：web 界面资源外部化到 exe 同级 `web\`
+文件夹（Flask 从 exe 目录加载模板/静态），SDK DLL 继续放 `everything-SDK\dll\`
+文件夹——exe 只含 Python 解释器 + Flask 依赖，体积小于内嵌版：
+
+```powershell
+.\scripts\build_min_web.ps1            # 若 .tools\upx 存在则自动 UPX 压缩
+.\scripts\build_min_web.ps1 -NoUpx     # 跳过 UPX
+```
+
+产物在 `releases\PythonDiskScanner-min\`：`PythonDiskScanner.exe`
++ `web\templates\` + `web\static\`（外部化界面）+ `everything-SDK\dll\` +
+`使用说明.txt`，另有同名 zip 分发包。优点：exe 更小、改界面无需重打包
+（直接替换 `web\` 文件夹内容即可）；运行时若 exe 同级 `web\` 缺失，
+自动回退到 exe 内嵌副本（兼容旧内嵌 spec 构建）。spec 位于
+`packaging\pyinstaller\python-disk-scanner-min.spec`。
+
 **终端版（旧）**：仍可打包 CLI 工具：
 
 ```powershell
