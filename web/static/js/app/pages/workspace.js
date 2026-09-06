@@ -292,8 +292,9 @@ function renderBreadcrumb(path, parent) {
             renderBreadcrumb(path, parent);
         });
     }
-    /* 下钻/返回后展开态复位（新路径重新走折叠逻辑） */
-    if (parts.length <= 6 && crumbExpanded) crumbExpanded = false;
+    /* 下钻/返回/同路径重渲染后展开态复位（P-3 语义：展开=当次渲染瞬态」；
+       重新浏览（含同路径）一律回到折叠，防「展开态粘滞」——u68d ④ 验收抓出） */
+    if (parts.length <= 6 || !fold) crumbExpanded = false;
     const backBtn = $("btn-back");
     if (backBtn) backBtn.disabled = !parent;
     renderStrip(); // U2.3：上级构成条带（父路径变化即刷新；无缓存/盘根自动隐藏）
@@ -839,9 +840,20 @@ export async function browsePath(path, quiet) {
                 String(data.parent || "").replace(/[\\/]+$/, "").toUpperCase()) {
                 pushPath(data.root); // 下钻：prevPath 即新位置的 parent
             } else {
-                const stack = getPathStack();
-                while (stack.length && String(stack[stack.length - 1]).replace(/[\\/]+$/, "").toUpperCase() !==
-                    String(data.root).replace(/[\\/]+$/, "").toUpperCase()) {
+                /* 阶段G（G-3 验收修复）：既有实现取 getPathStack() 副本后
+                   while(stack.length && …) popPath()——副本 length 永不减少，
+                   非下钻跳转（浏览历史下拉/面包屑回跳/条带回跳）时死循环卡死
+                   主线程（stage-f 基线同样复现，stage-b 既有缺陷）。
+                   修复：每次迭代实时取栈（行为等价：弹到与 data.root 对齐）+ 
+                   保险丝 64 次防未来回归。 */
+                let guard = 0;
+                while (guard++ < 64) {
+                    const live = getPathStack();
+                    if (!live.length) break;
+                    if (String(live[live.length - 1]).replace(/[\\/]+$/, "").toUpperCase() ===
+                        String(data.root).replace(/[\\/]+$/, "").toUpperCase()) {
+                        break;
+                    }
                     popPath();
                 }
             }
