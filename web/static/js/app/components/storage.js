@@ -23,6 +23,11 @@ import { ICONS } from "../icons.js";
 import { browsePath, setCurrentRoot, getCurrentRoot } from "../pages/workspace.js";
 import { createDonut } from "../viz/donut.js";
 
+/* P-5（阶段G G-1）：口径标注——D5 裁定「逻辑尺寸为主 + UI 全处标注口径」；
+   显示值为已占用逻辑字节（与 Everything SDK 直读/资源管理器「已使用」一致），
+   未计硬链接重叠（WinSxS 等硬链接重复计数属逻辑尺寸固有差异，非缺陷）。 */
+export const CALIBRE_NOTE = "逻辑尺寸，未计硬链接重叠";
+
 /* ================= 卡片状态（模块级，路由切换不丢） ================= */
 
 let overviewData = null;   // 最近一次 /api/overview 成功载荷（数据态渲染源）
@@ -80,7 +85,9 @@ function legendHtml(roots, sel) {
         "</strong></div>" +
         '<div class="donut-legend-row">' +
         '<span class="donut-legend-label"><i class="donut-dot donut-dot-all"></i>全部盘累计</span>' +
-        '<strong class="donut-legend-value">' + esc(humanBytes(total)) + "</strong></div>"
+        '<strong class="donut-legend-value">' + esc(humanBytes(total)) + "</strong></div>" +
+        // P-5（G-1）：口径标注（D5 裁定全处标注；图例行尾追加，不改既有 ID/断言面）
+        '<div class="donut-legend-calibre" title="' + esc(CALIBRE_NOTE) + '">' + esc(CALIBRE_NOTE) + "</div>"
     );
 }
 
@@ -94,7 +101,7 @@ function bindChips(box, roots, { onChip }) {
             const size = r.total_human || humanBytes(r.total);
             return (
                 '<button class="chip' + (active ? " is-active" : "") + '" data-root="' + esc(r.root) +
-                '" title="' + esc(r.root + " · " + size) + '" aria-pressed="' + active + '">' +
+                '" title="' + esc(r.root + " · " + size + " · " + CALIBRE_NOTE) + '" aria-pressed="' + active + '">' +
                 ICONS.drive + esc(rootLabel(r.root)) + "</button>"
             );
         })
@@ -124,7 +131,7 @@ function applySelectedRoot(roots) {
     const host = $("overview-donut");
     if (host) {
         host.setAttribute("aria-label", "存储环形图：" + sel.root + " 已使用 " + (sel.total_human || humanBytes(sel.total)) +
-            (total > 0 ? "，占全部盘 " + (pct * 100).toFixed(1) + "%" : ""));
+            (total > 0 ? "，占全部盘 " + (pct * 100).toFixed(1) + "%" : "") + "，" + CALIBRE_NOTE);
     }
     const btn = $("btn-overview-browse");
     if (btn) btn.title = "跳转浏览 " + sel.root;

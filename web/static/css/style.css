@@ -60,6 +60,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .field{margin:12px 0}
 .field label{display:block;font-size:var(--fs-xs);color:var(--muted);margin-bottom:4px}
 .field input{width:100%}
+/* P-5（G-1）：口径标注（D5 裁定——设置弹窗数据目录区说明；幂等注入，仅文案样式） */
+.field .calibre-note{font-size:var(--fs-xs);color:var(--muted);margin-top:4px;line-height:1.4}
 
 /* 按钮 / 图标按钮 / 徽章 / 芯片（L2-1 hover-active 反馈保留；U4.2 红线终核：
    过渡仅 transform/opacity——颜色/边框/阴影状态瞬时切换，不参与过渡（定稿性能红线#1）） */
@@ -398,6 +400,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .donut-dot-used{background:var(--grad-brand)}
 .donut-dot-all{background:var(--border-strong)}
 .donut-legend-scan{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
+/* P-5（G-1）：口径标注（D5 裁定「逻辑尺寸，未计硬链接重叠」；图例追加行，仅文案样式） */
+.donut-legend-calibre{font-size:var(--fs-xs);color:var(--muted);line-height:1.4}
 .overview-chips{margin-top:12px}
 .chip.is-active{border-color:var(--primary);background:var(--primary-soft);color:var(--primary);font-weight:600}
 

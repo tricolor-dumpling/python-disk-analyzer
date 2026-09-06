@@ -19,6 +19,7 @@ import { setSessionsCache, applySnapshotsView } from "../pages/snapshots.js";
 import { resetCompareData } from "../pages/compare.js"; // U3.4：清空联动（结果/迷你摘要复位 + 对比页回空态）
 import { setThemePref, resolvedTheme, syncThemeControls } from "../theme.js"; // U3.5：主题三态
 import { motionDur } from "../motion.js"; // U3.5：--dur-wipe-countdown 倒计时（禁魔法数）
+import { CALIBRE_NOTE } from "../components/storage.js"; // P-5（G-1）：口径标注同源常量
 
 let dataDir = "";
 
@@ -39,6 +40,14 @@ export async function openSettings() {
         $("setting-auto-save").checked = autoSaveOn;
         dataDir = data.data_dir || "";
         if (dataDir) $("setting-data-dir").value = dataDir;
+        // P-5（G-1）：口径标注（D5 裁定——设置弹窗数据目录区标注；幂等注入，不重复）
+        const dataDirField = $("setting-data-dir");
+        if (dataDirField && !dataDirField.parentElement.querySelector(".calibre-note")) {
+            const note = document.createElement("div");
+            note.className = "calibre-note";
+            note.textContent = CALIBRE_NOTE;
+            dataDirField.parentElement.appendChild(note);
+        }
         const roots = data.settings.last_roots;
         if (Array.isArray(roots) && roots.length) {
             applyLastRoots(roots.slice(0, 5));
