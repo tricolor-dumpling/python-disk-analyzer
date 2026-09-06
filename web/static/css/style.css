@@ -604,6 +604,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .crumb{padding:2px 4px;border:0;background:transparent;color:var(--primary);cursor:pointer}
 .crumb-current{padding:2px 4px;font-weight:600}
 .crumb-sep{color:var(--faint)}
+/* 阶段G（G-4，P-3）：面包屑 >6 层折叠「…」（键盘可聚焦；仅样式新类） */
+.crumb-ellipsis{font-weight:700;letter-spacing:.08em}
+.crumb-ellipsis:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:var(--radius-ctl)}
 
 .status-line{display:flex;align-items:center;gap:8px;font-size:var(--fs-xs);color:var(--muted);margin:4px 0;min-height:18px}
 .status-line .dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}

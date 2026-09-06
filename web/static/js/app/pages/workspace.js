@@ -220,6 +220,12 @@ function normalizeRoot(text) {
     return String(text || "").trim();
 }
 
+/* 阶段G（G-4，P-3）：面包屑 >6 层中间「…」折叠。
+   - >6 段时：首段 + 「…」按钮 + 末两段（当前段高亮）→ 点击「…」展开全层；
+   - 展开态为本次渲染瞬态（模块标志，重新渲染/下钻后复位）；「…」键盘可聚焦
+     （button 原生可达）；各层 data-path 回跳与既有实现完全一致（行为等价）。 */
+let crumbExpanded = false;
+
 function renderBreadcrumb(path, parent) {
     browseParent = parent || null;
     const nav = $("breadcrumb");
@@ -230,15 +236,42 @@ function renderBreadcrumb(path, parent) {
         return;
     }
     const isUnc = /^\\\\/.test(String(path)) || /^\/\//.test(String(path));
+    /* 折叠规则（P-3）：>6 段 → 首 + … + 末两段；否则全展开。展开态由「…」切换。 */
+    const fold = parts.length > 6 && !crumbExpanded;
+    const visible = [];
+    if (fold) {
+        visible.push(parts[0]);
+        visible.push("…");
+        visible.push(parts[parts.length - 2]);
+        visible.push(parts[parts.length - 1]);
+    } else {
+        for (let i = 0; i < parts.length; i++) visible.push(parts[i]);
+    }
     let html = '<span class="muted">当前路径：</span>';
     let cum = "";
-    parts.forEach((part, index) => {
-        if (index === 0) {
-            cum = isUnc ? "\\\\" + part + "\\" : part + "\\";
-        } else {
-            cum = cum.replace(/[\\/]+$/, "") + "\\" + part;
+    const cumTo = (index) => {
+        let c = "";
+        for (let i = 0; i <= index; i++) {
+            c = i === 0 ? (isUnc ? "\\\\" + parts[i] + "\\" : parts[i] + "\\")
+                        : c.replace(/[\\/]+$/, "") + "\\" + parts[i];
         }
-        if (index < parts.length - 1) {
+        return c;
+    };
+    visible.forEach((part, idx) => {
+        if (part === "…") {
+            html +=
+                '<button class="crumb crumb-ellipsis" type="button" title="展开完整路径"' +
+                ' aria-expanded="false">…</button>' +
+                '<span class="crumb-sep">\\</span>';
+            return;
+        }
+        const realIndex = fold
+            ? (idx === 0 ? 0 : idx === 1 ? -1 : idx === 2 ? parts.length - 2 : parts.length - 1)
+            : idx;
+        if (realIndex < 0) return;
+        cum = cumTo(realIndex);
+        const isLast = realIndex === parts.length - 1;
+        if (!isLast) {
             html +=
                 '<button class="crumb" data-path="' + esc(cum) + '" title="' + esc(cum) + '">' +
                 esc(part) + "</button>" +
@@ -248,9 +281,19 @@ function renderBreadcrumb(path, parent) {
         }
     });
     nav.innerHTML = html;
-    nav.querySelectorAll(".crumb").forEach((btn) => {
+    nav.querySelectorAll(".crumb[data-path]").forEach((btn) => {
         btn.addEventListener("click", () => browsePath(btn.getAttribute("data-path")));
     });
+    /* G-4：… 点击展开全部（重新渲染；reduced/含动画风格保持 palette-in 类瞬态） */
+    const ellipsis = nav.querySelector(".crumb-ellipsis");
+    if (ellipsis) {
+        ellipsis.addEventListener("click", () => {
+            crumbExpanded = true;
+            renderBreadcrumb(path, parent);
+        });
+    }
+    /* 下钻/返回后展开态复位（新路径重新走折叠逻辑） */
+    if (parts.length <= 6 && crumbExpanded) crumbExpanded = false;
     const backBtn = $("btn-back");
     if (backBtn) backBtn.disabled = !parent;
     renderStrip(); // U2.3：上级构成条带（父路径变化即刷新；无缓存/盘根自动隐藏）
