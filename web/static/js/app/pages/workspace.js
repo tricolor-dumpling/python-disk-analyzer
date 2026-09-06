@@ -1143,8 +1143,7 @@ const WORKSPACE_HTML =
     '<button id="btn-view-fullscreen" class="btn btn-sm" aria-pressed="false" title="视图区全屏（Esc 退出）">全屏</button>' +
     '</div></div>' +
 
-    '<!-- 最近访问 / 浏览历史 / 面包屑 / 状态（阶段G G-3：浏览历史迁下拉面板，
-         #browse-history 由 chips 行改为下拉面板容器；F07 时钟按钮形态落地） -->' +
+    '<!-- 最近访问 / 浏览历史 / 面包屑 / 状态（阶段G G-3：浏览历史迁下拉面板，#browse-history 由 chips 行改为下拉面板容器；F07 时钟按钮形态落地） -->' +
     '<div id="recent-roots" class="chips-row hidden"></div>' +
     '<div id="browse-history" class="browse-history-panel hidden" role="listbox" aria-label="浏览历史"></div>' +
     '<nav id="breadcrumb" class="breadcrumb" aria-label="路径导航"><span class="muted">当前路径：</span><span class="crumb-current">-</span></nav>' +
