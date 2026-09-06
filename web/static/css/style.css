@@ -98,6 +98,15 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .badge-err{background:var(--danger-soft);color:var(--danger);border-color:var(--danger-border)}
 .chips-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
 .chips-label{font-size:var(--fs-xs);color:var(--faint)}
+/* 阶段G（G-3，P-2）：浏览历史下拉面板（时钟按钮形态；命令面板同款分组样式） */
+.browse-history-panel{
+  position:absolute;top:calc(100% + 4px);left:0;z-index:812;min-width:280px;max-width:min(420px,90vw);
+  max-height:300px;overflow-y:auto;padding:4px 6px 6px;border:1px solid var(--border);
+  border-radius:var(--radius-card);background:var(--card);box-shadow:var(--shadow-lg);
+  animation:palette-in var(--dur-palette-open) var(--ease-out) both;
+}
+.browse-history-panel .palette-item:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.browse-history-panel .palette-item.is-active{background:var(--primary-soft);color:var(--primary)}
 .chip{
   display:inline-flex;align-items:center;gap:5px;padding:4px 11px;
   border:1px solid var(--border);border-radius:999px;
@@ -117,7 +126,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 
 /* 面包屑 / 工具栏行（48px 预算；F06 路径行 + N10 视图工具栏位） */
 .tool-row{flex:none;height:48px;display:flex;align-items:center;gap:12px;min-width:0}
-.path-row{flex:1;min-width:0;display:flex;align-items:center;gap:8px}
+.path-row{flex:1;min-width:0;display:flex;align-items:center;gap:8px;position:relative} /* 阶段G G-3：下拉面板锚点 */
 .path-row input{min-width:0}
 .view-toolbar{flex:none;display:flex;align-items:center;gap:6px}
 

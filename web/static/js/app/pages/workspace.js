@@ -124,12 +124,94 @@ export async function openInExplorer(path) {
     }
 }
 
+/* 阶段G（G-3，P-2）：浏览历史下拉面板（F07 时钟按钮形态落地）。
+   复用 getBrowseHistory 最近 8 倒序；命令面板同款分组样式（palette-item）；
+   键盘可达（↑↓ 移动、Enter 浏览、Esc 关闭）；点击条目发起浏览与 chips 语义一致。 */
+function browseHistoryItems() {
+    return getBrowseHistory().slice(-8).reverse();
+}
+
 function renderBrowseHistory() {
     const box = $("browse-history");
-    if (!box || browseHistory.length < 2) { if (box) box.classList.add("hidden"); return; }
-    box.innerHTML = '<span class="chips-label">浏览历史：</span>' + browseHistory.slice(-5).reverse().map((path) => '<button class="chip" data-history-path="' + esc(path) + '" title="返回 ' + esc(path) + '">' + esc(path) + '</button>').join("");
+    const btn = $("btn-browse-history");
+    if (!box || !btn) return;
+    const items = browseHistoryItems();
+    if (items.length < 2) {
+        btn.hidden = true;
+        box.classList.add("hidden");
+        box.innerHTML = "";
+        return;
+    }
+    btn.hidden = false;
+    btn.setAttribute("aria-expanded", String(!box.classList.contains("hidden")));
+    if (box.classList.contains("hidden")) return; // 面板关闭态不渲染内容（打开时再渲染）
+    btn.setAttribute("aria-expanded", "true");
+    box.innerHTML =
+        '<div class="palette-group-label">浏览历史（最近 ' + items.length + " 条）</div>" +
+        items.map((p, i) => (
+            '<div class="palette-item" role="option" data-history-path="' + esc(p) + '" ' +
+            'tabindex="0" data-idx="' + i + '" title="返回 ' + esc(p) + '">' +
+            '<span class="palette-item-label">' + esc(p) + "</span></div>"
+        )).join("");
+    box.querySelectorAll("[data-history-path]").forEach((el) => {
+        el.addEventListener("click", () => {
+            browsePath(el.dataset.historyPath);
+            closeBrowseHistory();
+        });
+    });
+}
+
+function openBrowseHistory() {
+    const box = $("browse-history");
+    const btn = $("btn-browse-history");
+    if (!box || !btn) return;
+    if (browseHistoryItems().length < 2) return;
     box.classList.remove("hidden");
-    box.querySelectorAll("[data-history-path]").forEach((el) => el.addEventListener("click", () => browsePath(el.dataset.historyPath)));
+    renderBrowseHistory(); // 面板打开 → 渲染条目
+    btn.setAttribute("aria-expanded", "true");
+    const first = box.querySelector(".palette-item");
+    if (first) first.focus();
+}
+
+function closeBrowseHistory() {
+    const box = $("browse-history");
+    const btn = $("btn-browse-history");
+    if (box) box.classList.add("hidden");
+    if (btn) {
+        btn.setAttribute("aria-expanded", "false");
+        btn.focus();
+    }
+}
+
+function toggleBrowseHistory() {
+    const box = $("browse-history");
+    if (!box) return;
+    if (box.classList.contains("hidden")) openBrowseHistory();
+    else closeBrowseHistory();
+}
+
+/* 面板键盘：↑↓ 循环移动焦点、Enter 浏览、Esc 关闭（焦点回按钮）。
+   绑在面板容器（含条目）——独立于全局 modals Esc 栈。 */
+function handleBrowseHistoryKey(ev) {
+    const box = $("browse-history");
+    if (!box || box.classList.contains("hidden")) return;
+    const items = Array.from(box.querySelectorAll(".palette-item"));
+    if (!items.length) return;
+    const idx = items.indexOf(document.activeElement);
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+        ev.preventDefault();
+        const step = ev.key === "ArrowDown" ? 1 : -1;
+        const next = items[(idx + step + items.length) % items.length];
+        if (next) next.focus();
+    } else if (ev.key === "Enter" && idx >= 0) {
+        ev.preventDefault();
+        browsePath(items[idx].dataset.historyPath);
+        closeBrowseHistory();
+    } else if (ev.key === "Escape") {
+        ev.preventDefault();
+        ev.stopPropagation();
+        closeBrowseHistory();
+    }
 }
 let browseParent = null;   // 当前目录的上级（null = 已在根）
 let lastBrowse = { root: "D:\\", path: "D:\\" }; // 供「重试」按钮使用
@@ -935,6 +1017,19 @@ export function bindWorkspace() {
         }
         browsePath(currentRoot);
     });
+    // 阶段G（G-3，P-2）：浏览历史下拉（时钟按钮开合 / 键盘 / 外部点击关闭）
+    $("btn-browse-history")?.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        toggleBrowseHistory();
+    });
+    $("browse-history")?.addEventListener("keydown", handleBrowseHistoryKey);
+    document.addEventListener("mousedown", (ev) => {
+        const box = $("browse-history");
+        if (!box || box.classList.contains("hidden")) return;
+        if (!box.contains(ev.target) && !$("btn-browse-history")?.contains(ev.target)) {
+            closeBrowseHistory();
+        }
+    });
     $("browse-root").addEventListener("keydown", (ev) => {
         if (ev.key === "Enter") $("btn-browse").click();
     });
@@ -980,6 +1075,9 @@ const WORKSPACE_HTML =
     '<div class="path-row">' +
     '<input id="browse-root" list="roots-suggest" type="text" placeholder="输入盘符或路径，例如 D:\\" value="D:\\" aria-label="浏览根目录">' +
     '<datalist id="roots-suggest"><option value="C:\\"></option><option value="D:\\"></option><option value="E:\\"></option><option value="F:\\"></option></datalist>' +
+    '<!-- 阶段G（G-3，P-2）：浏览历史下拉入口（时钟按钮 → 面板，命令面板同款分组样式） -->' +
+    '<button id="btn-browse-history" class="btn btn-sm" type="button" title="浏览历史（最近 8 条）" aria-haspopup="listbox" aria-expanded="false" hidden>' +
+    ICONS.clock + "</button>" +
     '<button id="btn-browse" class="btn btn-primary">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20.5 20.5-4.4-4.4"/></svg>' +
     '浏览</button>' +
@@ -1002,9 +1100,10 @@ const WORKSPACE_HTML =
     '<button id="btn-view-fullscreen" class="btn btn-sm" aria-pressed="false" title="视图区全屏（Esc 退出）">全屏</button>' +
     '</div></div>' +
 
-    '<!-- 最近访问 / 浏览历史 / 面包屑 / 状态（F07 历史收进下拉属 U2.x，此处保留原 chips 位） -->' +
+    '<!-- 最近访问 / 浏览历史 / 面包屑 / 状态（阶段G G-3：浏览历史迁下拉面板，
+         #browse-history 由 chips 行改为下拉面板容器；F07 时钟按钮形态落地） -->' +
     '<div id="recent-roots" class="chips-row hidden"></div>' +
-    '<div id="browse-history" class="chips-row hidden" aria-label="浏览历史"></div>' +
+    '<div id="browse-history" class="browse-history-panel hidden" role="listbox" aria-label="浏览历史"></div>' +
     '<nav id="breadcrumb" class="breadcrumb" aria-label="路径导航"><span class="muted">当前路径：</span><span class="crumb-current">-</span></nav>' +
     '<div id="browse-status" class="status-line" role="status"><span class="dot"></span><span id="browse-status-text">输入路径后点击「浏览」开始</span></div>' +
     '<div id="browse-guide" class="notice notice-warn hidden" role="status">' +
