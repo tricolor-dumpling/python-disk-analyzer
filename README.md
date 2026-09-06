@@ -593,6 +593,44 @@ Everything SDK DLL（程序按「exe 目录\everything-SDK\dll\ → exe 目录\�
 ## 发布说明（阶段 F = R6 全量回归、发布与归档，2026-09-05）
 
 - **版本号**：`v2.0.0`（发布制品 = `releases\PythonDiskScanner-web\` 打包产物）。
+
+### v2.0.0 更新日志（2026-09-05 → 2026-09-06）
+
+> 版本号沿用 v2.0.0（项目 v2.0.0 起稳定发版口径，阶段 G/H 与最小打包为同版本内的
+> 维护批次增量，不升次版本号）；以下为阶段 G 交付后至最小打包的全部变更记录。
+
+- **阶段 G（2026-09-06，发布后挂账裁决落地与代码卫生批次）**：
+  - P-5 C 盘口径标注补齐（G-1，storage.js/settings.js，文案与 D5 裁定逐字一致）；
+  - P-4 趋势卡 sparkline 数据源补全（G-2，`/api/snapshots` additive `total_by_root`）；
+  - P-2 浏览历史下拉形态收口（G-3，时钟按钮 → 下拉面板，键盘可达）；
+  - P-3 面包屑 >6 层折叠（G-4，首段+「…」+末两段，点击展开瞬态）；
+  - P-9 代码卫生（G-5，cli.py 非法转义 raw string）；
+  - **P13 快照锁竞态修复（G-6，用户显式授权）**：P13-FIX 方案①（FILE_SHARE_DELETE +
+    unlink 重试 3 次）；专项 50 轮 **0/50 失败**（修复前 21/50），不再依赖「复现允许
+    复跑」纪律；
+  - 验收修复 2 件套：relate 路径栈对齐死循环（stage-b 既有缺陷）+ 面包屑展开态粘滞；
+  - 门禁：unittest 317 / ResourceWarning 317 / node 43 / py_compile 0 / smoke 21/21 /
+    u50–u68d 全绿。
+- **阶段 H（2026-09-06，发布后维护批次：残留跟踪 / 环境基线对齐 / 探针卫生 / 文档一致性）**：
+  - H-1 环境基线对齐（用户裁定①文档基线以实测为准）：Python 3.11.8 / Flask 3.0.2 /
+    Node v24.19.0，零代码改动；
+  - H-2 2-2 视图残留第八轮跟踪：u50 桩态两轮 + u66 桩态 10/10 未复现，登记不关闭；
+  - H-3 文档一致性：README 归档占位符修正、手册挂账表 P-6/P-7/P-8 复查、资料包重生成；
+  - H-4 u62 探针卫生：rapid 组终态推导修正（双 toggle 语义）+ 等待 600→800ms，
+    硬化后连续 3 轮 46/46 无需复跑，零应用代码；
+  - H-5 全量门禁：unittest 317 / ResourceWarning 317 / node 43 / py_compile 0 /
+    smoke 21/21 / u50–u68d 全绿 / P13 专项 0/50；
+  - H-6 交付报告与文档收尾（核查清单五-I、阶段计划阶段 H 段、交付报告入库）。
+- **最小 Web 版打包（2026-09-06，main 8cdae03）**：
+  - 新增最小 exe 打包链：`scripts\build_min_web.ps1` + `packaging\pyinstaller\
+    python-disk-scanner-min.spec`（本机打包资产，按既有约定不入库）；
+  - web/ 静态资源外部化到 exe 同级 `web\` 文件夹（Flask 从 exe 目录加载模板/静态，
+    改界面免重打包），SDK DLL 继续放 `everything-SDK\dll\` 文件夹；
+  - 实测：最小 exe 9.57 MB（内嵌版 9.74 MB），health `ready:true`（DLL 从外部文件夹
+    加载）、页面/静态资源全 200、console 0；产物 `releases\PythonDiskScanner-min\`；
+  - app.py `_resolve_web_dirs()`：frozen 时 exe 同级 `web\` 优先、`_MEIPASS` 回退
+    （兼容既有内嵌 spec 构建）；源码运行零变化（unittest 26 用例通过）。
+
 - **发布包**：`PythonDiskScanner-web.zip`（9.65 MB，分发包）内含 `PythonDiskScanner.exe`
   （9.74 MB，windowed 无黑窗）+ `everything-SDK\dll\Everything32/64.dll`（随包提供）+
   `使用说明.txt`。打包命令 `.\scripts\build_web.ps1`（PyInstaller 6.11.0 验证通过）。
