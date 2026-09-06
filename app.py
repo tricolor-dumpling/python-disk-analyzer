@@ -797,6 +797,24 @@ def api_snapshot_delete():
 # =================【4. 历史 / 对比】=================
 
 
+def _snapshot_root_total(snapshot_path):
+    """派生单份快照的「根聚合总量」（P-4 G-2：sparkline 数据源，additive）。
+
+    与 compare 差值卡同口径：取根行聚合值（P12·W1.2 _total_from_root_rows），
+    缺失根行时回退顶层行求和——保证趋势卡 sparkline 数值与差值卡 total_current
+    一致（C-6 两地同基线一致性）。快照缺失/损坏 → 返回 None（前端跳过该根，
+    不污染会话其余根的 sparkline 序列）。
+    """
+    try:
+        loaded = snapshots.load_snapshot(Path(snapshot_path))
+    except (OSError, snapshots.SnapshotCorruptError):
+        return None
+    return compare._total_from_root_rows(
+        {row["p"]: row["s"] for row in (loaded.get("rows") or [])},
+        root_hint=loaded.get("header", {}).get("root"),
+    )
+
+
 @app.get("/api/snapshots")
 def api_snapshots():
     sessions = session.list_sessions()
@@ -805,6 +823,15 @@ def api_snapshots():
         data = session.load_session(path)
         if data:
             data["_file"] = path.name
+            # P-4（G-2）additive：每会话各根快照总量（sparkline 数据源；旧字段零变化）
+            total_by_root = {}
+            for r in (data.get("roots") or {}).values():
+                if not r or not r.get("snapshot_path"):
+                    continue
+                total = _snapshot_root_total(r["snapshot_path"])
+                if total is not None:
+                    total_by_root[r.get("root")] = total
+            data["total_by_root"] = total_by_root
             items.append(data)
     return _json_ok(sessions=items, count=len(items))
 

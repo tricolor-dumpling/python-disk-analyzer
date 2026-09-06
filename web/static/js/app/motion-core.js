@@ -122,3 +122,39 @@ export function cubicBezier(x1, y1, x2, y2) {
     };
     return (p) => sampleY(solveX(clamp01(p)));
 }
+
+/* P-4（阶段G G-2）：sparkline 折线纯函数（零 DOM，node 可测）。
+   - sparklinePath(values, w, h)：把时间序列 values（数字数组，升序时间）归一化到
+     [0,w]×[0,h] 的折线 path d 字符串；<2 点返回空串（无折线）；全等值 → 水平中线；
+   - sparklineLastPoint(values, w, h)：终点坐标 {x,y}（终点脉冲锚点；空序列 → null）；
+   - 语义与 snapshots.js 趋势卡 sparkline 共用（数据源 = /api/snapshots total_by_root
+     按会话时间升序派生；与差值卡 total_current 同口径——C-6 两地一致）。 */
+export function sparklinePath(values, w, h) {
+    const v = (values || []).map(Number).filter((n) => Number.isFinite(n));
+    if (v.length < 2) return "";
+    const W = Number(w) || 0;
+    const H = Number(h) || 0;
+    if (W <= 0 || H <= 0) return ""; // 非法视口 → 无折线
+    const min = Math.min.apply(null, v);
+    const max = Math.max.apply(null, v);
+    const span = max - min;
+    const step = W / (v.length - 1);
+    const y = (val) => (span > 0 ? H - ((val - min) / span) * H : H / 2);
+    return v.map((val, i) => {
+        const x = i * step;
+        return (i === 0 ? "M" : "L") + x.toFixed(2) + " " + y(val).toFixed(2);
+    }).join(" ");
+}
+export function sparklineLastPoint(values, w, h) {
+    const v = (values || []).map(Number).filter((n) => Number.isFinite(n));
+    if (!v.length) return null;
+    const W = Number(w) || 0;
+    const H = Number(h) || 0;
+    if (W <= 0 || H <= 0) return null;
+    const min = Math.min.apply(null, v);
+    const max = Math.max.apply(null, v);
+    const span = max - min;
+    const x = v.length > 1 ? W : 0;
+    const y = span > 0 ? H - ((v[v.length - 1] - min) / span) * H : H / 2;
+    return { x: Number(x.toFixed(2)), y: Number(y.toFixed(2)) };
+}

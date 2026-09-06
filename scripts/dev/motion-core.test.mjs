@@ -20,6 +20,8 @@ import {
     cubicBezier,
     estimateRemainingSec,
     etaShouldUpdate,
+    sparklinePath,
+    sparklineLastPoint,
 } from "../../web/static/js/app/motion-core.js";
 
 test("lerp 两端：t=0 精确等于 a、t=1 精确等于 b", () => {
@@ -141,4 +143,45 @@ test("etaShouldUpdate：首采样/阈值跨越必更新；变化 ≤10% 不更�
     assert.equal(etaShouldUpdate(25, 31, true), true);       // 进入 soon（≤30）→ 必更新
     assert.equal(etaShouldUpdate(25, 25, true), false);      // soon 内微小变化 → 不更新
     assert.equal(etaShouldUpdate(35, 25, false), true);      // 离开 soon → 必更新
+});
+
+/* 阶段G（G-2）：sparkline 折线纯函数（P-4 数据源启用；与差值卡 total_current 同口径） */
+test("sparklinePath：<2 点返回空串（无折线）", () => {
+    assert.equal(sparklinePath([], 100, 30), "");
+    assert.equal(sparklinePath([10], 100, 30), "");
+    assert.equal(sparklinePath([10, 20, 30], 0, 30), "");   // w=0 非法 → 空（防御）
+});
+
+test("sparklinePath：两点 → 水平/斜线，端点精确到 w 边界", () => {
+    const p = sparklinePath([0, 10], 100, 20);
+    assert.match(p, /^M0\.00 \d+\.\d\d L100\.00 \d+\.\d\d$/); // 首点 x=0、末点 x=w
+    const pFlat = sparklinePath([5, 5], 100, 20);
+    assert.match(pFlat, /M0\.00 10\.00 L100\.00 10\.00/);      // 全等值 → 水平中线 y=h/2
+});
+
+test("sparklinePath：三点递增 → 归一化 y 单调（末点在底部 h）", () => {
+    const p = sparklinePath([0, 5, 10], 100, 20);
+    // path 形如 "M0.00 20.00 L50.00 10.00 L100.00 0.00"（中间点 x=50 为半程）
+    const pts = p.trim().split(/\s+/);
+    assert.equal(pts[0], "M0.00");
+    assert.equal(pts[1], "20.00");   // 最小值 → 底部 y=h
+    assert.equal(pts[2], "L50.00");  // 中间点 x = w*(1/2)
+    assert.equal(pts[3], "10.00");   // 半值 → y=h/2
+    assert.equal(pts[4], "L100.00");
+    assert.equal(pts[5], "0.00");    // 最大值 → 顶部 y=0
+});
+
+test("sparklineLastPoint：终点坐标 = 末点（w 处、按值归一）", () => {
+    assert.equal(sparklineLastPoint([], 100, 20), null);
+    const pt = sparklineLastPoint([0, 5, 10], 100, 20);
+    assert.equal(pt.x, 100);
+    assert.equal(pt.y, 0);             // 最大值 → 顶部
+    const ptFlat = sparklineLastPoint([3, 3], 100, 20);
+    assert.equal(ptFlat.y, 10);        // 全等值 → 中线 h/2
+});
+
+test("sparklinePath：非法/非数字值过滤；字符串数字容忍", () => {
+    const p = sparklinePath(["0", 5, "abc", "10"], 100, 20);
+    assert.match(p, /^M/);
+    assert.match(p, /L100\.00 0\.00$/); // 仅 0/5/10 三点有效（"abc" → NaN 过滤）
 });

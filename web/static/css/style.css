@@ -181,6 +181,19 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .trend-sub{font-size:var(--fs-xs);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .trend-pending,.trend-empty{font-size:var(--fs-sm);color:var(--muted)}
 .trend-err{font-size:var(--fs-xs);color:var(--danger);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 阶段G（G-2）：sparkline（L3-5）——趋势卡折线 + 终点脉冲（--dur-sparkline 描线
+   由 motion.sparkline 驱动；终点脉冲仅 opacity（P7 红线）） */
+.trend-spark{flex:none;width:120px;height:28px;margin-left:auto}
+.trend-spark-svg{display:block;width:120px;height:28px;overflow:visible}
+.trend-spark-line{stroke:var(--primary);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.trend-spark-dot{fill:var(--primary);transform-box:fill-box;transform-origin:center;animation:trend-spark-pulse 2s var(--ease-out) infinite}
+@keyframes trend-spark-pulse{
+  0%,100%{opacity:1}
+  50%{opacity:.25}
+}
+@media (prefers-reduced-motion: reduce){
+  .trend-spark-dot{animation:none}
+}
 
 /* 会话列表（F17：会话分组 + 逐盘对比/标签/跳过原因 tooltip——红线 #7 SKIP_REASON_TEXT） */
 .snapshots-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}

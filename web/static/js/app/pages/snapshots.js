@@ -28,6 +28,8 @@ import { skipReasonText } from "../labels.js";
 import { confirmDialog } from "../components/modals.js"; // 阶段C（C-3）：删除确认弹窗（红线 #9 弹窗栈）
 import { toast } from "../components/toast.js"; // 阶段C（C-3）：删除结果反馈
 import { renderSnapshotMini } from "../components/snapshot-mini.js"; // U2.4：N06 迷你条目
+import { sparklinePath, sparklineLastPoint } from "../motion-core.js"; // 阶段G（G-2）：sparkline 折线纯函数
+import { sparkline as runSparkline } from "../motion.js"; // 阶段G（G-2）：L3-5 描线 800ms（--dur-sparkline）
 
 let sessionsCache = [];
 
@@ -317,6 +319,27 @@ function collectDriveEntries(sessions) {
     return out;
 }
 
+/* 阶段G（G-2）：按根收集「逐次总量」时间序列（sparkline 数据源）。
+   - 数据 = /api/snapshots 每会话 additive total_by_root（后端从快照文件派生，
+     与 compare 差值卡 total_current 同口径——C-6 两地一致）；
+   - 时间升序（早→晚，折线左→右）；缺失/损坏/跳过 → 该会话该根跳过；
+   - 返回 [{ms, bytes}] 或空数组。 */
+export function collectDriveTotals(sessions, root) {
+    const out = [];
+    for (const s of sessions) {
+        const t = Date.parse(String(s.created_at || ""));
+        if (!t) continue;
+        const r = Object.values(s.roots || {}).find((x) => x && x.root === root && !x.skipped);
+        if (!r) continue;
+        const totals = s.total_by_root || {};
+        const bytes = Number(totals[root]);
+        if (!Number.isFinite(bytes)) continue;
+        out.push({ ms: t, bytes });
+    }
+    out.sort((a, b) => a.ms - b.ms);
+    return out;
+}
+
 /* 按槽窗口选（根, 基线, 目标）；无合适基线返回 null */
 export function pickTrendForSlot(sessions, slot) {
     const entries = collectDriveEntries(sessions);
@@ -417,6 +440,31 @@ function trendCardPending(slot, trend) {
     );
 }
 
+/* 阶段G（G-2）：sparkline（L3-5）内联 SVG——该根 ≥2 个逐次总量点才画折线；
+   与差值卡 total_current 同口径（collectDriveTotals 取自 total_by_root）。
+   返回 {html, draw}：html 为 SVG 片段；draw(svgEl, pathEl) 触发 800ms 描线
+   （motion.sparkline，--dur-sparkline；reduced 直显终值）。 */
+function trendSparkline(sessions, root) {
+    const totals = collectDriveTotals(sessions, root);
+    if (totals.length < 2) return null;
+    const W = 120, H = 28;
+    const values = totals.map((t) => t.bytes);
+    const d = sparklinePath(values, W, H);
+    const last = sparklineLastPoint(values, W, H);
+    if (!d || !last) return null;
+    const html =
+        '<span class="trend-spark">' +
+        '<svg class="trend-spark-svg" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true">' +
+        '<path class="trend-spark-line" d="' + esc(d) + '" fill="none"/>' +
+        (last ? '<circle class="trend-spark-dot" cx="' + last.x + '" cy="' + last.y + '" r="2"/>' : "") +
+        "</svg></span>";
+    const draw = (svgEl) => {
+        const path = svgEl && svgEl.querySelector(".trend-spark-line");
+        if (path) runSparkline(svgEl, path);
+    };
+    return { html, draw };
+}
+
 function trendCardBody(slot, trend, cached) {
     if (cached.status === "err") {
         const isHint = cached.hint === "fullscan-first";
@@ -438,6 +486,8 @@ function trendCardBody(slot, trend, cached) {
     const cls = d > 0 ? "grow" : d < 0 ? "shrink" : "flat";
     const arrow = d > 0 ? "▲" : d < 0 ? "▼" : "±"; // §3.4：不得仅靠颜色（色盲冗余）
     const pctText = (Number(cached.pct) > 0 ? "+" : "") + Number(cached.pct).toFixed(2) + "%";
+    // 阶段G（G-2）：sparkline（L3-5）——该根多会话逐次总量折线（数据源 total_by_root）
+    const spark = trendSparkline(sessionsCache, trend.root);
     return (
         '<button class="trend-card" type="button" data-slot="' + slot.key + '"' +
         ' data-root="' + esc(trend.root) + '" data-baseline="' + esc(trend.baseline) + '"' +
@@ -446,7 +496,8 @@ function trendCardBody(slot, trend, cached) {
         '<span class="trend-root">' + esc(rootLabel(trend.root)) + "</span></span>" +
         '<span class="trend-main">' +
         '<span class="trend-delta ' + cls + '">' + arrow + " " + esc(signedBytes(d)) + "</span>" +
-        '<span class="trend-pct">' + esc(pctText) + "</span></span>" +
+        '<span class="trend-pct">' + esc(pctText) + "</span>" +
+        (spark ? spark.html : "") + "</span>" +
         '<span class="trend-sub">基线 ' + esc(trend.baselineAtText) + " → 最新 " + esc(trend.targetAtText) + "</span>" +
         "</button>"
     );
@@ -548,6 +599,14 @@ function renderTrendCards(sessions) {
             return trendCardPending(slot, trend);
         })
         .join("");
+    // 阶段G（G-2）：sparkline 描线（L3-5，--dur-sparkline 800ms；reduced 直显）
+    slots.forEach(({ trend }) => {
+        if (!trend) return;
+        const spark = trendSparkline(sessions, trend.root);
+        if (!spark) return;
+        const card = row.querySelector('.trend-card[data-root="' + CSS.escape(trend.root) + '"] .trend-spark-svg');
+        if (card && spark.draw) spark.draw(card);
+    });
     slots.forEach(({ slot, trend }) => {
         if (!trend) return;
         const key = trendCacheKey(slot, trend);
