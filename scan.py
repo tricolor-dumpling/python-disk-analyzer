@@ -16,11 +16,13 @@ EVERYTHING_* 常量）；其中 sdk.DLL_PATH 是跨模块共享的可变全局�
 """
 
 import ctypes
+import contextlib
 import heapq
 import os
 import threading
 import time
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 
 from utils import log
@@ -35,6 +37,52 @@ SCAN_PROGRESS_REFRESH_INTERVAL = 10000
 # fullscan.GLOBAL_SCAN_LOCK 为同一把锁的别名；所有触碰 Everything SDK 的路径
 # （主扫描/轻刷/深刷/指纹探测/健康探测）统一经它串行。
 SCAN_LOCK = threading.Lock()
+
+# 阶段B（B-7/B-18）：锁持有者登记（additive，不改变锁语义）。
+# _LOCK_HOLDER 为 {since_iso, holder} 快照：仅记录当前持有/最近一次持有者，
+# 供 status()/health busy 分支透出（lock_holder/since）——锁对象本身仍是
+# 普通 threading.Lock，行为等价红线（SCAN_LOCK 全局锁对象）零变更。
+_LOCK_HOLDER = {}
+_LOCK_HOLDER_LOCK = threading.Lock()
+
+
+def _lock_holder():
+    """返回 {holder, since}（无记录 → None）。仅诊断信息，不影响锁语义。"""
+    with _LOCK_HOLDER_LOCK:
+        return dict(_LOCK_HOLDER) if _LOCK_HOLDER else None
+
+
+def _mark_lock_holder(holder):
+    """登记持锁方（acquire 成功后调用）。holder ∈ fullscan/browse/compare/health 等。"""
+    with _LOCK_HOLDER_LOCK:
+        _LOCK_HOLDER["holder"] = holder
+        _LOCK_HOLDER["since"] = datetime.now().isoformat(timespec="seconds")
+
+
+def _clear_lock_holder():
+    """释放锁后清除持有者登记。"""
+    with _LOCK_HOLDER_LOCK:
+        _LOCK_HOLDER.clear()
+
+
+@contextlib.contextmanager
+def sdk_lock(holder):
+    """SDK 锁的持有者登记版本（additive：与裸 SCAN_LOCK 等价，仅附加诊断）。
+
+    进入时 acquire（阻塞；调用方决定是否可接受），退出时 release 并清除登记。
+    使用示例：
+        with scan.sdk_lock("browse"):
+            sizes, contents = scan.scan_via_everything_sdk(current)
+    与既有裸 with scan.SCAN_LOCK 完全互斥（同一把锁），登记信息供
+    fullscan.status()/health busy 分支透出（lock_holder/since）。
+    """
+    SCAN_LOCK.acquire()
+    _mark_lock_holder(holder)
+    try:
+        yield
+    finally:
+        _clear_lock_holder()
+        SCAN_LOCK.release()
 
 # ------------【P12·W1.1 大小未知哨兵过滤】------------
 # Everything 对「大小未知」的记录返回 2^64-1 哨兵值；历史实现裸读该值并把它当
@@ -250,13 +298,16 @@ def read_result_size(everything, index, volume_cap=None):
     return size if status == _SIZE_OK else None
 
 
-def scan_via_everything_sdk(root_path_obj, cancel_event=None, everything=None):
+def scan_via_everything_sdk(root_path_obj, cancel_event=None, everything=None, progress=None):
     """使用 Everything SDK 高速扫描指定路径，返回 (sizes, contents)。
 
     新增可选参数（默认 None 时行为与旧签名完全一致，不破坏既有调用方）：
     - everything：注入的 SDK 实例（测试/嵌入场景直传，跳过 DLL 加载）；
     - cancel_event：threading.Event，扫描主循环每 SCAN_PROGRESS_REFRESH_INTERVAL
-      （10000）条检查一次，置位即抛 ScanCancelledError（深刷取消）。
+      （10000）条检查一次，置位即抛 ScanCancelledError（深刷取消）；
+    - progress：可选回调 progress(done:int, total:int)，主循环每
+      SCAN_PROGRESS_REFRESH_INTERVAL 条调用一次（阶段B B-7 行计数通道；
+      异常一律消化，绝不影响扫描主流程）。
     """
     if everything is None:
         if sdk.DLL_PATH is None:
@@ -320,6 +371,12 @@ def scan_via_everything_sdk(root_path_obj, cancel_event=None, everything=None):
             percent = i * 100 // num_results
             log(f"\r处理中 {percent:3d}% ({i:,}/{num_results:,})", end="", flush=True)
             last_refresh = i
+            # 阶段B（B-7）：行计数回调（每刷新节拍一次；异常消化）
+            if progress is not None:
+                try:
+                    progress(i, num_results)
+                except Exception:
+                    progress = None  # 回调异常后降级为不再调用
 
         if everything.Everything_IsFolderResult(i) or everything.Everything_IsVolumeResult(i):
             continue

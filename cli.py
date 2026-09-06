@@ -1,4 +1,4 @@
-"""命令行入口模块（C3 拆分自 main.py；D1 增加命令行参数与非交互模式；D2 增加
+r"""命令行入口模块（C3 拆分自 main.py；D1 增加命令行参数与非交互模式；D2 增加
 UTF-8 流重配置与 --quiet 静默非交互过程日志；D3 增加 --export/--output 目录
 占用报告导出 CSV/JSON；D9 增加 --snapshot-dir/--no-snapshot/--baseline 与
 干净退出自动保存快照）。
@@ -390,7 +390,7 @@ def _run_headless(
     raw_target, top_n, quiet=False, export_format=None, output=None,
     baseline_path=None, allow_other_machine=False,
 ):
-    """非交互模式：路径校验 → 作业沙盒 → 环境就绪 → 扫描 → 打印 Top-N 报告 →（可选）导出。
+    r"""非交互模式：路径校验 → 作业沙盒 → 环境就绪 → 扫描 → 打印 Top-N 报告 →（可选）导出。
 
     quiet=True 时把进程内 utils.VERBOSE 置 False（与 main() 的 --quiet 处理幂等，
     保证直接调用本函数也能获得同样的静默语义）；Top-N 报告与错误输出（_fatal/

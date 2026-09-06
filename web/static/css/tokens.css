@@ -1,0 +1,112 @@
+/* ============================================================
+   UI 2.0（SpaceLens Pro）· 设计 token 单一来源（U1.1）
+   - 本文件是唯一允许出现 hex 色值的 CSS 文件（色值门禁豁免）；
+   - 全量内容照抄《UI2.0_开发执行手册》§3.4，勿在此处即兴调参；
+   - 动效时长/缓动 token 供 motion.js 运行时读取（禁止魔法数）。
+   ============================================================ */
+
+:root{
+  --dur-1:120ms; --dur-2:200ms; --dur-3:320ms; --dur-4:600ms;
+  /* U1.2 增补：§3.5 索引表的专用时长（motion.js 运行时经 getComputedStyle 读取，
+     与 --dur-1..4 同为「禁止魔法数」约束的 token，仅时长无颜色） */
+  --dur-page-in:240ms; --dur-ripple:450ms; --dur-flip:450ms;
+  --dur-sparkline:800ms; --dur-draw-check:400ms; --dur-stagger-step:40ms;
+  /* U2.2 增补：treemap 专用时长（L1-1 参数：stagger 12ms/总上限 400ms；tooltip 延迟 150ms）。
+     无 hex、未动既有值；同 U1.2 增补规则——手册 §3.4 原表无对应项，为「禁魔法数」+验收口径增补 */
+  --dur-treemap-stagger:12ms; --dur-treemap-stagger-cap:400ms; --dur-tooltip-delay:150ms;
+  /* U2.3 增补：L3 专用时长（双击判定 300ms / 全屏 FLIP 300ms / 重排 lerp 300ms /
+     雷达扫掠周期 6s 与单次 1.2s）。同增补规则——§3.5 索引表参数为验收口径，token 化防魔法数 */
+  --dur-dblclick:300ms; --dur-fullscreen:300ms; --dur-treemap-lerp:300ms;
+  --dur-treemap-sweep:6000ms; --dur-treemap-sweep-run:1200ms;
+  /* U2.4 增补：L3-4 环形图专用时长（入场 sweep 800ms ease-inout / 扫描中不确定弧旋转 1.2s）。
+     同增补规则——§3.5 索引表参数为验收口径，token 化防魔法数 */
+  --dur-donut-sweep:800ms; --dur-donut-indeterminate:1200ms;
+  /* U2.5 增补：列表/骨架屏专用时长（L1-2 列表行 stagger 间隔 24ms；L1-5 骨架 shimmer 1.4s；
+     L2-9 缓存徽标 200ms 复用 --dur-2；三视图切换 120ms 复用 --dur-1）。
+     同增补规则——§3.5 索引表参数为验收口径，token 化防魔法数 */
+  --dur-shimmer:1400ms; --dur-stagger-row:24ms;
+  /* U3.1 增补：L2-11 导航下划线 240ms（§3.5 索引表参数）；命令面板开合 80ms——
+     ⚠️ 手册验收「面板打开 <100ms」与 --dur-1(120ms) 冲突，按既有增补规则新增面板
+     专用 token（方案二选一之「面板专场 token」），仅时长无颜色、未动既有值 */
+  --dur-nav-underline:240ms; --dur-palette-open:80ms;
+  /* U3.2 增补：扫描卡专用时长——停止按钮「扫描中」L2-2 渐变流光 3s 循环与
+     呼吸光环 2s 循环；完成 L2-3 绿光自左向右扫过 600ms 单次（§3.5 索引表参数为
+     验收口径；斜纹 1.2s 沿用既有 stripes 规则、对勾描边 400ms 复用 --dur-draw-check、
+     粒子 600ms 复用 --dur-4）。同增补规则：无 hex、未动既有值 */
+  --dur-scan-flow:3000ms; --dur-scan-halo:2000ms; --dur-scan-glow:600ms;
+  /* U3.4 增补：L3-6 红绿发散条专用时长（中轴生长 500ms——§3.5 索引表参数为
+     验收口径；徽标 pop-in 320ms 复用 --dur-3、缓动复用 --ease-spring）。
+     同增补规则：无 hex、未动既有值 */
+  --dur-diverge:500ms;
+  /* U3.5 增补：弹窗族/toast 专用时长——L2-10 危险确认红描边脉动 2.4s（既有
+     badge-breathe 同值 token 化，.badge 规则同步改用本 token）与输入匹配后
+     3s 倒计时解锁；L2-6 toast 滑入 320ms 复用 --dur-3 + --ease-spring、
+     成功描边 300ms、错误脉动 2 次（600ms=2×300ms）。同增补规则：无 hex、未动既有值 */
+  --dur-breathe:2400ms; --dur-wipe-countdown:3000ms;
+  --dur-toast-stroke:300ms; --dur-toast-pulse:600ms;
+  /* 阶段E（E-3）增补：L0-1 主题圆形扩散专用时长（450ms ease-out——手册
+     贰章 2-11 实现口径；原 theme.js 内联 450 魔法数 token 化，防魔法数；
+     同增补规则：无 hex、未动既有值） */
+  --dur-theme-expand:450ms;
+  --ease-out:cubic-bezier(.16,1,.3,1); --ease-spring:cubic-bezier(.34,1.56,.64,1); --ease-inout:cubic-bezier(.65,0,.35,1);
+  --radius-card:16px; --radius-ctl:10px; --radius-chip:999px;
+  --font-num:tabular-nums;
+}
+:root[data-theme="light"]{
+  --bg:#f4f6fa; --bg-aurora-1:rgba(59,130,246,.10); --bg-aurora-2:rgba(125,211,252,.10);
+  --card:#ffffff; --card-glass:rgba(255,255,255,.86);
+  --text:#0f172a; --text-2:#475569; --muted:#64748b; --faint:#94a3b8;
+  --border:#e2e8f0; --border-strong:#cbd5e1;
+  --primary:#2563eb; --primary-hover:#1d4ed8; --primary-soft:#eff6ff;
+  --accent:#7c5cff; --grad-brand:linear-gradient(135deg,#6366f1,#3b82f6);
+  --success:#16a34a; --warning:#b45309; --danger:#dc2626;
+  --up:#dc2626; --down:#16a34a;
+  --glow-sm:0 0 0 transparent; --glow-md:0 0 0 transparent;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05); --shadow-md:0 6px 20px rgba(15,23,42,.10);
+  --shadow-lg:0 16px 40px rgba(15,23,42,.16);
+  /* U1.3 迁移：原 style.css :root 语义色值迁入（color 单一来源；暗色同步补全暗色值） */
+  --brand-blue:#3b82f6; --brand-soft:#93c5fd; --brand-mid:#60a5fa;
+  --on-primary:#fff;
+  --primary-border:#bfdbfe;
+  --success-soft:#f0fdf4; --success-border:#bbf7d0;
+  --warning-soft:#fffbeb; --warning-border:#fde68a; --warning-mid:#f59e0b;
+  --danger-soft:#fef2f2; --danger-border:#fecaca;
+  --track:#eaf0f8; --track-alt:#eef2f7; --row-alt:#fafbfe; --row-border:#f1f5f9; --th-bg:#f8fafc;
+  --card-soft:rgba(248,250,252,.8);
+  --grow-orange:#f97316;
+  --veil:rgba(15,23,42,.35); /* U2.3：全屏背景压暗层（L3-8） */
+  /* U2.4 增补：--grad-brand 的两端色标镜像（SVG <stop> 无法消费 linear-gradient() 复合值，
+     donut 数据弧描边需逐 stop 取色；色值与上方 --grad-brand 逐字一致，勿单独改） */
+  --grad-brand-from:#6366f1; --grad-brand-to:#3b82f6;
+  /* U2.4 增补：SVG 弧段 hover 光晕（--glow-sm 为 box-shadow 形态，SVG 需 filter 形态；
+     亮色与 --glow-sm 同为无光晕） */
+  --glow-drop-sm:none;
+}
+:root[data-theme="dark"]{
+  --bg:#0b1020; --bg-aurora-1:rgba(124,92,255,.08); --bg-aurora-2:rgba(56,189,248,.06);
+  --card:#121a2e; --card-glass:rgba(18,26,46,.72);
+  --text:#e5e7eb; --text-2:#cbd5e1; --muted:#94a3b8; --faint:#64748b;
+  --border:rgba(255,255,255,.08); --border-strong:rgba(255,255,255,.16);
+  --primary:#4f8cff; --primary-hover:#6ba1ff; --primary-soft:rgba(79,140,255,.12);
+  --accent:#8b5cf6; --grad-brand:linear-gradient(135deg,#7c5cff,#4f8cff);
+  --success:#34d399; --warning:#fbbf24; --danger:#f87171;
+  --up:#f87171; --down:#34d399;
+  --glow-sm:0 0 12px rgba(124,92,255,.25); --glow-md:0 0 24px rgba(124,92,255,.35);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 8px 24px rgba(0,0,0,.45);
+  --shadow-lg:0 20px 48px rgba(0,0,0,.55);
+  /* U1.3 迁移：原 style.css :root 语义色值的暗色对应（暗色适配统一 token 化） */
+  --brand-blue:#3b82f6; --brand-soft:rgba(59,130,246,.5); --brand-mid:rgba(96,165,250,.7);
+  --on-primary:#fff;
+  --primary-border:rgba(79,140,255,.4);
+  --success-soft:rgba(52,211,153,.14); --success-border:rgba(52,211,153,.4);
+  --warning-soft:rgba(251,191,36,.14); --warning-border:rgba(251,191,36,.35); --warning-mid:#fbbf24;
+  --danger-soft:rgba(248,113,113,.14); --danger-border:rgba(248,113,113,.4);
+  --track:rgba(255,255,255,.07); --track-alt:rgba(255,255,255,.06); --row-alt:rgba(255,255,255,.03); --row-border:rgba(255,255,255,.06); --th-bg:rgba(255,255,255,.045);
+  --card-soft:rgba(255,255,255,.045);
+  --grow-orange:#fb923c;
+  --veil:rgba(0,0,0,.5); /* U2.3：全屏背景压暗层（L3-8，暗色加深） */
+  /* U2.4 增补：--grad-brand 暗色端点镜像（同亮色注记） */
+  --grad-brand-from:#7c5cff; --grad-brand-to:#4f8cff;
+  /* U2.4 增补：暗色 hover 光晕（与 --glow-sm 同参数的 filter 形态） */
+  --glow-drop-sm:drop-shadow(0 0 12px rgba(124,92,255,.25));
+}

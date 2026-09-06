@@ -98,6 +98,35 @@ def _total_from_root_rows(mapping, root_hint=None):
     return total
 
 
+def _leaf_keys(keys):
+    """O(n) 叶子路径判定（阶段F 回归修复：替换原 O(n²) 前缀遍历）。
+
+    返回 keys 中「非任何其他键祖先」的路径集合，语义与旧实现完全等价：
+    p 非叶子 ⟺ ∃q∈keys, q≠p, normcase(q).startswith(normcase(p).rstrip('\\') + '\\')。
+    等价变换：p 非叶子 ⟺ normcase(p).rstrip('\\') ∈ ancestors，其中
+    ancestors = 所有 keys 路径的逐级父目录（normcase + rstrip('\\') 规范化）。
+    对每个 key 只需沿其自身父链上溯 O(深度) 次，总体 O(n·深度) ≈ O(n)。
+
+    边界（与旧实现一致）：
+    - 盘根 'C:\\'：normcase 后 'c:\\'，rstrip('\\') 得 'c:'；根是任何键的父时
+      其 'c:' 出现在祖先集合 → 判非叶子；否则判叶子（盘根无子键场景）；
+    - 大小写不敏感：Windows 路径 'C:\\A' 与 'c:\\a' 视为同键前缀匹配。
+    """
+    if not keys:
+        return set()
+    ancestors = set()
+    for k in keys:
+        norm_k = os.path.normcase(k).rstrip("\\")
+        parent = os.path.dirname(norm_k)
+        while parent and parent.rstrip("\\") != norm_k:
+            ancestors.add(parent.rstrip("\\"))
+            nxt = os.path.dirname(parent)
+            if nxt == parent:
+                break
+            parent = nxt
+    return {k for k in keys if os.path.normcase(k).rstrip("\\") not in ancestors}
+
+
 def _merge(b_map, c_map, leaf_only=False):
     """并集合并 + 计算 delta/growth/removed/added + 排序 + 截断，返回 (rows, truncated)。
 
@@ -105,6 +134,8 @@ def _merge(b_map, c_map, leaf_only=False):
     其他键 q 使 normcase(q).startswith(normcase(p + '\\')) 且 q != p（即 p 不是
     任何其他键的祖先）。祖先行的增量已由其叶子承载，leaf 过滤避免排行/图表
     把同一份增量在祖先与后代上重复呈现；合计（_total_from_root_rows）不受影响。
+    阶段F（R6）回归修复：叶子判定由 O(n²) 前缀遍历改为 O(n) 祖先集合
+    （_leaf_keys），大根（C:\\ 13 万行）对比不再退化到分钟级/卡死。
     """
     keys = set(b_map) | set(c_map)
     rows = []
@@ -127,19 +158,7 @@ def _merge(b_map, c_map, leaf_only=False):
             }
         )
     if leaf_only and rows:
-        # 盘根键（如 'C:\'）normcase 后仍带尾反斜杠，先剥掉再加分隔符，
-        # 否则前缀匹配失配会把根行误判为叶子。
-        leaves = {
-            p
-            for p in keys
-            if not any(
-                q != p
-                and os.path.normcase(q).startswith(
-                    os.path.normcase(p).rstrip("\\") + "\\"
-                )
-                for q in keys
-            )
-        }
+        leaves = _leaf_keys(keys)
         rows = [r for r in rows if r["path"] in leaves]
     # 排序：主键 |delta| 降序，次键 path 升序（确定性稳定次序，替代集合迭代的不确定序）
     rows.sort(key=lambda r: (-abs(r["delta"]), r["path"]))

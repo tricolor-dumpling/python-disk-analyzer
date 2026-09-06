@@ -33,3 +33,9 @@ everything-SDK/dll/*
 .idea/
 Thumbs.db
 Desktop.ini
+
+# Local Python virtual environment
+.venv/
+
+# DSH tooling scratch output（与项目无关的生成图像）
+dsh-image-gen/

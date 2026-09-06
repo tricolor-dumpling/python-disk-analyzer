@@ -17,7 +17,9 @@ import os
 import subprocess
 import sys
 import threading
+import time
 import urllib.request
+import uuid
 import webbrowser
 from datetime import datetime
 from pathlib import Path
@@ -108,11 +110,20 @@ def _health_payload():
     # P12·W2.1：非阻塞 acquire，拿不到立即返回（不释放未持有的锁）
     acquired = scan.SCAN_LOCK.acquire(blocking=False)
     if not acquired:
-        return {
+        # 阶段B（B-18）：busy 分支 additive lock_holder/since——busy 只表示
+        # 「某处正持有 SDK 锁」，不区分持有者是不可解释的根源；此处透出
+        # 持有者名称与开始时刻，前端据此细分文案（全量扫描/对比/浏览占用）。
+        holder = scan._lock_holder() or {}
+        payload = {
             "ok": True, "ready": False, "busy": True, "reason": "scanning",
             "dll": str(sdk.DLL_PATH) if sdk.DLL_PATH else None,
             "message": "Everything 正在扫描中（健康检查暂缓探测）",
         }
+        if holder.get("holder"):
+            payload["lock_holder"] = holder["holder"]
+        if holder.get("since"):
+            payload["lock_since"] = holder["since"]
+        return payload
     try:
         try:
             cfg = env.load_config()
@@ -229,6 +240,10 @@ def api_browse():
     requested_root = fullscan.BROWSE_INDEX.root_for(root)
     if indexed_root is not None and requested_root == indexed_root:
         items = fullscan.BROWSE_INDEX.children(current)
+        # 阶段B（B-13）：source=index + source_at（索引完成时刻）
+        source = "index"
+        last_result = fullscan.result()
+        source_at = (last_result or {}).get("completed_at")
     else:
         # ② 全量扫描中：已完成盘仍可浏览；正在扫描的盘给出可理解的进度态。
         if fullscan.is_running():
@@ -239,6 +254,8 @@ def api_browse():
                 if fullscan.BROWSE_INDEX.root_for(current) == str(active_root):
                     # 这个分支理论上已由 ① 覆盖，保留以明确已完成盘优先。
                     items = fullscan.BROWSE_INDEX.children(current)
+                    source = "index"
+                    source_at = (fullscan.result() or {}).get("completed_at")
                 else:
                     try:
                         in_active_root = fullscan._path_key(current).startswith(
@@ -252,6 +269,9 @@ def api_browse():
                             parent=str(current.parent) if current != root else None,
                             directories=[], files=[], total_dirs=0, total_files=0,
                             scanning=True,
+                            # 阶段B（B-13）：source additive
+                            source="scanning",
+                            source_at=datetime.now().isoformat(timespec="seconds"),
                             progress=status.get("progress_pct", 0),
                             message="该盘正在扫描中，完成后即可即时浏览",
                         )
@@ -261,9 +281,16 @@ def api_browse():
             )
 
         # ③ 没有可用全量索引时，退回 Everything SDK。
+        # 阶段B（B-7 ③）：SDK 分支改非阻塞 acquire（与 health/compare 同口径），
+        # 拿不到立即 409（不再阻塞式排队等锁造成请求挂死）；锁持有者登记 browse。
+        if not scan.SCAN_LOCK.acquire(blocking=False):
+            return _json_error(
+                "索引/扫描占用中，请稍候再试",
+                status=409,
+            )
+        scan._mark_lock_holder("browse")
         try:
-            with fullscan.GLOBAL_SCAN_LOCK:
-                sizes, contents = scan.scan_via_everything_sdk(current)
+            sizes, contents = scan.scan_via_everything_sdk(current)
         except EverythingQueryError as exc:
             # P12·W1.3：类型化查询错误 → 502 + 码表文案（不出裸错误码）；
             # code=2 叠加 Session 0 判定：Everything 全在其他会话（或当前会话
@@ -285,11 +312,17 @@ def api_browse():
             return _json_error(f"扫描失败: {text}", status=502, code=exc.code, **extra)
         except Exception as exc:
             return _json_error(f"扫描失败: {exc}", status=500)
+        finally:
+            scan._clear_lock_holder()
+            scan.SCAN_LOCK.release()
 
         try:
             items = contents.get(current, [])
         except Exception:
             items = []
+        # 阶段B（B-13）：真实 SDK 直扫来源（不再靠字段缺失猜测缓存）
+        source = "sdk"
+        source_at = datetime.now().isoformat(timespec="seconds")
 
     directories = []
     files = []
@@ -309,6 +342,7 @@ def api_browse():
     directories.sort(key=lambda x: (-x["size"], x["name"].casefold()))
     files.sort(key=lambda x: (-x["size"], x["name"].casefold()))
     parent = current.parent if current != root else None
+    # 阶段B（B-13）：source additive（index=索引命中/sdk=真实直扫/scanning=扫描中）
     return _json_ok(
         root=str(current),
         parent=str(parent) if parent is not None else None,
@@ -316,6 +350,8 @@ def api_browse():
         files=files[:200],
         total_dirs=len(directories),
         total_files=len(files),
+        source=source,
+        source_at=source_at,
     )
 
 
@@ -379,6 +415,16 @@ def api_fullscan_start():
 @app.get("/api/fullscan/status")
 def api_fullscan_status():
     return _json_ok(status=fullscan.status())
+
+
+# U3.2（D10 唯一新增接口）：用户停止。请求体可空（{}）；运行中 → 置用户停止
+# 事件并返回 stopped=true；空闲 → stopped=false（幂等，不报错）。响应含
+# status 原样（additive：stop_requested/stop_reason）。停服路径（W2.10）不经过
+# 本接口——CANCEL_EVENT 由 atexit cancel_scan 单独承担，语义互不污染。
+@app.post("/api/fullscan/stop")
+def api_fullscan_stop():
+    stopped = fullscan.request_stop()
+    return _json_ok(stopped=stopped, status=fullscan.status())
 
 
 # =================【3. 保存 / 撤销】=================
@@ -576,7 +622,197 @@ def api_save_undo():
     )
 
 
+# =================【3.5 快照删除（阶段C C-2，additive 新接口）】=================
+# 删除粒度（D1 裁定）：{session_id, root}（单盘）或 {session_id}（整会话）。
+# 设计要点：
+# - 目录边界校验复用 api_save_undo 的 resolve().relative_to(snapshots_root) 模式；
+# - 幂等：目标已不存在 → {deleted:true, already:true} 不报错；
+# - 扫描中禁止删除 → 409（fullscan.is_running()，绝不触碰线程）；
+# - 台账一致性：删除单盘后 ledger 中该根条目移除（与 undo 回滚同口径的「删除后
+#   不再抑制下次自动保存」语义）；整会话同理按该会话各根清理；
+# - 会话无剩余条目 → 删 session 文件；响应含逐目标成败清单（deleted/failed/already）。
+
+
+def _resolve_snapshot_path(snapshot_path, snapshots_root):
+    """目录边界校验：resolve 后必须位于 snapshots_root 内；越界返回 None。"""
+    try:
+        resolved = Path(snapshot_path).resolve()
+        resolved.relative_to(snapshots_root)
+    except (ValueError, OSError):
+        return None
+    return resolved
+
+
+def _drop_ledger_roots(roots, snap_dir):
+    """删除后台账一致性：从 ledger 移除被删根的条目（整会话=全部 roots；单盘=该根）。
+    失败仅记录（不影响文件删除结果）。返回错误文案列表。"""
+    errors = []
+    try:
+        ledger = snapshots.load_ledger(snap_dir)
+        changed = False
+        for root in roots:
+            key = str(root)
+            if key in ledger:
+                ledger.pop(key, None)
+                changed = True
+        if changed:
+            snapshots.save_ledger(ledger, snap_dir)
+    except OSError as exc:
+        errors.append(f"台账清理失败: {exc}")
+    return errors
+
+
+@app.post("/api/snapshot/delete")
+def api_snapshot_delete():
+    """删除指定快照（单盘）或整会话（阶段C C-2）。
+
+    请求体：{"session_id": str, "root": str(可选)}——root 省略 = 整会话删除。
+    响应：{ok:true, session_id, root?, deleted:[...], already:[...], failed:[...],
+          session_removed:bool}
+    - 会话不存在 → 404「快照会话不存在」；
+    - 会话 JSON 损坏 → 500「快照会话清单损坏」；
+    - 单盘 root 未在该会话 roots 内 → 404「该会话没有此盘快照」；
+    - 扫描中 → 409「全量扫描进行中，请等待完成后再删除」；
+    - 越界路径跳过（failed 带「越界」文案），绝不 unlink 目录外文件；
+    - 文件缺失 → already:true（幂等，不报错）；
+    - 删除文件失败 → failed 带错误文案。
+    """
+    data = request.get_json(silent=True) or {}
+    session_id = str(data.get("session_id") or "").strip()
+    raw_root = data.get("root")
+    if not session_id:
+        return _json_error("缺少 session_id 参数")
+
+    # 扫描中禁止删除（阶段C 纪律#9：409；绝不触碰线程，仅查询状态）
+    if fullscan.is_running():
+        return _json_error(
+            "全量扫描进行中，请等待完成后再删除快照",
+            status=409,
+        )
+
+    sessions = session.list_sessions()
+    target = None
+    sid_norm = session_id if session_id.endswith(".json") else session_id + ".json"
+    for p in sessions:
+        if p.name == sid_norm:
+            target = p
+            break
+    if target is None:
+        return _json_error(f"快照会话不存在: {session_id}", status=404)
+    latest = session.load_session(target)
+    if not latest:
+        return _json_error("快照会话清单损坏，无法删除", status=500)
+
+    roots_map = latest.get("roots") or {}
+    if raw_root is not None:
+        root_key = str(raw_root)
+        entry = roots_map.get(root_key)
+        if entry is None:
+            # 兼容大小写/尾斜杠差异：按目录语义匹配
+            matched_key = next(
+                (k for k in roots_map if Path(k) == Path(root_key)), None
+            )
+            entry = roots_map.get(matched_key) if matched_key else None
+            if entry is None:
+                return _json_error(
+                    f"该会话没有此盘快照: {root_key}", status=404
+                )
+            root_key = matched_key
+        targets = [root_key]
+        whole_session = False
+    else:
+        targets = list(roots_map.keys())
+        whole_session = True
+
+    try:
+        snapshots_root = Path(snapshots.get_snapshot_dir()).resolve()
+    except OSError:
+        snapshots_root = None
+
+    deleted = []
+    already = []
+    failed = []
+    for root_key in targets:
+        entry = roots_map.get(root_key) or {}
+        snapshot_path = entry.get("snapshot_path")
+        if not snapshot_path:
+            already.append({"root": root_key, "reason": "no_snapshot_path"})
+            continue
+        if snapshots_root is None:
+            failed.append({"root": root_key, "error": "快照目录不可用"})
+            continue
+        resolved = _resolve_snapshot_path(snapshot_path, snapshots_root)
+        if resolved is None:
+            failed.append(
+                {"root": root_key, "error": f"越界路径已跳过: {snapshot_path}"}
+            )
+            continue
+        try:
+            if resolved.exists():
+                resolved.unlink()
+                deleted.append({"root": root_key, "snapshot": resolved.name})
+            else:
+                already.append({"root": root_key, "snapshot": resolved.name})
+        except OSError as exc:
+            failed.append({"root": root_key, "error": f"{snapshot_path}: {exc}"})
+
+    # 台账一致性：删除成功的根从 ledger 移除（与 undo 回滚同口径）
+    ledger_errors = _drop_ledger_roots(
+        [d.get("root") for d in deleted if d.get("root")],
+        snapshots.get_snapshot_dir(),
+    )
+
+    # 更新 session JSON：移除已删除根条目；无剩余条目则删 session 文件
+    session_removed = False
+    for root_key in targets:
+        roots_map.pop(root_key, None)
+    if whole_session or not roots_map:
+        try:
+            session_removed = session.delete_session(target)
+        except OSError as exc:
+            failed.append({"root": None, "error": f"会话清单删除失败: {exc}"})
+    else:
+        try:
+            latest["roots"] = roots_map
+            session.save_session(latest, dir_path=target.parent)
+        except OSError as exc:
+            failed.append({"root": None, "error": f"会话清单更新失败: {exc}"})
+
+    # 台账清理失败信息并入 failed 清单（响应含逐目标成败清单）
+    for err in ledger_errors:
+        failed.append({"root": None, "error": err})
+
+    return _json_ok(
+        message="删除完成",
+        session_id=session_id,
+        root=root_key if not whole_session else None,
+        whole_session=whole_session,
+        deleted=deleted,
+        already=already,
+        failed=failed,
+        session_removed=session_removed,
+    )
+
+
 # =================【4. 历史 / 对比】=================
+
+
+def _snapshot_root_total(snapshot_path):
+    """派生单份快照的「根聚合总量」（P-4 G-2：sparkline 数据源，additive）。
+
+    与 compare 差值卡同口径：取根行聚合值（P12·W1.2 _total_from_root_rows），
+    缺失根行时回退顶层行求和——保证趋势卡 sparkline 数值与差值卡 total_current
+    一致（C-6 两地同基线一致性）。快照缺失/损坏 → 返回 None（前端跳过该根，
+    不污染会话其余根的 sparkline 序列）。
+    """
+    try:
+        loaded = snapshots.load_snapshot(Path(snapshot_path))
+    except (OSError, snapshots.SnapshotCorruptError):
+        return None
+    return compare._total_from_root_rows(
+        {row["p"]: row["s"] for row in (loaded.get("rows") or [])},
+        root_hint=loaded.get("header", {}).get("root"),
+    )
 
 
 @app.get("/api/snapshots")
@@ -587,8 +823,87 @@ def api_snapshots():
         data = session.load_session(path)
         if data:
             data["_file"] = path.name
+            # P-4（G-2）additive：每会话各根快照总量（sparkline 数据源；旧字段零变化）
+            total_by_root = {}
+            for r in (data.get("roots") or {}).values():
+                if not r or not r.get("snapshot_path"):
+                    continue
+                total = _snapshot_root_total(r["snapshot_path"])
+                if total is not None:
+                    total_by_root[r.get("root")] = total
+            data["total_by_root"] = total_by_root
             items.append(data)
     return _json_ok(sessions=items, count=len(items))
+
+
+# 阶段B（B-1）：/api/compare 异步化——无全量缓存时不再阻塞请求线程直扫，
+# 返回 202 + {job_id, status:"scanning"}，前端轮询 /api/compare/status。
+# 后台任务 dict（job_id -> CompareJob，进程内单实例足够；锁内互斥）：
+COMPARE_JOBS = {}
+_COMPARE_JOBS_LOCK = threading.Lock()
+
+
+def _compare_job_key(root, baseline):
+    """对比任务键：root+baseline 归一化路径（同一对输入复用/去重）。"""
+    return (str(root).casefold(), str(baseline).casefold())
+
+
+def _run_compare_job(job_id, key, root, baseline_file, allow_other_machine):
+    """后台对比任务：排队拿锁 → SDK 直扫 → diff → 记结果/错误（进程内 daemon 线程）。
+
+    - 拿锁阻塞发生在后台线程（不阻塞 Web 请求线程）；锁被抢占时 phase=queued；
+    - 持锁期间登记 lock_holder="compare"（B-18 健康 busy 区分持有者）；
+    - 任何异常收敛为 status:"error"（绝不抛穿线程）。
+    """
+    def _set(**kw):
+        with _COMPARE_JOBS_LOCK:
+            job = COMPARE_JOBS.get(job_id)
+            if job:
+                job.update(kw)
+
+    try:
+        _set(phase="queued", status="queued", message="等待扫描引擎空闲…")
+        with scan.sdk_lock("compare"):
+            _set(phase="scanning", status="scanning", message="正在后台扫描当前盘…")
+            current_sizes, _unused = scan.scan_via_everything_sdk(Path(root))
+        baseline = snapshots.load_snapshot(baseline_file)
+        report = compare.diff_from_current(
+            current_sizes,
+            baseline.get("rows") or [],
+            machine_guid=baseline.get("header", {}).get("machine_guid"),
+            leaf_only=True,
+            local_machine_guid=snapshots.get_machine_guid(),
+            allow_other_machine=bool(allow_other_machine or False),
+        )
+        rows = compare.top_growth(report, 100)
+        baseline_created_at = str((baseline.get("header") or {}).get("created_at") or "")
+        current_completed_at = datetime.now().isoformat(timespec="seconds")
+        _set(
+            phase="done",
+            status="done",
+            message=None,
+            report={
+                "root": report["root"],
+                "total_baseline": report["total_baseline"],
+                "total_current": report["total_current"],
+                "delta_total": report["delta_total"],
+                "truncated": report["truncated"],
+                "legacy_count": int(report.get("legacy_count") or 0),
+                "baseline_created_at": baseline_created_at,
+                "current_completed_at": current_completed_at,
+                "rows": rows,
+            },
+            done=True,
+        )
+    except compare.CompareError as exc:
+        code = getattr(exc, "kind", None)
+        _set(
+            phase="error", status="error",
+            error=str(exc),
+            code=code if code == "machine_mismatch" else None,
+        )
+    except Exception as exc:
+        _set(phase="error", status="error", error=str(exc))
 
 
 @app.post("/api/compare")
@@ -598,9 +913,16 @@ def api_compare():
     baseline_path = data.get("baseline")
     if not raw_root or not baseline_path:
         return _json_error("缺少 root 或 baseline 参数")
+    # 阶段B（B-1 ④）：baseline 前置校验——先报「不存在」（沿用原语义），
+    # 再校验必须是快照文件（.snap.gz 后缀 + 非目录），否则 400「基线不是快照文件」
+    # （目录/任意文件不再落入 500）。
     baseline_file = Path(baseline_path)
     if not baseline_file.exists():
         return _json_error(f"基线快照不存在: {baseline_file}")
+    if baseline_file.is_dir() or not baseline_file.is_file():
+        return _json_error(f"基线不是快照文件: {baseline_file}", status=400)
+    if not str(baseline_file.name).endswith(".snap.gz"):
+        return _json_error(f"基线不是快照文件: {baseline_file}", status=400)
 
     if fullscan.is_running():
         return _json_error(
@@ -608,69 +930,124 @@ def api_compare():
             status=409,
         )
 
-    try:
-        baseline = snapshots.load_snapshot(baseline_file)
-    except Exception as exc:
-        return _json_error(f"基线快照加载失败: {exc}", status=500)
-
-    # 优先使用后台全量结果；没有就扫一次当前根。
+    # 阶段B（B-1 ①）：响应前先查 fullscan.result(root)——命中索引则同步秒级出报告。
     cached = fullscan.result(root=raw_root)
     if cached and cached.get("rows"):
+        try:
+            baseline = snapshots.load_snapshot(baseline_file)
+        except Exception as exc:
+            return _json_error(f"基线快照加载失败: {exc}", status=500)
         current_sizes = {
             Path(row["p"]): int(row["s"]) for row in cached["rows"]
         }
-    else:
-        # P12·W2.1（C-1）：SDK 直扫分支改非阻塞 acquire——拿不到立即 409，
-        # 不再排队等锁造成请求挂死。
+        try:
+            report = compare.diff_from_current(
+                current_sizes,
+                baseline.get("rows") or [],
+                machine_guid=baseline.get("header", {}).get("machine_guid"),
+                leaf_only=True,
+                local_machine_guid=snapshots.get_machine_guid(),
+                allow_other_machine=bool(data.get("allow_other_machine") or False),
+            )
+        except compare.CompareError as exc:
+            if getattr(exc, "kind", None) == "machine_mismatch":
+                return _json_error(f"对比失败: {exc}", status=409, code="machine_mismatch")
+            return _json_error(f"对比失败: {exc}", status=400)
+        rows = compare.top_growth(report, 100)
+        baseline_created_at = str((baseline.get("header") or {}).get("created_at") or "")
+        last_fullscan = fullscan.result()
+        current_completed_at = (last_fullscan or {}).get("completed_at")
+        if not current_completed_at:
+            current_completed_at = datetime.now().isoformat(timespec="seconds")
+        return _json_ok(
+            report={
+                "root": report["root"],
+                "total_baseline": report["total_baseline"],
+                "total_current": report["total_current"],
+                "delta_total": report["delta_total"],
+                "truncated": report["truncated"],
+                "legacy_count": int(report.get("legacy_count") or 0),
+                "baseline_created_at": baseline_created_at,
+                "current_completed_at": current_completed_at,
+                "rows": rows,
+            },
+        )
+
+    # 阶段B（B-1 ②）：无缓存不阻塞直扫——提交后台任务，202 + {job_id, status:"scanning"}。
+    # 提交前保持 P12·W2.1（C-1）契约：SDK 锁被占用 → 立即 409（请求线程绝不排队挂死；
+    # 异步排队只发生在后台任务线程）。同 key 任务去重：已有未完成任务 → 复用其 job_id。
+    key = _compare_job_key(raw_root, baseline_path)
+    job_id = None
+    with _COMPARE_JOBS_LOCK:
+        for jid, job in list(COMPARE_JOBS.items()):
+            if job.get("root_case") == key[0] and job.get("baseline_case") == key[1]:
+                if not job.get("done"):
+                    job_id = jid
+                break
+    if job_id is None:
         acquired = scan.SCAN_LOCK.acquire(blocking=False)
         if not acquired:
             return _json_error("全量扫描进行中，请稍后再对比", status=409)
-        try:
-            current_sizes, _unused = scan.scan_via_everything_sdk(Path(raw_root))
-        except Exception as exc:
-            return _json_error(f"当前扫描失败: {exc}", status=500)
-        finally:
-            scan.SCAN_LOCK.release()
-
-    try:
-        report = compare.diff_from_current(
-            current_sizes,
-            baseline.get("rows") or [],
-            machine_guid=baseline.get("header", {}).get("machine_guid"),
-            # P12·W1.2：Web 对比默认 leaf 口径——祖先行增量已由叶子承载，
-            # 排行/图表不再把同一份增量在祖先与后代上重复呈现。
-            leaf_only=True,
-            # P12·W2.13：默认携带本机 guid 强校验；前端确认后二次提交放行
-            local_machine_guid=snapshots.get_machine_guid(),
-            allow_other_machine=bool(data.get("allow_other_machine") or False),
-        )
-    except compare.CompareError as exc:
-        if getattr(exc, "kind", None) == "machine_mismatch":
-            return _json_error(f"对比失败: {exc}", status=409, code="machine_mismatch")
-        return _json_error(f"对比失败: {exc}", status=400)
-
-    rows = compare.top_growth(report, 100)
-    # P12·W2.11（B-3）additive：两侧数据时间透传——过期缓存不再伪装实时
-    baseline_created_at = str(
-        (baseline.get("header") or {}).get("created_at") or ""
-    )
-    last_fullscan = fullscan.result()
-    current_completed_at = (last_fullscan or {}).get("completed_at")
-    if not current_completed_at:
-        current_completed_at = datetime.now().isoformat(timespec="seconds")
+        scan.SCAN_LOCK.release()
+        job_id = str(uuid.uuid4())
+        with _COMPARE_JOBS_LOCK:
+            COMPARE_JOBS[job_id] = {
+                "root": str(raw_root),
+                "baseline": str(baseline_path),
+                "root_case": key[0],
+                "baseline_case": key[1],
+                "status": "queued",
+                "phase": "queued",
+                "message": "等待扫描引擎空闲…",
+                "done": False,
+                "created_at": datetime.now().isoformat(timespec="seconds"),
+                "allow_other_machine": bool(data.get("allow_other_machine") or False),
+            }
+        threading.Thread(
+            target=_run_compare_job,
+            args=(job_id, key, raw_root, baseline_file,
+                  bool(data.get("allow_other_machine") or False)),
+            daemon=True,
+            name="compare-background",
+        ).start()
     return _json_ok(
-        report={
-            "root": report["root"],
-            "total_baseline": report["total_baseline"],
-            "total_current": report["total_current"],
-            "delta_total": report["delta_total"],
-            "truncated": report["truncated"],
-            # P12·W1.1/W1.2（additive）：基线含「已知异常大小」行数，前端出提示
-            "legacy_count": int(report.get("legacy_count") or 0),
-            "baseline_created_at": baseline_created_at,
-            "current_completed_at": current_completed_at,
-            "rows": rows,
-        },
+        job_id=job_id,
+        status="scanning",
+        phase="queued",
+        message="后台对比任务已提交，可轮询 /api/compare/status",
+    ), 202
+
+
+@app.get("/api/compare/status")
+def api_compare_status():
+    """阶段B（B-1）：对比任务轮询接口（新接口，13 个既有接口零变更）。
+    - 未知 job → 404；完成 → {status:"done", report}；扫描中 → {status:"scanning", phase}。
+    """
+    job_id = (request.args.get("job_id") or "").strip()
+    if not job_id:
+        return _json_error("缺少 job_id 参数")
+    with _COMPARE_JOBS_LOCK:
+        job = COMPARE_JOBS.get(job_id)
+        if job is None:
+            return _json_error("对比任务不存在或已过期", status=404)
+        snapshot = dict(job)
+    # 完成/失败任务保留 60s 供前端消费后清理（防内存无限增长）
+    if snapshot.get("done") or snapshot.get("status") == "error":
+        with _COMPARE_JOBS_LOCK:
+            if job.get("_expire_at") is None:
+                job["_expire_at"] = time.time() + 60
+        if snapshot.get("done"):
+            return _json_ok(job_id=job_id, status="done", report=snapshot.get("report"))
+        return _json_ok(
+            job_id=job_id, status="error",
+            error=snapshot.get("error"),
+            code=snapshot.get("code"),
+        )
+    return _json_ok(
+        job_id=job_id,
+        status=snapshot.get("status") or "scanning",
+        phase=snapshot.get("phase") or "scanning",
+        message=snapshot.get("message"),
     )
 
 
@@ -756,6 +1133,12 @@ def api_export():
     fmt = (request.args.get("format") or "").lower()
     if fmt not in ("csv", "json"):
         return _json_error("format 仅支持 csv 或 json")
+    # 阶段B（B-16）：扫描中/排队中无结果 → 409 + reason:"scanning"（与 404 区分）
+    if fullscan.is_running():
+        return _json_error(
+            "扫描进行中，暂无可导出的结果，请等待扫描完成后再导出",
+            status=409, reason="scanning",
+        )
     last = fullscan.result()
     roots_map = (last or {}).get("roots") or {}
     if not roots_map:
@@ -773,6 +1156,8 @@ def api_export():
     sizes_map = {Path(row["p"]): int(row["s"]) for row in (item.get("rows") or [])}
     root_path_obj = Path(target_key)
     unknown = int(item.get("unknown_size_count") or 0)
+    # 阶段B（B-16）：中止部分根导出 → partial:true 提示行（CSV legacy 提示行先例）
+    partial = bool(fullscan._copy_state().get("stop_requested")) if hasattr(fullscan, "_copy_state") else False
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"disk_report_{timestamp}.{fmt}"
 
@@ -783,8 +1168,14 @@ def api_export():
                 f"# 提示：本数据源含 {unknown} 条大小未知条目（未计入聚合），"
                 "建议重新扫描后导出\r\n" + body
             )
+        if partial:
+            body = (
+                "# 提示：本次导出为部分结果（扫描已中止，仅含已完成盘）\r\n" + body
+            )
         resp = Response("\ufeff" + body, mimetype="text/csv; charset=utf-8-sig")
         resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        if partial:
+            resp.headers["X-Export-Partial"] = "true"
         return resp
     # json
     import json as json_lib
@@ -795,11 +1186,14 @@ def api_export():
         if unknown > 0
         else ""
     )
+    payload["partial"] = partial
     resp = Response(
         json_lib.dumps(payload, ensure_ascii=False, indent=2) + "\n",
         mimetype="application/json",
     )
     resp.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    if partial:
+        resp.headers["X-Export-Partial"] = "true"
     return resp
 
 
@@ -894,8 +1288,16 @@ def _shutdown_fullscan():
         pass  # 退出路径绝不因收尾失败而抛错/裸 traceback
 
 
-def run_server(port=5000, open_browser=True):
-    """启动本地 Flask 服务（仅 127.0.0.1，threaded=True）。"""
+def run_server(port=5000, open_browser=True, debug_log=False):
+    """启动本地 Flask 服务（仅 127.0.0.1，threaded=True）。
+
+    阶段B（B-17/B-20）日志策略：
+    - 默认（debug_log=False）：Werkzeug access log 降为 WARNING+（成功请求
+      /api/fullscan/status 轮询不再刷屏）；**生产错误日志不静默**（WARNING+
+      与异常堆栈仍输出）；
+    - debug_log=True（CLI --debug-log）：保留完整 access log，供开发调试；
+    - 启动必要提示（端口占用/防双实例探测结果）不经日志门控，始终可见。
+    """
     # 与 cli.main() 同款：把 stdout/stderr 重配置为 UTF-8，避免 GBK 控制台/管道下
     # log() 打印 emoji（ℹ️/🔎）抛 UnicodeEncodeError，从而污染 /api/health 的中文文案。
     _ensure_std_streams()
@@ -915,6 +1317,17 @@ def run_server(port=5000, open_browser=True):
         ).start()
     # P12·W2.10：退出时协作取消后台扫描（join 超时放弃，不硬杀）
     atexit.register(_shutdown_fullscan)
+    # 阶段B（B-17/B-20）：Werkzeug 日志策略——默认 WARNING+（access log 关）；
+    # --debug-log 保留完整请求日志（开发调试有据）；错误堆栈始终可见。
+    try:
+        import logging
+        werkzeug_logger = logging.getLogger("werkzeug")
+        if debug_log:
+            werkzeug_logger.setLevel(logging.INFO)
+        else:
+            werkzeug_logger.setLevel(logging.WARNING)
+    except Exception:
+        pass  # 日志配置失败不影响服务启动
     # P12·W1.3：daemon 线程自动拉起，绝不阻塞 bind
     threading.Thread(
         target=_bootstrap_everything, name="everything-bootstrap", daemon=True
@@ -929,4 +1342,13 @@ def run_server(port=5000, open_browser=True):
 
 if __name__ == "__main__":
     # 双击/直接运行默认自动打开浏览器；`--no-browser` 供打包冒烟测试使用。
-    run_server(open_browser="--no-browser" not in sys.argv[1:])
+    # 阶段B（B-20）：Web 启动默认关闭 CLI 风格启动日志（utils.VERBOSE=False，
+    # 🧭/🔎/🔌/✅ 系列不再刷屏；前端状态走健康徽章）；`--verbose` 恢复；
+    # `--debug-log` 保留 Werkzeug access log（开发调试）。
+    args = set(sys.argv[1:])
+    if "--verbose" not in args:
+        utils.VERBOSE = False
+    run_server(
+        open_browser="--no-browser" not in args,
+        debug_log="--debug-log" in args,
+    )
