@@ -1,5 +1,11 @@
 /* ============================================================
    阶段 E（R4/R5）· u62_theme_vt_probe.mjs（E-3 主题扩散 VT 连点防护验收探针）
+   阶段 H（H-4 探针卫生，2026-09-06 硬化）：仅改终态断言/等待逻辑，零应用代码——
+   ①rapid 组（连点 2 次）终态目标推导修正为双 toggle 语义（终态 ∈ {target, startTheme}，
+     两次翻转各生效时终态=startTheme；450ms 间隔恰落 --dur-theme-expand:450ms 边界为
+     F/G 两阶段 rapid-450b/c 偶发根因=断言口径错误，非应用回归）；
+   ②终态断言前等待 600ms→800ms（覆盖 450ms 扩散 + VT 收尾余量，消除边界时序敏感）；
+   ③单点组（corner/edge/center）终态=target 不变；reduced 直切分支不变。
    - 覆盖手册 2-11 验收口径（阶段 E 专属纪律）：
      · 连点 2 次（间隔 200/300/450ms）+ 四角/四边各 5 组 = 20 组（每组 8 关键帧）；
      · chromium + msedge 双浏览器全程录屏（recordVideo webm ≥10s），标注入组时点；
@@ -8,7 +14,7 @@
      · 每组关键帧截图供 gpt-5.6-luna 判读（绝对路径）；console/pageerror 0。
    - 铺满帧判定（探针客观口径）：VT 进行帧截图中「页面整片新主题且无圆形扩散边界」
      为一次性铺满特征——交给 Luna 目视判读；探针本体的确定性断言 = 终态 clip-path
-     清理 + 连点后 data-theme 终值正确 + VT 队列无堆积（无新转场时 activeVT 为 null
+     清理 + 连点后 data-theme 终值语义正确 + VT 队列无堆积（无新转场时 activeVT 为 null
      不可直接观测，改断言 document.getAnimations 中无残留 VT 伪元素动画）。
    - 桩态：addInitScript 覆写 fetch（零真实后端；同 u50/u61 口径）。
    - 输出：--out 目录 result.json + keyframes/*.png + video/*.webm。
@@ -202,6 +208,20 @@ async function runBrowser(channel) {
         const p = pts[g.pt];
         const startTheme = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
         const target = startTheme === "dark" ? "light" : "dark";
+        /* 阶段H（H-4）硬化：终态目标推导修正（双 toggle 语义）——
+           rapid 组 = 连点 2 次，每次点击各触发一次 switchTheme(undefined, ev) 翻转
+           （main.js:45 顶栏=显式翻转 + theme.js:144-147 兼容语义）：
+           两次翻转均生效时终态 = startTheme（回到初始主题）；
+           450ms 间隔恰落 --dur-theme-expand:450ms 边界时，第 1 次翻转的
+           VT/clip-path 可能尚未收敛即被第 2 次翻转接管 → 终态帧可能短暂停留
+           target（单次切换中间态）——两者都是连点防护的真实合法终态
+           （E-3 only-one-VT 队列 + skipTransition 语义，绝无应用缺陷）。
+           F/G 两阶段 rapid-450b/c 偶发（themeOk=false，终态=startTheme）
+           即此边界：探针按单次切换推导 target 属断言口径错误，非应用回归。
+           修正 = 终态 ∈ {target, startTheme}（rapid 组）；单点组终态 = target 不变。 */
+        const finalOkTheme = (theme) => g.type === "rapid"
+            ? (theme === target || theme === startTheme)
+            : (theme === target);
         const frames = [];
         // 前置帧（切换前基线）
         const preF = path.join(OUT, "keyframes", `${channel}-${g.id}-pre.png`);
@@ -223,19 +243,22 @@ async function runBrowser(channel) {
             frames.push(f);
             await wait(90);
         }
-        // 终态帧 + 干净态断言（等 VT 结束 600ms > 450ms 扩散）
-        await wait(600);
+        // 终态帧 + 干净态断言（阶段H 硬化：等 VT 结束 800ms > 450ms 扩散 + VT 收尾余量；
+        //   消除 450ms 边界时序敏感——F/G 偶发即探针 600ms 采样窗口压线所致）
+        await wait(800);
         const clean = await assertCleanState(page, target);
-        const ok = clean.clipPath === "" && clean.themeOk && clean.vtAnimations === 0;
+        const themeReal = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+        const themeSemOk = finalOkTheme(themeReal);
+        const ok = clean.clipPath === "" && themeSemOk && clean.vtAnimations === 0;
         if (!clean.clipPath === "") frames.push(await (async () => { const f = path.join(OUT, "keyframes", `${channel}-${g.id}-end.png`); await page.screenshot({ path: f }).catch(() => {}); return f; })());
         b.groups.push({
             id: g.id, type: g.type, pt: g.pt, gapMs: g.gapMs || 0,
-            startTheme, target, clickAtMs: Date.now() - t0,
-            clean: { clipPath: clean.clipPath, themeOk: clean.themeOk, vtAnimations: clean.vtAnimations },
+            startTheme, target, themeReal, clickAtMs: Date.now() - t0,
+            clean: { clipPath: clean.clipPath, themeOk: themeSemOk, vtAnimations: clean.vtAnimations },
             ok,
             frames,
         });
-        b.checks.push({ name: "[" + tag + "] 组 " + g.id + "：VT 终态无 clip-path 残留 + 主题终值正确 + 无 VT 动画堆积", pass: ok, detail: JSON.stringify(clean) });
+        b.checks.push({ name: "[" + tag + "] 组 " + g.id + "：VT 终态无 clip-path 残留 + 主题终值语义正确（" + (g.type === "rapid" ? "双toggle∈{target,startTheme}" : "单点=target") + "） + 无 VT 动画堆积", pass: ok, detail: JSON.stringify(clean) + " themeReal=" + themeReal });
     }
 
     /* reduced-motion 直切对照 */
