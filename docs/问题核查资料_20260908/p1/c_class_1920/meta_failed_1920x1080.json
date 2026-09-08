@@ -1,0 +1,40 @@
+{
+  "state": "failed",
+  "viewport": "1920x1080",
+  "base": "http://127.0.0.1:5000/",
+  "captured_at": "2026-09-08T17:11:55.418Z",
+  "absolute_png": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p1\\c_class_1920\\failed-1920x1080.png",
+  "clip": {
+    "x": 1596,
+    "y": 509,
+    "width": 300,
+    "height": 758
+  },
+  "quant": {
+    "areaClass": "notice notice-error",
+    "areaText": "自动保存失败：自动保存失败: 本次没有生成任何快照：保存 C:\\ 快照失败: [WinError 183]…。可手动保存（完整原因见悬停提示）。",
+    "areaOverflow": true,
+    "areaRect": {
+      "x": 1613,
+      "y": 826,
+      "w": 266,
+      "h": 146
+    },
+    "saveDisabled": false,
+    "cardRect": {
+      "x": 1596,
+      "y": 517,
+      "w": 300,
+      "h": 698
+    },
+    "statusText": "全量扫描已完成，结果就绪，自动保存失败"
+  },
+  "checks": {
+    "class=notice-error": true,
+    "text含「自动保存失败」": true,
+    "原因文案不截断(scrollWidth≤clientWidth+1)": true,
+    "保存按钮disabled=false": true,
+    "console/pageerror 0(favicon 404 除外)": true
+  },
+  "consoleErrors": []
+}

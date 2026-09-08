@@ -1,0 +1,40 @@
+{
+  "state": "skipped",
+  "viewport": "1366x768",
+  "base": "http://127.0.0.1:5000/",
+  "captured_at": "2026-09-08T17:02:54.560Z",
+  "absolute_png": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p1\\c_class_1366\\skipped-1366x768.png",
+  "clip": {
+    "x": 1050,
+    "y": 343,
+    "width": 300,
+    "height": 548
+  },
+  "quant": {
+    "areaClass": "notice notice-warn",
+    "areaText": "已跳过自动保存：该根今天已自动保存过。可点「仍要保存（强制）」手动保存。",
+    "areaOverflow": true,
+    "areaRect": {
+      "x": 1063,
+      "y": 564,
+      "w": 274,
+      "h": 96
+    },
+    "saveDisabled": false,
+    "cardRect": {
+      "x": 1050,
+      "y": 351,
+      "w": 300,
+      "h": 488
+    },
+    "statusText": "全量扫描已完成，结果就绪，已跳过自动保存"
+  },
+  "checks": {
+    "class=notice-warn": true,
+    "text含「已跳过自动保存」": true,
+    "原因文案不截断(scrollWidth≤clientWidth+1)": true,
+    "保存按钮disabled=false": true,
+    "console/pageerror 0(favicon 404 除外)": true
+  },
+  "consoleErrors": []
+}

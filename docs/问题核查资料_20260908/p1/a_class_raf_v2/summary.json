@@ -1,0 +1,622 @@
+{
+  "meta": {
+    "base": "http://127.0.0.1:5000/",
+    "out": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p1\\a_class_raf_v2",
+    "edgeMs": 1500,
+    "node": "v24.19.0",
+    "captured_at": "2026-09-08T17:09:09.302Z"
+  },
+  "edge_captured_at_perf": 22842.299999952316,
+  "save_posts_from_page": [],
+  "save_post_count_page": 0,
+  "frame_count_in_window": 85,
+  "autosave_result_first_shown_at_off_ms": 0,
+  "autosave_area_text": "自动保存结果同步中，可手动保存本次快照。",
+  "autosave_area_class": "notice notice-info",
+  "final_autosave_text": "自动保存结果同步中，可手动保存本次快照。",
+  "save_button_disabled": false,
+  "final_status_text": "全量扫描已完成，结果就绪，可保存快照",
+  "frames": [
+    {
+      "off": 0,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 19,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 36,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 61,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 83,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 90,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 107,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 125,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 143,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 161,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 178,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 196,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 214,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 232,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 250,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 268,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 286,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 304,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 322,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 340,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 358,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 376,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 394,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 412,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 430,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 448,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 466,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 484,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 502,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 519,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 537,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 554,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 574,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 590,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 607,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 624,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 643,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 660,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 679,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 696,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 714,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 731,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 749,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 767,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 785,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 803,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 820,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 838,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 855,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 873,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 890,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 908,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 926,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 943,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 961,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 979,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 996,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1014,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1032,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1049,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1067,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1084,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1102,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1120,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1138,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1156,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1174,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1192,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1209,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1227,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1245,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1262,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1280,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1298,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1316,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1333,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1351,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1369,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1387,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1404,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1422,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1440,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1458,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1476,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    },
+    {
+      "off": 1494,
+      "running": false,
+      "complete": true,
+      "autosaveShown": true,
+      "statusText": "全量扫描已完成，结果就绪，可保存快照"
+    }
+  ],
+  "checks": {
+    "完成边沿内 autosave-result 进入可见态": true,
+    "前端防御性 save POST 引用（后端归口 → 前端不重复 /api/save）": true,
+    "A 类窗内 rAF 帧数 ≥ 数帧（覆盖 0-1500ms）": true
+  },
+  "consoleErrors": []
+}

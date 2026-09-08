@@ -1,0 +1,40 @@
+{
+  "state": "saved",
+  "viewport": "1366x768",
+  "base": "http://127.0.0.1:5000/",
+  "captured_at": "2026-09-08T17:01:42.384Z",
+  "absolute_png": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p1\\c_class_1366\\saved-1366x768.png",
+  "clip": {
+    "x": 1050,
+    "y": 343,
+    "width": 300,
+    "height": 361
+  },
+  "quant": {
+    "areaClass": "notice notice-success",
+    "areaText": "已自动保存快照（每根每日自动 1 份，滚动保留 10 份）",
+    "areaOverflow": true,
+    "areaRect": {
+      "x": 1063,
+      "y": 564,
+      "w": 274,
+      "h": 72
+    },
+    "saveDisabled": true,
+    "cardRect": {
+      "x": 1050,
+      "y": 351,
+      "w": 300,
+      "h": 301
+    },
+    "statusText": "全量扫描已完成，结果就绪，已自动保存"
+  },
+  "checks": {
+    "class=notice-success": true,
+    "text含「已自动保存」": true,
+    "原因文案不截断(scrollWidth≤clientWidth+1)": true,
+    "保存按钮disabled=true": true,
+    "console/pageerror 0(favicon 404 除外)": true
+  },
+  "consoleErrors": []
+}

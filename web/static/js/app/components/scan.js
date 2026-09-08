@@ -513,22 +513,27 @@ function renderAutosaveResult(st) {
     }
     if (outcome && outcome.outcome === "failed") {
         area.className = "notice notice-error";
-        area.textContent = "自动保存失败：" + (outcome.error || "未知错误") + "。可手动保存。";
+        // 失败原因摘要化：取首段并截断（完整异常入 title，避免一长串 WinError/路径
+        // 挤爆卡片）。「可手动保存」入口保持——D1-2 可见可补救。
+        const fullErr = String(outcome.error || "未知错误");
+        const firstSeg = (fullErr.split("；")[0] || fullErr).trim();
+        const summary = firstSeg.length > 46 ? firstSeg.slice(0, 46) + "…" : firstSeg;
+        area.textContent = "自动保存失败：" + summary + "。可手动保存（完整原因见悬停提示）。";
+        area.title = fullErr;
         area.classList.remove("hidden");
         if (prompt) prompt.classList.remove("hidden");
         if (saveBtn) saveBtn.disabled = false;
         setStatus("fullscan-status", "err", base + "，自动保存失败");
         return;
     }
-    // 无 outcome：auto_save 关闭（只提示不自动存）或后端未尝试——保持可保存提示
+    // 无 outcome：自动保存结果尚未轮询到（完成第一拍与回调落盘间的窗口）或后端未尝试——
+    // 保持可保存提示；文案中性，不做「已关闭」式断言（autoSaveSetting 真假均可能）。
     if (st.save_ready) {
         if (prompt) prompt.classList.remove("hidden");
         if (saveBtn) saveBtn.disabled = false;
-        if (autoSaveSetting) {
-            area.className = "notice notice-info";
-            area.textContent = "自动保存未生效（已关闭）；可手动保存本次快照。";
-            area.classList.remove("hidden");
-        }
+        area.className = "notice notice-info";
+        area.textContent = "自动保存结果同步中，可手动保存本次快照。";
+        area.classList.remove("hidden");
         setStatus("fullscan-status", "ok", base + "，可保存快照");
     } else {
         if (prompt) prompt.classList.add("hidden");

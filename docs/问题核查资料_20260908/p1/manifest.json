@@ -1,0 +1,72 @@
+{
+  "stage": "P1",
+  "issue": 1,
+  "title": "扫描完成自动保存与多次扫描策略（问题 1）",
+  "generated_at": "2026-09-09T01:20:00+08:00",
+  "env": {
+    "os": "Windows",
+    "python": "3.14.3",
+    "node": "v24.19.0",
+    "chromium": "chromium-1234",
+    "real_service": "app.py --no-browser @127.0.0.1:5000（隔离 DSA_SNAPSHOT_DIR + LOCALAPPDATA 重定向）",
+    "viewports": ["1366x768", "1920x1080"]
+  },
+  "evidence_root": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p1/",
+  "groups": {
+    "c_class_1366": {
+      "purpose": "C 类：扫描卡自动保存三态（已自动保存/已跳过/失败）——1366×768 紧凑档",
+      "pacing": "真实服务定格态每张 1 shot（page.screenshot ≈130ms/张，仅用于终态静态图）",
+      "window": "状态定格后采集",
+      "judge_rule": "4.3-5 布局溢出（scrollWidth≤clientWidth+1）；tri-state class/text；保存按钮 disabled 与态匹配；console 0（favicon 404 除外）",
+      "items": {
+        "saved": {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p1/c_class_1366/saved-1366x768.png",
+          "quant": "class=notice-success; 文案「已自动保存快照（每根每日自动1份，滚动保留10份）」; 不截断=TRUE; 保存按钮disabled=TRUE; console 0 【5/5】; 来自第1次真实扫描完成自动保存成功"
+        },
+        "skipped": {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p1/c_class_1366/skipped-1366x768.png",
+          "quant": "class=notice-warn; 文案「已跳过自动保存：该根今天已自动保存过。可点「仍要保存（强制）」手动保存。」; 不截断=TRUE; 保存按钮disabled=FALSE(可用); console 0 【5/5】; 第2次同日扫描→精确 skip_reason=already_saved_today"
+        },
+        "failed": {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p1/c_class_1366/failed-1366x768.png",
+          "quant": "class=notice-error; 文案摘要「自动保存失败：…[WinError 183]…可手动保存（完整原因见悬停提示）」; 不截断=TRUE; 保存按钮disabled=FALSE; console 0 【5/5】; blocked快照目录→outcome=failed"
+        }
+      }
+    },
+    "c_class_1920": {
+      "purpose": "C 类：扫描卡自动保存三态——1920×1080 常规档",
+      "pacing": "真实服务定格态每张 1 shot",
+      "window": "状态定格后采集",
+      "judge_rule": "同 c_class_1366",
+      "items": {
+        "saved": {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p1/c_class_1920/saved-1920x1080.png",
+          "quant": "同 1366 saved，5/5"
+        },
+        "skipped": {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p1/c_class_1920/skipped-1920x1080.png",
+          "quant": "同 1366 skipped，5/5"
+        },
+        "failed": {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p1/c_class_1920/failed-1920x1080.png",
+          "quant": "同 1366 failed，5/5"
+        }
+      }
+    },
+    "a_class_raf": {
+      "purpose": "A 类：扫描完成边沿后 0–1500ms rAF 帧记录 + 「保存请求恰好一次」量化证据",
+      "pacing": "页内 requestAnimationFrame ≈16.7ms/帧；Data: frames.json",
+      "window": "完成边沿（running→complete 首次观测）后 0–1500ms",
+      "judge_rule": "「保存请求恰好一次」= 后端 session 文件**恰 1 个**（auto:true）+ 页内 fetch 钩子统计 /api/save POST==0（前端不重复，后端归口）",
+      "summary_abs": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p1/a_class_raf_v2/summary.json",
+      "frames_abs": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p1/a_class_raf_v2/frames.json",
+      "quant": "边缘捕捉=TRUE; 窗内 rAF 帧数=85（覆盖 0-1500ms 全窗）; 页内 /api/save POST=0（防双保存）; 后端 session==1、auto snap.gz 2 份（C:/D:）; console 0; autosave-result 窗内首显 off=0ms。⚠️ 窗内呈现为「自动保存结果同步中」（完成边沿落盘 I/O + 轮询间隔 2-6s 的竞态中间态，诚实过渡文案）；终态（已自动保存）由 C 类 saved 截图实证，本窗 A 类聚焦「请求恰一次」计数"
+    }
+  },
+  "verdict_status": "待 gpt-5.6-luna 判读（开发子代理不作 PASS/FAIL 结论）",
+  "notes": [
+    "C 类三态均为真实服务（非桩态）：saved=首扫完成自动保存成功；skipped=同日二次扫描精确 already_saved_today；failed=blocked 快照目录 OSError。",
+    "「自动保存结果同步中」为完成边沿到轮询收敛的中间态（role=status 顺播），非错误；终态三态由 C 类截图实证。",
+    "量化判据 5/5 每张（class/text/不截断/按钮态/console），见各 meta_*.json。"
+  ]
+}
