@@ -36,6 +36,9 @@ function arg(name, dflt) {
 const FIXTURE_ROOT = path.resolve(arg("dir", path.join(os.tmpdir(), "pds_fixture_snapshots_" + Date.now())));
 const NOW_ISO = arg("now", null);
 const NOW = NOW_ISO ? new Date(NOW_ISO) : new Date();
+/* --fixture：选择生成哪些场景（P0-4 新增 growth/flat/series）
+   all(缺省) = 既有五类 + growth + flat + series；也可单独指定一个。 */
+const FIXTURE_SEL = (arg("fixture", "all") || "all").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
 
 /* 固定机器 GUID（夹具统一；跨盘/异机测试可覆写，见底部注释） */
 const MACHINE_GUID = "3f2a1c9d-0000-4000-8000-00000000f1x7";
@@ -166,13 +169,122 @@ const SESSIONS = [
     ]),
 ];
 
+/* ---------------- P0-4 新增三类对比夹具 ----------------
+   growth（复现问题 5、6）：同一根 D:\ 两个时刻，含正/负/零增量混合，
+     且存在 ≥4 层深目录链（apps>framework>core>engine），用于对比页
+     深度聚合/下钻判据。
+   flat（复现问题 6 的「全 0 增量」）：两个时刻完全一致。
+   series（复现问题 8 的多快照趋势）：同一根 D:\ 6 个时刻递进总量。 */
+
+/* D:\ 深层目录链：apps(1)>framework(2)>core(3)>engine(4) */
+function growthRows0() {
+    return [
+        { p: "D:\\", s: 1000 },
+        { p: "D:\\apps", s: 500 },
+        { p: "D:\\apps\\framework", s: 300 },
+        { p: "D:\\apps\\framework\\core", s: 200 },
+        { p: "D:\\apps\\framework\\core\\engine", s: 120 },          // 第 4 层
+        { p: "D:\\apps\\framework\\core\\engine\\lib.dll", s: 100 }, // 第 5 层文件
+        { p: "D:\\apps\\framework\\core\\engine\\conf.bin", s: 20 },
+        { p: "D:\\data", s: 300 },          // 零增量（t0=t1）
+        { p: "D:\\data\\docs", s: 150 },
+        { p: "D:\\docs", s: 200 },          // 负增量（t1 缩）
+        { p: "D:\\docs\\old", s: 150 },
+    ];
+}
+function growthRows1() {
+    return [
+        { p: "D:\\", s: 1050 },             // 总量 +50（正）
+        { p: "D:\\apps", s: 600 },          // +100（正）
+        { p: "D:\\apps\\framework", s: 380 },
+        { p: "D:\\apps\\framework\\core", s: 280 },
+        { p: "D:\\apps\\framework\\core\\engine", s: 200 },          // 第 4 层 +80
+        { p: "D:\\apps\\framework\\core\\engine\\lib.dll", s: 170 },
+        { p: "D:\\apps\\framework\\core\\engine\\conf.bin", s: 30 },
+        { p: "D:\\data", s: 300 },          // 零增量（不变）
+        { p: "D:\\data\\docs", s: 150 },
+        { p: "D:\\docs", s: 150 },          // 负增量（-50）
+        { p: "D:\\docs\\old", s: 100 },
+    ];
+}
+function flatRows(scale) {
+    return [
+        { p: "D:\\", s: 800 * scale },
+        { p: "D:\\flat", s: 400 * scale },
+        { p: "D:\\flat\\a", s: 250 * scale },
+        { p: "D:\\flat\\a\\b", s: 150 * scale },
+        { p: "D:\\flat\\a\\b\\c", s: 100 * scale },
+        { p: "D:\\flat\\a\\b\\c\\file.dat", s: 100 * scale },
+    ];
+}
+function seriesRows(k) {
+    /* k=0..5，总量随 k 线性递进（trend 判据） */
+    const base = 100 + k * 25;
+    return [
+        { p: "D:\\", s: base * 10 },
+        { p: "D:\\series", s: base * 6 },
+        { p: "D:\\series\\one", s: base * 3 },
+        { p: "D:\\series\\one\\two", s: base * 2 },
+        { p: "D:\\series\\one\\two\\file.bin", s: base },
+    ];
+}
+
+const P0_SESSIONS = [];
+/* 时间偏移（hours before NOW）保证所有 D:\ 快照时间戳两两互异，且避开既有
+   五类的 D/C 时间戳（否则 <root>_<ts>_explicit_<guid>.snap.gz 相撞被覆盖）：
+   · 既有五类 D/C: 偏移 {0,23,25}（今日 C/D 20:00、昨日 21:00/19:00）、8d（08-31）
+   · E: 偏移 2h（今日 18:00，不同盘无影响）
+   · growth-t0=27h→09-07 17:00；growth-t1=3h→09-08 17:00
+   · flat-a=33h→09-07 11:00；flat-b=9h→09-08 11:00
+   · series-1..6=21,17,13,7,5,1h→09-07 23:00、09-08 03/07/13/15/19:00
+   全部互异且与五类不撞。 */
+
+/* growth：两个会话（t0 基准、t1 增量），deep 链正增量 + data 零 + docs 负 */
+P0_SESSIONS.push(
+    session("growth-t0", new Date(NOW.getTime() - 27 * 3600e3), false, [
+        { root: "D:\\", rows: growthRows0() },
+    ]),
+    session("growth-t1", new Date(NOW.getTime() - 3 * 3600e3), false, [
+        { root: "D:\\", rows: growthRows1() },
+    ])
+);
+/* flat：两个会话完全一致（全 0 增量） */
+P0_SESSIONS.push(
+    session("flat-a", new Date(NOW.getTime() - 33 * 3600e3), false, [
+        { root: "D:\\", rows: flatRows(1) },
+    ]),
+    session("flat-b", new Date(NOW.getTime() - 9 * 3600e3), false, [
+        { root: "D:\\", rows: flatRows(1) },
+    ])
+);
+/* series：同根 D:\ 6 个时刻递进总量（趋势判据） */
+const SERIES_H = [21, 17, 13, 7, 5, 1]; // hours  09-07 23:00, 09-08 03/07/13/15/19:00
+for (let k = 0; k < 6; k++) {
+    P0_SESSIONS.push(
+        session("series-" + (k + 1), new Date(NOW.getTime() - SERIES_H[k] * 3600e3), false, [
+            { root: "D:\\", rows: seriesRows(k) },
+        ])
+    );
+}
+
+/* 选择待写会话：默认 all = 既有五类 + P0 三类 */
+function selectedSessions() {
+    const want = FIXTURE_SEL;
+    if (want.includes("all")) return { classic: SESSIONS, p0: P0_SESSIONS };
+    const out = { classic: [], p0: [] };
+    for (const s of SESSIONS) if (want.includes(s.name)) out.classic.push(s);
+    for (const s of P0_SESSIONS) if (want.includes(s.name) || (s.name.startsWith("growth") && want.includes("growth")) || (s.name.startsWith("flat") && want.includes("flat")) || (s.name.startsWith("series") && want.includes("series"))) out.p0.push(s);
+    return out;
+}
+
 /* ---------------- 写入 ---------------- */
 
 fs.mkdirSync(SNAP_DIR, { recursive: true });
 let seq = 0;
 const written = [];
+const ALL_TO_WRITE = [...selectedSessions().classic, ...selectedSessions().p0];
 
-for (const s of SESSIONS) {
+for (const s of ALL_TO_WRITE) {
     const sessionId = `session_${tsOf(s.at)}_${MACHINE_GUID.slice(0, 8).toLowerCase()}_${pad(++seq, 6)}.json`;
     const rootsPayload = {};
     let anySkipped = false;
