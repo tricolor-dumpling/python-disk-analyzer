@@ -1,11 +1,8 @@
 /* E-5 基线先行：亮/暗两档设置弹窗基线截图（排版修改前）——逐像素对比的基线 */
-import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
 
-const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/26024/.dsh/profiles/web/node_modules/playwright");
-
+import { chromium, launch } from "./_harness.mjs";
 const OUT = path.resolve(process.argv[2] || path.join(process.env.TEMP || ".", "u64_settings_baseline"));
 fs.mkdirSync(OUT, { recursive: true });
 

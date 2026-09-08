@@ -7,9 +7,7 @@
    ④ 完成态 → 按钮标签为「重新扫描」（done+result_ready，D-3 按钮迁移）。
    桩态驱动：覆写 /api/fullscan/status 与 /api/fullscan/start 确定性返回四态；
    输出：result.json + 每态关键帧截图（供 gpt-5.6-luna 判读）。 */
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/26024/.dsh/profiles/web/node_modules/playwright");
+import { chromium, launch } from "./_harness.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";

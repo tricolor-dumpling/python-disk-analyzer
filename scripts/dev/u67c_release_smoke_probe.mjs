@@ -6,9 +6,7 @@
    ② 页面 console 0（无未处理 Promise/运行时错误）；
    ③ 冒烟截图（供 gpt-5.6-luna 判读——健康徽章就绪/页面完整渲染）；
    ④ DLL 随包存在（启动侧已核，此处补 exe 目录核对）。 */
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/26024/.dsh/profiles/web/node_modules/playwright");
+import { chromium, launch } from "./_harness.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";

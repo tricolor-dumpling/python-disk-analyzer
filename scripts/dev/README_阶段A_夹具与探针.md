@@ -114,3 +114,70 @@ node scripts/dev/u50_repro_probe.mjs [--base http://127.0.0.1:5000/] [--out <目
 ```
 
 *执行记录：2026-09-02 · 阶段 A（=R0）· 主代理执行 · 零生产代码改动。*
+
+---
+
+## 6. 阶段 P0（2026-09-08）视觉验收工具链与隔离夹具
+
+> 本段为阶段 P0 新增。目标：统一探针引入路径 + 三类帧级/像素级/多视口取证工具正式化 + 三类对比夹具。**P0 硬闸门**：`p00_frame_recorder.mjs` 必须复现问题 2（视图切换残留）的违规帧。
+
+### 6.1 统一引入 `scripts/dev/_harness.mjs`
+
+所有该目录下探针的 Playwright 引入改为：
+
+```javascript
+import { chromium, launch } from "./_harness.mjs";
+```
+
+- `PW_PATH`（缺省 `C:/Users/Laptop/.dsh/profiles/web/node_modules/playwright`，`PDS_PW` 覆盖）+ `CHROMIUM_EXE`（缺省 `C:/Users/Laptop/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe`，`PDS_CHROME` 覆盖）。
+- `chromium` 是 Proxy 包装：`chromium.launch(opts)` 在未传 `executablePath` 且未传 `channel` 时自动注入 `CHROMIUM_EXE`（既有调用 `{headless:true}` 无需改）；传 `channel:"msedge"` 时不注入。
+- `launch(opts)` 同语义（默认 `headless:true`）。
+- 通用：`arg(name, dflt)`、`wait(ms)`、`shot(page, file, clip)`、`frameRecorderSource()`（页内 rAF 记录器源码，注入 `page.addInitScript`）、`screencast(page, opts)`（CDP 逐帧像素）。
+- 一次性改造脚本：`node scripts/dev/refactor_probe_imports.mjs [--check]`（仅动引入路径，断言零改动）。
+
+### 6.2 `p00_frame_recorder.mjs`（A 类：rAF 帧级 DOM 记录）
+
+```powershell
+node scripts/dev/p00_frame_recorder.mjs --base http://127.0.0.1:5000/ --out <绝对路径> [--repeats 3] [--with-data]
+```
+
+- 页内 `requestAnimationFrame` 记录器（≈16.7ms/帧），逐帧采样 `#treemap-wrap` 的 `hidden` / computed `opacity` / `elementFromPoint(视区中心)` 归属 / 激活视图 / 运行中动画数。
+- 采样窗：触发前 100ms 基线 → 点击切换 → 动画全程 + 200ms 收尾（≈1050ms，对齐 P2 基线 63 帧量级）。
+- 默认桩态 fetch（确定性复现 treemap/ranking/table/relate 渲染）；`--with-data` 连真后端。
+- 输出：`frames.json`（全部帧）+ `summary.json`（逐轮 帧数/违规帧数/首违规 ts）+ `keyframes/*.png`（首/中/末违规帧 + 终态帧高保真截图）。
+- **违规帧判据（与 `P2-视图切换帧级证据.json` 同口径）**：非活动视图期间 `#treemap-wrap` 无 `hidden` 且 `opacity>0` 且命中测试落回 `treemap-canvas`/wrap 内。
+- **硬闸门基线（P2 rank2relate）**：63 帧 / 9 违规 / 首违规 opacity=1 命中 treemap-canvas。P0 实测（排行→关系，3 轮最差轮）：69 帧 / 9 违规 / 首违规 ts=188ms、opacity=1、hit=canvas、inTm=true —— **满足对照**（帧数与违规帧数同量级、特征一致）。
+
+### 6.3 `p00_theme_screencast.mjs`（B 类：CDP 逐帧像素）
+
+```powershell
+node scripts/dev/p00_theme_screencast.mjs --base http://127.0.0.1:5000/ --out <绝对路径> [--duration 1800] [--quality 60]
+```
+
+- CDP `Page.startScreencast` 逐帧 JPEG（实测 20–46ms/帧，负载相关）+ 点击顶栏 `#btn-theme` 触发主题扩散。
+- 输出：`screencast-frames/frame-<seq>-<ts>ms.jpg` + `timeline.json` + `brightness.json`（整页亮度归一）+ `area.json`（暗区占比曲线）+ `meta.json`（start/end theme、console 错误）。
+- 判读材料供 P7（问题 10）圆心/面积曲线；P0 只产出帧序列与曲线，结论交 Luna。
+
+### 6.4 `p00_viewport_shots.mjs`（C 类：多视口静态截图）
+
+```powershell
+node scripts/dev/p00_viewport_shots.mjs --base http://127.0.0.1:5000/ --out <绝对路径> [--viewports "1366x768,1440x900,1920x1080"]
+```
+
+- 对工作台/对比/快照三页 × 三视口各 1 张全页截图（默认 1366×768 / 1440×900 / 1920×1080）。
+- 输出：`<out>/<视口>/<page>-<w>x<h>.png` + `meta.json`。作为后续阶段（P3/P4/P6）布局对照基线。
+
+### 6.5 `fixture_snapshots.mjs` P0 新增三类夹具
+
+```powershell
+node scripts/dev/fixture_snapshots.mjs --dir <夹具根> --now <ISO> --fixture all
+# --fixture 取值：all（缺省，五类 + P0 三类）| growth | flat | series 等
+```
+
+- `growth`：同一根 D:\ 两时刻，正/负/零增量混合 + ≥4 层深目录链（`D:\apps\framework\core\engine`），用于 P4 问题 5、6。
+- `flat`：两时刻完全一致（全 0 增量），用于 P4 问题 6。
+- `series`：同根 D:\ 6 个时刻递进总量，用于 P6 问题 8 多快照趋势。
+- 与 `snapshots.py` 格式兼容已用项目自身模块校验（`load_snapshot` 19/19、`compare_snapshots` 增量正确、`session.list_sessions` 15 会话）。
+- ⚠️ 新增会话时间戳已避开与既有五类的文件名冲突（相同 root+时间戳会产生同名 snap.gz 相互覆盖）。
+
+*执行记录：2026-09-08 · 阶段 P0 · 开发子代理执行 · 零生产代码改动。*

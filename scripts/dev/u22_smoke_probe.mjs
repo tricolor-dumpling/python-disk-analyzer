@@ -3,10 +3,7 @@
    输出：每 suite 的 x/y 通过数与失败明细；收集 console/pageerror。
    ⚠️ U2.5：v1/legacy 断言已退役——门禁仅剩 v2（suites 默认只跑 v2）。
    Playwright 依赖本机 profile（与项目零前端依赖纪律无关）。 */
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/26024/.dsh/profiles/web/node_modules/playwright");
-
+import { chromium, launch } from "./_harness.mjs";
 const BASE = "http://127.0.0.1:8771/tests/web/smoke.html";
 const suites = ["v2"];
 

@@ -10,8 +10,8 @@
    输出：逐项 PASS/FAIL；退出码 0/1。 */
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
+import { chromium, launch } from "./_harness.mjs";
 const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/26024/.dsh/profiles/web/node_modules/playwright");
 
 const STUB_BASE = "http://127.0.0.1:8771/tests/web/smoke.html";
 const REAL_BASE = "http://127.0.0.1:5000/";

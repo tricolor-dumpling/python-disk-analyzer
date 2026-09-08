@@ -2,9 +2,7 @@
    运行：node scripts/dev/f3_acceptance_probe.mjs [--base http://127.0.0.1:5000/] [--out <目录>]
    输出：--out 目录 result.json + 关键帧截图（workspace/views/relate/theme/settings/narrow）。
    判读：截图交 gpt-5.6-luna（workflow agent provider=opentoken model=gpt-5.6-luna）。 */
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/26024/.dsh/profiles/web/node_modules/playwright");
+import { chromium, launch } from "./_harness.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";

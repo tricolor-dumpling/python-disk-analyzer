@@ -19,14 +19,11 @@
             [--out <目录>] [--baseline <基线目录>] [--browsers chromium|msedge|both]
    ============================================================ */
 
-import { createRequire } from "node:module";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/26024/.dsh/profiles/web/node_modules/playwright");
-
+import { chromium, launch } from "./_harness.mjs";
 function arg(name, dflt) {
     const i = process.argv.indexOf("--" + name);
     return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : dflt;

@@ -9,14 +9,11 @@
      不入 requirements/package.json（与项目零前端依赖纪律无冲突）。
    ============================================================ */
 
-import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
-const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/26024/.dsh/profiles/web/node_modules/playwright");
-
+import { chromium, launch } from "./_harness.mjs";
 /* 解析 --base / --out */
 function arg(name, dflt) {
     const i = process.argv.indexOf("--" + name);

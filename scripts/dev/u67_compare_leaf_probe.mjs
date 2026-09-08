@@ -7,9 +7,7 @@
      ② 前端对比页从 loading 收敛到报告（不再无限「正在对比」）；
      ③ console 无未处理 Promise/运行时错误。
    输出：--out result.json + 对比页关键帧截图（供 gpt-5.6-luna 判读）。 */
-import { createRequire } from "node:module";
-const require = createRequire(import.meta.url);
-const { chromium } = require("C:/Users/26024/.dsh/profiles/web/node_modules/playwright");
+import { chromium, launch } from "./_harness.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
