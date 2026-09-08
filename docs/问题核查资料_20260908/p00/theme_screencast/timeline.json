@@ -1,0 +1,205 @@
+{
+  "meta": {
+    "durationMs": 1800,
+    "quality": 60,
+    "startedAt": "2026-09-08T14:44:30.102Z",
+    "frames": 39
+  },
+  "frames": [
+    {
+      "seq": 1,
+      "ts": 33,
+      "file": "screencast-frames\\frame-0001-33ms.jpg"
+    },
+    {
+      "seq": 2,
+      "ts": 52,
+      "file": "screencast-frames\\frame-0002-52ms.jpg"
+    },
+    {
+      "seq": 3,
+      "ts": 66,
+      "file": "screencast-frames\\frame-0003-66ms.jpg"
+    },
+    {
+      "seq": 4,
+      "ts": 80,
+      "file": "screencast-frames\\frame-0004-80ms.jpg"
+    },
+    {
+      "seq": 5,
+      "ts": 94,
+      "file": "screencast-frames\\frame-0005-94ms.jpg"
+    },
+    {
+      "seq": 6,
+      "ts": 111,
+      "file": "screencast-frames\\frame-0006-111ms.jpg"
+    },
+    {
+      "seq": 7,
+      "ts": 127,
+      "file": "screencast-frames\\frame-0007-127ms.jpg"
+    },
+    {
+      "seq": 8,
+      "ts": 160,
+      "file": "screencast-frames\\frame-0008-160ms.jpg"
+    },
+    {
+      "seq": 9,
+      "ts": 140,
+      "file": "screencast-frames\\frame-0009-140ms.jpg"
+    },
+    {
+      "seq": 10,
+      "ts": 181,
+      "file": "screencast-frames\\frame-0010-181ms.jpg"
+    },
+    {
+      "seq": 11,
+      "ts": 214,
+      "file": "screencast-frames\\frame-0011-214ms.jpg"
+    },
+    {
+      "seq": 12,
+      "ts": 290,
+      "file": "screencast-frames\\frame-0012-290ms.jpg"
+    },
+    {
+      "seq": 13,
+      "ts": 301,
+      "file": "screencast-frames\\frame-0013-301ms.jpg"
+    },
+    {
+      "seq": 14,
+      "ts": 320,
+      "file": "screencast-frames\\frame-0014-320ms.jpg"
+    },
+    {
+      "seq": 15,
+      "ts": 330,
+      "file": "screencast-frames\\frame-0015-330ms.jpg"
+    },
+    {
+      "seq": 16,
+      "ts": 337,
+      "file": "screencast-frames\\frame-0016-337ms.jpg"
+    },
+    {
+      "seq": 17,
+      "ts": 379,
+      "file": "screencast-frames\\frame-0017-379ms.jpg"
+    },
+    {
+      "seq": 18,
+      "ts": 389,
+      "file": "screencast-frames\\frame-0018-389ms.jpg"
+    },
+    {
+      "seq": 19,
+      "ts": 398,
+      "file": "screencast-frames\\frame-0019-398ms.jpg"
+    },
+    {
+      "seq": 20,
+      "ts": 431,
+      "file": "screencast-frames\\frame-0020-431ms.jpg"
+    },
+    {
+      "seq": 21,
+      "ts": 433,
+      "file": "screencast-frames\\frame-0021-433ms.jpg"
+    },
+    {
+      "seq": 22,
+      "ts": 448,
+      "file": "screencast-frames\\frame-0022-448ms.jpg"
+    },
+    {
+      "seq": 23,
+      "ts": 464,
+      "file": "screencast-frames\\frame-0023-464ms.jpg"
+    },
+    {
+      "seq": 24,
+      "ts": 480,
+      "file": "screencast-frames\\frame-0024-480ms.jpg"
+    },
+    {
+      "seq": 25,
+      "ts": 494,
+      "file": "screencast-frames\\frame-0025-494ms.jpg"
+    },
+    {
+      "seq": 26,
+      "ts": 509,
+      "file": "screencast-frames\\frame-0026-509ms.jpg"
+    },
+    {
+      "seq": 27,
+      "ts": 525,
+      "file": "screencast-frames\\frame-0027-525ms.jpg"
+    },
+    {
+      "seq": 28,
+      "ts": 547,
+      "file": "screencast-frames\\frame-0028-547ms.jpg"
+    },
+    {
+      "seq": 29,
+      "ts": 564,
+      "file": "screencast-frames\\frame-0029-564ms.jpg"
+    },
+    {
+      "seq": 30,
+      "ts": 581,
+      "file": "screencast-frames\\frame-0030-581ms.jpg"
+    },
+    {
+      "seq": 31,
+      "ts": 599,
+      "file": "screencast-frames\\frame-0031-599ms.jpg"
+    },
+    {
+      "seq": 32,
+      "ts": 615,
+      "file": "screencast-frames\\frame-0032-615ms.jpg"
+    },
+    {
+      "seq": 33,
+      "ts": 631,
+      "file": "screencast-frames\\frame-0033-631ms.jpg"
+    },
+    {
+      "seq": 34,
+      "ts": 648,
+      "file": "screencast-frames\\frame-0034-648ms.jpg"
+    },
+    {
+      "seq": 35,
+      "ts": 664,
+      "file": "screencast-frames\\frame-0035-664ms.jpg"
+    },
+    {
+      "seq": 36,
+      "ts": 678,
+      "file": "screencast-frames\\frame-0036-678ms.jpg"
+    },
+    {
+      "seq": 37,
+      "ts": 698,
+      "file": "screencast-frames\\frame-0037-698ms.jpg"
+    },
+    {
+      "seq": 38,
+      "ts": 714,
+      "file": "screencast-frames\\frame-0038-714ms.jpg"
+    },
+    {
+      "seq": 39,
+      "ts": 1530,
+      "file": "screencast-frames\\frame-0039-1530ms.jpg"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "base": "http://127.0.0.1:5000/",
+  "startTheme": "light",
+  "endTheme": "dark",
+  "switched": true,
+  "viewport": "1366x768",
+  "durationMs": 1800,
+  "quality": 60,
+  "node": "v24.19.0",
+  "consoleErrors": [],
+  "startedAt": "2026-09-08T14:44:33.028Z",
+  "frames": 39
+}

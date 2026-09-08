@@ -1,0 +1,47 @@
+{
+  "phase": "P0-2 门禁基线实测（2026-09-08）",
+  "branch": "stage-p0",
+  "measured_at": "2026-09-08T22:00:00",
+  "environment": {
+    "python": "3.14.3",
+    "flask": "3.1.3",
+    "node": "v24.19.0",
+    "everything_processes": 2,
+    "everything_pids": [17812, 21752],
+    "port_5000": "Flask 本会话启动（OwningProcess 20616，见收尾清单）",
+    "port_8771": "静态 http 本会话启动（OwningProcess 13532）",
+    "chromium_exe": "C:/Users/Laptop/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe",
+    "playwright_version": "1.63.0 (C:/Users/Laptop/.dsh/profiles/web/node_modules/playwright)",
+    "note": "playwright 1.63 期望 chromium-1243，本机仅 1234 —— 必须传 executablePath（_harness.mjs 已统一）"
+  },
+  "gates": [
+    { "command": ".venv\\Scripts\\python.exe -m unittest discover -s tests -t . -v",
+      "result": "Ran 317 tests / OK", "elapsed_s": 2.017, "conclusion": "绿" },
+    { "command": ".venv\\Scripts\\python.exe -W error::ResourceWarning -m unittest discover -s tests -t .",
+      "result": "OK（317 tests，stderr 无 ResourceWarning）", "elapsed_s": 2.7, "conclusion": "绿" },
+    { "command": "python -m py_compile app.py cli.py datadir.py env.py sdk.py scan.py tui.py utils.py exceptions.py keyrouter.py messages.py snapshots.py compare.py fullscan.py session.py main.py",
+      "result": "exit 0", "elapsed_s": null, "conclusion": "绿" },
+    { "command": "node --test scripts/dev/*.test.mjs",
+      "result": "43 pass / 0 fail", "elapsed_ms": 195.4, "conclusion": "绿" },
+    { "command": "python -m http.server 8771 -d . && node scripts/dev/u22_smoke_probe.mjs v2",
+      "result": "20/21 PASS；A1 FAIL", "elapsed_s": null,
+      "conclusion": "既有挂账（非本次回归）：A1 分支②带坐标 VT 切换后 80ms 断言 data-theme 应回到 light —— 本机 chromium-1234 实测 VT 完成需 ~593ms（> 80ms 断言窗口）。已三重验证与本阶段变更无关：①harness 无关的独立 chromium 运行同样失败；②web/ 前端零改动；③真机 5000 点击 #btn-theme 复现 593ms 延迟。favicon.ico 404 为既有控制台杂音。" },
+    { "command": "node scripts/dev/u66_view_residual_real.mjs --browsers chromium",
+      "result": "5/5 PASS", "elapsed_s": null,
+      "conclusion": "绿（引入路径改造后跑通；终态断言口径非帧级，帧级证据由 p00_frame_recorder 提供）" },
+    { "command": "node scripts/dev/p00_frame_recorder.mjs --base http://127.0.0.1:5000/ --repeats 3",
+      "result": "最差轮 69 帧 / 9 违规 / 首违规 ts=188ms（opacity=1, hit=canvas, inTm=true）",
+      "elapsed_s": null, "conclusion": "硬闸门通过（对照 P2 基线 rank2relate 63帧/9违规）" },
+    { "command": "node scripts/dev/p00_theme_screencast.mjs",
+      "result": "39 帧 JPEG + brightness/area 曲线；light→dark 切换成功；console 0",
+      "elapsed_s": null, "conclusion": "绿" },
+    { "command": "node scripts/dev/p00_viewport_shots.mjs",
+      "result": "3 视口 × 3 页 = 9 张 PNG + meta.json",
+      "elapsed_s": null, "conclusion": "绿" }
+  ],
+  "test_budget_race": {
+    "single_round": "Ran 1 test in 0.109s / OK（未触发竞态）",
+    "note": "既有挂账：Windows 并发锁竞态（复跑即绿=既有，非本阶段回归）；按计划 P0 只记录不修复"
+  },
+  "fixture_validation": "见 p00/fixtures/fixture_validation.json（load 19/19、growth 增量混合+4层深、flat 全0、series 单调递增、session 15）"
+}

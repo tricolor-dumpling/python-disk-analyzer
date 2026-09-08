@@ -1,0 +1,385 @@
+{
+  "phase": "P0 视觉验收证据清单",
+  "root_abs": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00",
+  "generated_at": "2026-09-08T14:59:33.345Z",
+  "env": {
+    "base": "http://127.0.0.1:5000/",
+    "viewport_default": "1366x768",
+    "chromium": "C:/Users/Laptop/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe"
+  },
+  "evidence_groups": [
+    {
+      "key": "frame_recorder",
+      "tool": "scripts/dev/p00_frame_recorder.mjs",
+      "purpose": "问题2 视图切换残留（排行→关系）—— rAF 帧级 DOM 记录 + 关键帧高保真截图",
+      "sampling": "rAF ≈16.7ms/帧；采样窗=触发前100ms→动画全程+200ms收尾（约1050ms，与 P2 基线 63 帧同量级）",
+      "criteria": "违规帧=非活动视图期间 #treemap-wrap 无 hidden 且 opacity>0 且 elementFromPoint 落回 treemap-canvas/wrap 内（与 P2-视图切换帧级证据.json 同口径）",
+      "vs_p2_baseline": {
+        "p2_rank2relate": {
+          "frames": 63,
+          "badFrames": 9,
+          "firstBad_ts": 9946,
+          "firstBad_op": "1",
+          "firstBad_hit": "treemap-canvas"
+        },
+        "this_rank2relate": {
+          "sequence": "ranking2relate",
+          "frames": 69,
+          "badFrames": 9,
+          "firstBad": {
+            "ts": 188,
+            "twHidden": false,
+            "twOpacity": "1",
+            "hit": "canvas",
+            "inTm": true
+          }
+        },
+        "sem": "帧数与违规帧数同量级、首违规特征一致（opacity=1 命中 treemap）→ 硬闸门通过"
+      },
+      "files": [
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/frames.json",
+          "desc": "全部采样帧（含 hidden/opacity/hit/inTm/activeView/acts/ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/summary.json",
+          "desc": "逐轮 帧数/违规帧数/首违规ts 摘要"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/keyframes.json",
+          "desc": "关键帧 PNG 清单"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/keyframes/key-frame-0009-ts188-shown.png",
+          "desc": "关键帧 PNG（首/中/末违规帧 + 终态；截图节奏≈130ms/张，仅关键帧）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/keyframes/key-frame-0017-ts295-shown.png",
+          "desc": "关键帧 PNG（首/中/末违规帧 + 终态；截图节奏≈130ms/张，仅关键帧）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/keyframes/key-frame-0013-ts228-shown.png",
+          "desc": "关键帧 PNG（首/中/末违规帧 + 终态；截图节奏≈130ms/张，仅关键帧）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/keyframes/key-frame-0068-ts1145-hidden.png",
+          "desc": "关键帧 PNG（首/中/末违规帧 + 终态；截图节奏≈130ms/张，仅关键帧）"
+        }
+      ]
+    },
+    {
+      "key": "theme_screencast",
+      "tool": "scripts/dev/p00_theme_screencast.mjs",
+      "purpose": "问题10 主题扩散—— CDP Page.startScreencast 逐帧像素 + 亮度/暗区面积曲线（顶栏 #btn-theme 触发 light→dark）",
+      "sampling": "CDP screencast 实测平均 ~39ms/帧（本机负载相关，20–46ms）；时窗 1800ms 覆盖 450ms 扩散 + 收尾",
+      "quantitative": {
+        "frames": 39,
+        "startTheme": "light",
+        "endTheme": "dark",
+        "switched": true,
+        "brightness_range": [
+          0.83423,
+          0.28117
+        ],
+        "darkFrac_range": [
+          0.09033,
+          0.66661
+        ],
+        "darkFrac_transition_sample": {
+          "seq": 12,
+          "ts": 290,
+          "darkFrac": 0.10076
+        }
+      },
+      "judge": "待 gpt-5.6-luna 判读（扩散圆心/面积曲线）；问题10 键盘/命令面板/设置慢点击三路径圆心缺陷属 P7",
+      "files": [
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/timeline.json",
+          "desc": "每帧 seq/ts/文件相对路径"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/brightness.json",
+          "desc": "整页灰度均值归一化曲线"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/area.json",
+          "desc": "暗区(灰度<128)像素占比曲线"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/meta.json",
+          "desc": "start/end theme、console 错误、帧数"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0001-33ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0002-52ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0003-66ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0004-80ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0005-94ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0006-111ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0007-127ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0008-160ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0009-140ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0010-181ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0011-214ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0012-290ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0013-301ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0014-320ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0015-330ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0016-337ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0017-379ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0018-389ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0019-398ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0020-431ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0021-433ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0022-448ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0023-464ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0024-480ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0025-494ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0026-509ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0027-525ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0028-547ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0029-564ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0030-581ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0031-599ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0032-615ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0033-631ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0034-648ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0035-664ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0036-678ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0037-698ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0038-714ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0039-1530ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        }
+      ]
+    },
+    {
+      "key": "viewport_shots",
+      "tool": "scripts/dev/p00_viewport_shots.mjs",
+      "purpose": "C 类多视口静态截图：工作台/对比/快照 × 1366×768/1440×900/1920×1080，作为后续阶段布局对照基线",
+      "sampling": "每态 1 张；page.screenshot(≈130ms/张) 仅用于静态终态",
+      "quantitative": {
+        "shots": 9,
+        "viewports": [
+          {
+            "width": 1366,
+            "height": 768
+          },
+          {
+            "width": 1440,
+            "height": 900
+          },
+          {
+            "width": 1920,
+            "height": 1080
+          }
+        ]
+      },
+      "judge": "待 gpt-5.6-luna 判读（布局/排版/空态）；问题4/5/6/9 由此组基线对照",
+      "files": [
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/viewport_shots/1366x768/workspace-1366x768.png",
+          "desc": "工作台 1366x768 全页截图"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/viewport_shots/1366x768/compare-1366x768.png",
+          "desc": "对比 1366x768 全页截图"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/viewport_shots/1366x768/snapshots-1366x768.png",
+          "desc": "快照 1366x768 全页截图"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/viewport_shots/1440x900/workspace-1440x900.png",
+          "desc": "工作台 1440x900 全页截图"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/viewport_shots/1440x900/compare-1440x900.png",
+          "desc": "对比 1440x900 全页截图"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/viewport_shots/1440x900/snapshots-1440x900.png",
+          "desc": "快照 1440x900 全页截图"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/viewport_shots/1920x1080/workspace-1920x1080.png",
+          "desc": "工作台 1920x1080 全页截图"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/viewport_shots/1920x1080/compare-1920x1080.png",
+          "desc": "对比 1920x1080 全页截图"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/viewport_shots/1920x1080/snapshots-1920x1080.png",
+          "desc": "快照 1920x1080 全页截图"
+        }
+      ]
+    },
+    {
+      "key": "fixtures",
+      "tool": "scripts/dev/fixture_snapshots.mjs",
+      "purpose": "P0-4 三类隔离夹具参数化验证（growth/flat/series）",
+      "sampling": "静态数据；由项目自身模块 load_snapshot/compare_snapshots/list_sessions 校验",
+      "quantitative": {
+        "load_ok": "19/19",
+        "growth_deltas": {
+          "purpose": "问题5/6：深度聚合 + 零增量（复现 P4）",
+          "delta_D_root": 50,
+          "delta_D_apps": 100,
+          "delta_D_apps_framework_core_engine": 80,
+          "deep_levels_below_root": 4,
+          "delta_D_data": 0,
+          "delta_D_docs": -50,
+          "mixed_signs": [
+            "+",
+            "+",
+            "0",
+            "-"
+          ]
+        },
+        "flat_all_zero": true,
+        "series_totals": [
+          1000,
+          1250,
+          1500,
+          1750,
+          2000,
+          2250
+        ],
+        "session_list": 15
+      },
+      "judge": "数据层校验（非视觉），无需 Luna",
+      "files": [
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/fixtures/fixture_validation.json",
+          "desc": "三类夹具生成与项目模块校验结果"
+        }
+      ]
+    },
+    {
+      "key": "baseline",
+      "tool": "P0-2 门禁实测 + P0-3 工具链自证",
+      "purpose": "门禁基线表（命令/数字/耗时/结论）与 smoke A1、favicon 404 两类环境挂账登记",
+      "files": [
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/baseline/gate_baseline.json",
+          "desc": "P0-2 门禁基线表（含环境实测、test_budget 竞态、smoke 20/21 A1 说明、探针跑通）"
+        }
+      ]
+    }
+  ]
+}

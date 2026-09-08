@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "base": "http://127.0.0.1:5000/",
+    "out": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p00\\frame_recorder",
+    "withData": false,
+    "repeats": 3,
+    "node": "v24.19.0",
+    "startedAt": "2026-09-08T14:37:57.712Z"
+  },
+  "sequences": [
+    {
+      "label": "ranking2relate",
+      "round": 1,
+      "frames": 69,
+      "badFrames": 9,
+      "firstBadTs": 188
+    },
+    {
+      "label": "ranking2relate",
+      "round": 2,
+      "frames": 67,
+      "badFrames": 8,
+      "firstBadTs": 162
+    },
+    {
+      "label": "ranking2relate",
+      "round": 3,
+      "frames": 67,
+      "badFrames": 8,
+      "firstBadTs": 164
+    }
+  ],
+  "worst": {
+    "sequence": "ranking2relate",
+    "round": 1,
+    "frames": 69,
+    "badFrames": 9,
+    "firstBad": {
+      "ts": 188,
+      "twHidden": false,
+      "twOpacity": "1",
+      "hit": "canvas",
+      "inTm": true
+    }
+  }
+}

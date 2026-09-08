@@ -1,0 +1,47 @@
+{
+  "generator": "scripts/dev/fixture_snapshots.mjs (P0-4 新增 growth/flat/series)",
+  "command": "node scripts/dev/fixture_snapshots.mjs --dir <root> --now 2026-09-08T20:00:00 --fixture all",
+  "now": "2026-09-08T20:00:00",
+  "machine_guid": "3f2a1c9d-0000-4000-8000-00000000f1x7",
+  "classic_5_no_regression": true,
+  "classic_sessions": ["current", "23h", "25h", "8d", "cross-drive"],
+  "new_sessions": [
+    { "name": "growth-t0", "at": "2026-09-07T17:00:00", "root": "D:\\" },
+    { "name": "growth-t1", "at": "2026-09-08T17:00:00", "root": "D:\\" },
+    { "name": "flat-a", "at": "2026-09-07T11:00:00", "root": "D:\\" },
+    { "name": "flat-b", "at": "2026-09-08T11:00:00", "root": "D:\\" },
+    { "name": "series-1", "at": "2026-09-07T23:00:00", "root": "D:\\" },
+    { "name": "series-2", "at": "2026-09-08T03:00:00", "root": "D:\\" },
+    { "name": "series-3", "at": "2026-09-08T07:00:00", "root": "D:\\" },
+    { "name": "series-4", "at": "2026-09-08T13:00:00", "root": "D:\\" },
+    { "name": "series-5", "at": "2026-09-08T15:00:00", "root": "D:\\" },
+    { "name": "series-6", "at": "2026-09-08T19:00:00", "root": "D:\\" }
+  ],
+  "snapshot_filename_collision": "无（19 个唯一快照，时间戳全部互异）",
+  "validation": {
+    "load_snapshot_ok": "19/19",
+    "growth": {
+      "purpose": "问题5/6：深度聚合 + 零增量（复现 P4）",
+      "delta_D_root": 50,
+      "delta_D_apps": 100,
+      "delta_D_apps_framework_core_engine": 80,
+      "deep_levels_below_root": 4,
+      "delta_D_data": 0,
+      "delta_D_docs": -50,
+      "mixed_signs": ["+", "+", "0", "-"]
+    },
+    "flat": {
+      "purpose": "问题6：全 0 增量（复现 P4）",
+      "all_zero": true,
+      "rows": 6
+    },
+    "series": {
+      "purpose": "问题8：多快照趋势（复现 P6）",
+      "D_root_totals": [1000, 1250, 1500, 1750, 2000, 2250],
+      "monotonic_increasing": true
+    },
+    "session_list": 15
+  },
+  "real_data_dir_touched": false,
+  "read_method": "项目自身模块 snapshots.load_snapshot / compare.compare_snapshots / session.list_sessions"
+}

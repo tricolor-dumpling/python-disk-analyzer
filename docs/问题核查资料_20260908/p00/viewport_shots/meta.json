@@ -1,0 +1,80 @@
+{
+  "base": "http://127.0.0.1:5000/",
+  "viewports": [
+    {
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "width": 1920,
+      "height": 1080
+    }
+  ],
+  "shots": [
+    {
+      "page": "workspace",
+      "label": "工作台",
+      "viewport": "1366x768",
+      "file": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p00\\viewport_shots\\1366x768\\workspace-1366x768.png"
+    },
+    {
+      "page": "compare",
+      "label": "对比",
+      "viewport": "1366x768",
+      "file": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p00\\viewport_shots\\1366x768\\compare-1366x768.png"
+    },
+    {
+      "page": "snapshots",
+      "label": "快照",
+      "viewport": "1366x768",
+      "file": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p00\\viewport_shots\\1366x768\\snapshots-1366x768.png"
+    },
+    {
+      "page": "workspace",
+      "label": "工作台",
+      "viewport": "1440x900",
+      "file": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p00\\viewport_shots\\1440x900\\workspace-1440x900.png"
+    },
+    {
+      "page": "compare",
+      "label": "对比",
+      "viewport": "1440x900",
+      "file": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p00\\viewport_shots\\1440x900\\compare-1440x900.png"
+    },
+    {
+      "page": "snapshots",
+      "label": "快照",
+      "viewport": "1440x900",
+      "file": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p00\\viewport_shots\\1440x900\\snapshots-1440x900.png"
+    },
+    {
+      "page": "workspace",
+      "label": "工作台",
+      "viewport": "1920x1080",
+      "file": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p00\\viewport_shots\\1920x1080\\workspace-1920x1080.png"
+    },
+    {
+      "page": "compare",
+      "label": "对比",
+      "viewport": "1920x1080",
+      "file": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p00\\viewport_shots\\1920x1080\\compare-1920x1080.png"
+    },
+    {
+      "page": "snapshots",
+      "label": "快照",
+      "viewport": "1920x1080",
+      "file": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p00\\viewport_shots\\1920x1080\\snapshots-1920x1080.png"
+    }
+  ],
+  "node": "v24.19.0",
+  "startedAt": "2026-09-08T14:40:17.480Z",
+  "consoleErrors": {
+    "1366x768": [],
+    "1440x900": [],
+    "1920x1080": []
+  }
+}
