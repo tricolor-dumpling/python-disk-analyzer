@@ -626,6 +626,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .notice-info{border-left-color:var(--primary);background:var(--primary-soft)}
 .notice-warn{border-left-color:var(--warning-mid);background:var(--warning-soft)}
 .notice-error{border-left-color:var(--danger);background:var(--danger-soft)}
+.notice-success{border-left-color:var(--success);background:var(--success-soft)} /* P1：自动保存成功态结果区 */
 
 .table-wrap{position:relative;border:1px solid var(--border);border-radius:var(--radius-md);overflow:auto;background:var(--card)}
 .dir-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}

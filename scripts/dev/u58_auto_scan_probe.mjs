@@ -30,8 +30,10 @@ fs.mkdirSync(OUT, { recursive: true });
 const STUB_FN = `
 window.__stub = {
   scanState: "idle", healthReady: true, hasTodaySession: false, saveFail: false,
-  startCount: 0, saveCount: 0, statusCount: 0, fetchLog: [],
-  reset: function () { this.startCount = 0; this.saveCount = 0; this.statusCount = 0; this.fetchLog.length = 0; }
+  autoOutcome: "saved", // P1：后端自动保存结果（saved|skipped|failed|none）
+  skipReason: "fingerprint_unchanged",
+  startCount: 0, saveCount: 0, statusCount: 0, fetchLog: [], pollLog: [],
+  reset: function () { this.startCount = 0; this.saveCount = 0; this.statusCount = 0; this.fetchLog.length = 0; this.pollLog.length = 0; }
 };
 window.fetch = function (url, options) {
   options = options || {};
@@ -50,10 +52,21 @@ window.fetch = function (url, options) {
   if (key === "GET /api/fullscan/status") {
     window.__stub.statusCount += 1;
     const s = window.__stub.scanState;
+    window.__stub.pollLog.push({ t: Date.now(), state: s, count: window.__stub.statusCount });
     const base = { roots: ["C:\\\\", "D:\\\\"], roots_total: 2, error: null, scan_version: 1,
       stop_requested: false, stop_reason: null, phase: "idle", lock_holder: null, row_done: 0, row_total: 0, stop_ack_at: null };
     if (s === "running") return json({ ok: true, status: { ...base, running: true, roots_done: 0, current_root: "C:\\\\", result_ready: false, save_ready: false, progress_pct: 40, phase: "scanning", lock_holder: "fullscan" } });
-    if (s === "done") return json({ ok: true, status: { ...base, running: false, roots_done: 2, current_root: null, result_ready: true, save_ready: true, progress_pct: 100 } });
+    if (s === "done") {
+      // P1（D1-1）：status additive 透出后端自动保存结果（前端据此展示三态）。
+      const ao = window.__stub.autoOutcome;
+      const outcome = ao === "none" || ao === "" ? null : {
+        attempted: true, outcome: ao,
+        saved_count: ao === "saved" ? 2 : 0,
+        skipped_roots: ao === "skipped" ? [{ root: "C:\\\\", skip_reason: window.__stub.skipReason }, { root: "D:\\\\", skip_reason: window.__stub.skipReason }] : [],
+        error: ao === "failed" ? "写盘失败模拟" : null, at: "2026-09-05T12:00:00" };
+      return json({ ok: true, status: { ...base, running: false, roots_done: 2, current_root: null, result_ready: true,
+        save_ready: ao === "saved" ? false : true, progress_pct: 100, autosave_outcome: outcome } });
+    }
     return json({ ok: true, status: { ...base, running: false, roots_done: 0, current_root: null, result_ready: false, save_ready: false, progress_pct: 0 } });
   }
   if (key === "POST /api/fullscan/start") {
@@ -88,7 +101,7 @@ function check(name, cond, detail) {
 async function newPage(browser, presetKey) {
     const page = await browser.newPage({ viewport: { width: 1366, height: 768 } });
     const errs = [];
-    page.on("console", (m) => { if (m.type() === "error") errs.push("console: " + m.text()); });
+    page.on("console", (m) => { if (m.type() === "error") { const loc = m.location ? m.location() : null; if (loc && /favicon\.ico/i.test(loc.url)) return; errs.push("console: " + m.text()); } });
     page.on("pageerror", (e) => errs.push("pageerror: " + e.message));
     await page.addInitScript(() => { try { localStorage.setItem("pds_onboarding_dismissed_v1", "1"); } catch (e) {} });
     if (presetKey) {
@@ -108,6 +121,24 @@ async function waitAutoStartSettled(page) {
             document.getElementById("progress").classList.add("running");
         }
     });
+}
+
+/* P1：等完成态渲染——判据必须排除 running 文案（「已完成 0/2 盘」含「已完成」字样）：
+   三态区可见 或 完成态专有文案（结果就绪/已自动保存/跳过/失败）。空闲态轮询间隔 6s，
+   扫描中 2s——超时须覆盖最坏间隔。 */
+async function waitCompletionRendered(page) {
+    await page.waitForFunction(
+        () => {
+            const t = document.getElementById("fullscan-status-text");
+            const area = document.getElementById("autosave-result");
+            const text = (t && t.textContent) || "";
+            const threeStateShown = area && !area.classList.contains("hidden");
+            const doneText = /结果就绪|已自动保存|跳过自动保存|自动保存失败/.test(text);
+            return threeStateShown || doneText;
+        },
+        { timeout: 15000 }
+    ).catch(() => {});
+    await wait(600); // 让完成态渲染稳定（覆盖轮询间隔）
 }
 
 (async () => {
@@ -181,40 +212,80 @@ async function waitAutoStartSettled(page) {
         await page.close();
     }
 
-    /* ---- 场景 6：自动保存恰一次（完成边沿 save POST = 1） ----
-       冷启动自动扫描（start=1）→ 完成（scanState=done）→ maybePromptSave → saveSnapshot(true)。
-       ⚠️ 不 reset：start 计数来自冷启动本身（=1），save 计数为完成边沿新增（=1）。 */
+    /* ---- 场景 6：自动保存成功 → 前端只展示「已自动保存」，不重复 POST ----
+       P1（D1-1）：自动保存由后端归口（结果就绪回调触发一次），前端只展示 status
+       透出的 autosave_outcome；完成边沿前端**不得**再 POST /api/save（防双保存）。
+       scanState=done + autoOutcome=saved → save_ready=false。 */
     {
         const { page, errs } = await newPage(browser, false);
         await waitAutoStartSettled(page);
         await page.evaluate(() => { window.__stub.scanState = "done"; });
-        // 等完成态渲染触发自动保存
-        await page.waitForFunction(() => window.__stub.saveCount >= 1, { timeout: 8000 }).catch(() => {});
-        await wait(400);
-        const counts = await page.evaluate(() => ({ save: window.__stub.saveCount, start: window.__stub.startCount }));
-        check("自动保存恰一次（/api/save POST = 1）", counts.save === 1, "saveCount=" + counts.save);
-        check("自动保存场景 start 恰 1 次", counts.start === 1, "startCount=" + counts.start);
+        await waitCompletionRendered(page);
+        const r = await page.evaluate(() => {
+            const area = document.getElementById("autosave-result");
+            return {
+                saveCount: window.__stub.saveCount,        // 前端不应再发起自动保存 POST
+                savedVisible: !!area && !area.classList.contains("hidden") && area.className.indexOf("notice-success") !== -1,
+                saveDisabled: !!document.getElementById("btn-save") && document.getElementById("btn-save").disabled,
+            };
+        });
+        check("自动保存成功 → 前端不重复 POST /api/save（==0，防双保存）", r.saveCount === 0, "saveCount=" + r.saveCount);
+        check("自动保存成功 → 三态区显示「已自动保存」（notice-success）", r.savedVisible === true, JSON.stringify(r));
+        check("自动保存成功 → save_ready 已消费 →「保存快照」禁用", r.saveDisabled === true, JSON.stringify(r));
         RESULT.consoleErrors = RESULT.consoleErrors.concat(errs);
         await page.close();
     }
 
-    /* ---- 场景 7：自动保存失败 → 错误可见 + 手动保存入口恢复 ----
-       saveFail=true → saveSnapshot 返回 false → save-prompt 恢复可见（手动「立即保存」入口）。
-       ⚠️ 不 reset：start 计数来自冷启动（=1）；save 计数为失败的那一次（=1）。 */
+    /* ---- 场景 7：自动保存失败 → 错误可见 + 手动「仍要保存」入口保持 ----
+       autoOutcome=failed → save_ready=true → save-prompt 可见（强制保存入口）。 */
     {
         const { page, errs } = await newPage(browser, false);
-        await page.evaluate(() => { window.__stub.saveFail = true; });
+        await page.evaluate(() => { window.__stub.autoOutcome = "failed"; });
         await waitAutoStartSettled(page);
         await page.evaluate(() => { window.__stub.scanState = "done"; });
-        await page.waitForFunction(() => window.__stub.saveCount >= 1, { timeout: 8000 }).catch(() => {});
-        await wait(600);
-        const r = await page.evaluate(() => ({
-            saveCount: window.__stub.saveCount,
-            promptVisible: (() => { const p = document.getElementById("save-prompt"); return p && !p.classList.contains("hidden"); })(),
-            errorToast: Array.from(document.querySelectorAll("#toast-container .toast")).some((t) => t.textContent.indexOf("保存失败") !== -1 || t.textContent.indexOf("模拟错误") !== -1),
-        }));
-        check("自动保存失败 → 错误 toast 可见", r.errorToast === true, JSON.stringify(r));
-        check("自动保存失败 → 手动保存入口恢复（save-prompt 可见）", r.promptVisible === true, JSON.stringify(r));
+        await waitCompletionRendered(page);
+        const r = await page.evaluate(() => {
+            const area = document.getElementById("autosave-result");
+            const prompt = document.getElementById("save-prompt");
+            return {
+                saveCount: window.__stub.saveCount,
+                resultVisible: !!area && !area.classList.contains("hidden") && area.textContent.indexOf("自动保存失败") !== -1,
+                promptVisible: !!prompt && !prompt.classList.contains("hidden"),
+                forceBtn: (() => { const b = document.getElementById("btn-save-now"); return b && !b.disabled; })(),
+            };
+        });
+        check("自动保存失败 → 三态区显示「自动保存失败」", r.resultVisible === true, JSON.stringify(r));
+        check("自动保存失败 → 手动「仍要保存（强制）」入口保持", r.promptVisible === true && r.forceBtn === true, JSON.stringify(r));
+        check("自动保存失败 → 前端不重复 POST /api/save（==0）", r.saveCount === 0, "saveCount=" + r.saveCount);
+        RESULT.consoleErrors = RESULT.consoleErrors.concat(errs);
+        await page.close();
+    }
+
+    /* ---- 场景 8（P1）：localStorage 残留高值 → 完成边沿不静默、三态正常 ----
+       复现问题 1 主因：旧闸门 pds_handled_scan_version_v1 残留高值（如 "999"），
+       scan.js 曾因 handledScanVersion>=version 直接 return（不保存/不提示）。
+       P1 已移除该跨进程代次闸门（D1-1 后端归口）→ 残留值不得导致静默：
+       完成边沿仍渲染三态，前端零重复保存。 */
+    {
+        const { page, errs } = await newPage(browser, false);
+        await page.evaluate(() => {
+            try { localStorage.setItem("pds_handled_scan_version_v1", "999"); } catch (e) {}
+        });
+        await waitAutoStartSettled(page);
+        await page.evaluate(() => { window.__stub.scanState = "done"; });
+        await waitCompletionRendered(page);
+        const r = await page.evaluate(() => {
+            const area = document.getElementById("autosave-result");
+            return {
+                saveCount: window.__stub.saveCount,
+                stubState: window.__stub.scanState,
+                statusText: (document.getElementById("fullscan-status-text") || {}).textContent || "",
+                cardRendered: !!area && !area.classList.contains("hidden"),
+                areaClass: area ? area.className : null,
+            };
+        });
+        check("localStorage 残留高值 → 完成边沿仍渲染自动保存结果（不静默）", r.cardRendered === true, JSON.stringify(r));
+        check("localStorage 残留高值 → 前端零重复保存 POST", r.saveCount === 0, "saveCount=" + r.saveCount);
         RESULT.consoleErrors = RESULT.consoleErrors.concat(errs);
         await page.close();
     }

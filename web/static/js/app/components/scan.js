@@ -26,21 +26,15 @@ import { refreshOverview } from "../components/storage.js";
 import { getCurrentRoot, browsePath, setCurrentRoot, getTreemapView } from "../pages/workspace.js"; // 扫描盘 chips 与导出根；U3.2 粒子挂点（fx 层）
 import { markNavDot } from "../components/nav-dots.js"; // U3.1：N13 圆点提醒（叶子模块，防环）
 
-/* ================= K7：已处理的扫描代次持久化 ================= */
-export const HANDLED_SCAN_KEY = "pds_handled_scan_version_v1";
-
-function loadHandledScanVersion() {
-    try { return Number(localStorage.getItem(HANDLED_SCAN_KEY)) || 0; }
-    catch (e) { return 0; } // localStorage 不可用时退化为进程内变量
-}
-function storeHandledScanVersion(v) {
-    try { localStorage.setItem(HANDLED_SCAN_KEY, String(v)); } catch (e) { /* ignore */ }
-}
-
 /* ================= 全量扫描 ================= */
 
 let autoSaveSetting = true; // 阶段D（D-2）：「扫描完成自动保存」默认开启（方案 A 自动模式裁定；设置弹窗/读取时同步）
-let handledScanVersion = loadHandledScanVersion(); // K7：localStorage 持久化
+
+/* 阶段D-3b 注记：P1（D1-1）起自动保存由**后端**归口（fullscan 结果就绪回调 +
+   config.auto_save 双闸门），前端只负责展示结果与手动补救。移除 K7 跨进程
+   持久化「已处理代次」闸门（pds_handled_scan_version_v1）——该闸门在服务重启
+   后 scan_version 从 0 重新计数的环境里会因 localStorage 残留值 high 而静默
+   return（问题 1 主因）。
 
 /* 阶段D（D-3b）：ETA 不闪跳——估算剩余取整到秒后，仅当与上次显示值偏差 >10%
    （或首次采样/跨越「即将完成」阈值）才更新文案；两次采样变化 <10% 不重绘。 */
@@ -89,8 +83,6 @@ export async function requestStopScan() {
 
 /* 模块化拆分导出的赋值器（原 openSettings/init 的 autoSaveSetting= 赋值点） */
 export function setAutoSaveSetting(v) { autoSaveSetting = v; }
-/* 模块化拆分导出的赋值器（原 wipeData 的 handledScanVersion=0） */
-export function resetHandledScanVersion() { handledScanVersion = 0; }
 
 /* U3.2：盘符 chips 三态（定稿 6.2 N05：✓已完成可点击 / 脉冲进行中 / 灰待办）。
    契约 id 不变（#scan-roots）；aborted 时未完成盘一律灰（不伪称完成）。
@@ -349,7 +341,20 @@ function renderFullscanState(st) {
     /* U3.2：完成边沿庆祝——先 toast（任何路由）后粒子（仅主页）；中止 toast 同点 */
     if (finishedEdge) {
         if (completed) {
-            toast("全量扫描已完成，结果就绪" + (st.save_ready ? "，可保存快照" : ""), "success");
+            // P1（D1-1）：后端已归口自动保存，前端完成边沿只展示结果与手动补救，
+            // 不再自行 POST /api/save（避免与后端自动保存双触发）。
+            const outcome = st.autosave_outcome || null;
+            let msg;
+            if (outcome && outcome.outcome === "saved") {
+                msg = "全量扫描已完成，已自动保存快照";
+            } else if (outcome && outcome.outcome === "skipped") {
+                msg = "全量扫描已完成，已跳过自动保存（可仍要保存）";
+            } else if (outcome && outcome.outcome === "failed") {
+                msg = "全量扫描已完成，自动保存失败（可手动保存）";
+            } else {
+                msg = "全量扫描已完成，结果就绪" + (st.save_ready ? "，可保存快照" : "");
+            }
+            toast(msg, outcome && outcome.outcome === "saved" ? "success" : (outcome && outcome.outcome === "failed" ? "error" : "info"));
             playCompletionConfetti();
             /* 阶段D（D-1）：冷启动自动扫描路径的延后浏览——完成且结果就绪时
                派发 pds:browse-after-scan（topbar 已挂一次性监听），browse 命中
@@ -441,9 +446,10 @@ function renderFullscanState(st) {
     }
 
     if (completed) {
+        // P1（D1-1/D1-2）：保存按钮可用性 = 仍需手动保存（save_ready 未消费）——
+        // 已自动保存（save_ready=false）→ 禁用；跳过/失败/关闭（save_ready=true）→ 可用「仍要保存」。
         $("btn-save").disabled = !st.save_ready;
-        setStatus("fullscan-status", "ok", "全量扫描已完成，结果就绪" + (st.save_ready ? "，可保存快照" : ""));
-        maybePromptSave(st);
+        renderAutosaveResult(st);
         return;
     }
 
@@ -465,23 +471,69 @@ function renderFullscanState(st) {
     // 其他未覆盖状态保留当前文案
 }
 
-function maybePromptSave(st) {
-    if (!st.save_ready) return;
-    const version = Number(st.scan_version) || 0;
-    if (handledScanVersion >= version) return;
-    handledScanVersion = version;
-    storeHandledScanVersion(version);
-    if (autoSaveSetting) {
-        // 阶段D（D-2）：自动保存失败不得吞掉错误——saveSnapshot(true) 内部对
-        // POST 失败已 toast(e.message)；此处补手动恢复入口（「立即保存」提示条 + 保存按钮）
-        saveSnapshot(true).then((ok) => {
-            if (!ok) {
-                const prompt = $("save-prompt");
-                if (prompt) prompt.classList.remove("hidden"); // 失败 → 保留手动保存入口
-            }
-        });
+/* P1（D1-1/D1-2）：自动保存结果三态渲染（展示型，不发起保存请求）。
+   前端只负责把后端 `autosave_outcome`（/api/fullscan/status additive）映射为
+   扫描卡可见状态：已自动保存 / 已跳过（原因可见）/ 失败（手动补救）。展示完备时
+   （页面不在/刷新/重启/子页面）由后端归口保证自动保存已发生，此处仅呈现结果。 */
+function renderAutosaveResult(st) {
+    const area = $("autosave-result");
+    const prompt = $("save-prompt");
+    const saveBtn = $("btn-save");
+    const outcome = st.autosave_outcome || null;
+    const base = "全量扫描已完成，结果就绪";
+    if (!area) { // 子页面无扫描卡 DOM：仅按 save_ready 维持按钮/状态栏语境（后端已保存）
+        if (saveBtn) saveBtn.disabled = !st.save_ready;
+        if (prompt && prompt.classList && saveBtn) {
+            if (st.save_ready) prompt.classList.remove("hidden");
+            else prompt.classList.add("hidden");
+        }
+        return;
+    }
+    if (outcome && outcome.outcome === "saved") {
+        area.className = "notice notice-success";
+        area.textContent = "已自动保存快照（每根每日自动 1 份，滚动保留 10 份）";
+        area.classList.remove("hidden");
+        if (prompt) prompt.classList.add("hidden");
+        if (saveBtn) saveBtn.disabled = true;
+        setStatus("fullscan-status", "ok", base + "，已自动保存");
+        return;
+    }
+    if (outcome && outcome.outcome === "skipped") {
+        const reasons = (outcome.skipped_roots || [])
+            .map((r) => skipReasonText(r && r.skip_reason))
+            .filter((t, i, a) => a.indexOf(t) === i); // 去重（多盘同因）
+        const reasonText = reasons.length ? reasons.join("；") : "未满足自动保存条件";
+        area.className = "notice notice-warn";
+        area.textContent = "已跳过自动保存：" + reasonText + "。可点「仍要保存（强制）」手动保存。";
+        area.classList.remove("hidden");
+        if (prompt) prompt.classList.remove("hidden"); // 强制保存入口（auto=false）
+        if (saveBtn) saveBtn.disabled = false;
+        setStatus("fullscan-status", "ok", base + "，已跳过自动保存");
+        return;
+    }
+    if (outcome && outcome.outcome === "failed") {
+        area.className = "notice notice-error";
+        area.textContent = "自动保存失败：" + (outcome.error || "未知错误") + "。可手动保存。";
+        area.classList.remove("hidden");
+        if (prompt) prompt.classList.remove("hidden");
+        if (saveBtn) saveBtn.disabled = false;
+        setStatus("fullscan-status", "err", base + "，自动保存失败");
+        return;
+    }
+    // 无 outcome：auto_save 关闭（只提示不自动存）或后端未尝试——保持可保存提示
+    if (st.save_ready) {
+        if (prompt) prompt.classList.remove("hidden");
+        if (saveBtn) saveBtn.disabled = false;
+        if (autoSaveSetting) {
+            area.className = "notice notice-info";
+            area.textContent = "自动保存未生效（已关闭）；可手动保存本次快照。";
+            area.classList.remove("hidden");
+        }
+        setStatus("fullscan-status", "ok", base + "，可保存快照");
     } else {
-        $("save-prompt").classList.remove("hidden");
+        if (prompt) prompt.classList.add("hidden");
+        if (saveBtn) saveBtn.disabled = true;
+        setStatus("fullscan-status", "ok", base);
     }
 }
 

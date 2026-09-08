@@ -13,7 +13,7 @@ import { toast } from "../components/toast.js";
 import { openModal, closeModal } from "../components/modals.js";
 import { setStatus } from "../components/statusbar.js";
 import { GUIDE_KEY } from "../components/onboarding.js";
-import { setAutoSaveSetting, resetHandledScanVersion, pollFullscan, HANDLED_SCAN_KEY } from "../components/scan.js";
+import { setAutoSaveSetting, pollFullscan } from "../components/scan.js";
 import { applyLastRoots, resetBrowseHistory } from "../pages/workspace.js";
 import { setSessionsCache, applySnapshotsView } from "../pages/snapshots.js";
 import { resetCompareData } from "../pages/compare.js"; // U3.4：清空联动（结果/迷你摘要复位 + 对比页回空态）
@@ -151,9 +151,9 @@ async function wipeData() {
         // P12·W2.6（RT-N06）：清键集合——成功响应后、关弹窗前执行（失败不清理）
         try {
             localStorage.removeItem(GUIDE_KEY);          // 恢复出厂：引导页重现
-            localStorage.removeItem(HANDLED_SCAN_KEY);   // 已处理扫描代次
         } catch (e) { /* ignore */ }
-        resetHandledScanVersion();
+        // P1（D1-1）：K7「已处理扫描代次」闸门（pds_handled_scan_version_v1）已移除，
+        // 自动保存由后端归口，前端不再有跨进程持久化代次键可清。
         APP_STATE.lastBrowseData = null;
         resetBrowseHistory();
         applyLastRoots([]);

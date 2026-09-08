@@ -10,6 +10,10 @@ export const SKIP_REASON_TEXT = {
     already_saved_today: "该根今天已自动保存过",
     day_budget_exceeded: "今日写入量已达上限，自动保存跳过",
     predicate_rejected: "未满足自动保存条件（数据未变化等）",
+    // P1（D1-2）：精确跳过原因（快照模块 REASON_* 只读复用透出，前端可解释）
+    fingerprint_unchanged: "该根内容与上次保存相比没有变化",
+    dirty: "该根处于脏/未完成状态，自动保存跳过",
+    tree_incomplete: "扫描树不完整，自动保存跳过",
 };
 
 export function skipReasonText(reason) {

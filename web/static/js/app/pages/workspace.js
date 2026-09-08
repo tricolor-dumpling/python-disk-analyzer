@@ -1252,8 +1252,10 @@ const WORKSPACE_HTML =
     '<div id="fullscan-status" class="status-line" role="status"><span class="dot"></span><span id="fullscan-status-text">尚未开始全量扫描</span><span id="scan-elapsed" class="scan-elapsed muted" hidden></span><span id="scan-eta" class="scan-eta muted" hidden></span></div>' +
     '<div id="scan-roots" class="chips-row hidden"></div>' +
     '<div id="scan-progress-hint" class="notice notice-info hidden"></div>' +
+    // P1（D1-2）：自动保存三态结果区（已自动保存 / 已跳过+原因 / 失败+手动补救）。
+    '<div id="autosave-result" class="notice notice-info hidden" role="status"></div>' +
     '<div id="save-prompt" class="notice notice-warn hidden"><div><b>全量扫描已完成。</b>是否保存本次快照？保存后可在「历史对比」中与基线对比。</div>' +
-    '<div class="row"><button id="btn-save-now" class="btn btn-success btn-sm">立即保存</button>' +
+    '<div class="row"><button id="btn-save-now" class="btn btn-success btn-sm">仍要保存（强制）</button>' +
     '<button id="btn-save-later" class="btn btn-sm">暂不保存</button></div></div>' +
     '</section>' +
 
