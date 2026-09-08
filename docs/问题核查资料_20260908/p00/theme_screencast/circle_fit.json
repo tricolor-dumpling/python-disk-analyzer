@@ -6,7 +6,21 @@
     },
     "judge_criterion": "|圆心 − 点击坐标| ≤ 4px（计划 4.3-4；P0 只产出数字，PASS/FAIL 由 Luna 判）",
     "fit_method": "扩散圆圆心=点击点（theme.js circle(maxR at x,y) 几何事实）；以点击点为圆心的径向残差（弧上点到 it 距离相对半径 rEst 的 RMS）= dev_from_click_px 判据值；boundary_pixels≥120 且 0.02<darkFrac<0.98 才输出 fit，否则 null；自由 Kasa 拟合仅作参考（部分弧数值病态）",
-    "viewport": "1366x768"
+    "viewport": "1366x768",
+    "valid_range": {
+      "ts_ms": [
+        221,
+        439
+      ],
+      "frames": 7,
+      "criterion": "边界圆模型成立区间（0.02<darkFrac<0.95）——darkFrac≥0.95 后扩散圆已铺满视口，clip-path 已结束，边界检测锁定到非圆弧边缘（radius 饱和 529-531px，几何上不可能覆盖 97.6% 视口），判定边界检测在后期失效",
+      "radial_rms_px": {
+        "min": 1.69,
+        "max": 2.28,
+        "mean": 1.82
+      }
+    },
+    "limitation": "radial_rms_px 以点击点为固定圆心度量径向一致性，非独立圆心估计（独立圆心估计+覆盖角度分布+底部触底关键帧由 P7 补）；此为条件性证据"
   },
   "frames": [
     {

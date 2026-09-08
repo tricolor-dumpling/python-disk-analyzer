@@ -34,13 +34,14 @@ manifest.evidence_groups.push({
     key: "frame_recorder_dom",
     tool: "scripts/dev/p00_frame_recorder.mjs",
     purpose: "问题2 视图切换残留（排行→关系）—— DOM 轨：页内 rAF 逐帧记录 #treemap-wrap 的 hidden/opacity/elementFromPoint 归属",
-    sampling: "rAF ≈16.7ms/帧；采样窗=触发前~100ms→动画全程+200ms收尾（本轮最差轮 89 帧）",
+    sampling: "rAF ≈16.7ms/帧；采样窗=触发前~100ms→动画全程+200ms收尾（本轮最差轮 88 帧）",
     criteria: "违规帧=非活动视图期间 #treemap-wrap 无 hidden 且 opacity>0 且 elementFromPoint 落回 treemap-canvas/wrap 内（与 P2-视图切换帧级证据.json 同口径）",
     vs_p2_baseline: {
         p2_rank2relate: { frames: 63, badFrames: 9, firstBad_op: "1", firstBad_hit: "treemap-canvas" },
         this_rank2relate: frWorst ? { round: frWorst.round, frames: frWorst.domFrames, badFrames: frWorst.badFrames, domBadOff_ms: frWorst.domBadOff } : null,
         sem: "帧数与违规帧数同量级、首违规特征一致（opacity=1 命中 treemap）→ DOM 轨硬闸门通过",
     },
+    judge: "Luna 二轮：DOM 量化记录有效（与 P2 门禁口径一致），与像素轨互相印证；DOM 违规窗口 [11,144]ms 像素可辨残留始于 +78ms（合成器滞后使 DOM 状态早于可见像素）",
     files: [
         { path: abs(path.join(fr, "frames.json")), desc: "最差轮全部 DOM 帧（含 hidden/opacity/hit/inTm/activeView/acts/ts）" },
         { path: abs(path.join(fr, "summary.json")), desc: "逐轮帧数/违规帧数/首末违规偏移 + 双时钟对齐锚点 + 像素帧计数" },
@@ -80,8 +81,8 @@ manifest.evidence_groups.push({
         violation_window_pixels: frVwFiles.length,
         in_window_unique: frScTl && frScTl.frames ? new Set((frScTl.frames || []).filter((f) => f.inWin).map((f) => frScH[f.file])).size : null,
     },
-    note: "像素证据采用 CDP screencast 而非 page.screenshot（≈130ms/张无法覆盖 33ms 级违规窗口）；文件名 px-<seq>-trig+<off>ms.jpg 的 off 为相对触发点真实偏移",
-    judge: "待 gpt-5.6-luna 判读（残留矩形图色块的像素呈现/淡化曲线）",
+    note: "像素证据采用 CDP screencast 而非 page.screenshot（≈130ms/张无法覆盖 33ms 级违规窗口）；文件名 px-<seq>-trig+<off>ms.jpg 的 off 为相对触发点真实偏移；对齐差异（须知）：+11/+28ms 两帧像素与触发前基线帧相同（合成器滞后），即 DOM 状态变化早于可见像素，像素级可辨识残留始于 +78ms",
+    judge: "Luna 二轮 PASS（硬闸门成立）：violation-window 8 帧逐张确认 +78/+80ms 起可见大片彩色 treemap 矩形压在目录/关系区域上，随后 +94/+107/+123/+137ms 逐步变淡，与 frames.json twOpacity 递减（1→…→2.45e-06）及窗口 [11,144]ms 一致；上下文帧（-71…-17ms 无残留、+153…+183ms 残留消失）吻合",
     files: [
         { path: abs(path.join(frSc, "px-timeline.json")), desc: "像素帧相对触发点时间戳 + inWin 标记 + 违规窗口 meta" },
         { path: abs(path.join(frSc, "px-hashes.json")), desc: "每张像素帧 SHA-256 自证（unique/total）" },
@@ -123,11 +124,14 @@ manifest.evidence_groups.push({
             dev_from_click_px_min: tsDev.length ? Math.min(...tsDev) : null,
             dev_from_click_px_max: tsDev.length ? Math.max(...tsDev) : null,
             dev_from_click_px_mean: tsDev.length ? +(tsDev.reduce((a, b) => a + b, 0) / tsDev.length).toFixed(2) : null,
-            judge: "|圆心−点击坐标|≤4px（计划4.3-4；P0 只产出数字，PASS/FAIL 由 Luna 判）",
+            valid_range: (tsCircles && tsCircles.meta && tsCircles.meta.valid_range) ? tsCircles.meta.valid_range : null,
+            limitation: (tsCircles && tsCircles.meta && tsCircles.meta.limitation) ? tsCircles.meta.limitation : null,
+            judge: "|圆心−点击坐标|≤4px（计划4.3-4）。Luna 二轮：圆心视觉位于右上点击区≈(995,30)，与 radial_rms_px 一致；但 radial_rms 以点击点为固定圆心，非独立圆心估计 → 条件性接受（P0 只产出数字与区间，独立圆心估计归 P7）",
+            darkFrac_saturation: "darkFrac≥0.95（ts≥495）后拟合半径饱和 529-531px，几何上不可能覆盖 97.6% 视口 → 边界检测后期失效，valid_range 收窄为 ts 221–439（见 valid_range）",
         } : null,
         darkFrac_transition_sample: tsArea.length ? tsArea.find((x) => x.darkFrac > 0.1 && x.seq > 8) || null : null,
     },
-    judge: "待 gpt-5.6-luna 判读（扩散圆心/面积曲线 + 圆拟合偏差）；问题10 键盘/命令面板/设置慢点击三路径圆心缺陷属 P7",
+    judge: "Luna 二轮：扩散平滑/无触底跳变 PASS；圆心条件性接受（视觉位于右上点击区，radial_rms 88/88≤4px，但非独立圆心估计）→ 独立圆心拟合+覆盖角度分布+底部触底关键帧由 P7 补；问题10 键盘/命令面板/设置慢点击三路径圆心缺陷属 P7",
     files: [
         { path: abs(path.join(ts, "timeline.json")), desc: "每帧 seq/ts/rawTs/文件相对路径（ts 单调不减）" },
         { path: abs(path.join(ts, "brightness.json")), desc: "整页灰度均值归一化曲线" },
@@ -148,7 +152,7 @@ manifest.evidence_groups.push({
     purpose: "C 类多视口静态截图：工作台/对比/快照 × 1366×768/1440×900/1920×1080，作为后续阶段布局对照基线",
     sampling: "每态 1 张；page.screenshot(≈130ms/张) 仅用于静态终态",
     quantitative: { shots: vsShots.length, viewports: (vsMeta && vsMeta.viewports) || null },
-    judge: "待 gpt-5.6-luna 判读（布局/排版/空态）；问题4/5/6/9 由此组基线对照",
+    judge: "Luna 二轮：9/9 PASS（三视口×三页局部布局基线，无硬切/重叠/溢出）；问题4「扫描中右栏纵向挤压」观察无法在 P0 证据中定位（结构性原因：P0 三探针均未触发扫描，右栏恒为待机/浏览态，非扫描态；动态拥挤截图归 P3）",
     files: vsShots.map((s) => ({ path: abs(s.file), desc: (s.label || s.page) + " " + s.viewport + " 全页截图" })),
 });
 
