@@ -39,3 +39,9 @@ Desktop.ini
 
 # DSH tooling scratch output（与项目无关的生成图像）
 dsh-image-gen/
+
+# 重复归档包（内容已以目录形式入库，避免二进制重复）
+# 问题.zip = 问题/ 的压缩副本（问题清单.md + 2 张截图）
+/问题.zip
+# docs/问题核查资料_20260902.zip = docs/问题核查资料_20260902/ 的压缩副本（已入库）
+docs/问题核查资料_20260902.zip
