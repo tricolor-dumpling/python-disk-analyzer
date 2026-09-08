@@ -71,6 +71,66 @@ class _CancelOr:
 
 _STATE_LOCK = threading.Lock()
 
+# P1（问题1）：结果就绪回调注册表（自动保存归口挂点，D1-1 后端归口）。
+# _run 主流程在发布 last_result（running=False 之后）调用全部回调；回调抛错
+# 一律被吞（绝不破坏扫描线程收尾）。app.py 注册自动保存回调（读取
+# config.auto_save + is_snapshot_disabled() 双闸门，见 app.ensure_p1_autosave_registered）。
+_RESULT_CALLBACKS = []
+
+
+def register_result_callback(callback):
+    """注册「全量结果就绪」回调（scan _run 发布后、置 idle 前触发一次）。"""
+    if callable(callback) and callback not in _RESULT_CALLBACKS:
+        _RESULT_CALLBACKS.append(callback)
+    return callback
+
+
+def unregister_result_callback(callback):
+    """注销回调（幂等；测试隔离用）。"""
+    if callback in _RESULT_CALLBACKS:
+        _RESULT_CALLBACKS.remove(callback)
+
+
+def _fire_result_callbacks(last_result):
+    """触发结果就绪回调；单回调异常不影响其他回调与扫描主流程。"""
+    for cb in list(_RESULT_CALLBACKS):
+        try:
+            cb(last_result)
+        except Exception:
+            # P1：自动保存等回调 best-effort——异常绝不允许破坏扫描线程收尾
+            pass
+
+
+def record_autosave_outcome(payload=None, error=None):
+    """记录最近一次后端自动保存的结果（additive，/api/fullscan/status 透出）。
+
+    payload: _save_fullscan_result(auto=True) 的返回（成败/跳过清单）；
+    error: 自动保存整体异常时透出文案。供前端扫描卡三态渲染（已自动保存 /
+    已跳过+原因 / 失败+手动入口）——前端零跨进程持久化闸门（红线 D1-2）。
+    """
+    if payload is None and error is None:
+        outcome = None
+    else:
+        saved_count = len(payload.get("saved") or []) if payload else 0
+        skipped_roots = payload.get("skipped_roots") or [] if payload else []
+        if error is not None:
+            state = "failed"
+        elif saved_count:
+            state = "saved"
+        elif skipped_roots:
+            state = "skipped"
+        else:
+            state = "failed"
+        outcome = {
+            "attempted": True,
+            "outcome": state,
+            "saved_count": saved_count,
+            "skipped_roots": [dict(r) for r in skipped_roots],
+            "error": error,
+            "at": _now_iso(),
+        }
+    _update_state(autosave_outcome=outcome)
+
 
 def _path_key(path):
     """返回跨平台、大小写不敏感且折叠尾分隔符的路径键。"""
@@ -227,6 +287,8 @@ _STATE = {
     "watchdog_roots_last_total": {},
     "watchdog_checked_at": None,
     "stop_ack_at": None,
+    # P1（问题1）additive：最近一次后端自动保存结果（saved/skipped/failed + 跳过原因）
+    "autosave_outcome": None,
 }
 
 
@@ -325,6 +387,7 @@ def start(roots=None, everything=None):
                 "watchdog_roots_last_total": {},
                 "watchdog_checked_at": None,
                 "stop_ack_at": None,
+                "autosave_outcome": None,  # P1：新扫描复位上次自动保存结果
             }
         )
         thread = threading.Thread(
@@ -502,7 +565,11 @@ def _run(roots, everything, scan_version):
             row_total=0,
             watchdog_roots_last_total={},
             watchdog_checked_at=None,
+            autosave_outcome=None,  # P1：新结果待自动保存，outcome 由回调落地
         )
+        if last_result and last_result.get("ok") and last_result.get("roots"):
+            # P1（D1-1）：结果就绪 → 触发自动保存回调（app.py 注册，双闸门内）
+            _fire_result_callbacks(last_result)
 
 
 # 看门狗日志引用占位（保留空定义避免遗留引用）
@@ -601,6 +668,8 @@ def status():
         "row_total": int(st.get("row_total") or 0),
         # 阶段B（B-10）：停止确认时刻
         "stop_ack_at": st.get("stop_ack_at"),
+        # P1（问题1）additive：最近一次后端自动保存结果（前端扫描卡三态渲染）
+        "autosave_outcome": st.get("autosave_outcome"),
     }
 
 

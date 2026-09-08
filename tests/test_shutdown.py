@@ -19,6 +19,10 @@ class DoubleInstanceTests(unittest.TestCase):
 
     def test_run_server_returns_without_bind_when_occupied(self):
         """stub /api/health 可达 → run_server 直接 return，未调 app.run、未拉引导线程。"""
+        # P1（问题1）：run_server 现在会注册后端自动保存回调（D1-1）——
+        # 测试结束后注销，防止全局回调污染 discover 内后续模块（如 test_stage_d
+        # 的完成扫描被自动保存）。不改断言，仅清理本测试产生的生产副作用。
+        self.addCleanup(app_module.unregister_p1_autosave)
         fake_resp = mock.Mock()
         fake_resp.status = 200
         fake_resp.__enter__ = mock.Mock(return_value=fake_resp)
@@ -36,6 +40,8 @@ class DoubleInstanceTests(unittest.TestCase):
 
     def test_run_server_binds_when_free(self):
         """探测失败（无实例）→ 正常进入 app.run。"""
+        # P1（问题1）：同上——清理 run_server 注册的自动保存回调（生产副作用）。
+        self.addCleanup(app_module.unregister_p1_autosave)
         with mock.patch.object(app_module.urllib.request, "urlopen",
                                side_effect=OSError("refused")), \
                 mock.patch.object(app_module.webbrowser, "open"), \

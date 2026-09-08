@@ -504,12 +504,28 @@ def _save_fullscan_result(auto):
                     "notice": notice,
                 }
             else:
+                # P1（D1-2）：跳过原因精确透出——只读复用四原子谓词求具体原因，
+                # 不再退化为笼统 predicate_rejected（前端据此展示可理解的跳过文案，
+                # 且「保存快照」入口保持可用，见下方 mark_saved 仅在 any_saved 时消费）。
+                try:
+                    _ok, precise_reason = snapshots.should_auto_save(
+                        root,
+                        tree_complete=auto,
+                        dirty=False,
+                        fingerprint=snapshots._fingerprint_of_rows(rows),
+                        ledger=snapshots.load_ledger(snap_dir),
+                    )
+                    skip_reason = str(precise_reason) if precise_reason else (
+                        "predicate_rejected"
+                    )
+                except Exception:
+                    skip_reason = "predicate_rejected"
                 entry = {
                     "root": root,
                     "snapshot": None,
                     "snapshot_path": None,
                     "skipped": True,
-                    "skip_reason": "predicate_rejected",
+                    "skip_reason": skip_reason,
                 }
             roots_payload[root] = entry
             skipped_roots.append({"root": root, "skip_reason": entry["skip_reason"]})
@@ -546,7 +562,12 @@ def _save_fullscan_result(auto):
         "ledger_backup": ledger_backup,
     }
     session_file = session.save_session(session_payload)
-    fullscan.mark_saved(scan_version=scan_result.get("scan_version"))
+    # P1（D1-2 次因A 修复）：只有**确有落盘**（any_saved）才消费 save_ready
+    # （mark_saved）。全盘跳过/全盘失败时保留 save_ready=true——扫描卡「保存快照」
+    # 入口保持可用，用户可「仍要保存（强制，auto=false）」，消除「自动没存+手动
+    # 点不动」死角。四原子谓词/配额/滚动保留语义未削弱（跳过仍是谓词裁决）。
+    if any_saved:
+        fullscan.mark_saved(scan_version=scan_result.get("scan_version"))
     return {
         "session": session_payload,
         "session_file": str(session_file),
@@ -1301,6 +1322,70 @@ def _shutdown_fullscan():
         pass  # 退出路径绝不因收尾失败而抛错/裸 traceback
 
 
+# ================= P1（问题1）：扫描完成自动保存（后端归口 D1-1） =================
+# 自动保存由**后端**在结果就绪回调里触发（读 config.auto_save + is_snapshot_disabled
+# 双闸门），前端只负责展示。消除「页面不在/刷新/重启」三类漏触发，天然与 scan_version
+# 生命周期一致、覆盖子页面完成场景。回调 best-effort：异常绝不影响扫描线程收尾。
+_P1_AUTOSAVE_LOCK = threading.Lock()
+_p1_autosave_registered = False
+
+
+def _p1_autosave_on_result(_last_result):
+    """结果就绪 → 后端自动保存（D1-1）。双闸门 + 锁内串行 + best-effort。"""
+    # 红线：自动保存绝不绕过 DSA_NO_SNAPSHOT / is_snapshot_disabled()
+    try:
+        if snapshots.is_snapshot_disabled():
+            return
+    except Exception:
+        return
+    try:
+        config = env.load_config()
+    except Exception:
+        config = {}
+    # D1-4：auto_save 键名不变，缺键视为 ON（保持既有口径）
+    if not config.get("auto_save", True):
+        return
+    # 防双保存竞态：若 save_ready 已被消费（并发手动保存抢先 / 旧版前端边沿 POST
+    # 已落盘），本次回调直接跳过——同一结果只允许一次自动保存。
+    try:
+        if not fullscan.status().get("save_ready"):
+            return
+    except Exception:
+        pass  # 状态不可得不阻塞（继续尝试，由锁与谓词兜底）
+    with _P1_AUTOSAVE_LOCK:
+        try:
+            payload = _save_fullscan_result(auto=True)
+            fullscan.record_autosave_outcome(payload=payload)
+        except ValueError as exc:
+            # 回调触发时机保证有结果且未在扫描中——此处 ValueError 只能是
+            # 「本次没有生成任何快照」（全盘失败）→ 记录失败结果供前端补救。
+            fullscan.record_autosave_outcome(error=f"自动保存失败: {exc}")
+        except OSError as exc:
+            fullscan.record_autosave_outcome(error=f"自动保存失败: {exc}")
+        except Exception as exc:
+            fullscan.record_autosave_outcome(error=f"自动保存失败: {exc}")
+
+
+def ensure_p1_autosave_registered():
+    """幂等注册后端自动保存回调（run_server 与测试共用；多线程安全）。"""
+    global _p1_autosave_registered
+    if _p1_autosave_registered:
+        return True
+    fullscan.register_result_callback(_p1_autosave_on_result)
+    _p1_autosave_registered = True
+    return True
+
+
+def unregister_p1_autosave():
+    """注销后端自动保存回调并复位注册标志（测试隔离用；生产不调用）。"""
+    global _p1_autosave_registered
+    try:
+        fullscan.unregister_result_callback(_p1_autosave_on_result)
+    except Exception:
+        pass
+    _p1_autosave_registered = False
+
+
 def run_server(port=5000, open_browser=True, debug_log=False):
     """启动本地 Flask 服务（仅 127.0.0.1，threaded=True）。
 
@@ -1330,6 +1415,8 @@ def run_server(port=5000, open_browser=True, debug_log=False):
         ).start()
     # P12·W2.10：退出时协作取消后台扫描（join 超时放弃，不硬杀）
     atexit.register(_shutdown_fullscan)
+    # P1（D1-1）：注册后端自动保存回调（结果就绪 → config.auto_save 闸门内触发）
+    ensure_p1_autosave_registered()
     # 阶段B（B-17/B-20）：Werkzeug 日志策略——默认 WARNING+（access log 关）；
     # --debug-log 保留完整请求日志（开发调试有据）；错误堆栈始终可见。
     try:

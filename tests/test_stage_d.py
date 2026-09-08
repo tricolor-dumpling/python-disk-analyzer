@@ -145,7 +145,16 @@ class AutoSaveOnceContractTests(unittest.TestCase):
         loaded = session_module.load_session(sessions[0])
         entry = loaded["roots"]["C:\\TD"]
         self.assertTrue(entry["skipped"])
-        self.assertEqual(entry["skip_reason"], "predicate_rejected")
+        # P1（D1-2）：跳过原因**精确透出**，不再退化为笼统 predicate_rejected。
+        # 本夹具同时具备「指纹未变」与「当日已存」两谓词拒绝条件，should_auto_save
+        # 按序返回 fingerprint_unchanged。断言更新证据：D1-2「跳过可见可补救」要求
+        # 前端展示可理解的精确原因；旧断言校验的是旧通用回退值，属行为改善而非漂移。
+        self.assertIn(
+            entry["skip_reason"],
+            (snapshots.REASON_FINGERPRINT_UNCHANGED, snapshots.REASON_ALREADY_SAVED_TODAY),
+            "P1 后跳过原因应为精确谓词原因之一（非 predicate_rejected）",
+        )
+        self.assertNotEqual(entry["skip_reason"], "predicate_rejected")
         self.assertIsNone(entry["snapshot_path"], "skipped 条目不得有快照文件")
         self.assertEqual(len(list(self.snap_dir.glob("*.snap.gz"))), 0, "谓词拒绝不得落盘快照")
 
