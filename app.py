@@ -414,6 +414,12 @@ def api_open_path():
 
 @app.post("/api/fullscan/start")
 def api_fullscan_start():
+    # P1（D1-1）：Web 扫描发起即激活后端自动保存归口（幂等注册；仅真实 Web 路径
+    # 启用，直接调 fullscan.start() 的测试路径永不触发自动保存——红线：禁写用户真实目录）。
+    try:
+        ensure_p1_autosave_registered()
+    except Exception:
+        pass  # 注册失败不阻塞扫描发起（自动保存缺失由前端三态提示兜底）
     started = fullscan.start()
     if not started:
         if fullscan.is_running():
@@ -1415,8 +1421,10 @@ def run_server(port=5000, open_browser=True, debug_log=False):
         ).start()
     # P12·W2.10：退出时协作取消后台扫描（join 超时放弃，不硬杀）
     atexit.register(_shutdown_fullscan)
-    # P1（D1-1）：注册后端自动保存回调（结果就绪 → config.auto_save 闸门内触发）
-    ensure_p1_autosave_registered()
+    # P1（D1-1）：后端自动保存回调改为「随真实 Web 扫描发起时注册」（见 api_fullscan_start），
+    # 不在 run_server 全局注册——避免直接调 fullscan.start() 的单元测试（如 test_stage_b）
+    # 在 discover 同进程内因残留回调把快照写进未隔离的真实数据目录（红线：禁写用户真实目录）。
+    # 真实 Web 路径(/api/fullscan/start)扫描完成时仍由后端归口自动保存。
     # 阶段B（B-17/B-20）：Werkzeug 日志策略——默认 WARNING+（access log 关）；
     # --debug-log 保留完整请求日志（开发调试有据）；错误堆栈始终可见。
     try:

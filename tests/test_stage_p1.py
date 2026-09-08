@@ -207,6 +207,55 @@ class P1BackendAutosaveContractTests(P1AutosaveIsolatedBase):
         self.assertGreaterEqual(len(list(self.snap_dir.glob("*.snap.gz"))), 1)
 
 
+class P1WebScanPathAutosaveTests(P1AutosaveIsolatedBase):
+    """红线回归护栏（2026-09-09 事件）：自动保存只随**真实 Web 扫描路径**启用，
+    绝不在 run_server 全局注册（否则直接调 fullscan.start() 的测试会把快照写进
+    未隔离的真实数据目录）。本类验证：
+    - D1-1 在注册点迁移后仍成立：经 POST /api/fullscan/start 发起的扫描完成后自动保存；
+    - run_server 触发后**不**设置全局注册标志（杜绝 test_shutdown 泄漏污染）。"""
+
+    def test_web_fullscan_start_autosaves_on_completion(self):
+        """真实 Web 路径：POST /api/fullscan/start → 后台完成 → 后端自动保存（D1-1 保持）。"""
+        def fake_scan(root_path_obj, everything=None, cancel_event=None, progress=None):
+            sizes = {Path(root_path_obj): 100, Path(root_path_obj) / "a": 40}
+            contents = {Path(root_path_obj): [("a", False, 40)]}
+            if progress:
+                progress(2, 2)
+            return sizes, contents
+
+        with mock.patch.object(fullscan, "_enumerate_roots", return_value=["C:\\P1W"]), \
+                mock.patch.object(fullscan, "scan_via_everything_sdk", side_effect=fake_scan):
+            with app.test_client() as client:
+                resp = client.post("/api/fullscan/start", json={})
+                body = resp.get_json()
+                resp.close()
+            self.assertEqual(resp.status_code, 200)
+            # 等后台线程跑完（api_fullscan_start 内部已 ensure 注册自动保存回调）
+            thread = fullscan._copy_state()["thread"]
+            if thread is not None:
+                thread.join(timeout=5)
+        st = fullscan.status()
+        self.assertTrue(st["result_ready"])
+        self.assertFalse(st["save_ready"], "Web 路径自动保存后 save_ready 应消费")
+        outcome = st["autosave_outcome"]
+        self.assertIsNotNone(outcome, "Web 路径自动保存应记录 outcome")
+        self.assertEqual(outcome["outcome"], "saved")
+        self.assertEqual(len(session_module.list_sessions()), 1, "Web 路径自动保存生成恰一个 session")
+
+    def test_run_server_does_not_globally_register_autosave(self):
+        """红线根因：run_server 触发后**不得**设置全局注册标志（防止不隔离扫描被自动保存）。"""
+        import app as app_module
+        with mock.patch.object(app_module.urllib.request, "urlopen",
+                               side_effect=OSError("refused")), \
+                mock.patch.object(app_module.webbrowser, "open"), \
+                mock.patch.object(app_module.app, "run"):
+            app_module.run_server(port=5998, open_browser=False)
+        self.assertFalse(app_module._p1_autosave_registered,
+                         "run_server 不得全局注册自动保存（红线：不隔离扫描不得被写盘）")
+        # 收尾清理：即便未来回归也不留污染
+        app_module.unregister_p1_autosave()
+
+
 class P1AutosaveStatusAdditiveTests(P1AutosaveIsolatedBase):
     """/api/fullscan/status additive：不破坏既有键集合，可新增 auto_save 结果域。"""
 
