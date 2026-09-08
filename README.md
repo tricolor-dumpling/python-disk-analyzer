@@ -805,3 +805,25 @@ python -W error::ResourceWarning -m unittest discover -s tests -t .
 ```powershell
 python -m py_compile main.py cli.py env.py sdk.py scan.py tui.py utils.py exceptions.py keyrouter.py messages.py snapshots.py compare.py app.py fullscan.py session.py datadir.py
 ```
+
+---
+
+## 后续开发入口（2026-09-08 批次）
+
+> **换机 / 新接手请先读这一节。** 当前处于「用户实测 10 项问题」批次的 P0 之前：
+> P0（基线冻结与视觉验收基建）未交付前，不得开始任何生产代码改动。
+
+| 文件 | 用途 |
+|---|---|
+| `docs/后续开发计划_用户实测问题10项_20260908.md` | **总计划**：10 项问题的证据矩阵与根因（含 file:line）、全局红线（视觉验收强制 / 动画短间隔截图 / 每阶段 git / 进程清理）、视觉验收方法论与像素判据、P0–P8 阶段划分与 DoD |
+| `docs/exec/阶段P0-开发任务提示词_20260908.md` | **当前阶段执行提示词**：P0 授权范围、零生产代码改动红线、验收工具链要求、本机环境事实与门禁基线实测值 |
+| `docs/问题核查资料_20260908/复现记录.md` | 2026-09-08 现场取证结论（问题 1/2/4/5/6/9/10 的复现方式与证据） |
+| `docs/问题核查资料_20260908/P2-视图切换帧级证据.json` | 问题 2 的 rAF 逐帧原始数据（P2 阶段必须复现出同等或更严的证据） |
+| `问题/问题清单.md` | 用户手测原始 10 项描述（本批次的题源） |
+| `docs/问题核查复现与修改定位清单.md` | 复现/验收台账（每阶段须追加「五-J、五-K…」段） |
+
+**执行顺序**：P0 → P1 → P2 → P3 → P4 → P5 → P6 → P7 → P8（详见总计划第五章依赖图）。
+
+**环境提示（2026-09-08 取证机实测，换机后以实测为准）**：`.venv` = Python 3.14.3 + Flask 3.1.3；
+Node v24.19.0；视觉探针需显式传 `executablePath` 指向本机已装的 Chromium（取证机为
+`%LOCALAPPDATA%\ms-playwright\chromium-1234\chrome-win64\chrome.exe`——playwright 1.63 期望 1234/1243 版本差异，缓存中只有 1234）。
