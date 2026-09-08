@@ -126,12 +126,13 @@ manifest.evidence_groups.push({
             dev_from_click_px_mean: tsDev.length ? +(tsDev.reduce((a, b) => a + b, 0) / tsDev.length).toFixed(2) : null,
             valid_range: (tsCircles && tsCircles.meta && tsCircles.meta.valid_range) ? tsCircles.meta.valid_range : null,
             limitation: (tsCircles && tsCircles.meta && tsCircles.meta.limitation) ? tsCircles.meta.limitation : null,
-            judge: "|圆心−点击坐标|≤4px（计划4.3-4）。Luna 二轮：圆心视觉位于右上点击区≈(995,30)，与 radial_rms_px 一致；但 radial_rms 以点击点为固定圆心，非独立圆心估计 → 条件性接受（P0 只产出数字与区间，独立圆心估计归 P7）",
-            darkFrac_saturation: "darkFrac≥0.95（ts≥495）后拟合半径饱和 529-531px，几何上不可能覆盖 97.6% 视口 → 边界检测后期失效，valid_range 收窄为 ts 221–439（见 valid_range）",
+            darkFrac_caveat: (tsCircles && tsCircles.meta && tsCircles.meta.darkFrac_caveat) ? tsCircles.meta.darkFrac_caveat : null,
+            terminal_pass: (tsCircles && tsCircles.meta && tsCircles.meta.terminal_pass) ? tsCircles.meta.terminal_pass : null,
+            judge: "|圆心−点击坐标|≤4px（计划4.3-4）。Luna 三轮：radial_rms≤4px 效力限于「仍能看见明确弧边的早中段」= valid_range ts 221–478ms；darkFrac 不可用作遮罩覆盖率；径向残差以点击点为固定圆心、非独立圆心估计 → 条件性证据（独立圆心估计归 P7）",
         } : null,
         darkFrac_transition_sample: tsArea.length ? tsArea.find((x) => x.darkFrac > 0.1 && x.seq > 8) || null : null,
     },
-    judge: "Luna 二轮：扩散平滑/无触底跳变 PASS；圆心条件性接受（视觉位于右上点击区，radial_rms 88/88≤4px，但非独立圆心估计）→ 独立圆心拟合+覆盖角度分布+底部触底关键帧由 P7 补；问题10 键盘/命令面板/设置慢点击三路径圆心缺陷属 P7",
+    judge: "Luna 三轮：扩散平滑/无触底跳变 PASS；终态 frame-0105-1789ms PASS（整页深色、文字可辨读、无白色残留）；圆心条件性接受（visual 位于右上点击区，radial_rms 在 valid_range ts 221–478ms 内 ≤4px，但非独立圆心估计；darkFrac 不可用作覆盖率）→ 独立圆心拟合+覆盖角度分布+底部触底关键帧由 P7 补；问题10 三路径圆心缺陷属 P7",
     files: [
         { path: abs(path.join(ts, "timeline.json")), desc: "每帧 seq/ts/rawTs/文件相对路径（ts 单调不减）" },
         { path: abs(path.join(ts, "brightness.json")), desc: "整页灰度均值归一化曲线" },
@@ -152,7 +153,7 @@ manifest.evidence_groups.push({
     purpose: "C 类多视口静态截图：工作台/对比/快照 × 1366×768/1440×900/1920×1080，作为后续阶段布局对照基线",
     sampling: "每态 1 张；page.screenshot(≈130ms/张) 仅用于静态终态",
     quantitative: { shots: vsShots.length, viewports: (vsMeta && vsMeta.viewports) || null },
-    judge: "Luna 二轮：9/9 PASS（三视口×三页局部布局基线，无硬切/重叠/溢出）；问题4「扫描中右栏纵向挤压」观察无法在 P0 证据中定位（结构性原因：P0 三探针均未触发扫描，右栏恒为待机/浏览态，非扫描态；动态拥挤截图归 P3）",
+    judge: "Luna 三轮：9/9 PASS（三视口×三页布局基线，无硬切/重叠/溢出）；问题4「扫描中右栏纵向挤压」观察——Luna 第三轮明确回复无法指认具体证据文件，经核实不予归档（P0 证据不含扫描态，结构性：P0 三探针未触发扫描），P3 需另行取证",
     files: vsShots.map((s) => ({ path: abs(s.file), desc: (s.label || s.page) + " " + s.viewport + " 全页截图" })),
 });
 

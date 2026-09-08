@@ -1,7 +1,7 @@
 {
   "phase": "P0 视觉验收证据清单",
   "root_abs": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00",
-  "generated_at": "2026-09-08T15:53:59.687Z",
+  "generated_at": "2026-09-08T16:01:08.782Z",
   "env": {
     "base": "http://127.0.0.1:5000/",
     "viewport_default": "1366x768",
@@ -204,19 +204,20 @@
           "valid_range": {
             "ts_ms": [
               221,
-              439
+              478
             ],
-            "frames": 7,
-            "criterion": "边界圆模型成立区间（0.02<darkFrac<0.95）——darkFrac≥0.95 后扩散圆已铺满视口，clip-path 已结束，边界检测锁定到非圆弧边缘（radius 饱和 529-531px，几何上不可能覆盖 97.6% 视口），判定边界检测在后期失效",
+            "frames": 9,
+            "criterion": "Luna 三轮裁定：radial_rms≤4px 的效力范围限于「仍能看见明确弧边的早中段」——按「弧边可辨识 + 半径单调增长」界定 ts 221–478ms（darkFrac 0.153–0.963）",
             "radial_rms_px": {
               "min": 1.69,
               "max": 2.28,
-              "mean": 1.82
+              "mean": 1.8
             }
           },
-          "limitation": "radial_rms_px 以点击点为固定圆心度量径向一致性，非独立圆心估计（独立圆心估计+覆盖角度分布+底部触底关键帧由 P7 补）；此为条件性证据",
-          "judge": "|圆心−点击坐标|≤4px（计划4.3-4）。Luna 二轮：圆心视觉位于右上点击区≈(995,30)，与 radial_rms_px 一致；但 radial_rms 以点击点为固定圆心，非独立圆心估计 → 条件性接受（P0 只产出数字与区间，独立圆心估计归 P7）",
-          "darkFrac_saturation": "darkFrac≥0.95（ts≥495）后拟合半径饱和 529-531px，几何上不可能覆盖 97.6% 视口 → 边界检测后期失效，valid_range 收窄为 ts 221–439（见 valid_range）"
+          "limitation": "radial_rms_px 以点击点为固定圆心度量径向一致性，非独立圆心估计；P0 证据为条件性。P7 必须补：边界像素筛选规则 + 覆盖角度分布 + 不依赖点击点的鲁棒圆心拟合（全弧/部分弧分别处理）+ 底部触底关键帧",
+          "darkFrac_caveat": "⚠️ darkFrac 不可用作遮罩几何覆盖率（Luna 三轮实测）：ts≈392ms 遮罩仅覆盖右上至中部、左下仍是大块浅色背景与彩色矩形图；ts≈528ms 左下仍有约 1/3 以上浅色/半透明，并非 97.6% 真实覆盖。darkFrac=0.976 主要是把深色主题底色、深色矩形/边框等低亮度像素计入暗区——属阈值口径问题，不能代表圆形遮罩面积",
+          "terminal_pass": "Luna 三轮确认 frame-0105-1789ms.jpg：整页稳定深色、标题/按钮/右栏文字可辨读、无白色大块残留 → PASS",
+          "judge": "|圆心−点击坐标|≤4px（计划4.3-4）。Luna 三轮：radial_rms≤4px 效力限于「仍能看见明确弧边的早中段」= valid_range ts 221–478ms；darkFrac 不可用作遮罩覆盖率；径向残差以点击点为固定圆心、非独立圆心估计 → 条件性证据（独立圆心估计归 P7）"
         },
         "darkFrac_transition_sample": {
           "seq": 10,
@@ -224,7 +225,7 @@
           "darkFrac": 0.1527
         }
       },
-      "judge": "Luna 二轮：扩散平滑/无触底跳变 PASS；圆心条件性接受（视觉位于右上点击区，radial_rms 88/88≤4px，但非独立圆心估计）→ 独立圆心拟合+覆盖角度分布+底部触底关键帧由 P7 补；问题10 键盘/命令面板/设置慢点击三路径圆心缺陷属 P7",
+      "judge": "Luna 三轮：扩散平滑/无触底跳变 PASS；终态 frame-0105-1789ms PASS（整页深色、文字可辨读、无白色残留）；圆心条件性接受（visual 位于右上点击区，radial_rms 在 valid_range ts 221–478ms 内 ≤4px，但非独立圆心估计；darkFrac 不可用作覆盖率）→ 独立圆心拟合+覆盖角度分布+底部触底关键帧由 P7 补；问题10 三路径圆心缺陷属 P7",
       "files": [
         {
           "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/timeline.json",
@@ -690,7 +691,7 @@
           }
         ]
       },
-      "judge": "Luna 二轮：9/9 PASS（三视口×三页局部布局基线，无硬切/重叠/溢出）；问题4「扫描中右栏纵向挤压」观察无法在 P0 证据中定位（结构性原因：P0 三探针均未触发扫描，右栏恒为待机/浏览态，非扫描态；动态拥挤截图归 P3）",
+      "judge": "Luna 三轮：9/9 PASS（三视口×三页布局基线，无硬切/重叠/溢出）；问题4「扫描中右栏纵向挤压」观察——Luna 第三轮明确回复无法指认具体证据文件，经核实不予归档（P0 证据不含扫描态，结构性：P0 三探针未触发扫描），P3 需另行取证",
       "files": [
         {
           "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/viewport_shots/1366x768/workspace-1366x768.png",
