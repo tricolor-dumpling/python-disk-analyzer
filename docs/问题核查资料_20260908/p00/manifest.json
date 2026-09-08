@@ -1,7 +1,7 @@
 {
   "phase": "P0 视觉验收证据清单",
   "root_abs": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00",
-  "generated_at": "2026-09-08T14:59:33.345Z",
+  "generated_at": "2026-09-08T15:42:54.215Z",
   "env": {
     "base": "http://127.0.0.1:5000/",
     "viewport_default": "1366x768",
@@ -9,93 +9,210 @@
   },
   "evidence_groups": [
     {
-      "key": "frame_recorder",
+      "key": "frame_recorder_dom",
       "tool": "scripts/dev/p00_frame_recorder.mjs",
-      "purpose": "问题2 视图切换残留（排行→关系）—— rAF 帧级 DOM 记录 + 关键帧高保真截图",
-      "sampling": "rAF ≈16.7ms/帧；采样窗=触发前100ms→动画全程+200ms收尾（约1050ms，与 P2 基线 63 帧同量级）",
+      "purpose": "问题2 视图切换残留（排行→关系）—— DOM 轨：页内 rAF 逐帧记录 #treemap-wrap 的 hidden/opacity/elementFromPoint 归属",
+      "sampling": "rAF ≈16.7ms/帧；采样窗=触发前~100ms→动画全程+200ms收尾（本轮最差轮 89 帧）",
       "criteria": "违规帧=非活动视图期间 #treemap-wrap 无 hidden 且 opacity>0 且 elementFromPoint 落回 treemap-canvas/wrap 内（与 P2-视图切换帧级证据.json 同口径）",
       "vs_p2_baseline": {
         "p2_rank2relate": {
           "frames": 63,
           "badFrames": 9,
-          "firstBad_ts": 9946,
           "firstBad_op": "1",
           "firstBad_hit": "treemap-canvas"
         },
         "this_rank2relate": {
-          "sequence": "ranking2relate",
-          "frames": 69,
+          "round": 1,
+          "frames": 88,
           "badFrames": 9,
-          "firstBad": {
-            "ts": 188,
-            "twHidden": false,
-            "twOpacity": "1",
-            "hit": "canvas",
-            "inTm": true
-          }
+          "domBadOff_ms": [
+            11,
+            144
+          ]
         },
-        "sem": "帧数与违规帧数同量级、首违规特征一致（opacity=1 命中 treemap）→ 硬闸门通过"
+        "sem": "帧数与违规帧数同量级、首违规特征一致（opacity=1 命中 treemap）→ DOM 轨硬闸门通过"
       },
       "files": [
         {
           "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/frames.json",
-          "desc": "全部采样帧（含 hidden/opacity/hit/inTm/activeView/acts/ts）"
+          "desc": "最差轮全部 DOM 帧（含 hidden/opacity/hit/inTm/activeView/acts/ts）"
         },
         {
           "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/summary.json",
-          "desc": "逐轮 帧数/违规帧数/首违规ts 摘要"
+          "desc": "逐轮帧数/违规帧数/首末违规偏移 + 双时钟对齐锚点 + 像素帧计数"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/keyframes.json",
-          "desc": "关键帧 PNG 清单"
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/terminal-relate.png",
+          "desc": "终态静态图（page.screenshot ≈130ms/张，仅观感，不含时间戳命名，不作帧级证据）"
+        }
+      ]
+    },
+    {
+      "key": "frame_recorder_pixel",
+      "tool": "scripts/dev/p00_frame_recorder.mjs（复用 _harness.screencast）",
+      "purpose": "问题2 像素级证据—— CDP Page.startScreencast 在同一轮序列内同步采集像素帧，相对触发点时间戳与 DOM 轨对齐；违规窗口内帧单独标记",
+      "sampling": "CDP screencast 实测平均 ~30–46ms/帧（本机负载相关）；时窗=触发前~100ms→动画+200ms 收尾",
+      "alignment": "DOM ts=page perf-now - rec.start；px ts=CDP ts - t0；触发锚点 pagePerfAtClick/nodeWallAtClick 双时钟就近读取（偏差 ~1-3ms）；off(frame)=ts-(pagePerfAtClick-recStart)；off(px)=px.ts-(nodeWallAtClick-t0)；违规窗口=[首,末]off ±5ms",
+      "dom_violation_window_ms": [
+        11,
+        144
+      ],
+      "quantitative": {
+        "pixel_frames": 16,
+        "pixel_hash_unique_total": "10/16",
+        "violation_window_pixels": 8,
+        "in_window_unique": 8
+      },
+      "note": "像素证据采用 CDP screencast 而非 page.screenshot（≈130ms/张无法覆盖 33ms 级违规窗口）；文件名 px-<seq>-trig+<off>ms.jpg 的 off 为相对触发点真实偏移",
+      "judge": "待 gpt-5.6-luna 判读（残留矩形图色块的像素呈现/淡化曲线）",
+      "files": [
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-timeline.json",
+          "desc": "像素帧相对触发点时间戳 + inWin 标记 + 违规窗口 meta"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/keyframes/key-frame-0009-ts188-shown.png",
-          "desc": "关键帧 PNG（首/中/末违规帧 + 终态；截图节奏≈130ms/张，仅关键帧）"
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-hashes.json",
+          "desc": "每张像素帧 SHA-256 自证（unique/total）"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/keyframes/key-frame-0017-ts295-shown.png",
-          "desc": "关键帧 PNG（首/中/末违规帧 + 终态；截图节奏≈130ms/张，仅关键帧）"
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0001-trig+-71ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/keyframes/key-frame-0013-ts228-shown.png",
-          "desc": "关键帧 PNG（首/中/末违规帧 + 终态；截图节奏≈130ms/张，仅关键帧）"
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0002-trig+-62ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/keyframes/key-frame-0068-ts1145-hidden.png",
-          "desc": "关键帧 PNG（首/中/末违规帧 + 终态；截图节奏≈130ms/张，仅关键帧）"
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0003-trig+-47ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0004-trig+-31ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0005-trig+-17ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0006-trig+11ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0007-trig+28ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0008-trig+78ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0009-trig+80ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0010-trig+94ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0011-trig+107ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0012-trig+123ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0013-trig+137ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0014-trig+153ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0015-trig+169ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/screencast/px-0016-trig+183ms.jpg",
+          "desc": "CDP screencast 像素帧（相对触发点真实 ts）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/violation-window/px-0006-trig+11ms.jpg",
+          "desc": "违规窗口内像素帧副本（问题2 像素级残留证据）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/violation-window/px-0007-trig+28ms.jpg",
+          "desc": "违规窗口内像素帧副本（问题2 像素级残留证据）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/violation-window/px-0008-trig+78ms.jpg",
+          "desc": "违规窗口内像素帧副本（问题2 像素级残留证据）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/violation-window/px-0009-trig+80ms.jpg",
+          "desc": "违规窗口内像素帧副本（问题2 像素级残留证据）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/violation-window/px-0010-trig+94ms.jpg",
+          "desc": "违规窗口内像素帧副本（问题2 像素级残留证据）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/violation-window/px-0011-trig+107ms.jpg",
+          "desc": "违规窗口内像素帧副本（问题2 像素级残留证据）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/violation-window/px-0012-trig+123ms.jpg",
+          "desc": "违规窗口内像素帧副本（问题2 像素级残留证据）"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/frame_recorder/violation-window/px-0013-trig+137ms.jpg",
+          "desc": "违规窗口内像素帧副本（问题2 像素级残留证据）"
         }
       ]
     },
     {
       "key": "theme_screencast",
       "tool": "scripts/dev/p00_theme_screencast.mjs",
-      "purpose": "问题10 主题扩散—— CDP Page.startScreencast 逐帧像素 + 亮度/暗区面积曲线（顶栏 #btn-theme 触发 light→dark）",
-      "sampling": "CDP screencast 实测平均 ~39ms/帧（本机负载相关，20–46ms）；时窗 1800ms 覆盖 450ms 扩散 + 收尾",
+      "purpose": "问题10 主题扩散—— CDP Page.startScreencast 逐帧像素 + 亮度/暗区面积曲线 + 点击坐标 + 每帧圆拟合（顶栏 #btn-theme 触发 light→dark）",
+      "sampling": "CDP screencast 实测平均 ~30–46ms/帧（本机负载相关）；时窗 1800ms 覆盖 450ms 扩散 + 收尾；ts 单调不减",
+      "ts_policy": "ts 单调不减（按 seq 稳定序 + 单调夹取）；rawTs=CDP metadata 原始推算值保留核对；clamped 见 timeline.json meta",
       "quantitative": {
-        "frames": 39,
+        "frames": 105,
+        "clickCoord": {
+          "x": 995,
+          "y": 30
+        },
         "startTheme": "light",
         "endTheme": "dark",
         "switched": true,
         "brightness_range": [
-          0.83423,
-          0.28117
+          0.9673,
+          0.11142
         ],
         "darkFrac_range": [
-          0.09033,
-          0.66661
+          0.01997,
+          0.97655
         ],
+        "circle_fit": {
+          "fitted_frames": 88,
+          "dev_from_click_px_min": 1.61,
+          "dev_from_click_px_max": 2.28,
+          "dev_from_click_px_mean": 1.68,
+          "judge": "|圆心−点击坐标|≤4px（计划4.3-4；P0 只产出数字，PASS/FAIL 由 Luna 判）"
+        },
         "darkFrac_transition_sample": {
-          "seq": 12,
-          "ts": 290,
-          "darkFrac": 0.10076
+          "seq": 10,
+          "ts": 221,
+          "darkFrac": 0.1527
         }
       },
-      "judge": "待 gpt-5.6-luna 判读（扩散圆心/面积曲线）；问题10 键盘/命令面板/设置慢点击三路径圆心缺陷属 P7",
+      "judge": "待 gpt-5.6-luna 判读（扩散圆心/面积曲线 + 圆拟合偏差）；问题10 键盘/命令面板/设置慢点击三路径圆心缺陷属 P7",
       "files": [
         {
           "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/timeline.json",
-          "desc": "每帧 seq/ts/文件相对路径"
+          "desc": "每帧 seq/ts/rawTs/文件相对路径（ts 单调不减）"
         },
         {
           "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/brightness.json",
@@ -106,163 +223,431 @@
           "desc": "暗区(灰度<128)像素占比曲线"
         },
         {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/circle_fit.json",
+          "desc": "每帧暗区边界圆拟合（center/radius/radial_rms=dev_from_click_px/点击坐标偏差）"
+        },
+        {
           "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/meta.json",
-          "desc": "start/end theme、console 错误、帧数"
+          "desc": "start/end theme、clickCoord、console 错误、帧数"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0001-33ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0001-29ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0002-52ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0002-46ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0003-66ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0003-63ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0004-80ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0004-70ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0005-94ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0005-98ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0006-111ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0006-108ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0007-127ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0007-181ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0008-160ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0008-195ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0009-140ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0009-198ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0010-181ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0010-221ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0011-214ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0011-240ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0012-290ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0012-249ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0013-301ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0013-271ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0014-320ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0014-278ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0015-330ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0015-295ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0016-337ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0016-312ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0017-379ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0017-325ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0018-389ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0018-339ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0019-398ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0019-361ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0020-431ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0020-377ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0021-433ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0021-392ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0022-448ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0022-407ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0023-464ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0023-423ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0024-480ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0024-439ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0025-494ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0025-461ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0026-509ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0026-478ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0027-525ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0027-495ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0028-547ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0028-511ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0029-564ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0029-528ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0030-581ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0030-544ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0031-599ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0031-562ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0032-615ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0032-578ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0033-631ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0033-595ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0034-648ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0034-612ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0035-664ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0035-624ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0036-678ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0036-640ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0037-698ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0037-655ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0038-714ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0038-670ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         },
         {
-          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0039-1530ms.jpg",
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0039-686ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0040-702ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0041-718ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0042-734ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0043-762ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0044-778ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0045-794ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0046-811ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0047-828ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0048-844ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0049-860ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0050-875ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0051-891ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0052-906ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0053-921ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0054-936ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0055-953ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0056-968ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0057-995ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0058-1012ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0059-1029ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0060-1045ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0061-1060ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0062-1074ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0063-1089ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0064-1104ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0065-1120ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0066-1135ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0067-1150ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0068-1178ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0069-1194ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0070-1211ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0071-1228ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0072-1242ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0073-1258ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0074-1275ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0075-1291ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0076-1306ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0077-1322ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0078-1337ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0079-1353ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0080-1368ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0081-1385ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0082-1411ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0083-1428ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0084-1445ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0085-1462ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0086-1477ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0087-1493ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0088-1510ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0089-1524ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0090-1540ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0091-1555ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0092-1570ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0093-1587ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0094-1606ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0095-1618ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0096-1634ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0097-1661ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0098-1678ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0099-1694ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0100-1710ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0101-1727ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0102-1741ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0103-1757ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0104-1773ms.jpg",
+          "desc": "CDP screencast 逐帧 JPEG"
+        },
+        {
+          "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p00/theme_screencast/screencast-frames/frame-0105-1789ms.jpg",
           "desc": "CDP screencast 逐帧 JPEG"
         }
       ]

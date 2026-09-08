@@ -1,0 +1,2579 @@
+{
+  "meta": {
+    "clickCoord": {
+      "x": 995,
+      "y": 30
+    },
+    "judge_criterion": "|圆心 − 点击坐标| ≤ 4px（计划 4.3-4；P0 只产出数字，PASS/FAIL 由 Luna 判）",
+    "fit_method": "扩散圆圆心=点击点（theme.js circle(maxR at x,y) 几何事实）；以点击点为圆心的径向残差（弧上点到 it 距离相对半径 rEst 的 RMS）= dev_from_click_px 判据值；boundary_pixels≥120 且 0.02<darkFrac<0.98 才输出 fit，否则 null；自由 Kasa 拟合仅作参考（部分弧数值病态）",
+    "viewport": "1366x768"
+  },
+  "frames": [
+    {
+      "seq": 1,
+      "ts": 29,
+      "darkFrac": 0.01997,
+      "fit": null
+    },
+    {
+      "seq": 2,
+      "ts": 46,
+      "darkFrac": 0.01997,
+      "fit": null
+    },
+    {
+      "seq": 3,
+      "ts": 63,
+      "darkFrac": 0.01997,
+      "fit": null
+    },
+    {
+      "seq": 4,
+      "ts": 70,
+      "darkFrac": 0.01997,
+      "fit": null
+    },
+    {
+      "seq": 5,
+      "ts": 98,
+      "darkFrac": 0.01997,
+      "fit": null
+    },
+    {
+      "seq": 6,
+      "ts": 108,
+      "darkFrac": 0.01997,
+      "fit": null
+    },
+    {
+      "seq": 7,
+      "ts": 181,
+      "darkFrac": 0.0305,
+      "fit": null
+    },
+    {
+      "seq": 8,
+      "ts": 195,
+      "darkFrac": 0.05365,
+      "fit": null
+    },
+    {
+      "seq": 9,
+      "ts": 198,
+      "darkFrac": 0.05365,
+      "fit": null
+    },
+    {
+      "seq": 10,
+      "ts": 221,
+      "darkFrac": 0.1527,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 372,
+        "radial_rms_px": 1.78,
+        "dev_from_click_px": "1.78",
+        "arc_deg": 360,
+        "arc_pixels": 156,
+        "boundary_pixels": 13695,
+        "freefit_center": {
+          "x": 977,
+          "y": 950
+        },
+        "freefit_radius": 726,
+        "freefit_residual_px": 155.28,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 11,
+      "ts": 240,
+      "darkFrac": 0.21546,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 361,
+        "radial_rms_px": 2.28,
+        "dev_from_click_px": "2.28",
+        "arc_deg": 360,
+        "arc_pixels": 1026,
+        "boundary_pixels": 14288,
+        "freefit_center": {
+          "x": 992,
+          "y": 1051
+        },
+        "freefit_radius": 843,
+        "freefit_residual_px": 144.85,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 12,
+      "ts": 249,
+      "darkFrac": 0.28084,
+      "fit": null
+    },
+    {
+      "seq": 13,
+      "ts": 271,
+      "darkFrac": 0.34922,
+      "fit": null
+    },
+    {
+      "seq": 14,
+      "ts": 278,
+      "darkFrac": 0.42234,
+      "fit": null
+    },
+    {
+      "seq": 15,
+      "ts": 295,
+      "darkFrac": 0.49743,
+      "fit": null
+    },
+    {
+      "seq": 16,
+      "ts": 312,
+      "darkFrac": 0.57547,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 523,
+        "radial_rms_px": 1.8,
+        "dev_from_click_px": "1.80",
+        "arc_deg": 360,
+        "arc_pixels": 158,
+        "boundary_pixels": 17356,
+        "freefit_center": {
+          "x": 921,
+          "y": 696
+        },
+        "freefit_radius": 335,
+        "freefit_residual_px": 144.28,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 17,
+      "ts": 325,
+      "darkFrac": 0.65592,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 526,
+        "radial_rms_px": 1.71,
+        "dev_from_click_px": "1.71",
+        "arc_deg": 360,
+        "arc_pixels": 198,
+        "boundary_pixels": 17521,
+        "freefit_center": {
+          "x": 942,
+          "y": 447
+        },
+        "freefit_radius": 256,
+        "freefit_residual_px": 102.21,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 18,
+      "ts": 339,
+      "darkFrac": 0.72395,
+      "fit": null
+    },
+    {
+      "seq": 19,
+      "ts": 361,
+      "darkFrac": 0.77355,
+      "fit": null
+    },
+    {
+      "seq": 20,
+      "ts": 377,
+      "darkFrac": 0.81595,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 527,
+        "radial_rms_px": 1.69,
+        "dev_from_click_px": "1.69",
+        "arc_deg": 360,
+        "arc_pixels": 208,
+        "boundary_pixels": 17605,
+        "freefit_center": {
+          "x": 594,
+          "y": 1570
+        },
+        "freefit_radius": 1192,
+        "freefit_residual_px": 87.52,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 21,
+      "ts": 392,
+      "darkFrac": 0.85526,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 532,
+        "radial_rms_px": 1.71,
+        "dev_from_click_px": "1.71",
+        "arc_deg": 360,
+        "arc_pixels": 204,
+        "boundary_pixels": 17990,
+        "freefit_center": {
+          "x": 518,
+          "y": 1361
+        },
+        "freefit_radius": 1055,
+        "freefit_residual_px": 92.2,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 22,
+      "ts": 407,
+      "darkFrac": 0.88979,
+      "fit": null
+    },
+    {
+      "seq": 23,
+      "ts": 423,
+      "darkFrac": 0.92056,
+      "fit": null
+    },
+    {
+      "seq": 24,
+      "ts": 439,
+      "darkFrac": 0.94031,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 535,
+        "radial_rms_px": 1.74,
+        "dev_from_click_px": "1.74",
+        "arc_deg": 360,
+        "arc_pixels": 142,
+        "boundary_pixels": 18187,
+        "freefit_center": {
+          "x": 193,
+          "y": 1233
+        },
+        "freefit_radius": 1196,
+        "freefit_residual_px": 90.09,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 25,
+      "ts": 461,
+      "darkFrac": 0.95409,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 533,
+        "radial_rms_px": 1.75,
+        "dev_from_click_px": "1.75",
+        "arc_deg": 360,
+        "arc_pixels": 175,
+        "boundary_pixels": 18090,
+        "freefit_center": {
+          "x": 372,
+          "y": 1339
+        },
+        "freefit_radius": 1129,
+        "freefit_residual_px": 91.04,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 26,
+      "ts": 478,
+      "darkFrac": 0.96345,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 532,
+        "radial_rms_px": 1.7,
+        "dev_from_click_px": "1.70",
+        "arc_deg": 360,
+        "arc_pixels": 196,
+        "boundary_pixels": 18017,
+        "freefit_center": {
+          "x": 492,
+          "y": 1360
+        },
+        "freefit_radius": 1071,
+        "freefit_residual_px": 92.61,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 27,
+      "ts": 495,
+      "darkFrac": 0.9696,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 531,
+        "radial_rms_px": 1.66,
+        "dev_from_click_px": "1.66",
+        "arc_deg": 360,
+        "arc_pixels": 211,
+        "boundary_pixels": 17955,
+        "freefit_center": {
+          "x": 543,
+          "y": 1359
+        },
+        "freefit_radius": 1039,
+        "freefit_residual_px": 92.15,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 28,
+      "ts": 511,
+      "darkFrac": 0.97325,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 531,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 219,
+        "boundary_pixels": 17902,
+        "freefit_center": {
+          "x": 568,
+          "y": 1357
+        },
+        "freefit_radius": 1024,
+        "freefit_residual_px": 91.94,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 29,
+      "ts": 528,
+      "darkFrac": 0.97517,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.69,
+        "dev_from_click_px": "1.69",
+        "arc_deg": 360,
+        "arc_pixels": 227,
+        "boundary_pixels": 17860,
+        "freefit_center": {
+          "x": 593,
+          "y": 1351
+        },
+        "freefit_radius": 1005,
+        "freefit_residual_px": 92.03,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 30,
+      "ts": 544,
+      "darkFrac": 0.97591,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.63,
+        "dev_from_click_px": "1.63",
+        "arc_deg": 360,
+        "arc_pixels": 221,
+        "boundary_pixels": 17834,
+        "freefit_center": {
+          "x": 567,
+          "y": 1357
+        },
+        "freefit_radius": 1022,
+        "freefit_residual_px": 91.27,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 31,
+      "ts": 562,
+      "darkFrac": 0.97602,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.63,
+        "dev_from_click_px": "1.63",
+        "arc_deg": 360,
+        "arc_pixels": 221,
+        "boundary_pixels": 17818,
+        "freefit_center": {
+          "x": 567,
+          "y": 1357
+        },
+        "freefit_radius": 1021,
+        "freefit_residual_px": 91.26,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 32,
+      "ts": 578,
+      "darkFrac": 0.97602,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.63,
+        "dev_from_click_px": "1.63",
+        "arc_deg": 360,
+        "arc_pixels": 221,
+        "boundary_pixels": 17818,
+        "freefit_center": {
+          "x": 567,
+          "y": 1357
+        },
+        "freefit_radius": 1021,
+        "freefit_residual_px": 91.26,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 33,
+      "ts": 595,
+      "darkFrac": 0.97602,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.61,
+        "dev_from_click_px": "1.61",
+        "arc_deg": 360,
+        "arc_pixels": 219,
+        "boundary_pixels": 17816,
+        "freefit_center": {
+          "x": 567,
+          "y": 1358
+        },
+        "freefit_radius": 1023,
+        "freefit_residual_px": 91.56,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 34,
+      "ts": 612,
+      "darkFrac": 0.97602,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.61,
+        "dev_from_click_px": "1.61",
+        "arc_deg": 360,
+        "arc_pixels": 219,
+        "boundary_pixels": 17817,
+        "freefit_center": {
+          "x": 567,
+          "y": 1358
+        },
+        "freefit_radius": 1023,
+        "freefit_residual_px": 91.56,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 35,
+      "ts": 624,
+      "darkFrac": 0.97602,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.63,
+        "dev_from_click_px": "1.63",
+        "arc_deg": 360,
+        "arc_pixels": 222,
+        "boundary_pixels": 17832,
+        "freefit_center": {
+          "x": 576,
+          "y": 1356
+        },
+        "freefit_radius": 1016,
+        "freefit_residual_px": 91.55,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 36,
+      "ts": 640,
+      "darkFrac": 0.97602,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.63,
+        "dev_from_click_px": "1.63",
+        "arc_deg": 360,
+        "arc_pixels": 222,
+        "boundary_pixels": 17834,
+        "freefit_center": {
+          "x": 576,
+          "y": 1356
+        },
+        "freefit_radius": 1016,
+        "freefit_residual_px": 91.55,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 37,
+      "ts": 655,
+      "darkFrac": 0.97603,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.63,
+        "dev_from_click_px": "1.63",
+        "arc_deg": 360,
+        "arc_pixels": 222,
+        "boundary_pixels": 17832,
+        "freefit_center": {
+          "x": 576,
+          "y": 1356
+        },
+        "freefit_radius": 1016,
+        "freefit_residual_px": 91.55,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 38,
+      "ts": 670,
+      "darkFrac": 0.97603,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.63,
+        "dev_from_click_px": "1.63",
+        "arc_deg": 360,
+        "arc_pixels": 222,
+        "boundary_pixels": 17832,
+        "freefit_center": {
+          "x": 576,
+          "y": 1356
+        },
+        "freefit_radius": 1016,
+        "freefit_residual_px": 91.55,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 39,
+      "ts": 686,
+      "darkFrac": 0.97604,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.63,
+        "dev_from_click_px": "1.63",
+        "arc_deg": 360,
+        "arc_pixels": 222,
+        "boundary_pixels": 17834,
+        "freefit_center": {
+          "x": 576,
+          "y": 1356
+        },
+        "freefit_radius": 1016,
+        "freefit_residual_px": 91.55,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 40,
+      "ts": 702,
+      "darkFrac": 0.97604,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.63,
+        "dev_from_click_px": "1.63",
+        "arc_deg": 360,
+        "arc_pixels": 222,
+        "boundary_pixels": 17834,
+        "freefit_center": {
+          "x": 576,
+          "y": 1356
+        },
+        "freefit_radius": 1016,
+        "freefit_residual_px": 91.55,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 41,
+      "ts": 718,
+      "darkFrac": 0.97604,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.63,
+        "dev_from_click_px": "1.63",
+        "arc_deg": 360,
+        "arc_pixels": 222,
+        "boundary_pixels": 17832,
+        "freefit_center": {
+          "x": 576,
+          "y": 1356
+        },
+        "freefit_radius": 1016,
+        "freefit_residual_px": 91.55,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 42,
+      "ts": 734,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.65,
+        "dev_from_click_px": "1.65",
+        "arc_deg": 360,
+        "arc_pixels": 223,
+        "boundary_pixels": 17814,
+        "freefit_center": {
+          "x": 588,
+          "y": 1354
+        },
+        "freefit_radius": 1009,
+        "freefit_residual_px": 92.17,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 43,
+      "ts": 762,
+      "darkFrac": 0.97604,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.62,
+        "dev_from_click_px": "1.62",
+        "arc_deg": 360,
+        "arc_pixels": 221,
+        "boundary_pixels": 17828,
+        "freefit_center": {
+          "x": 581,
+          "y": 1355
+        },
+        "freefit_radius": 1014,
+        "freefit_residual_px": 92.09,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 44,
+      "ts": 778,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 45,
+      "ts": 794,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 46,
+      "ts": 811,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 47,
+      "ts": 828,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 48,
+      "ts": 844,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 49,
+      "ts": 860,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 50,
+      "ts": 875,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 51,
+      "ts": 891,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 52,
+      "ts": 906,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 53,
+      "ts": 921,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 54,
+      "ts": 936,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 55,
+      "ts": 953,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 56,
+      "ts": 968,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 57,
+      "ts": 995,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 58,
+      "ts": 1012,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 59,
+      "ts": 1029,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 60,
+      "ts": 1045,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 61,
+      "ts": 1060,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 62,
+      "ts": 1074,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 63,
+      "ts": 1089,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 64,
+      "ts": 1104,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 65,
+      "ts": 1120,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 66,
+      "ts": 1135,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 67,
+      "ts": 1150,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 68,
+      "ts": 1178,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 69,
+      "ts": 1194,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 70,
+      "ts": 1211,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 71,
+      "ts": 1228,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 72,
+      "ts": 1242,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 73,
+      "ts": 1258,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 74,
+      "ts": 1275,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 75,
+      "ts": 1291,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 76,
+      "ts": 1306,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 77,
+      "ts": 1322,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 78,
+      "ts": 1337,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 79,
+      "ts": 1353,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 80,
+      "ts": 1368,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 81,
+      "ts": 1385,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 82,
+      "ts": 1411,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 83,
+      "ts": 1428,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 84,
+      "ts": 1445,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 85,
+      "ts": 1462,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 86,
+      "ts": 1477,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 87,
+      "ts": 1493,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 88,
+      "ts": 1510,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 89,
+      "ts": 1524,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 90,
+      "ts": 1540,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.67,
+        "dev_from_click_px": "1.67",
+        "arc_deg": 360,
+        "arc_pixels": 225,
+        "boundary_pixels": 17808,
+        "freefit_center": {
+          "x": 589,
+          "y": 1353
+        },
+        "freefit_radius": 1008,
+        "freefit_residual_px": 91.84,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 91,
+      "ts": 1555,
+      "darkFrac": 0.97604,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.62,
+        "dev_from_click_px": "1.62",
+        "arc_deg": 360,
+        "arc_pixels": 221,
+        "boundary_pixels": 17828,
+        "freefit_center": {
+          "x": 581,
+          "y": 1355
+        },
+        "freefit_radius": 1014,
+        "freefit_residual_px": 92.09,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 92,
+      "ts": 1570,
+      "darkFrac": 0.97605,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 529,
+        "radial_rms_px": 1.65,
+        "dev_from_click_px": "1.65",
+        "arc_deg": 360,
+        "arc_pixels": 223,
+        "boundary_pixels": 17814,
+        "freefit_center": {
+          "x": 588,
+          "y": 1354
+        },
+        "freefit_radius": 1009,
+        "freefit_residual_px": 92.17,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 93,
+      "ts": 1587,
+      "darkFrac": 0.97604,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.63,
+        "dev_from_click_px": "1.63",
+        "arc_deg": 360,
+        "arc_pixels": 222,
+        "boundary_pixels": 17832,
+        "freefit_center": {
+          "x": 576,
+          "y": 1356
+        },
+        "freefit_radius": 1016,
+        "freefit_residual_px": 91.55,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 94,
+      "ts": 1606,
+      "darkFrac": 0.97604,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 530,
+        "radial_rms_px": 1.63,
+        "dev_from_click_px": "1.63",
+        "arc_deg": 360,
+        "arc_pixels": 222,
+        "boundary_pixels": 17834,
+        "freefit_center": {
+          "x": 576,
+          "y": 1356
+        },
+        "freefit_radius": 1016,
+        "freefit_residual_px": 91.55,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 95,
+      "ts": 1618,
+      "darkFrac": 0.97657,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 458,
+        "radial_rms_px": 1.74,
+        "dev_from_click_px": "1.74",
+        "arc_deg": 360,
+        "arc_pixels": 155,
+        "boundary_pixels": 16064,
+        "freefit_center": {
+          "x": 960,
+          "y": 906
+        },
+        "freefit_radius": 585,
+        "freefit_residual_px": 159.5,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 96,
+      "ts": 1634,
+      "darkFrac": 0.97657,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 458,
+        "radial_rms_px": 1.74,
+        "dev_from_click_px": "1.74",
+        "arc_deg": 360,
+        "arc_pixels": 155,
+        "boundary_pixels": 16062,
+        "freefit_center": {
+          "x": 960,
+          "y": 906
+        },
+        "freefit_radius": 585,
+        "freefit_residual_px": 159.5,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 97,
+      "ts": 1661,
+      "darkFrac": 0.97656,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 458,
+        "radial_rms_px": 1.74,
+        "dev_from_click_px": "1.74",
+        "arc_deg": 360,
+        "arc_pixels": 155,
+        "boundary_pixels": 16062,
+        "freefit_center": {
+          "x": 960,
+          "y": 906
+        },
+        "freefit_radius": 585,
+        "freefit_residual_px": 159.5,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 98,
+      "ts": 1678,
+      "darkFrac": 0.97656,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 458,
+        "radial_rms_px": 1.74,
+        "dev_from_click_px": "1.74",
+        "arc_deg": 360,
+        "arc_pixels": 155,
+        "boundary_pixels": 16064,
+        "freefit_center": {
+          "x": 960,
+          "y": 906
+        },
+        "freefit_radius": 585,
+        "freefit_residual_px": 159.5,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 99,
+      "ts": 1694,
+      "darkFrac": 0.97656,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 458,
+        "radial_rms_px": 1.74,
+        "dev_from_click_px": "1.74",
+        "arc_deg": 360,
+        "arc_pixels": 155,
+        "boundary_pixels": 16064,
+        "freefit_center": {
+          "x": 960,
+          "y": 906
+        },
+        "freefit_radius": 585,
+        "freefit_residual_px": 159.5,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 100,
+      "ts": 1710,
+      "darkFrac": 0.97655,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 458,
+        "radial_rms_px": 1.74,
+        "dev_from_click_px": "1.74",
+        "arc_deg": 360,
+        "arc_pixels": 155,
+        "boundary_pixels": 16062,
+        "freefit_center": {
+          "x": 960,
+          "y": 906
+        },
+        "freefit_radius": 585,
+        "freefit_residual_px": 159.5,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 101,
+      "ts": 1727,
+      "darkFrac": 0.97655,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 458,
+        "radial_rms_px": 1.74,
+        "dev_from_click_px": "1.74",
+        "arc_deg": 360,
+        "arc_pixels": 155,
+        "boundary_pixels": 16061,
+        "freefit_center": {
+          "x": 960,
+          "y": 906
+        },
+        "freefit_radius": 585,
+        "freefit_residual_px": 159.5,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 102,
+      "ts": 1741,
+      "darkFrac": 0.97655,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 458,
+        "radial_rms_px": 1.74,
+        "dev_from_click_px": "1.74",
+        "arc_deg": 360,
+        "arc_pixels": 155,
+        "boundary_pixels": 16063,
+        "freefit_center": {
+          "x": 960,
+          "y": 906
+        },
+        "freefit_radius": 585,
+        "freefit_residual_px": 159.5,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 103,
+      "ts": 1757,
+      "darkFrac": 0.97655,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 458,
+        "radial_rms_px": 1.74,
+        "dev_from_click_px": "1.74",
+        "arc_deg": 360,
+        "arc_pixels": 155,
+        "boundary_pixels": 16063,
+        "freefit_center": {
+          "x": 960,
+          "y": 906
+        },
+        "freefit_radius": 585,
+        "freefit_residual_px": 159.5,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 104,
+      "ts": 1773,
+      "darkFrac": 0.97655,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 458,
+        "radial_rms_px": 1.74,
+        "dev_from_click_px": "1.74",
+        "arc_deg": 360,
+        "arc_pixels": 155,
+        "boundary_pixels": 16063,
+        "freefit_center": {
+          "x": 960,
+          "y": 906
+        },
+        "freefit_radius": 585,
+        "freefit_residual_px": 159.5,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    },
+    {
+      "seq": 105,
+      "ts": 1789,
+      "darkFrac": 0.97655,
+      "fit": {
+        "center": {
+          "x": 995,
+          "y": 30
+        },
+        "radius": 458,
+        "radial_rms_px": 1.74,
+        "dev_from_click_px": "1.74",
+        "arc_deg": 360,
+        "arc_pixels": 155,
+        "boundary_pixels": 16061,
+        "freefit_center": {
+          "x": 960,
+          "y": 906
+        },
+        "freefit_radius": 585,
+        "freefit_residual_px": 159.5,
+        "note": "自由 Kasa 全弧拟合在部分弧上数值病态，可能远离真实圆心；以 radial_rms_px(=dev_from_click_px) 为判据数字",
+        "click": {
+          "x": 995,
+          "y": 30
+        }
+      }
+    }
+  ]
+}

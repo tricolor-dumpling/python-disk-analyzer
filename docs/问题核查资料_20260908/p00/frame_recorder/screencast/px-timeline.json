@@ -1,0 +1,115 @@
+{
+  "meta": {
+    "round": 1,
+    "domBadOff": [
+      11,
+      144
+    ],
+    "winTolMs": 5,
+    "anchors": {
+      "recStart": 1984.2000000476837,
+      "pagePerfAtClick": 2091,
+      "nodeWallAtClick": 1788881797060,
+      "scT0": 1788881796957,
+      "clickError": null
+    }
+  },
+  "frames": [
+    {
+      "seq": 1,
+      "off": -71,
+      "inWin": false,
+      "file": "screencast\\px-0001-trig+-71ms.jpg"
+    },
+    {
+      "seq": 2,
+      "off": -62,
+      "inWin": false,
+      "file": "screencast\\px-0002-trig+-62ms.jpg"
+    },
+    {
+      "seq": 3,
+      "off": -47,
+      "inWin": false,
+      "file": "screencast\\px-0003-trig+-47ms.jpg"
+    },
+    {
+      "seq": 4,
+      "off": -31,
+      "inWin": false,
+      "file": "screencast\\px-0004-trig+-31ms.jpg"
+    },
+    {
+      "seq": 5,
+      "off": -17,
+      "inWin": false,
+      "file": "screencast\\px-0005-trig+-17ms.jpg"
+    },
+    {
+      "seq": 6,
+      "off": 11,
+      "inWin": true,
+      "file": "screencast\\px-0006-trig+11ms.jpg"
+    },
+    {
+      "seq": 7,
+      "off": 28,
+      "inWin": true,
+      "file": "screencast\\px-0007-trig+28ms.jpg"
+    },
+    {
+      "seq": 8,
+      "off": 78,
+      "inWin": true,
+      "file": "screencast\\px-0008-trig+78ms.jpg"
+    },
+    {
+      "seq": 9,
+      "off": 80,
+      "inWin": true,
+      "file": "screencast\\px-0009-trig+80ms.jpg"
+    },
+    {
+      "seq": 10,
+      "off": 94,
+      "inWin": true,
+      "file": "screencast\\px-0010-trig+94ms.jpg"
+    },
+    {
+      "seq": 11,
+      "off": 107,
+      "inWin": true,
+      "file": "screencast\\px-0011-trig+107ms.jpg"
+    },
+    {
+      "seq": 12,
+      "off": 123,
+      "inWin": true,
+      "file": "screencast\\px-0012-trig+123ms.jpg"
+    },
+    {
+      "seq": 13,
+      "off": 137,
+      "inWin": true,
+      "file": "screencast\\px-0013-trig+137ms.jpg"
+    },
+    {
+      "seq": 14,
+      "off": 153,
+      "inWin": false,
+      "file": "screencast\\px-0014-trig+153ms.jpg"
+    },
+    {
+      "seq": 15,
+      "off": 169,
+      "inWin": false,
+      "file": "screencast\\px-0015-trig+169ms.jpg"
+    },
+    {
+      "seq": 16,
+      "off": 183,
+      "inWin": false,
+      "file": "screencast\\px-0016-trig+183ms.jpg"
+    }
+  ]
+}

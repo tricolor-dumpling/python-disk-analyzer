@@ -132,31 +132,42 @@ import { chromium, launch } from "./_harness.mjs";
 - `PW_PATH`（缺省 `C:/Users/Laptop/.dsh/profiles/web/node_modules/playwright`，`PDS_PW` 覆盖）+ `CHROMIUM_EXE`（缺省 `C:/Users/Laptop/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe`，`PDS_CHROME` 覆盖）。
 - `chromium` 是 Proxy 包装：`chromium.launch(opts)` 在未传 `executablePath` 且未传 `channel` 时自动注入 `CHROMIUM_EXE`（既有调用 `{headless:true}` 无需改）；传 `channel:"msedge"` 时不注入。
 - `launch(opts)` 同语义（默认 `headless:true`）。
-- 通用：`arg(name, dflt)`、`wait(ms)`、`shot(page, file, clip)`、`frameRecorderSource()`（页内 rAF 记录器源码，注入 `page.addInitScript`）、`screencast(page, opts)`（CDP 逐帧像素）。
+- 通用：`arg(name, dflt)`、`wait(ms)`、`shot(page, file, clip)`、`frameRecorderSource()`（页内 rAF 记录器源码，含 `meta()` 暴露 rec.start 供双时钟对齐）、`screencast(page, opts)`（CDP 逐帧像素；**产出 ts 单调不减**，保留 rawTs 供核对，见 `timeline.json` meta）。
 - 一次性改造脚本：`node scripts/dev/refactor_probe_imports.mjs [--check]`（仅动引入路径，断言零改动）。
 
-### 6.2 `p00_frame_recorder.mjs`（A 类：rAF 帧级 DOM 记录）
+### 6.2 `p00_frame_recorder.mjs`（A 类：DOM 帧 + CDP 像素帧双轨记录）
 
 ```powershell
-node scripts/dev/p00_frame_recorder.mjs --base http://127.0.0.1:5000/ --out <绝对路径> [--repeats 3] [--with-data]
+node scripts/dev/p00_frame_recorder.mjs --base http://127.0.0.1:5000/ --out <绝对路径> [--repeats 3] [--with-data] [--quality 60]
 ```
 
-- 页内 `requestAnimationFrame` 记录器（≈16.7ms/帧），逐帧采样 `#treemap-wrap` 的 `hidden` / computed `opacity` / `elementFromPoint(视区中心)` 归属 / 激活视图 / 运行中动画数。
-- 采样窗：触发前 100ms 基线 → 点击切换 → 动画全程 + 200ms 收尾（≈1050ms，对齐 P2 基线 63 帧量级）。
+- **双轨取证据，同一轮序列内同步**：
+  - **DOM 轨**：页内 `requestAnimationFrame` 记录器（≈16.7ms/帧），逐帧采样 `#treemap-wrap` 的 `hidden` / computed `opacity` / `elementFromPoint(视区中心)` 归属 / 激活视图 / 运行中动画数；
+  - **像素轨**：CDP `Page.startScreencast`（实测 20–46ms/帧，负载相关）在**同一轮序列**内同步采集 JPEG 像素帧，并按「相对触发点」时间戳与 DOM 轨对齐（双时钟锚点：DOM ts=page perf-now−rec.start；px ts=CDP ts−t0；触发瞬间就近读取两时钟，偏差~1–3ms，见 `summary.json`）。
+- **采样窗**：触发前 100ms 基线 → 点击切换 → 动画全程 + 200ms 收尾。
 - 默认桩态 fetch（确定性复现 treemap/ranking/table/relate 渲染）；`--with-data` 连真后端。
-- 输出：`frames.json`（全部帧）+ `summary.json`（逐轮 帧数/违规帧数/首违规 ts）+ `keyframes/*.png`（首/中/末违规帧 + 终态帧高保真截图）。
 - **违规帧判据（与 `P2-视图切换帧级证据.json` 同口径）**：非活动视图期间 `#treemap-wrap` 无 `hidden` 且 `opacity>0` 且命中测试落回 `treemap-canvas`/wrap 内。
-- **硬闸门基线（P2 rank2relate）**：63 帧 / 9 违规 / 首违规 opacity=1 命中 treemap-canvas。P0 实测（排行→关系，3 轮最差轮）：69 帧 / 9 违规 / 首违规 ts=188ms、opacity=1、hit=canvas、inTm=true —— **满足对照**（帧数与违规帧数同量级、特征一致）。
+- **输出**：
+  - `frames.json`（最差轮全部 DOM 帧）+ `summary.json`（逐轮 帧数/违规帧数/首末违规偏移 + 对齐锚点）；
+  - `screencast/px-<seq>-trig+<off>ms.jpg`（最差轮全部像素帧，`off`=相对触发点真实偏移）+ `px-timeline.json` + `px-hashes.json`（每帧 SHA-256）；
+  - `violation-window/`（落在 `[首违规 off, 末违规 off] ±5ms` 窗口内的像素帧副本，问题 2 的**像素级残留证据**）；
+  - `terminal-relate.png`（终态图，仅观感）。
+- **⚠️ 像素证据纪律（P0 返工要点）**：`page.screenshot()` ≈130ms/张，**无法**覆盖 33ms 级违规窗口，**绝不可**当作帧级证据、文件名**不得**带帧时间戳。像素级证据一律走 CDP screencast；`page.screenshot` 只能作终态静态图（无时间戳命名）。
+- **硬闸门基线（P2 rank2relate）**：63 帧 / 9 违规 / 首违规 opacity=1 命中 treemap-canvas。P0 v2 实测（排行→关系，3 轮，取轮 1 最差）：**88 DOM 帧 / 9 违规 / badOff=[11,144]ms；16 像素帧，8 张落入违规窗口且 8/8 彼此唯一、7/7 区别于触发前基线** —— DOM 与像素双轨均满足对照，硬闸门通过。
+- **像素证据纪律**：像素级帧一律 CDP screencast（见 §6.2 上文）；`page.screenshot`（≈130ms/张）只能作终态静态图、文件名不得带帧时间戳（本工具仅 `terminal-relate.png`，无时间戳）。
 
-### 6.3 `p00_theme_screencast.mjs`（B 类：CDP 逐帧像素）
+### 6.3 `p00_theme_screencast.mjs`（B 类：CDP 逐帧像素 + 圆心量化）
 
 ```powershell
 node scripts/dev/p00_theme_screencast.mjs --base http://127.0.0.1:5000/ --out <绝对路径> [--duration 1800] [--quality 60]
 ```
 
-- CDP `Page.startScreencast` 逐帧 JPEG（实测 20–46ms/帧，负载相关）+ 点击顶栏 `#btn-theme` 触发主题扩散。
-- 输出：`screencast-frames/frame-<seq>-<ts>ms.jpg` + `timeline.json` + `brightness.json`（整页亮度归一）+ `area.json`（暗区占比曲线）+ `meta.json`（start/end theme、console 错误）。
-- 判读材料供 P7（问题 10）圆心/面积曲线；P0 只产出帧序列与曲线，结论交 Luna。
+- CDP `Page.startScreencast` 逐帧 JPEG（实测 30–46ms/帧，负载相关）+ 以 `page.mouse.click` 在 `#btn-theme` 中心触发（**记录点击坐标 clickCoord**）。
+- 输出：`screencast-frames/frame-<seq>-<ts>ms.jpg`（ts 单调不减）+ `timeline.json` + `brightness.json` + `area.json`（暗区占比曲线）+ **`circle_fit.json`**（每帧暗区边界圆拟合）+ `meta.json`（clickCoord、start/end theme、console 错误）。
+- **圆心量化（问题10 / P7 判据 4.3-4：|圆心−点击坐标|≤4px）**：扩散圆圆心=点击点（theme.js `circle(maxR at x,y)`），故以**点击点为圆心的径向残差**（弧上点到点击点距离 vs 半径 rEst 的 RMS）为判据数字 `dev_from_click_px`；半径取边界点到点击点距离的中位数；另附自由 Kasa 拟合 center/radius/residual（部分弧上数值病态，仅参考）。
+- P0 实测（1366×768，105 帧）：88 帧可拟合，`dev_from_click_px` min=1.61 / max=2.28 / 均值=1.68px —— **全部 ≤4px**；**PASS/FAIL 仍由 Luna 判**，本工具只给数字。
+- **timeline 时间戳口径**：`_harness.screencast()` 的 ts 单调不减（按 seq 稳定序 + 单调夹取），保留 rawTs=CDP metadata 原始推算值供核对（返工2）。
+- 判读材料供 P7（问题 10）圆心/面积曲线；结论由 Luna 判。
 
 ### 6.4 `p00_viewport_shots.mjs`（C 类：多视口静态截图）
 

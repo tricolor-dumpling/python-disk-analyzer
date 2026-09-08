@@ -2,204 +2,642 @@
   "meta": {
     "durationMs": 1800,
     "quality": 60,
-    "startedAt": "2026-09-08T14:44:30.102Z",
-    "frames": 39
+    "startedAt": "2026-09-08T15:35:18.436Z",
+    "t0": 1788881718436,
+    "frames": 105,
+    "ts_policy": "ts 单调不减（按 seq 稳定序 + 单调夹取）；rawTs=CDP metadata 原始推算值保留核对",
+    "ts_clamped": false
   },
   "frames": [
     {
       "seq": 1,
-      "ts": 33,
-      "file": "screencast-frames\\frame-0001-33ms.jpg"
+      "ts": 29,
+      "rawTs": 29,
+      "file": "screencast-frames\\frame-0001-29ms.jpg"
     },
     {
       "seq": 2,
-      "ts": 52,
-      "file": "screencast-frames\\frame-0002-52ms.jpg"
+      "ts": 46,
+      "rawTs": 46,
+      "file": "screencast-frames\\frame-0002-46ms.jpg"
     },
     {
       "seq": 3,
-      "ts": 66,
-      "file": "screencast-frames\\frame-0003-66ms.jpg"
+      "ts": 63,
+      "rawTs": 63,
+      "file": "screencast-frames\\frame-0003-63ms.jpg"
     },
     {
       "seq": 4,
-      "ts": 80,
-      "file": "screencast-frames\\frame-0004-80ms.jpg"
+      "ts": 70,
+      "rawTs": 70,
+      "file": "screencast-frames\\frame-0004-70ms.jpg"
     },
     {
       "seq": 5,
-      "ts": 94,
-      "file": "screencast-frames\\frame-0005-94ms.jpg"
+      "ts": 98,
+      "rawTs": 98,
+      "file": "screencast-frames\\frame-0005-98ms.jpg"
     },
     {
       "seq": 6,
-      "ts": 111,
-      "file": "screencast-frames\\frame-0006-111ms.jpg"
+      "ts": 108,
+      "rawTs": 108,
+      "file": "screencast-frames\\frame-0006-108ms.jpg"
     },
     {
       "seq": 7,
-      "ts": 127,
-      "file": "screencast-frames\\frame-0007-127ms.jpg"
+      "ts": 181,
+      "rawTs": 181,
+      "file": "screencast-frames\\frame-0007-181ms.jpg"
     },
     {
       "seq": 8,
-      "ts": 160,
-      "file": "screencast-frames\\frame-0008-160ms.jpg"
+      "ts": 195,
+      "rawTs": 195,
+      "file": "screencast-frames\\frame-0008-195ms.jpg"
     },
     {
       "seq": 9,
-      "ts": 140,
-      "file": "screencast-frames\\frame-0009-140ms.jpg"
+      "ts": 198,
+      "rawTs": 198,
+      "file": "screencast-frames\\frame-0009-198ms.jpg"
     },
     {
       "seq": 10,
-      "ts": 181,
-      "file": "screencast-frames\\frame-0010-181ms.jpg"
+      "ts": 221,
+      "rawTs": 221,
+      "file": "screencast-frames\\frame-0010-221ms.jpg"
     },
     {
       "seq": 11,
-      "ts": 214,
-      "file": "screencast-frames\\frame-0011-214ms.jpg"
+      "ts": 240,
+      "rawTs": 240,
+      "file": "screencast-frames\\frame-0011-240ms.jpg"
     },
     {
       "seq": 12,
-      "ts": 290,
-      "file": "screencast-frames\\frame-0012-290ms.jpg"
+      "ts": 249,
+      "rawTs": 249,
+      "file": "screencast-frames\\frame-0012-249ms.jpg"
     },
     {
       "seq": 13,
-      "ts": 301,
-      "file": "screencast-frames\\frame-0013-301ms.jpg"
+      "ts": 271,
+      "rawTs": 271,
+      "file": "screencast-frames\\frame-0013-271ms.jpg"
     },
     {
       "seq": 14,
-      "ts": 320,
-      "file": "screencast-frames\\frame-0014-320ms.jpg"
+      "ts": 278,
+      "rawTs": 278,
+      "file": "screencast-frames\\frame-0014-278ms.jpg"
     },
     {
       "seq": 15,
-      "ts": 330,
-      "file": "screencast-frames\\frame-0015-330ms.jpg"
+      "ts": 295,
+      "rawTs": 295,
+      "file": "screencast-frames\\frame-0015-295ms.jpg"
     },
     {
       "seq": 16,
-      "ts": 337,
-      "file": "screencast-frames\\frame-0016-337ms.jpg"
+      "ts": 312,
+      "rawTs": 312,
+      "file": "screencast-frames\\frame-0016-312ms.jpg"
     },
     {
       "seq": 17,
-      "ts": 379,
-      "file": "screencast-frames\\frame-0017-379ms.jpg"
+      "ts": 325,
+      "rawTs": 325,
+      "file": "screencast-frames\\frame-0017-325ms.jpg"
     },
     {
       "seq": 18,
-      "ts": 389,
-      "file": "screencast-frames\\frame-0018-389ms.jpg"
+      "ts": 339,
+      "rawTs": 339,
+      "file": "screencast-frames\\frame-0018-339ms.jpg"
     },
     {
       "seq": 19,
-      "ts": 398,
-      "file": "screencast-frames\\frame-0019-398ms.jpg"
+      "ts": 361,
+      "rawTs": 361,
+      "file": "screencast-frames\\frame-0019-361ms.jpg"
     },
     {
       "seq": 20,
-      "ts": 431,
-      "file": "screencast-frames\\frame-0020-431ms.jpg"
+      "ts": 377,
+      "rawTs": 377,
+      "file": "screencast-frames\\frame-0020-377ms.jpg"
     },
     {
       "seq": 21,
-      "ts": 433,
-      "file": "screencast-frames\\frame-0021-433ms.jpg"
+      "ts": 392,
+      "rawTs": 392,
+      "file": "screencast-frames\\frame-0021-392ms.jpg"
     },
     {
       "seq": 22,
-      "ts": 448,
-      "file": "screencast-frames\\frame-0022-448ms.jpg"
+      "ts": 407,
+      "rawTs": 407,
+      "file": "screencast-frames\\frame-0022-407ms.jpg"
     },
     {
       "seq": 23,
-      "ts": 464,
-      "file": "screencast-frames\\frame-0023-464ms.jpg"
+      "ts": 423,
+      "rawTs": 423,
+      "file": "screencast-frames\\frame-0023-423ms.jpg"
     },
     {
       "seq": 24,
-      "ts": 480,
-      "file": "screencast-frames\\frame-0024-480ms.jpg"
+      "ts": 439,
+      "rawTs": 439,
+      "file": "screencast-frames\\frame-0024-439ms.jpg"
     },
     {
       "seq": 25,
-      "ts": 494,
-      "file": "screencast-frames\\frame-0025-494ms.jpg"
+      "ts": 461,
+      "rawTs": 461,
+      "file": "screencast-frames\\frame-0025-461ms.jpg"
     },
     {
       "seq": 26,
-      "ts": 509,
-      "file": "screencast-frames\\frame-0026-509ms.jpg"
+      "ts": 478,
+      "rawTs": 478,
+      "file": "screencast-frames\\frame-0026-478ms.jpg"
     },
     {
       "seq": 27,
-      "ts": 525,
-      "file": "screencast-frames\\frame-0027-525ms.jpg"
+      "ts": 495,
+      "rawTs": 495,
+      "file": "screencast-frames\\frame-0027-495ms.jpg"
     },
     {
       "seq": 28,
-      "ts": 547,
-      "file": "screencast-frames\\frame-0028-547ms.jpg"
+      "ts": 511,
+      "rawTs": 511,
+      "file": "screencast-frames\\frame-0028-511ms.jpg"
     },
     {
       "seq": 29,
-      "ts": 564,
-      "file": "screencast-frames\\frame-0029-564ms.jpg"
+      "ts": 528,
+      "rawTs": 528,
+      "file": "screencast-frames\\frame-0029-528ms.jpg"
     },
     {
       "seq": 30,
-      "ts": 581,
-      "file": "screencast-frames\\frame-0030-581ms.jpg"
+      "ts": 544,
+      "rawTs": 544,
+      "file": "screencast-frames\\frame-0030-544ms.jpg"
     },
     {
       "seq": 31,
-      "ts": 599,
-      "file": "screencast-frames\\frame-0031-599ms.jpg"
+      "ts": 562,
+      "rawTs": 562,
+      "file": "screencast-frames\\frame-0031-562ms.jpg"
     },
     {
       "seq": 32,
-      "ts": 615,
-      "file": "screencast-frames\\frame-0032-615ms.jpg"
+      "ts": 578,
+      "rawTs": 578,
+      "file": "screencast-frames\\frame-0032-578ms.jpg"
     },
     {
       "seq": 33,
-      "ts": 631,
-      "file": "screencast-frames\\frame-0033-631ms.jpg"
+      "ts": 595,
+      "rawTs": 595,
+      "file": "screencast-frames\\frame-0033-595ms.jpg"
     },
     {
       "seq": 34,
-      "ts": 648,
-      "file": "screencast-frames\\frame-0034-648ms.jpg"
+      "ts": 612,
+      "rawTs": 612,
+      "file": "screencast-frames\\frame-0034-612ms.jpg"
     },
     {
       "seq": 35,
-      "ts": 664,
-      "file": "screencast-frames\\frame-0035-664ms.jpg"
+      "ts": 624,
+      "rawTs": 624,
+      "file": "screencast-frames\\frame-0035-624ms.jpg"
     },
     {
       "seq": 36,
-      "ts": 678,
-      "file": "screencast-frames\\frame-0036-678ms.jpg"
+      "ts": 640,
+      "rawTs": 640,
+      "file": "screencast-frames\\frame-0036-640ms.jpg"
     },
     {
       "seq": 37,
-      "ts": 698,
-      "file": "screencast-frames\\frame-0037-698ms.jpg"
+      "ts": 655,
+      "rawTs": 655,
+      "file": "screencast-frames\\frame-0037-655ms.jpg"
     },
     {
       "seq": 38,
-      "ts": 714,
-      "file": "screencast-frames\\frame-0038-714ms.jpg"
+      "ts": 670,
+      "rawTs": 670,
+      "file": "screencast-frames\\frame-0038-670ms.jpg"
     },
     {
       "seq": 39,
-      "ts": 1530,
-      "file": "screencast-frames\\frame-0039-1530ms.jpg"
+      "ts": 686,
+      "rawTs": 686,
+      "file": "screencast-frames\\frame-0039-686ms.jpg"
+    },
+    {
+      "seq": 40,
+      "ts": 702,
+      "rawTs": 702,
+      "file": "screencast-frames\\frame-0040-702ms.jpg"
+    },
+    {
+      "seq": 41,
+      "ts": 718,
+      "rawTs": 718,
+      "file": "screencast-frames\\frame-0041-718ms.jpg"
+    },
+    {
+      "seq": 42,
+      "ts": 734,
+      "rawTs": 734,
+      "file": "screencast-frames\\frame-0042-734ms.jpg"
+    },
+    {
+      "seq": 43,
+      "ts": 762,
+      "rawTs": 762,
+      "file": "screencast-frames\\frame-0043-762ms.jpg"
+    },
+    {
+      "seq": 44,
+      "ts": 778,
+      "rawTs": 778,
+      "file": "screencast-frames\\frame-0044-778ms.jpg"
+    },
+    {
+      "seq": 45,
+      "ts": 794,
+      "rawTs": 794,
+      "file": "screencast-frames\\frame-0045-794ms.jpg"
+    },
+    {
+      "seq": 46,
+      "ts": 811,
+      "rawTs": 811,
+      "file": "screencast-frames\\frame-0046-811ms.jpg"
+    },
+    {
+      "seq": 47,
+      "ts": 828,
+      "rawTs": 828,
+      "file": "screencast-frames\\frame-0047-828ms.jpg"
+    },
+    {
+      "seq": 48,
+      "ts": 844,
+      "rawTs": 844,
+      "file": "screencast-frames\\frame-0048-844ms.jpg"
+    },
+    {
+      "seq": 49,
+      "ts": 860,
+      "rawTs": 860,
+      "file": "screencast-frames\\frame-0049-860ms.jpg"
+    },
+    {
+      "seq": 50,
+      "ts": 875,
+      "rawTs": 875,
+      "file": "screencast-frames\\frame-0050-875ms.jpg"
+    },
+    {
+      "seq": 51,
+      "ts": 891,
+      "rawTs": 891,
+      "file": "screencast-frames\\frame-0051-891ms.jpg"
+    },
+    {
+      "seq": 52,
+      "ts": 906,
+      "rawTs": 906,
+      "file": "screencast-frames\\frame-0052-906ms.jpg"
+    },
+    {
+      "seq": 53,
+      "ts": 921,
+      "rawTs": 921,
+      "file": "screencast-frames\\frame-0053-921ms.jpg"
+    },
+    {
+      "seq": 54,
+      "ts": 936,
+      "rawTs": 936,
+      "file": "screencast-frames\\frame-0054-936ms.jpg"
+    },
+    {
+      "seq": 55,
+      "ts": 953,
+      "rawTs": 953,
+      "file": "screencast-frames\\frame-0055-953ms.jpg"
+    },
+    {
+      "seq": 56,
+      "ts": 968,
+      "rawTs": 968,
+      "file": "screencast-frames\\frame-0056-968ms.jpg"
+    },
+    {
+      "seq": 57,
+      "ts": 995,
+      "rawTs": 995,
+      "file": "screencast-frames\\frame-0057-995ms.jpg"
+    },
+    {
+      "seq": 58,
+      "ts": 1012,
+      "rawTs": 1012,
+      "file": "screencast-frames\\frame-0058-1012ms.jpg"
+    },
+    {
+      "seq": 59,
+      "ts": 1029,
+      "rawTs": 1029,
+      "file": "screencast-frames\\frame-0059-1029ms.jpg"
+    },
+    {
+      "seq": 60,
+      "ts": 1045,
+      "rawTs": 1045,
+      "file": "screencast-frames\\frame-0060-1045ms.jpg"
+    },
+    {
+      "seq": 61,
+      "ts": 1060,
+      "rawTs": 1060,
+      "file": "screencast-frames\\frame-0061-1060ms.jpg"
+    },
+    {
+      "seq": 62,
+      "ts": 1074,
+      "rawTs": 1074,
+      "file": "screencast-frames\\frame-0062-1074ms.jpg"
+    },
+    {
+      "seq": 63,
+      "ts": 1089,
+      "rawTs": 1089,
+      "file": "screencast-frames\\frame-0063-1089ms.jpg"
+    },
+    {
+      "seq": 64,
+      "ts": 1104,
+      "rawTs": 1104,
+      "file": "screencast-frames\\frame-0064-1104ms.jpg"
+    },
+    {
+      "seq": 65,
+      "ts": 1120,
+      "rawTs": 1120,
+      "file": "screencast-frames\\frame-0065-1120ms.jpg"
+    },
+    {
+      "seq": 66,
+      "ts": 1135,
+      "rawTs": 1135,
+      "file": "screencast-frames\\frame-0066-1135ms.jpg"
+    },
+    {
+      "seq": 67,
+      "ts": 1150,
+      "rawTs": 1150,
+      "file": "screencast-frames\\frame-0067-1150ms.jpg"
+    },
+    {
+      "seq": 68,
+      "ts": 1178,
+      "rawTs": 1178,
+      "file": "screencast-frames\\frame-0068-1178ms.jpg"
+    },
+    {
+      "seq": 69,
+      "ts": 1194,
+      "rawTs": 1194,
+      "file": "screencast-frames\\frame-0069-1194ms.jpg"
+    },
+    {
+      "seq": 70,
+      "ts": 1211,
+      "rawTs": 1211,
+      "file": "screencast-frames\\frame-0070-1211ms.jpg"
+    },
+    {
+      "seq": 71,
+      "ts": 1228,
+      "rawTs": 1228,
+      "file": "screencast-frames\\frame-0071-1228ms.jpg"
+    },
+    {
+      "seq": 72,
+      "ts": 1242,
+      "rawTs": 1242,
+      "file": "screencast-frames\\frame-0072-1242ms.jpg"
+    },
+    {
+      "seq": 73,
+      "ts": 1258,
+      "rawTs": 1258,
+      "file": "screencast-frames\\frame-0073-1258ms.jpg"
+    },
+    {
+      "seq": 74,
+      "ts": 1275,
+      "rawTs": 1275,
+      "file": "screencast-frames\\frame-0074-1275ms.jpg"
+    },
+    {
+      "seq": 75,
+      "ts": 1291,
+      "rawTs": 1291,
+      "file": "screencast-frames\\frame-0075-1291ms.jpg"
+    },
+    {
+      "seq": 76,
+      "ts": 1306,
+      "rawTs": 1306,
+      "file": "screencast-frames\\frame-0076-1306ms.jpg"
+    },
+    {
+      "seq": 77,
+      "ts": 1322,
+      "rawTs": 1322,
+      "file": "screencast-frames\\frame-0077-1322ms.jpg"
+    },
+    {
+      "seq": 78,
+      "ts": 1337,
+      "rawTs": 1337,
+      "file": "screencast-frames\\frame-0078-1337ms.jpg"
+    },
+    {
+      "seq": 79,
+      "ts": 1353,
+      "rawTs": 1353,
+      "file": "screencast-frames\\frame-0079-1353ms.jpg"
+    },
+    {
+      "seq": 80,
+      "ts": 1368,
+      "rawTs": 1368,
+      "file": "screencast-frames\\frame-0080-1368ms.jpg"
+    },
+    {
+      "seq": 81,
+      "ts": 1385,
+      "rawTs": 1385,
+      "file": "screencast-frames\\frame-0081-1385ms.jpg"
+    },
+    {
+      "seq": 82,
+      "ts": 1411,
+      "rawTs": 1411,
+      "file": "screencast-frames\\frame-0082-1411ms.jpg"
+    },
+    {
+      "seq": 83,
+      "ts": 1428,
+      "rawTs": 1428,
+      "file": "screencast-frames\\frame-0083-1428ms.jpg"
+    },
+    {
+      "seq": 84,
+      "ts": 1445,
+      "rawTs": 1445,
+      "file": "screencast-frames\\frame-0084-1445ms.jpg"
+    },
+    {
+      "seq": 85,
+      "ts": 1462,
+      "rawTs": 1462,
+      "file": "screencast-frames\\frame-0085-1462ms.jpg"
+    },
+    {
+      "seq": 86,
+      "ts": 1477,
+      "rawTs": 1477,
+      "file": "screencast-frames\\frame-0086-1477ms.jpg"
+    },
+    {
+      "seq": 87,
+      "ts": 1493,
+      "rawTs": 1493,
+      "file": "screencast-frames\\frame-0087-1493ms.jpg"
+    },
+    {
+      "seq": 88,
+      "ts": 1510,
+      "rawTs": 1510,
+      "file": "screencast-frames\\frame-0088-1510ms.jpg"
+    },
+    {
+      "seq": 89,
+      "ts": 1524,
+      "rawTs": 1524,
+      "file": "screencast-frames\\frame-0089-1524ms.jpg"
+    },
+    {
+      "seq": 90,
+      "ts": 1540,
+      "rawTs": 1540,
+      "file": "screencast-frames\\frame-0090-1540ms.jpg"
+    },
+    {
+      "seq": 91,
+      "ts": 1555,
+      "rawTs": 1555,
+      "file": "screencast-frames\\frame-0091-1555ms.jpg"
+    },
+    {
+      "seq": 92,
+      "ts": 1570,
+      "rawTs": 1570,
+      "file": "screencast-frames\\frame-0092-1570ms.jpg"
+    },
+    {
+      "seq": 93,
+      "ts": 1587,
+      "rawTs": 1587,
+      "file": "screencast-frames\\frame-0093-1587ms.jpg"
+    },
+    {
+      "seq": 94,
+      "ts": 1606,
+      "rawTs": 1606,
+      "file": "screencast-frames\\frame-0094-1606ms.jpg"
+    },
+    {
+      "seq": 95,
+      "ts": 1618,
+      "rawTs": 1618,
+      "file": "screencast-frames\\frame-0095-1618ms.jpg"
+    },
+    {
+      "seq": 96,
+      "ts": 1634,
+      "rawTs": 1634,
+      "file": "screencast-frames\\frame-0096-1634ms.jpg"
+    },
+    {
+      "seq": 97,
+      "ts": 1661,
+      "rawTs": 1661,
+      "file": "screencast-frames\\frame-0097-1661ms.jpg"
+    },
+    {
+      "seq": 98,
+      "ts": 1678,
+      "rawTs": 1678,
+      "file": "screencast-frames\\frame-0098-1678ms.jpg"
+    },
+    {
+      "seq": 99,
+      "ts": 1694,
+      "rawTs": 1694,
+      "file": "screencast-frames\\frame-0099-1694ms.jpg"
+    },
+    {
+      "seq": 100,
+      "ts": 1710,
+      "rawTs": 1710,
+      "file": "screencast-frames\\frame-0100-1710ms.jpg"
+    },
+    {
+      "seq": 101,
+      "ts": 1727,
+      "rawTs": 1727,
+      "file": "screencast-frames\\frame-0101-1727ms.jpg"
+    },
+    {
+      "seq": 102,
+      "ts": 1741,
+      "rawTs": 1741,
+      "file": "screencast-frames\\frame-0102-1741ms.jpg"
+    },
+    {
+      "seq": 103,
+      "ts": 1757,
+      "rawTs": 1757,
+      "file": "screencast-frames\\frame-0103-1757ms.jpg"
+    },
+    {
+      "seq": 104,
+      "ts": 1773,
+      "rawTs": 1773,
+      "file": "screencast-frames\\frame-0104-1773ms.jpg"
+    },
+    {
+      "seq": 105,
+      "ts": 1789,
+      "rawTs": 1789,
+      "file": "screencast-frames\\frame-0105-1789ms.jpg"
     }
   ]
 }

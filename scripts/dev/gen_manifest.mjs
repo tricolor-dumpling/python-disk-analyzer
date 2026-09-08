@@ -26,26 +26,67 @@ const manifest = {
     evidence_groups: [],
 };
 
-/* ---- frame_recorder ---- */
+/* ---- frame_recorder: DOM 帧（rAF） ---- */
 const fr = path.join(ROOT, "frame_recorder");
 const frSum = load(path.join(fr, "summary.json"));
-const frKeys = load(path.join(fr, "keyframes.json")) || [];
+const frWorst = frSum && frSum.worst ? frSum.worst : null;
 manifest.evidence_groups.push({
-    key: "frame_recorder",
+    key: "frame_recorder_dom",
     tool: "scripts/dev/p00_frame_recorder.mjs",
-    purpose: "问题2 视图切换残留（排行→关系）—— rAF 帧级 DOM 记录 + 关键帧高保真截图",
-    sampling: "rAF ≈16.7ms/帧；采样窗=触发前100ms→动画全程+200ms收尾（约1050ms，与 P2 基线 63 帧同量级）",
+    purpose: "问题2 视图切换残留（排行→关系）—— DOM 轨：页内 rAF 逐帧记录 #treemap-wrap 的 hidden/opacity/elementFromPoint 归属",
+    sampling: "rAF ≈16.7ms/帧；采样窗=触发前~100ms→动画全程+200ms收尾（本轮最差轮 89 帧）",
     criteria: "违规帧=非活动视图期间 #treemap-wrap 无 hidden 且 opacity>0 且 elementFromPoint 落回 treemap-canvas/wrap 内（与 P2-视图切换帧级证据.json 同口径）",
     vs_p2_baseline: {
-        p2_rank2relate: { frames: 63, badFrames: 9, firstBad_ts: 9946, firstBad_op: "1", firstBad_hit: "treemap-canvas" },
-        this_rank2relate: frSum && frSum.worst ? { sequence: frSum.worst.sequence, frames: frSum.worst.frames, badFrames: frSum.worst.badFrames, firstBad: frSum.worst.firstBad } : null,
-        sem: "帧数与违规帧数同量级、首违规特征一致（opacity=1 命中 treemap）→ 硬闸门通过",
+        p2_rank2relate: { frames: 63, badFrames: 9, firstBad_op: "1", firstBad_hit: "treemap-canvas" },
+        this_rank2relate: frWorst ? { round: frWorst.round, frames: frWorst.domFrames, badFrames: frWorst.badFrames, domBadOff_ms: frWorst.domBadOff } : null,
+        sem: "帧数与违规帧数同量级、首违规特征一致（opacity=1 命中 treemap）→ DOM 轨硬闸门通过",
     },
     files: [
-        { path: abs(path.join(fr, "frames.json")), desc: "全部采样帧（含 hidden/opacity/hit/inTm/activeView/acts/ts）" },
-        { path: abs(path.join(fr, "summary.json")), desc: "逐轮 帧数/违规帧数/首违规ts 摘要" },
-        { path: abs(path.join(fr, "keyframes.json")), desc: "关键帧 PNG 清单" },
-        ...(frKeys || []).map((p) => ({ path: abs(p), desc: "关键帧 PNG（首/中/末违规帧 + 终态；截图节奏≈130ms/张，仅关键帧）" })),
+        { path: abs(path.join(fr, "frames.json")), desc: "最差轮全部 DOM 帧（含 hidden/opacity/hit/inTm/activeView/acts/ts）" },
+        { path: abs(path.join(fr, "summary.json")), desc: "逐轮帧数/违规帧数/首末违规偏移 + 双时钟对齐锚点 + 像素帧计数" },
+        { path: abs(path.join(fr, "terminal-relate.png")), desc: "终态静态图（page.screenshot ≈130ms/张，仅观感，不含时间戳命名，不作帧级证据）" },
+    ],
+});
+
+/* ---- frame_recorder: 像素帧（CDP screencast，与 DOM 轨同序列同步） ---- */
+const frSc = path.join(fr, "screencast");
+const frScTl = load(path.join(frSc, "px-timeline.json"));
+const frScH = load(path.join(frSc, "px-hashes.json")) || {};
+const frScFiles = [];
+if (fs.existsSync(frSc)) {
+    for (const f of fs.readdirSync(frSc).filter((x) => /\.jpg$/i.test(x)).sort()) {
+        frScFiles.push(abs(path.join(frSc, f)));
+    }
+}
+const frVw = path.join(fr, "violation-window");
+const frVwFiles = [];
+if (fs.existsSync(frVw)) {
+    for (const f of fs.readdirSync(frVw).filter((x) => /\.jpg$/i.test(x)).sort()) {
+        frVwFiles.push(abs(path.join(frVw, f)));
+    }
+}
+const frInWin = (frScTl && frScTl.frames) ? frScTl.frames.filter((f) => f.inWin).length : null;
+const frUniqueH = new Set(Object.values(frScH)).size;
+manifest.evidence_groups.push({
+    key: "frame_recorder_pixel",
+    tool: "scripts/dev/p00_frame_recorder.mjs（复用 _harness.screencast）",
+    purpose: "问题2 像素级证据—— CDP Page.startScreencast 在同一轮序列内同步采集像素帧，相对触发点时间戳与 DOM 轨对齐；违规窗口内帧单独标记",
+    sampling: "CDP screencast 实测平均 ~30–46ms/帧（本机负载相关）；时窗=触发前~100ms→动画+200ms 收尾",
+    alignment: "DOM ts=page perf-now - rec.start；px ts=CDP ts - t0；触发锚点 pagePerfAtClick/nodeWallAtClick 双时钟就近读取（偏差 ~1-3ms）；off(frame)=ts-(pagePerfAtClick-recStart)；off(px)=px.ts-(nodeWallAtClick-t0)；违规窗口=[首,末]off ±5ms",
+    dom_violation_window_ms: (frScTl && frScTl.meta && frScTl.meta.domBadOff) || null,
+    quantitative: {
+        pixel_frames: frScFiles.length,
+        pixel_hash_unique_total: (Object.keys(frScH).length ? frUniqueH + "/" + Object.keys(frScH).length : null),
+        violation_window_pixels: frVwFiles.length,
+        in_window_unique: frScTl && frScTl.frames ? new Set((frScTl.frames || []).filter((f) => f.inWin).map((f) => frScH[f.file])).size : null,
+    },
+    note: "像素证据采用 CDP screencast 而非 page.screenshot（≈130ms/张无法覆盖 33ms 级违规窗口）；文件名 px-<seq>-trig+<off>ms.jpg 的 off 为相对触发点真实偏移",
+    judge: "待 gpt-5.6-luna 判读（残留矩形图色块的像素呈现/淡化曲线）",
+    files: [
+        { path: abs(path.join(frSc, "px-timeline.json")), desc: "像素帧相对触发点时间戳 + inWin 标记 + 违规窗口 meta" },
+        { path: abs(path.join(frSc, "px-hashes.json")), desc: "每张像素帧 SHA-256 自证（unique/total）" },
+        ...frScFiles.map((p) => ({ path: p, desc: "CDP screencast 像素帧（相对触发点真实 ts）" })),
+        ...frVwFiles.map((p) => ({ path: p, desc: "违规窗口内像素帧副本（问题2 像素级残留证据）" })),
     ],
 });
 
@@ -60,26 +101,39 @@ if (fs.existsSync(path.join(ts, "screencast-frames"))) {
         tsFrames.push(abs(path.join(ts, "screencast-frames", f)));
     }
 }
+const tsCircles = load(path.join(ts, "circle_fit.json"));
+const tsFits = (tsCircles && tsCircles.frames) ? tsCircles.frames.filter((f) => f.fit) : [];
+const tsDev = tsFits.map((f) => parseFloat(f.fit.dev_from_click_px)).filter((x) => !Number.isNaN(x));
 manifest.evidence_groups.push({
     key: "theme_screencast",
     tool: "scripts/dev/p00_theme_screencast.mjs",
-    purpose: "问题10 主题扩散—— CDP Page.startScreencast 逐帧像素 + 亮度/暗区面积曲线（顶栏 #btn-theme 触发 light→dark）",
-    sampling: "CDP screencast 实测平均 ~39ms/帧（本机负载相关，20–46ms）；时窗 1800ms 覆盖 450ms 扩散 + 收尾",
+    purpose: "问题10 主题扩散—— CDP Page.startScreencast 逐帧像素 + 亮度/暗区面积曲线 + 点击坐标 + 每帧圆拟合（顶栏 #btn-theme 触发 light→dark）",
+    sampling: "CDP screencast 实测平均 ~30–46ms/帧（本机负载相关）；时窗 1800ms 覆盖 450ms 扩散 + 收尾；ts 单调不减",
+    ts_policy: "ts 单调不减（按 seq 稳定序 + 单调夹取）；rawTs=CDP metadata 原始推算值保留核对；clamped 见 timeline.json meta",
     quantitative: {
         frames: tsMeta ? tsMeta.frames : null,
+        clickCoord: tsMeta ? tsMeta.clickCoord : null,
         startTheme: tsMeta ? tsMeta.startTheme : null,
         endTheme: tsMeta ? tsMeta.endTheme : null,
         switched: tsMeta ? tsMeta.switched : null,
         brightness_range: tsBri.length ? [tsBri[0].brightness, tsBri[tsBri.length - 1].brightness] : null,
         darkFrac_range: tsArea.length ? [tsArea[0].darkFrac, tsArea[tsArea.length - 1].darkFrac] : null,
+        circle_fit: tsFits.length ? {
+            fitted_frames: tsFits.length,
+            dev_from_click_px_min: tsDev.length ? Math.min(...tsDev) : null,
+            dev_from_click_px_max: tsDev.length ? Math.max(...tsDev) : null,
+            dev_from_click_px_mean: tsDev.length ? +(tsDev.reduce((a, b) => a + b, 0) / tsDev.length).toFixed(2) : null,
+            judge: "|圆心−点击坐标|≤4px（计划4.3-4；P0 只产出数字，PASS/FAIL 由 Luna 判）",
+        } : null,
         darkFrac_transition_sample: tsArea.length ? tsArea.find((x) => x.darkFrac > 0.1 && x.seq > 8) || null : null,
     },
-    judge: "待 gpt-5.6-luna 判读（扩散圆心/面积曲线）；问题10 键盘/命令面板/设置慢点击三路径圆心缺陷属 P7",
+    judge: "待 gpt-5.6-luna 判读（扩散圆心/面积曲线 + 圆拟合偏差）；问题10 键盘/命令面板/设置慢点击三路径圆心缺陷属 P7",
     files: [
-        { path: abs(path.join(ts, "timeline.json")), desc: "每帧 seq/ts/文件相对路径" },
+        { path: abs(path.join(ts, "timeline.json")), desc: "每帧 seq/ts/rawTs/文件相对路径（ts 单调不减）" },
         { path: abs(path.join(ts, "brightness.json")), desc: "整页灰度均值归一化曲线" },
         { path: abs(path.join(ts, "area.json")), desc: "暗区(灰度<128)像素占比曲线" },
-        { path: abs(path.join(ts, "meta.json")), desc: "start/end theme、console 错误、帧数" },
+        { path: abs(path.join(ts, "circle_fit.json")), desc: "每帧暗区边界圆拟合（center/radius/radial_rms=dev_from_click_px/点击坐标偏差）" },
+        { path: abs(path.join(ts, "meta.json")), desc: "start/end theme、clickCoord、console 错误、帧数" },
         ...tsFrames.map((p) => ({ path: p, desc: "CDP screencast 逐帧 JPEG" })),
     ],
 });
@@ -121,8 +175,10 @@ manifest.evidence_groups.push({
 });
 
 fs.writeFileSync(OUT, JSON.stringify(manifest, null, 2), "utf-8");
-const imgs = manifest.evidence_groups.filter((g) => g.key === "frame_recorder" || g.key === "theme_screencast" || g.key === "viewport_shots")
+const imgs = manifest.evidence_groups
+    .filter((g) => /^frame_recorder_|^theme_screencast|^viewport_shots/.test(g.key))
     .flatMap((g) => g.files).filter((f) => /\.(png|jpg)$/i.test(f.path));
+const uniqueImgs = new Set(imgs.map((f) => f.path));
 console.log("manifest written:", OUT);
-console.log("image_files_count:", imgs.length);
+console.log("image_entries:", imgs.length, "image_unique:", uniqueImgs.size);
 console.log("evidence_groups:", manifest.evidence_groups.length);

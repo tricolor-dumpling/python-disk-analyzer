@@ -4,43 +4,60 @@
     "out": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p00\\frame_recorder",
     "withData": false,
     "repeats": 3,
+    "quality": 60,
     "node": "v24.19.0",
-    "startedAt": "2026-09-08T14:37:57.712Z"
+    "startedAt": "2026-09-08T15:36:42.415Z"
   },
+  "alignment_method": "DOM ts=page perf-now - rec.start；px ts=CDP ts - t0；触发锚点 pagePerfAtClick/nodeWallAtClick 双时钟就近读取（偏差 ~1-3ms）；off(frame)=ts-(pagePerfAtClick-recStart)；off(px)=px.ts-(nodeWallAtClick-t0)；违规窗口=[首,末]off ±5ms",
   "sequences": [
     {
-      "label": "ranking2relate",
       "round": 1,
-      "frames": 69,
+      "domFrames": 88,
       "badFrames": 9,
-      "firstBadTs": 188
+      "domBadOff": [
+        11,
+        144
+      ],
+      "pxFrames": 16,
+      "pxInWindow": 8
     },
     {
-      "label": "ranking2relate",
       "round": 2,
-      "frames": 67,
+      "domFrames": 88,
       "badFrames": 8,
-      "firstBadTs": 162
+      "domBadOff": [
+        3,
+        118
+      ],
+      "pxFrames": 15,
+      "pxInWindow": 8
     },
     {
-      "label": "ranking2relate",
       "round": 3,
-      "frames": 67,
+      "domFrames": 88,
       "badFrames": 8,
-      "firstBadTs": 164
+      "domBadOff": [
+        4,
+        121
+      ],
+      "pxFrames": 16,
+      "pxInWindow": 8
     }
   ],
   "worst": {
-    "sequence": "ranking2relate",
     "round": 1,
-    "frames": 69,
+    "domFrames": 88,
     "badFrames": 9,
-    "firstBad": {
-      "ts": 188,
-      "twHidden": false,
-      "twOpacity": "1",
-      "hit": "canvas",
-      "inTm": true
+    "domBadOff": [
+      11,
+      144
+    ],
+    "anchors": {
+      "recStart": 1984.2000000476837,
+      "pagePerfAtClick": 2091,
+      "nodeWallAtClick": 1788881797060,
+      "scT0": 1788881796957,
+      "clickError": null
     }
   }
 }

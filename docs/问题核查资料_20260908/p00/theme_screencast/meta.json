@@ -7,7 +7,11 @@
   "durationMs": 1800,
   "quality": 60,
   "node": "v24.19.0",
+  "clickCoord": {
+    "x": 995,
+    "y": 30
+  },
   "consoleErrors": [],
-  "startedAt": "2026-09-08T14:44:33.028Z",
-  "frames": 39
+  "startedAt": "2026-09-08T15:35:24.129Z",
+  "frames": 105
 }

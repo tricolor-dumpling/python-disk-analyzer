@@ -125,6 +125,7 @@ export function frameRecorderSource() {
     start(opts) { rec.running = true; rec.start = performance.now(); Object.assign(rec.config, opts || {}); rec.frames.length = 0; requestAnimationFrame(tick); },
     stop() { rec.running = false; },
     frames() { return rec.frames; },
+    meta() { return { start: rec.start }; },
   };
 })();`;
 }
@@ -144,13 +145,14 @@ export async function screencast(page, opts) {
     let seq = 0;
     const t0 = Date.now();
     client.on("Page.screencastFrame", async ({ data, sessionId, metadata }) => {
-        const ts = Math.round((metadata.timestamp * 1000) - t0);
+        const rawTs = Math.round((metadata.timestamp * 1000) - t0);
         seq += 1;
-        const fname = `frame-${String(seq).padStart(4, "0")}-${ts}ms.jpg`;
+        const fname = `frame-${String(seq).padStart(4, "0")}-${rawTs}ms.jpg`;
         const fpath = path.join(framesDir, fname);
         fs.writeFileSync(fpath, Buffer.from(data, "base64"));
-        timeline.push({ seq, ts, file: path.relative(outDir, fpath) });
-        if (onFrame) await onFrame(page, { seq, ts, metadata });
+        /* seq = 回调到达序（稳定排序键）；rawTs=CDP metadata 时间戳推算（可能微抖动） */
+        timeline.push({ seq, ts: rawTs, rawTs, file: path.relative(outDir, fpath) });
+        if (onFrame) await onFrame(page, { seq, ts: rawTs, rawTs, metadata });
         try { await client.send("Page.screencastFrameAck", { sessionId }); }
         catch (e) { /* ack 失败不致命 */ }
     });
@@ -158,9 +160,22 @@ export async function screencast(page, opts) {
     await wait(durationMs);
     try { await client.send("Page.stopScreencast"); } catch (e) { /* ignore */ }
     try { await client.detach(); } catch (e) { /* ignore */ }
+
+    /* —— 时间戳单调化（返工 2）：Luna 发现 seq8 ts=160 后 seq9 ts=140 非单调 ——
+       根因：CDP metadata.timestamp 是浏览器合成时钟，帧回调到达/交付存在亚帧抖动，
+       个别 ts 比前一帧小。修复：以 seq（回调整体序）为稳定排序键，对 ts 做单调
+       不减夹取（ts_i = max(rawTs_i, ts_{i-1})），并保留 rawTs 供透明核对。 */
+    let clamped = false;
+    timeline.sort((a, b) => a.seq - b.seq); // 保障按回调整体序排序
+    let prev = -Infinity;
+    for (const f of timeline) {
+        if (f.ts < prev) { f.ts = prev; clamped = true; }
+        prev = f.ts;
+    }
     fs.writeFileSync(path.join(outDir, "timeline.json"), JSON.stringify({
-        meta: { durationMs, quality, startedAt: new Date(t0).toISOString(), frames: timeline.length },
+        meta: { durationMs, quality, startedAt: new Date(t0).toISOString(), t0, frames: timeline.length,
+                ts_policy: "ts 单调不减（按 seq 稳定序 + 单调夹取）；rawTs=CDP metadata 原始推算值保留核对", ts_clamped: clamped },
         frames: timeline,
     }, null, 2), "utf-8");
-    return { frames: timeline, framesDir, timelinePath: path.join(outDir, "timeline.json") };
+    return { frames: timeline, framesDir, timelinePath: path.join(outDir, "timeline.json"), t0 };
 }

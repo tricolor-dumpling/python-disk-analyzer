@@ -1,197 +1,527 @@
 [
   {
     "seq": 1,
-    "ts": 33,
-    "darkFrac": 0.09033
+    "ts": 29,
+    "darkFrac": 0.01997
   },
   {
     "seq": 2,
-    "ts": 52,
-    "darkFrac": 0.09037
+    "ts": 46,
+    "darkFrac": 0.01997
   },
   {
     "seq": 3,
-    "ts": 66,
-    "darkFrac": 0.09036
+    "ts": 63,
+    "darkFrac": 0.01997
   },
   {
     "seq": 4,
-    "ts": 80,
-    "darkFrac": 0.09036
+    "ts": 70,
+    "darkFrac": 0.01997
   },
   {
     "seq": 5,
-    "ts": 94,
-    "darkFrac": 0.09036
+    "ts": 98,
+    "darkFrac": 0.01997
   },
   {
     "seq": 6,
-    "ts": 111,
-    "darkFrac": 0.09036
+    "ts": 108,
+    "darkFrac": 0.01997
   },
   {
     "seq": 7,
-    "ts": 127,
-    "darkFrac": 0.09036
+    "ts": 181,
+    "darkFrac": 0.0305
   },
   {
     "seq": 8,
-    "ts": 160,
-    "darkFrac": 0.09036
+    "ts": 195,
+    "darkFrac": 0.05365
   },
   {
     "seq": 9,
-    "ts": 140,
-    "darkFrac": 0.09036
+    "ts": 198,
+    "darkFrac": 0.05365
   },
   {
     "seq": 10,
-    "ts": 181,
-    "darkFrac": 0.09036
+    "ts": 221,
+    "darkFrac": 0.1527
   },
   {
     "seq": 11,
-    "ts": 214,
-    "darkFrac": 0.09036
+    "ts": 240,
+    "darkFrac": 0.21546
   },
   {
     "seq": 12,
-    "ts": 290,
-    "darkFrac": 0.10076
+    "ts": 249,
+    "darkFrac": 0.28084
   },
   {
     "seq": 13,
-    "ts": 301,
-    "darkFrac": 0.12407
+    "ts": 271,
+    "darkFrac": 0.34922
   },
   {
     "seq": 14,
-    "ts": 320,
-    "darkFrac": 0.22071
+    "ts": 278,
+    "darkFrac": 0.42234
   },
   {
     "seq": 15,
-    "ts": 330,
-    "darkFrac": 0.27755
+    "ts": 295,
+    "darkFrac": 0.49743
   },
   {
     "seq": 16,
-    "ts": 337,
-    "darkFrac": 0.32585
+    "ts": 312,
+    "darkFrac": 0.57547
   },
   {
     "seq": 17,
-    "ts": 379,
-    "darkFrac": 0.36873
+    "ts": 325,
+    "darkFrac": 0.65592
   },
   {
     "seq": 18,
-    "ts": 389,
-    "darkFrac": 0.40501
+    "ts": 339,
+    "darkFrac": 0.72395
   },
   {
     "seq": 19,
-    "ts": 398,
-    "darkFrac": 0.44029
+    "ts": 361,
+    "darkFrac": 0.77355
   },
   {
     "seq": 20,
-    "ts": 431,
-    "darkFrac": 0.50169
+    "ts": 377,
+    "darkFrac": 0.81595
   },
   {
     "seq": 21,
-    "ts": 433,
-    "darkFrac": 0.54296
+    "ts": 392,
+    "darkFrac": 0.85526
   },
   {
     "seq": 22,
-    "ts": 448,
-    "darkFrac": 0.57049
+    "ts": 407,
+    "darkFrac": 0.88979
   },
   {
     "seq": 23,
-    "ts": 464,
-    "darkFrac": 0.59302
+    "ts": 423,
+    "darkFrac": 0.92056
   },
   {
     "seq": 24,
-    "ts": 480,
-    "darkFrac": 0.61383
+    "ts": 439,
+    "darkFrac": 0.94031
   },
   {
     "seq": 25,
-    "ts": 494,
-    "darkFrac": 0.63135
+    "ts": 461,
+    "darkFrac": 0.95409
   },
   {
     "seq": 26,
-    "ts": 509,
-    "darkFrac": 0.64619
+    "ts": 478,
+    "darkFrac": 0.96345
   },
   {
     "seq": 27,
-    "ts": 525,
-    "darkFrac": 0.65197
+    "ts": 495,
+    "darkFrac": 0.9696
   },
   {
     "seq": 28,
-    "ts": 547,
-    "darkFrac": 0.65563
+    "ts": 511,
+    "darkFrac": 0.97325
   },
   {
     "seq": 29,
-    "ts": 564,
-    "darkFrac": 0.65875
+    "ts": 528,
+    "darkFrac": 0.97517
   },
   {
     "seq": 30,
-    "ts": 581,
-    "darkFrac": 0.66143
+    "ts": 544,
+    "darkFrac": 0.97591
   },
   {
     "seq": 31,
-    "ts": 599,
-    "darkFrac": 0.6637
+    "ts": 562,
+    "darkFrac": 0.97602
   },
   {
     "seq": 32,
-    "ts": 615,
-    "darkFrac": 0.66547
+    "ts": 578,
+    "darkFrac": 0.97602
   },
   {
     "seq": 33,
-    "ts": 631,
-    "darkFrac": 0.66621
+    "ts": 595,
+    "darkFrac": 0.97602
   },
   {
     "seq": 34,
-    "ts": 648,
-    "darkFrac": 0.66631
+    "ts": 612,
+    "darkFrac": 0.97602
   },
   {
     "seq": 35,
-    "ts": 664,
-    "darkFrac": 0.66631
+    "ts": 624,
+    "darkFrac": 0.97602
   },
   {
     "seq": 36,
-    "ts": 678,
-    "darkFrac": 0.66631
+    "ts": 640,
+    "darkFrac": 0.97602
   },
   {
     "seq": 37,
-    "ts": 698,
-    "darkFrac": 0.66631
+    "ts": 655,
+    "darkFrac": 0.97603
   },
   {
     "seq": 38,
-    "ts": 714,
-    "darkFrac": 0.66631
+    "ts": 670,
+    "darkFrac": 0.97603
   },
   {
     "seq": 39,
-    "ts": 1530,
-    "darkFrac": 0.66661
+    "ts": 686,
+    "darkFrac": 0.97604
+  },
+  {
+    "seq": 40,
+    "ts": 702,
+    "darkFrac": 0.97604
+  },
+  {
+    "seq": 41,
+    "ts": 718,
+    "darkFrac": 0.97604
+  },
+  {
+    "seq": 42,
+    "ts": 734,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 43,
+    "ts": 762,
+    "darkFrac": 0.97604
+  },
+  {
+    "seq": 44,
+    "ts": 778,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 45,
+    "ts": 794,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 46,
+    "ts": 811,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 47,
+    "ts": 828,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 48,
+    "ts": 844,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 49,
+    "ts": 860,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 50,
+    "ts": 875,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 51,
+    "ts": 891,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 52,
+    "ts": 906,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 53,
+    "ts": 921,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 54,
+    "ts": 936,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 55,
+    "ts": 953,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 56,
+    "ts": 968,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 57,
+    "ts": 995,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 58,
+    "ts": 1012,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 59,
+    "ts": 1029,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 60,
+    "ts": 1045,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 61,
+    "ts": 1060,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 62,
+    "ts": 1074,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 63,
+    "ts": 1089,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 64,
+    "ts": 1104,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 65,
+    "ts": 1120,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 66,
+    "ts": 1135,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 67,
+    "ts": 1150,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 68,
+    "ts": 1178,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 69,
+    "ts": 1194,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 70,
+    "ts": 1211,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 71,
+    "ts": 1228,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 72,
+    "ts": 1242,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 73,
+    "ts": 1258,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 74,
+    "ts": 1275,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 75,
+    "ts": 1291,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 76,
+    "ts": 1306,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 77,
+    "ts": 1322,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 78,
+    "ts": 1337,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 79,
+    "ts": 1353,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 80,
+    "ts": 1368,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 81,
+    "ts": 1385,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 82,
+    "ts": 1411,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 83,
+    "ts": 1428,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 84,
+    "ts": 1445,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 85,
+    "ts": 1462,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 86,
+    "ts": 1477,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 87,
+    "ts": 1493,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 88,
+    "ts": 1510,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 89,
+    "ts": 1524,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 90,
+    "ts": 1540,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 91,
+    "ts": 1555,
+    "darkFrac": 0.97604
+  },
+  {
+    "seq": 92,
+    "ts": 1570,
+    "darkFrac": 0.97605
+  },
+  {
+    "seq": 93,
+    "ts": 1587,
+    "darkFrac": 0.97604
+  },
+  {
+    "seq": 94,
+    "ts": 1606,
+    "darkFrac": 0.97604
+  },
+  {
+    "seq": 95,
+    "ts": 1618,
+    "darkFrac": 0.97657
+  },
+  {
+    "seq": 96,
+    "ts": 1634,
+    "darkFrac": 0.97657
+  },
+  {
+    "seq": 97,
+    "ts": 1661,
+    "darkFrac": 0.97656
+  },
+  {
+    "seq": 98,
+    "ts": 1678,
+    "darkFrac": 0.97656
+  },
+  {
+    "seq": 99,
+    "ts": 1694,
+    "darkFrac": 0.97656
+  },
+  {
+    "seq": 100,
+    "ts": 1710,
+    "darkFrac": 0.97655
+  },
+  {
+    "seq": 101,
+    "ts": 1727,
+    "darkFrac": 0.97655
+  },
+  {
+    "seq": 102,
+    "ts": 1741,
+    "darkFrac": 0.97655
+  },
+  {
+    "seq": 103,
+    "ts": 1757,
+    "darkFrac": 0.97655
+  },
+  {
+    "seq": 104,
+    "ts": 1773,
+    "darkFrac": 0.97655
+  },
+  {
+    "seq": 105,
+    "ts": 1789,
+    "darkFrac": 0.97655
   }
 ]
