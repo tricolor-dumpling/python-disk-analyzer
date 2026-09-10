@@ -1,0 +1,148 @@
+{
+  "meta": {
+    "generated_at": "2026-09-11T07:50:01",
+    "snapshot_dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_perf\\snapshots",
+    "snapshots": 5,
+    "rows_per_snapshot": 130000,
+    "rows_total_if_all_parsed": 650000,
+    "file_bytes": [
+      632000,
+      632000,
+      632001,
+      632000,
+      632000
+    ],
+    "file_bytes_total": 3160001,
+    "note": "耗时 = Flask test_client 进程内往返（无网络/无浏览器），单位 ms"
+  },
+  "cases": {
+    "series_cold": {
+      "ms": [
+        4152.47,
+        2.09,
+        1.62
+      ],
+      "ms_first": 4152.47,
+      "ms_median": 2.09,
+      "ms_min": 1.62,
+      "count": 5,
+      "rows_total": 650000,
+      "bytes_last_point": 2388400632,
+      "response_bytes": 1903,
+      "cached_flags": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    "series_warm": {
+      "ms": [
+        1.58,
+        1.68,
+        1.71
+      ],
+      "ms_first": 1.58,
+      "ms_median": 1.68,
+      "ms_min": 1.58,
+      "cached_flags": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    "series_path_cold_then_warm": {
+      "ms": [
+        4093.79,
+        1.57,
+        1.39
+      ],
+      "ms_first": 4093.79,
+      "ms_median": 1.57,
+      "ms_min": 1.39,
+      "path": "D:\\PERF\\dir00",
+      "bytes_last_point": 39828992,
+      "cached_flags": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    "series_depth2": {
+      "ms": [
+        6885.54,
+        1.6,
+        1.42
+      ],
+      "ms_first": 6885.54,
+      "ms_median": 1.6,
+      "ms_min": 1.42,
+      "rows_last_point": 6480,
+      "bytes_last_point": 39828992
+    },
+    "series_after_series_cache_clear_shared_root": {
+      "ms": [
+        1.7
+      ],
+      "ms_first": 1.7,
+      "ms_median": 1.7,
+      "ms_min": 1.7,
+      "cached_flags": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "snapshots_cold_total_cache": {
+      "ms": [
+        853.09,
+        1.23,
+        0.98
+      ],
+      "ms_first": 853.09,
+      "ms_median": 1.23,
+      "ms_min": 0.98
+    },
+    "snapshots_warm_total_cache": {
+      "ms": [
+        0.92,
+        0.9,
+        0.88
+      ],
+      "ms_first": 0.92,
+      "ms_median": 0.9,
+      "ms_min": 0.88,
+      "total_by_root": {
+        "D:\\PERF": 2388400632
+      }
+    }
+  },
+  "paths": [
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_perf\\snapshots\\PERF_20260901_100000_explicit_p6perf-0.snap.gz",
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_perf\\snapshots\\PERF_20260902_100000_explicit_p6perf-0.snap.gz",
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_perf\\snapshots\\PERF_20260903_100000_explicit_p6perf-0.snap.gz",
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_perf\\snapshots\\PERF_20260904_100000_explicit_p6perf-0.snap.gz",
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_perf\\snapshots\\PERF_20260905_100000_explicit_p6perf-0.snap.gz"
+  ],
+  "verdict": {
+    "series_cold_median_ms": 2.09,
+    "series_cold_first_ms": 4152.47,
+    "series_warm_median_ms": 1.68,
+    "snapshots_cold_ms": 853.09,
+    "snapshots_warm_ms": 0.9,
+    "shared_root_cache": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  }
+}

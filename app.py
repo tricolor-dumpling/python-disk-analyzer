@@ -891,6 +891,49 @@ def api_snapshot_delete():
 # =================【4. 历史 / 对比】=================
 
 
+def _snapshot_root_stats(snapshot_path):
+    """单份快照的根口径统计 + 头部元数据（带进程内缓存）；不可用 → None。
+
+    返回 {total, rows, created_at, auto, machine_guid}。
+
+    P6（D6-3/变更集4）：本函数是 `/api/snapshots` 的 total_by_root 与
+    `/api/series` 根口径点的**唯一解析入口**——两者共享同一份进程内缓存
+    （键 = 快照路径，值随文件签名 (mtime_ns, size) 失效），因此：
+      ① 任一接口先跑过，另一个接口的同一份快照即命中缓存；
+      ② `/api/snapshots` 只会更快，不会更慢（D6-3 约束）；
+      ③ 签名变化（同名快照被重写/滚动覆盖）→ 自动失效，数值语义零变化。
+    """
+    sig = _file_signature(snapshot_path)
+    cache_key = str(snapshot_path)
+    if sig is not None:
+        with _SERIES_CACHE_LOCK:
+            hit = _ROOT_TOTAL_CACHE.get(cache_key)
+        if hit is not None and hit.get("sig") == sig:
+            return dict(hit["stats"], cached=True)
+    try:
+        loaded = snapshots.load_snapshot(Path(snapshot_path))
+    except (OSError, snapshots.SnapshotCorruptError):
+        return None
+    header = loaded.get("header", {})
+    mapping = {row["p"]: row["s"] for row in (loaded.get("rows") or [])}
+    stats = {
+        "total": compare._total_from_root_rows(
+            mapping, root_hint=header.get("root")
+        ),
+        "rows": len(mapping),
+        "created_at": str(header.get("created_at") or ""),
+        "auto": bool(header.get("auto")),
+        "machine_guid": str(header.get("machine_guid") or ""),
+        "cached": False,
+    }
+    if sig is not None:
+        with _SERIES_CACHE_LOCK:
+            if len(_ROOT_TOTAL_CACHE) >= _ROOT_TOTAL_CACHE_LIMIT:
+                _ROOT_TOTAL_CACHE.clear()  # 简单上限策略：足量时整体清空（无 LRU 依赖）
+            _ROOT_TOTAL_CACHE[cache_key] = {"sig": sig, "stats": stats}
+    return stats
+
+
 def _snapshot_root_total(snapshot_path):
     """派生单份快照的「根聚合总量」（P-4 G-2：sparkline 数据源，additive）。
 
@@ -898,15 +941,12 @@ def _snapshot_root_total(snapshot_path):
     缺失根行时回退顶层行求和——保证趋势卡 sparkline 数值与差值卡 total_current
     一致（C-6 两地同基线一致性）。快照缺失/损坏 → 返回 None（前端跳过该根，
     不污染会话其余根的 sparkline 序列）。
+
+    P6（D6-3/变更集4）：实现下沉到 _snapshot_root_stats（带进程内缓存），
+    本函数签名与返回语义**逐字不变**（既有调用方/契约用例零改动）。
     """
-    try:
-        loaded = snapshots.load_snapshot(Path(snapshot_path))
-    except (OSError, snapshots.SnapshotCorruptError):
-        return None
-    return compare._total_from_root_rows(
-        {row["p"]: row["s"] for row in (loaded.get("rows") or [])},
-        root_hint=loaded.get("header", {}).get("root"),
-    )
+    stats = _snapshot_root_stats(snapshot_path)
+    return None if stats is None else int(stats["total"])
 
 
 @app.get("/api/snapshots")
@@ -935,6 +975,229 @@ def api_snapshots():
 # 后台任务 dict（job_id -> CompareJob，进程内单实例足够；锁内互斥）：
 COMPARE_JOBS = {}
 _COMPARE_JOBS_LOCK = threading.Lock()
+
+# ================= P6（D6-3）：多快照序列 GET /api/series =================
+
+SERIES_MAX_POINTS = 12           # D6-6：单次请求最多纳入的快照份数（前端同值）
+SERIES_MAX_TOTAL_ROWS = 2000000  # D6-6：单次请求累计解析行数预算（约 15×13 万行）
+# 进程内缓存（键含快照 mtime + path + depth，D6-3）：
+#   · _SERIES_CACHE：(快照路径, path, depth) → {sig, bytes, rows, present}
+#   · _ROOT_TOTAL_CACHE：快照路径 → {sig, total}（供 _snapshot_root_total 复用）
+_SERIES_CACHE = {}
+_SERIES_CACHE_LIMIT = 512
+_ROOT_TOTAL_CACHE = {}
+_ROOT_TOTAL_CACHE_LIMIT = 64
+_SERIES_CACHE_LOCK = threading.Lock()
+
+
+def _file_signature(path):
+    """快照文件签名 (mtime_ns, size)；不可 stat → None（不缓存）。"""
+    try:
+        st = os.stat(str(path))
+    except OSError:
+        return None
+    return (int(st.st_mtime_ns), int(st.st_size))
+
+
+def _series_value(snapshot_path, query_path, depth):
+    """单份快照在 (query_path, depth) 口径下的取值。
+
+    返回 dict：{bytes, rows, present, created_at, auto, machine_guid}
+      · query_path 为空 → 整盘根聚合总量（与 _snapshot_root_total 同口径）；
+      · query_path 非空、depth 为空 → 该目录**行自身值**（快照行已含全部后代，
+        不重复累加；行缺失 = 该快照里没有这个目录 → present=False, bytes=0）；
+      · depth ≥ 1 → 用 compare._rollup 把该目录子树折叠到相对第 depth 层后取合计
+        （深度口径与对比页一致），rows = 折叠后行数。
+    解析结果按 (路径, path, depth) + 文件签名缓存（D6-3/D6-6）——
+    命中缓存时不重复解压（头部元数据一并在缓存值里，避免二次解析）。
+    """
+    sig = _file_signature(snapshot_path)
+    key = (str(snapshot_path), str(query_path or ""), depth)
+    if sig is not None:
+        with _SERIES_CACHE_LOCK:
+            hit = _SERIES_CACHE.get(key)
+        if hit is not None and hit.get("sig") == sig:
+            return dict(hit["value"], cached=True)
+
+    header = {}
+    if not query_path:
+        # 根口径：与 /api/snapshots 的 total_by_root 共用 _snapshot_root_stats 缓存
+        # （头部元数据一并在缓存值里 → 不二次解析）
+        stats = _snapshot_root_stats(snapshot_path)
+        if stats is None:
+            raise FileNotFoundError(str(snapshot_path))
+        value, rows, present = int(stats["total"]), int(stats["rows"]), True
+        header = {
+            "created_at": stats["created_at"],
+            "auto": stats["auto"],
+            "machine_guid": stats["machine_guid"],
+        }
+    else:
+        loaded = snapshots.load_snapshot(Path(snapshot_path))
+        header = loaded.get("header", {})
+        mapping = {row["p"]: row["s"] for row in (loaded.get("rows") or [])}
+        target_key = os.path.normcase(str(query_path)).rstrip("\\")
+        own = None
+        for path, size in mapping.items():
+            if os.path.normcase(path).rstrip("\\") == target_key:
+                own = size
+                break
+        present = own is not None
+        if depth is None or depth < 1:
+            value = int(own or 0)
+            rows = len(mapping)
+        else:
+            rolled = compare._rollup(mapping, query_path, depth)
+            value = int(sum(rolled.values()))
+            rows = len(rolled)
+
+    payload = {
+        "bytes": int(value),
+        "rows": int(rows),
+        "present": bool(present),
+        "created_at": str(header.get("created_at") or ""),
+        "auto": bool(header.get("auto")),
+        "machine_guid": str(header.get("machine_guid") or ""),
+        "cached": False,
+    }
+    if sig is not None:
+        with _SERIES_CACHE_LOCK:
+            if len(_SERIES_CACHE) >= _SERIES_CACHE_LIMIT:
+                _SERIES_CACHE.clear()
+            _SERIES_CACHE[key] = {"sig": sig, "value": payload}
+    return payload
+
+
+@app.get("/api/series")
+def api_series():
+    """P6（D6-3）多快照序列（additive；只读，绝不触发扫描/SDK 调用）。
+
+    参数
+    ----
+    root       必填：盘根（口径校验基准）
+    snapshots  必填（可重复传参，或 `snapshots[]=`，或用 `|` 分隔多值）：快照文件绝对路径
+    path       可选：查询目录（缺省 = 整盘根口径）；必须是 root 自身或其后代
+    depth      可选：≥1 的整数——把 path 子树聚合到相对第 N 层后取合计（与对比页同口径）
+    limit      可选：1..SERIES_MAX_POINTS（缺省 SERIES_MAX_POINTS）
+
+    响应键集合（契约冻结，见 tests/test_api_contract.py）
+    ----
+    ok / root / path / depth / limit / count / truncated / dropped /
+    rows_total / elapsed_ms / reason / points[] / skipped[]
+
+    口径
+    ----
+    · 每个点都取自**快照自身**的行数据（不混入当前侧 SDK/全量结果），
+      path 为空时 = 该快照根聚合总量 → 与趋势卡/sparkline 同口径（C-6 两地一致）；
+    · 快照缺失/损坏 → 计入 skipped，不污染其余点的序列（有原因、不静默）；
+    · 全部不可用 → points=[] 且 reason="all_unavailable"（前端据此给空态原因）；
+    · 未提供任何快照 → points=[] 且 reason="no_snapshots"（200，非错误态）；
+    · 参数非法（缺 root / path 不在 root 下 / depth 非法 / limit 非法）→ 400，不静默降级；
+    · 份数超 limit → 保留**最新**的 limit 份（按文件 mtime 预筛，避免超量解析），
+      truncated=True、dropped=N；累计解析行数超预算 → 从最新往回取，truncated 一并置 True。
+    """
+    t0 = time.perf_counter()
+    root = str(request.args.get("root") or "").strip()
+    if not root:
+        return _json_error("缺少 root 参数（series 需要盘根以校验口径）")
+
+    raw = list(request.args.getlist("snapshots")) + list(request.args.getlist("snapshots[]"))
+    paths = []
+    for item in raw:
+        for piece in str(item).split("|"):
+            piece = piece.strip()
+            if piece and piece not in paths:
+                paths.append(piece)
+
+    query_path = str(request.args.get("path") or "").strip()
+    if query_path and not _path_under(query_path, root):
+        return _json_error("path 必须在 root 之下（收到 path=%r root=%r）" % (query_path, root))
+
+    raw_depth = request.args.get("depth")
+    depth = None
+    if raw_depth is not None and str(raw_depth).strip() != "":
+        try:
+            depth = int(str(raw_depth).strip())
+        except (TypeError, ValueError):
+            return _json_error("depth 必须是 ≥1 的整数（收到 %r）" % (raw_depth,))
+        if depth < 1:
+            return _json_error("depth 必须 ≥1（收到 %d）" % depth)
+
+    raw_limit = request.args.get("limit")
+    limit = SERIES_MAX_POINTS
+    if raw_limit is not None and str(raw_limit).strip() != "":
+        try:
+            limit = int(str(raw_limit).strip())
+        except (TypeError, ValueError):
+            return _json_error("limit 必须是 1..%d 的整数（收到 %r）" % (SERIES_MAX_POINTS, raw_limit))
+        if limit < 1 or limit > SERIES_MAX_POINTS:
+            return _json_error("limit 必须落在 1..%d（收到 %d）" % (SERIES_MAX_POINTS, limit))
+
+    def _empty(reason):
+        return _json_ok(
+            root=root, path=query_path, depth=depth, limit=limit, count=0,
+            truncated=False, dropped=0, rows_total=0,
+            elapsed_ms=round((time.perf_counter() - t0) * 1000, 2),
+            reason=reason, points=[], skipped=[],
+        )
+
+    if not paths:
+        return _empty("no_snapshots")
+
+    # 份数超限：按文件 mtime 预筛「最新 limit 份」（不解析即可裁剪，D6-6）
+    truncated = False
+    dropped = 0
+    if len(paths) > limit:
+        ordered = sorted(
+            paths,
+            key=lambda p: (_file_signature(p) or (0, 0)),
+        )
+        dropped = len(paths) - limit
+        paths = ordered[dropped:]
+        truncated = True
+
+    points = []
+    skipped = []
+    rows_total = 0
+    for path in paths:
+        try:
+            info = _series_value(path, query_path, depth)
+        except FileNotFoundError:
+            skipped.append({"snapshot": path, "reason": "missing"})
+            continue
+        except snapshots.SnapshotCorruptError:
+            skipped.append({"snapshot": path, "reason": "corrupt"})
+            continue
+        except OSError:
+            skipped.append({"snapshot": path, "reason": "unreadable"})
+            continue
+        rows_total += int(info["rows"])
+        points.append({
+            "snapshot": path,
+            "name": Path(path).name,
+            "created_at": info["created_at"],
+            "auto": bool(info["auto"]),
+            "machine_guid": info["machine_guid"],
+            "bytes": int(info["bytes"]),
+            "present": bool(info["present"]),
+            "rows": int(info["rows"]),
+            "cached": bool(info["cached"]),
+        })
+        if rows_total >= SERIES_MAX_TOTAL_ROWS:
+            truncated = True
+            break
+
+    # 时间升序（早→晚，折线左→右）；时间缺失的点排在前（确定性：按路径次序兜底）
+    points.sort(key=lambda p: (p["created_at"] or "", p["snapshot"]))
+
+    reason = "" if points else "all_unavailable"
+    return _json_ok(
+        root=root, path=query_path, depth=depth, limit=limit,
+        count=len(points), truncated=truncated, dropped=dropped,
+        rows_total=rows_total,
+        elapsed_ms=round((time.perf_counter() - t0) * 1000, 2),
+        reason=reason, points=points, skipped=skipped,
+    )
 
 
 def _compare_job_key(root, baseline, options):

@@ -657,5 +657,318 @@ class FullscanStopContractTests(unittest.TestCase):
         self.assertFalse(fullscan.USER_STOP_EVENT.is_set())
 
 
+class SeriesContractTests(unittest.TestCase):
+    """P6（D6-3/变更集4）：GET /api/series 契约 + GET /api/snapshots 显式冻结。
+
+    覆盖门禁要求的五条路径：成功 / 空 / 参数非法 / 快照缺失 / 上限。
+    另补 P5 挂账「GET /api/snapshots 无显式契约用例」（键集合 + total_by_root
+    additive + 跳过盘形态）。
+    """
+
+    def _make_series(self, tmpdir):
+        """三份同根快照（时间递增，根总量递增），返回路径列表。
+
+        行集语义（与真实扫描同构）：父目录行已含全部后代，
+        D:\\T = size、D:\\T\\sub = size-200、D:\\T\\sub\\deep = size-500、D:\\T\\other = 200。
+        """
+        out = []
+        for idx, (stamp, size) in enumerate(
+            [("2026-09-01T10:00:00", 1000), ("2026-09-02T10:00:00", 1500), ("2026-09-03T10:00:00", 2100)]
+        ):
+            path = snapshots.save_snapshot(
+                "D:\\T",
+                [
+                    {"p": "D:\\T", "s": size},
+                    {"p": "D:\\T\\sub", "s": size - 200},
+                    {"p": "D:\\T\\sub\\deep", "s": size - 500},
+                    {"p": "D:\\T\\other", "s": 200},
+                ],
+                dir_path=Path(tmpdir),
+                auto=(idx == 1),
+                machine_guid=LOCAL_GUID,
+                fingerprint={"count": 4, "crc32": idx},
+                now=_dt(stamp),
+            )
+            out.append(str(path))
+        return out
+
+    def _isolate_sessions(self, tmpdir, snapshot_path, created_at="2026-09-03T10:00:00"):
+        """把 session.list_sessions 指向隔离目录（**绝不读用户真实数据目录**，红线 B）。
+
+        会话 id 以 `session_` 开头 → 文件名与生产 build_session_id 同构
+        （session_path 直接用 session_id 作文件名）。
+        """
+        import session as session_module
+
+        session_dir = Path(tmpdir)
+        session_module.save_session(
+            {
+                "session_id": "session_contract_series_1",
+                "auto": False,
+                "machine_guid": LOCAL_GUID,
+                "created_at": created_at,
+                "roots": {
+                    "D:\\T": {"root": "D:\\T", "snapshot": Path(snapshot_path).name,
+                              "snapshot_path": str(snapshot_path), "skipped": False},
+                },
+            },
+            dir_path=session_dir,
+        )
+        patcher = mock.patch.object(
+            session_module, "list_sessions",
+            return_value=sorted(session_dir.glob("session_*.json")),
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return session_dir
+
+    def test_series_success_shape_and_caliber(self):
+        """成功路径：键集合冻结 + 根口径 == /api/snapshots 的 total_by_root 同源值。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        paths = self._make_series(tmp.name)
+        self._isolate_sessions(tmp.name, paths[-1], created_at="2026-09-03T10:00:00")
+        with app.test_client() as client:
+            resp = client.get(
+                "/api/series",
+                query_string={"root": "D:\\T", "snapshots": paths},
+            )
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(
+                _keys(body),
+                {"ok", "root", "path", "depth", "limit", "count", "truncated",
+                 "dropped", "rows_total", "elapsed_ms", "reason", "points", "skipped"},
+                f"/api/series 键集合漂移: {_keys(body)}",
+            )
+            self.assertIs(body["ok"], True)
+            self.assertEqual(body["count"], 3)
+            self.assertEqual(body["reason"], "")
+            self.assertEqual(body["skipped"], [])
+            self.assertEqual(body["truncated"], False)
+            self.assertEqual(body["dropped"], 0)
+            self.assertEqual(body["limit"], app_module.SERIES_MAX_POINTS)
+            point = body["points"][0]
+            self.assertEqual(
+                _keys(point),
+                {"snapshot", "name", "created_at", "auto", "machine_guid",
+                 "bytes", "present", "rows", "cached"},
+                f"/api/series point 键集合漂移: {_keys(point)}",
+            )
+            # 时间升序（早→晚）+ 逐点根口径值
+            self.assertEqual([p["bytes"] for p in body["points"]], [1000, 1500, 2100])
+            self.assertEqual(
+                [p["created_at"] for p in body["points"]],
+                ["2026-09-01T10:00:00", "2026-09-02T10:00:00", "2026-09-03T10:00:00"],
+            )
+            self.assertEqual(body["points"][1]["auto"], True, "auto 取自快照头")
+            self.assertEqual(body["points"][0]["machine_guid"], LOCAL_GUID)
+            self.assertEqual(body["points"][0]["present"], True)
+            self.assertEqual(body["rows_total"], 12, "三份 × 4 行")
+            # 同源自证：与 /api/snapshots 的 total_by_root 逐值相等（C-6 两地一致）
+            snap_resp = client.get("/api/snapshots")
+            self.assertEqual(snap_resp.status_code, 200)
+            snap_body = snap_resp.get_json()
+            totals = {}
+            for sess in snap_body["sessions"]:
+                totals.update(sess.get("total_by_root") or {})
+            self.assertEqual(totals.get("D:\\T"), 2100, "最新一份会话的根总量应与序列末点相等")
+            snap_resp.close()
+            resp.close()
+
+    def test_series_path_and_depth_caliber(self):
+        """path/depth 口径：缺省 = 目录行自身值；depth ≥1 = 折叠到第 N 层的合计。
+
+        ⚠️ depth 口径与 compare._rollup 一致：**不含 path 自身行**（根行由
+        delta_total 承载），因此 sub 在 depth=1 下的值 = 其直属子项行之和。
+        """
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        paths = self._make_series(tmp.name)
+        with app.test_client() as client:
+            resp = client.get(
+                "/api/series",
+                query_string={"root": "D:\\T", "snapshots": paths, "path": "D:\\T\\sub"},
+            )
+            body = resp.get_json()
+            self.assertEqual([p["bytes"] for p in body["points"]], [800, 1300, 1900],
+                             "缺省 = 目录行自身值（已含后代）")
+            self.assertTrue(all(p["present"] for p in body["points"]))
+            self.assertEqual([p["rows"] for p in body["points"]], [4, 4, 4],
+                             "缺省口径 rows = 快照总行数（口径可核对）")
+            resp.close()
+            # depth=1：sub 子树折叠到第 1 层 = 直属子项行（deep），不含 sub 自身
+            resp = client.get(
+                "/api/series",
+                query_string={"root": "D:\\T", "snapshots": paths, "path": "D:\\T\\sub", "depth": 1},
+            )
+            body = resp.get_json()
+            self.assertEqual(body["depth"], 1)
+            self.assertEqual([p["bytes"] for p in body["points"]], [500, 1000, 1600],
+                             "depth=1 = 直属子项合计（_rollup 剔除根行口径）")
+            self.assertEqual([p["rows"] for p in body["points"]], [1, 1, 1],
+                             "折叠后行数 = 1（仅 deep）")
+            resp.close()
+            # 不存在的目录：present=False + bytes=0（不编造、不报错）
+            resp = client.get(
+                "/api/series",
+                query_string={"root": "D:\\T", "snapshots": paths, "path": "D:\\T\\nope"},
+            )
+            body = resp.get_json()
+            self.assertEqual([p["bytes"] for p in body["points"]], [0, 0, 0])
+            self.assertEqual([p["present"] for p in body["points"]], [False, False, False])
+            resp.close()
+
+    def test_series_empty_and_missing_snapshot(self):
+        """空路径：无快照 → reason=no_snapshots；全部缺失 → all_unavailable + skipped。"""
+        with app.test_client() as client:
+            resp = client.get("/api/series", query_string={"root": "D:\\T"})
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(body["count"], 0)
+            self.assertEqual(body["points"], [])
+            self.assertEqual(body["reason"], "no_snapshots")
+            resp.close()
+            missing_a = "C:\\nope\\a.snap.gz"
+            missing_b = "C:\\nope\\b.snap.gz"
+            resp = client.get(
+                "/api/series",
+                query_string={"root": "D:\\T", "snapshots": [missing_a, missing_b]},
+            )
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(body["count"], 0)
+            self.assertEqual(body["reason"], "all_unavailable")
+            self.assertEqual(
+                body["skipped"],
+                [{"snapshot": missing_a, "reason": "missing"},
+                 {"snapshot": missing_b, "reason": "missing"}],
+            )
+            resp.close()
+
+    def test_series_invalid_params(self):
+        """参数非法四例一律 400（不静默降级）。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        paths = self._make_series(tmp.name)
+        with app.test_client() as client:
+            cases = [
+                ({"snapshots": paths}, "缺少 root"),
+                ({"root": "D:\\T", "snapshots": paths, "path": "C:\\elsewhere"}, "path 越界"),
+                ({"root": "D:\\T", "snapshots": paths, "depth": "0"}, "depth<1"),
+                ({"root": "D:\\T", "snapshots": paths, "depth": "abc"}, "depth 非整数"),
+                ({"root": "D:\\T", "snapshots": paths, "limit": "0"}, "limit<1"),
+                ({"root": "D:\\T", "snapshots": paths, "limit": "99"}, "limit 超上限"),
+            ]
+            for qs, label in cases:
+                resp = client.get("/api/series", query_string=qs)
+                self.assertEqual(resp.status_code, 400, f"{label} 应 400，实际 {resp.status_code}")
+                body = resp.get_json()
+                self.assertIs(body["ok"], False, label)
+                self.assertIn("error", body, label)
+                resp.close()
+
+    def test_series_limit_truncation_keeps_newest(self):
+        """上限路径：份数超 limit → 保留最新 limit 份 + truncated/dropped 如实回显。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        paths = self._make_series(tmp.name)
+        with app.test_client() as client:
+            resp = client.get(
+                "/api/series",
+                query_string={"root": "D:\\T", "snapshots": paths, "limit": 2},
+            )
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(body["limit"], 2)
+            self.assertEqual(body["count"], 2)
+            self.assertEqual(body["truncated"], True)
+            self.assertEqual(body["dropped"], 1)
+            self.assertEqual([p["bytes"] for p in body["points"]], [1500, 2100],
+                             "保留下来的必须是「最新」两份（旧的一份被裁掉）")
+            resp.close()
+
+    def test_series_cache_reuses_and_invalidates_on_signature(self):
+        """D6-3/D6-6：进程内缓存按文件签名命中；同名文件被重写 → 自动失效。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        paths = self._make_series(tmp.name)
+        app_module._SERIES_CACHE.clear()
+        with app.test_client() as client:
+            resp = client.get("/api/series", query_string={"root": "D:\\T", "snapshots": paths})
+            first = resp.get_json()
+            self.assertTrue(all(p["cached"] is False for p in first["points"]), "首跑必须实解析")
+            resp.close()
+            resp = client.get("/api/series", query_string={"root": "D:\\T", "snapshots": paths})
+            second = resp.get_json()
+            self.assertTrue(all(p["cached"] is True for p in second["points"]), "复跑应命中缓存")
+            self.assertEqual([p["bytes"] for p in first["points"]],
+                             [p["bytes"] for p in second["points"]], "缓存不得改变数值")
+            resp.close()
+
+    def test_snapshots_contract_keys_and_total_by_root(self):
+        """P5 挂账补测：/api/snapshots 键集合显式冻结 + total_by_root additive +
+        跳过盘形态（无 snapshot_path 的盘不进 total_by_root，且不报错）。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        snap_path = snapshots.save_snapshot(
+            "D:\\T",
+            [{"p": "D:\\T", "s": 4096}, {"p": "D:\\T\\sub", "s": 2048}],
+            dir_path=Path(tmp.name),
+            auto=True,
+            machine_guid=LOCAL_GUID,
+            fingerprint={"count": 2, "crc32": 7},
+        )
+        import session as session_module
+
+        session_dir = Path(tmp.name)
+        session_module.save_session(
+            {
+                "session_id": "session_contract_snapshots_1",
+                "auto": True,
+                "machine_guid": LOCAL_GUID,
+                "created_at": "2026-09-05T10:00:00",
+                "roots": {
+                    "D:\\T": {"root": "D:\\T", "snapshot": Path(snap_path).name,
+                              "snapshot_path": str(snap_path), "skipped": False},
+                    "C:\\": {"root": "C:\\", "snapshot": None, "snapshot_path": None,
+                             "skipped": True, "skip_reason": "day_budget_exceeded",
+                             "notice": "今日写入量已达上限，自动保存跳过"},
+                },
+            },
+            dir_path=session_dir,
+        )
+        with mock.patch.object(session_module, "list_sessions",
+                               return_value=sorted(session_dir.glob("session_*.json"))):
+            with app.test_client() as client:
+                resp = client.get("/api/snapshots")
+                self.assertEqual(resp.status_code, 200)
+                body = resp.get_json()
+                self.assertEqual(_keys(body), {"ok", "sessions", "count"},
+                                 f"/api/snapshots 键集合漂移: {_keys(body)}")
+                self.assertEqual(body["count"], 1)
+                sess = body["sessions"][0]
+                self.assertEqual(
+                    _keys(sess),
+                    {"session_id", "auto", "machine_guid", "created_at", "roots",
+                     "total_by_root", "_file"},
+                    f"会话键集合漂移: {_keys(sess)}",
+                )
+                self.assertEqual(sess["total_by_root"], {"D:\\T": 4096},
+                                 "total_by_root 只含有快照的盘（跳过盘不入表）")
+                self.assertEqual(_keys(sess["roots"]["C:\\"]),
+                                 {"root", "snapshot", "snapshot_path", "skipped",
+                                  "skip_reason", "notice"},
+                                 "跳过盘形态（红线 #7 SKIP_REASON_TEXT 依赖）不得漂移")
+                resp.close()
+
+
+def _dt(text):
+    """ISO 文本 → datetime（series 夹具用固定时刻，避免依赖运行时钟）。"""
+    from datetime import datetime as _datetime
+
+    return _datetime.fromisoformat(text)
+
+
 if __name__ == "__main__":
     unittest.main()
