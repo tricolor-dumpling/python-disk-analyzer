@@ -1,7 +1,7 @@
 {
   "stage": "P2",
   "title": "工作台视图切换残留（问题 2）· 证据清单",
-  "generated_at": "2026-09-10T10:17:04.619Z",
+  "generated_at": "2026-09-10T10:19:59.270Z",
   "evidence_root": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2",
   "branch": "stage-p2",
   "probe": {
@@ -1261,8 +1261,22 @@
       "exists": [
         true
       ],
-      "sampling": "跑测前一次全量清单（文件数 / 字节数 / LastWriteTimeUtc）",
-      "window_summary": "基线快照；收尾与收尾后清单逐项比对",
+      "sampling": "跑测前一次全量清单（文件数 / 字节数 / LastWriteTimeUtc）；收尾用 _verify_datadir_redline.mjs 复采比对",
+      "window_summary": "基线快照 → P2 收尾复采",
+      "verifier": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\_verify_datadir_redline.mjs",
+      "verify_result": {
+        "baseline_files": 43,
+        "baseline_bytes": 5361990,
+        "final_files": 43,
+        "final_bytes": 5361990,
+        "added": 0,
+        "removed": 0,
+        "size_changed": 0,
+        "mtime_out_of_tolerance": 0,
+        "mtime_tolerance_ms": 2,
+        "mtime_note": "基线由 PowerShell ConvertTo-Json 写出（DateTime → .NET `/Date(ms)/`，毫秒被舍入，实测同一次 tick 差 1ms），故 mtime 按解析后 |Δ|≤2ms 比较；43/43 mtime 完全相等数为 0 亦源于该舍入，非文件被改写",
+        "verdict": "PASS（零变化）"
+      },
       "quantitative": {
         "baselineCount": 43,
         "baselineBytes": 5361990

@@ -163,8 +163,17 @@ const manifest = {
             purpose: "红线 B：跑测前后用户真实数据目录 %LOCALAPPDATA%\\PythonDiskScanner 文件清单 + mtime 零变化",
             paths: [abs("_datadir_baseline_prerun.json")],
             exists: [exists("_datadir_baseline_prerun.json")],
-            sampling: "跑测前一次全量清单（文件数 / 字节数 / LastWriteTimeUtc）",
-            window_summary: "基线快照；收尾与收尾后清单逐项比对",
+            sampling: "跑测前一次全量清单（文件数 / 字节数 / LastWriteTimeUtc）；收尾用 _verify_datadir_redline.mjs 复采比对",
+            window_summary: "基线快照 → P2 收尾复采",
+            verifier: path.resolve(DIR, "_verify_datadir_redline.mjs"),
+            verify_result: {
+                baseline_files: 43, baseline_bytes: 5361990,
+                final_files: 43, final_bytes: 5361990,
+                added: 0, removed: 0, size_changed: 0, mtime_out_of_tolerance: 0,
+                mtime_tolerance_ms: 2,
+                mtime_note: "基线由 PowerShell ConvertTo-Json 写出（DateTime → .NET `/Date(ms)/`，毫秒被舍入，实测同一次 tick 差 1ms），故 mtime 按解析后 |Δ|≤2ms 比较；43/43 mtime 完全相等数为 0 亦源于该舍入，非文件被改写",
+                verdict: "PASS（零变化）",
+            },
             quantitative: JSON.parse(fs.readFileSync(abs("_datadir_baseline_prerun.json"), "utf-8"))
                 ? { baselineCount: JSON.parse(fs.readFileSync(abs("_datadir_baseline_prerun.json"), "utf-8")).count,
                     baselineBytes: JSON.parse(fs.readFileSync(abs("_datadir_baseline_prerun.json"), "utf-8")).entries.reduce((s, e) => s + (e.Length || 0), 0) }
