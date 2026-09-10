@@ -245,6 +245,14 @@ export function createTreemap(host, opts = {}) {
     let lastCY = 0;
     let resizeRaf = 0;
     let destroyed = false;
+    /* P2（R4）：真暂停位。宿主被隐藏（`[hidden]` / display:none）期间置 true：
+       · doResize() 只更新布局与 canvas 尺寸、不重绘（避免在隐藏态做无谓的整幅绘制）；
+       · highlightKey() 直接返回（隐藏态的行 hover 联动不得触发矩形图重绘）；
+       · 指针命中链（pointermove/pointerleave/click 命中）直接返回（隐藏态不可交互）；
+       · 主题观察器不重绘；
+       · setPaused(false) 时补一次终帧重绘（尺寸/主题/高亮在暂停期间的变化一次性收束）。 */
+    let paused = false;
+    let dirty = false; // 暂停期间有未落地的尺寸/数据变化 → 恢复时补一次终帧重绘
     let cssW = 0;
     let cssH = 0;
     let dark = document.documentElement.getAttribute("data-theme") === "dark";
@@ -267,6 +275,7 @@ export function createTreemap(host, opts = {}) {
 
     const themeObs = new MutationObserver(() => {
         dark = document.documentElement.getAttribute("data-theme") === "dark";
+        if (paused) { dirty = true; return; } // P2（R4）：隐藏态不重绘，恢复时补终帧
         drawFinalFrame(hoverKey !== null);
     });
     themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
@@ -293,8 +302,11 @@ export function createTreemap(host, opts = {}) {
             // 重排（同数据新容器尺寸），直接终帧呈现
             const geo = layoutSquaried(tiles.map((t) => ({ key: t.key, value: t.size })), 0, 0, cssW, cssH);
             applyLayout(geo);
+            /* P2（R4）：暂停期间不做整幅绘制——布局已更新，恢复时由 setPaused(false) 补终帧 */
+            if (paused) { dirty = true; return; }
             drawFinalFrame(hoverKey !== null);
         } else {
+            if (paused) { dirty = true; return; }
             drawFinalFrame(false);
         }
     }
@@ -744,6 +756,7 @@ export function createTreemap(host, opts = {}) {
 
     /* ---- 交互 ---- */
     function onPointerMove(ev) {
+        if (paused) return; // P2（R4）：隐藏态不可交互（无命中、无 tooltip、无重绘）
         lastCX = ev.clientX;
         lastCY = ev.clientY;
         const pos = toLocal(ev);
@@ -760,6 +773,7 @@ export function createTreemap(host, opts = {}) {
         }
     }
     function onPointerLeave() {
+        if (paused) return; // P2（R4）：隐藏态不重绘
         hoverKey = null;
         if (onHover) onHover(null);
         if (!animating) drawFinalFrame(false);
@@ -767,6 +781,7 @@ export function createTreemap(host, opts = {}) {
     }
     function onClickCanvas(ev) {
         hideTooltip();
+        if (paused) return; // P2（R4）：隐藏态不响应命中（防「看不见却能点到」）
         const t = hitTest(toLocal(ev).x, toLocal(ev).y);
         if (!t) return;
         // 单击/双击判定：300ms 窗口（--dur-dblclick；token 缺失时按 §3.5 参数回落 300——
@@ -849,6 +864,23 @@ export function createTreemap(host, opts = {}) {
             pending = { tiles: (next || []).slice(), mode: mode };
             return;
         }
+        /* P2（R4）：暂停（宿主隐藏）期间不做任何绘制——数据/布局照常更新，
+           终帧留到 setPaused(false) 补画（隐藏态零重绘）。 */
+        if (paused) {
+            tiles = (next || []).slice();
+            tiles.sort((a, b) => (Number(b.size) || 0) - (Number(a.size) || 0));
+            const w = host.clientWidth;
+            const h = host.clientHeight;
+            if (w && h) {
+                cssW = w;
+                cssH = h;
+                const g = layoutSquaried(tiles.map((t) => ({ key: t.key, value: t.size })), 0, 0, cssW, cssH);
+                applyLayout(g);
+            }
+            cancelAnim();
+            dirty = true;
+            return;
+        }
         tiles = (next || []).slice();
         tiles.sort((a, b) => (Number(b.size) || 0) - (Number(a.size) || 0)); // 面积降序（stagger 排名 = 绘制顺序）
         if (!cssW || !cssH) doResize();
@@ -911,22 +943,49 @@ export function createTreemap(host, opts = {}) {
             setFocusIdxRaw(Number.isInteger(i) && i >= 0 && i < layout.length ? i : -1);
             if (!animating && !transition) drawFinalFrame(hoverKey !== null);
         },
-        /* L2-5 联动方向②（外部行 hover → 本视图高亮对应块；120ms 立即态） */
+        /* L2-5 联动方向②（外部行 hover → 本视图高亮对应块；120ms 立即态）；
+           P2（R4）：暂停（宿主隐藏）期间为 no-op——隐藏态不得触发矩形图重绘。 */
         highlightKey: (key) => {
+            if (paused || destroyed) return false;
             hoverKey = key || null;
             if (!animating) drawFinalFrame(hoverKey !== null);
+            return true;
         },
-        /* U2.1 router 离场暂停挂点：终帧收束 + 停 rAF + 扫掠/交叉淡化收尾（返回主页后重挂新宿主重建） */
-        pause: () => {
-            cancelAnim();
-            transition = null;
-            pending = null;
-            setSweep(false);
-            if (crossfading) {
-                crossfading = false;
-                staticCanvas.style.transition = "";
-                staticCanvas.style.opacity = "";
+        /* P2（R4）：真暂停/恢复。
+           pause：停 rAF、清转场与挂起数据、关扫掠、清 tooltip、**隐藏态期间断重绘**；
+           resume（setPaused(false)）：若暂停期间有尺寸/主题/高亮变化则补一次终帧。 */
+        setPaused: (on) => {
+            const want = !!on;
+            if (want === paused) return;
+            paused = want;
+            if (paused) {
+                cancelAnim();
+                transition = null;
+                pending = null;
+                setSweep(false);
+                hideTooltip();
+                hoverKey = null;
+                if (crossfading) {
+                    crossfading = false;
+                    staticCanvas.style.transition = "";
+                    staticCanvas.style.opacity = "";
+                }
+                if (resizeRaf) { cancelAnimationFrame(resizeRaf); resizeRaf = 0; }
+                dirty = true;
+            } else if (dirty) {
+                dirty = false;
+                doResize();            // 尺寸在隐藏期间变化 → 先落布局
+                if (!destroyed) {
+                    if (sweepOn) fctx.clearRect(0, 0, cssW, cssH); // 扫掠层残留清理
+                    drawFinalFrame(hoverKey !== null); // 终帧收束（隐藏期变化一次性落地）
+                }
             }
+        },
+        isPaused: () => paused,
+        /* U2.1 router 离场暂停挂点：终帧收束 + 停 rAF + 扫掠/交叉淡化收尾
+           （返回主页后重挂新宿主重建）；P2（R4）：转发到 setPaused(true) 真暂停。 */
+        pause: () => {
+            api.setPaused(true);
         },
         isAnimating: () => animating,
         destroy: () => {
