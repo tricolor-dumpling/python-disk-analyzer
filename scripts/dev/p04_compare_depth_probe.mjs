@@ -64,6 +64,9 @@ const FILES = {
     growthT1: "D_20260908_170000_explicit_3f2a1c9d.snap.gz",
     flatA: "D_20260907_110000_explicit_3f2a1c9d.snap.gz",
     flatB: "D_20260908_110000_explicit_3f2a1c9d.snap.gz",
+    // P4 挂账清理：树一致夹具（父=子和，任意 depth 残差恒为 0）
+    treeT0: "D_20260907_050000_explicit_3f2a1c9d.snap.gz",
+    treeT1: "D_20260908_050000_explicit_3f2a1c9d.snap.gz",
 };
 const ROOT = "D:\\";
 
@@ -230,7 +233,7 @@ function ensureFixtures() {
     fs.mkdirSync(FIXTURE_ROOT, { recursive: true });
     const gen = spawn(process.execPath, [
         path.join(REPO, "scripts", "dev", "fixture_snapshots.mjs"),
-        "--dir", FIXTURE_ROOT, "--now", FIXTURE_NOW, "--fixture", "growth,flat",
+        "--dir", FIXTURE_ROOT, "--now", FIXTURE_NOW, "--fixture", "growth,flat,tree",
     ], { stdio: "ignore", cwd: REPO });
     return new Promise((resolve) => {
         gen.on("exit", (code) => resolve({ generated: true, exit: code, missing }));
@@ -300,6 +303,12 @@ async function apiPhase(base) {
         { key: "flat-default(旧口径)", dataset: FILES.flatB, baseline: FILES.flatA, payload: {} },
         { key: "flat-depth1+drop_zero", dataset: FILES.flatB, baseline: FILES.flatA,
           payload: { depth: 1, drop_zero: true, order_by: "abs" } },
+        /* P4 挂账清理：树一致夹具的正向用例——父=子和 ⇒ 残差恒 0，
+           `Σ(聚合行 delta) == delta_total` 在干净数据上精确成立（无需残差项） */
+        { key: "tree(一致夹具)depth2 残差应=0", dataset: FILES.treeT1, baseline: FILES.treeT0,
+          payload: { depth: 2, drop_zero: true, order_by: "abs" }, requireZeroResidue: true },
+        { key: "tree(一致夹具)depth3 残差应=0", dataset: FILES.treeT1, baseline: FILES.treeT0,
+          payload: { depth: 3, drop_zero: true, order_by: "abs" }, requireZeroResidue: true },
         { key: "drill D:\\apps depth1", dataset: FILES.growthT1, baseline: FILES.growthT0, root: "D:\\apps",
           payload: { depth: 1, drop_zero: true, order_by: "abs" } },
         { key: "drill D:\\apps\\framework\\core depth1", dataset: FILES.growthT1, baseline: FILES.growthT0,
@@ -309,6 +318,8 @@ async function apiPhase(base) {
     const apiCur = readSnapshotRows(path.join(SNAP_DIR, FILES.growthT1));
     const flatBase = readSnapshotRows(path.join(SNAP_DIR, FILES.flatA));
     const flatCur = readSnapshotRows(path.join(SNAP_DIR, FILES.flatB));
+    const treeBase = readSnapshotRows(path.join(SNAP_DIR, FILES.treeT0));
+    const treeCur = readSnapshotRows(path.join(SNAP_DIR, FILES.treeT1));
 
     for (const c of cases) {
         await setCurrent(base, c.dataset);
@@ -318,8 +329,9 @@ async function apiPhase(base) {
         const report = (resp.body && resp.body.report) || null;
         const rows = (report && report.rows) || [];
         const isFlat = c.key.indexOf("flat") === 0;
-        const B = isFlat ? flatBase : apiBase;
-        const C = isFlat ? flatCur : apiCur;
+        const isTree = c.key.indexOf("tree") === 0;
+        const B = isTree ? treeBase : isFlat ? flatBase : apiBase;
+        const C = isTree ? treeCur : isFlat ? flatCur : apiCur;
         const depth = payload.depth === undefined ? null : payload.depth;
         const rec = {
             key: c.key, request: payload, httpStatus: resp.httpStatus, elapsedMs: resp.elapsedMs,
@@ -394,6 +406,11 @@ async function apiPhase(base) {
         judge(rec.judges, "J2 Σ(行delta)+残差==delta_total",
             rec.sumDelta + rec.residue === rec.deltaTotalRaw,
             "Σ=" + rec.sumDelta + " 残差=" + rec.residue + " delta_total=" + rec.deltaTotalRaw);
+        if (c.requireZeroResidue) {
+            judge(rec.judges, "J2(树一致夹具) 残差==0 且 Σ==delta_total（计划硬判据原式）",
+                rec.residue === 0 && rec.sumDelta === rec.deltaTotalRaw,
+                "Σ=" + rec.sumDelta + " 残差=" + rec.residue + " delta_total=" + rec.deltaTotalRaw);
+        }
         if (depth !== null) {
             judge(rec.judges, "J1 depth=" + depth + " 返回行数 > 0（无假空态）",
                 !payload.drop_zero || rows.length > 0 || rec.expectedVisibleRows === 0,

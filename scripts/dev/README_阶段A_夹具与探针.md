@@ -182,13 +182,20 @@ node scripts/dev/p00_viewport_shots.mjs --base http://127.0.0.1:5000/ --out <绝
 
 ```powershell
 node scripts/dev/fixture_snapshots.mjs --dir <夹具根> --now <ISO> --fixture all
-# --fixture 取值：all（缺省，五类 + P0 三类）| growth | flat | series 等
+# --fixture 取值：all（缺省，五类 + P0 三类 + P4 tree）| growth | flat | series | tree 等
 ```
 
 - `growth`：同一根 D:\ 两时刻，正/负/零增量混合 + ≥4 层深目录链（`D:\apps\framework\core\engine`），用于 P4 问题 5、6。
 - `flat`：两时刻完全一致（全 0 增量），用于 P4 问题 6。
 - `series`：同根 D:\ 6 个时刻递进总量，用于 P6 问题 8 多快照趋势。
+- `tree`（**P4 挂账清理新增**）：**树一致**夹具（父 = 直接子项之和，逐层闭合）：
+  `D:\tree\app`(600)=`a.bin`(200)+`sub`(400)、`sub`(400)=`x.bin`(250)+`y.bin`(150)、
+  根(1000)=`app`(600)+`data`(400)；t1 为 700=220+480、480=300+180、1150=700+450。
+  用途：让深度聚合的守恒判据 `Σ(聚合行 delta) == delta_total` 在**残差为 0** 的干净数据上
+  被正向断言（既有 growth/flat 为合成数据，父 ≠ 子和，判据需写作 `Σ + 残差 == delta_total`）。
 - 与 `snapshots.py` 格式兼容已用项目自身模块校验（`load_snapshot` 19/19、`compare_snapshots` 增量正确、`session.list_sessions` 15 会话）。
-- ⚠️ 新增会话时间戳已避开与既有五类的文件名冲突（相同 root+时间戳会产生同名 snap.gz 相互覆盖）。
+- ⚠️ 新增会话时间戳已避开与既有五类的文件名冲突（相同 root+时间戳会产生同名 snap.gz 相互覆盖）；
+  `tree` 取 −39h/−15h（`--now 2026-09-08T20:00:00` 时为 09-07 05:00 与 09-08 05:00），与既有全部 D:\ 时间戳互异。
 
 *执行记录：2026-09-08 · 阶段 P0 · 开发子代理执行 · 零生产代码改动。*
+*P4 追加：2026-09-10 · `tree` 树一致夹具（additive，既有三类语义与文件名零改动）· 主代理执行。*

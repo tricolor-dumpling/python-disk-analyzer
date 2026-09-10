@@ -36,8 +36,8 @@ function arg(name, dflt) {
 const FIXTURE_ROOT = path.resolve(arg("dir", path.join(os.tmpdir(), "pds_fixture_snapshots_" + Date.now())));
 const NOW_ISO = arg("now", null);
 const NOW = NOW_ISO ? new Date(NOW_ISO) : new Date();
-/* --fixture：选择生成哪些场景（P0-4 新增 growth/flat/series）
-   all(缺省) = 既有五类 + growth + flat + series；也可单独指定一个。 */
+/* --fixture：选择生成哪些场景（P0-4 新增 growth/flat/series；P4 挂账清理新增 tree）
+   all(缺省) = 既有五类 + growth + flat + series + tree；也可单独指定一个。 */
 const FIXTURE_SEL = (arg("fixture", "all") || "all").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
 
 /* 固定机器 GUID（夹具统一；跨盘/异机测试可覆写，见底部注释） */
@@ -229,6 +229,43 @@ function seriesRows(k) {
     ];
 }
 
+/* P4 挂账清理：**树一致**夹具（父 = 直接子项之和，逐层闭合）。
+   既有 growth/flat 为合成数据（父 ≠ 子和，例如 apps=500 而唯一子键 framework=300），
+   深度聚合在「被折叠祖先的直属字节」上会留下残差，探针判据须写作
+   `Σ(行) + 残差 == delta_total`。本夹具让残差**恒为 0**（任意 depth 均成立），
+   使 `Σ(聚合行 delta) == delta_total` 可以在干净数据上被正向断言。
+   校验（t0/t1 均闭合）：600=200+400、400=250+150、1000=600+400；
+   700=220+480、480=300+180、1150=700+450。 */
+function treeRows(scale) {
+    const v = (x) => x * scale;
+    return [
+        { p: "D:\\", s: v(1000) },
+        { p: "D:\\tree", s: v(1000) },
+        { p: "D:\\tree\\app", s: v(600) },
+        { p: "D:\\tree\\app\\a.bin", s: v(200) },
+        { p: "D:\\tree\\app\\sub", s: v(400) },
+        { p: "D:\\tree\\app\\sub\\x.bin", s: v(250) },
+        { p: "D:\\tree\\app\\sub\\y.bin", s: v(150) },
+        { p: "D:\\tree\\data", s: v(400) },
+        { p: "D:\\tree\\data\\c.bin", s: v(400) },
+    ];
+}
+function treeRows1() {
+    /* t1：app +100（a.bin +20 / sub +80；sub 内 x.bin +50 / y.bin +30）、
+       data +50（c.bin +50）、根 +150——逐层仍闭合 */
+    return [
+        { p: "D:\\", s: 1150 },
+        { p: "D:\\tree", s: 1150 },
+        { p: "D:\\tree\\app", s: 700 },
+        { p: "D:\\tree\\app\\a.bin", s: 220 },
+        { p: "D:\\tree\\app\\sub", s: 480 },
+        { p: "D:\\tree\\app\\sub\\x.bin", s: 300 },
+        { p: "D:\\tree\\app\\sub\\y.bin", s: 180 },
+        { p: "D:\\tree\\data", s: 450 },
+        { p: "D:\\tree\\data\\c.bin", s: 450 },
+    ];
+}
+
 const P0_SESSIONS = [];
 /* 时间偏移（hours before NOW）保证所有 D:\ 快照时间戳两两互异，且避开既有
    五类的 D/C 时间戳（否则 <root>_<ts>_explicit_<guid>.snap.gz 相撞被覆盖）：
@@ -266,14 +303,23 @@ for (let k = 0; k < 6; k++) {
         ])
     );
 }
+/* P4：tree 树一致夹具（两时刻；偏移 39h/15h 与既有全部 D:\ 时间戳互异） */
+P0_SESSIONS.push(
+    session("tree-t0", new Date(NOW.getTime() - 39 * 3600e3), false, [
+        { root: "D:\\", rows: treeRows(1) },
+    ]),
+    session("tree-t1", new Date(NOW.getTime() - 15 * 3600e3), false, [
+        { root: "D:\\", rows: treeRows1() },
+    ])
+);
 
-/* 选择待写会话：默认 all = 既有五类 + P0 三类 */
+/* 选择待写会话：默认 all = 既有五类 + P0 三类（+ P4 tree） */
 function selectedSessions() {
     const want = FIXTURE_SEL;
     if (want.includes("all")) return { classic: SESSIONS, p0: P0_SESSIONS };
     const out = { classic: [], p0: [] };
     for (const s of SESSIONS) if (want.includes(s.name)) out.classic.push(s);
-    for (const s of P0_SESSIONS) if (want.includes(s.name) || (s.name.startsWith("growth") && want.includes("growth")) || (s.name.startsWith("flat") && want.includes("flat")) || (s.name.startsWith("series") && want.includes("series"))) out.p0.push(s);
+    for (const s of P0_SESSIONS) if (want.includes(s.name) || (s.name.startsWith("growth") && want.includes("growth")) || (s.name.startsWith("flat") && want.includes("flat")) || (s.name.startsWith("series") && want.includes("series")) || (s.name.startsWith("tree") && want.includes("tree"))) out.p0.push(s);
     return out;
 }
 

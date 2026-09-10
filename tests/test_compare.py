@@ -213,6 +213,28 @@ class DepthAggregationTests(unittest.TestCase):
             "摘要口径与 delta_total 自洽（本例：仅 apps 增长、docs 缩减）",
         )
 
+    def test_summary_counts_full_rows_before_max_rows_truncation(self):
+        """P4 挂账清理复核：汇总取 **MAX_ROWS 截断之前** 的全量行集。
+
+        把 MAX_ROWS 压到 5（不改生产常量，仅用例内 monkeypatch）即可验证：
+        `rows` 被截断到 5 行，而 rows_total / max_growth 仍统计全部 21 行；
+        `zero_count` 按**返回行**统计（切片口径，语义与 D4-5 注释一致）。
+        """
+        pairs = [("C:\\r%03d" % i, 100 + i) for i in range(20)]
+        baseline = _snapshot_dict("C:\\", [("C:\\r%03d" % i, 100) for i in range(20)])
+        current = _snapshot_dict("C:\\", pairs)
+        original = compare.MAX_ROWS
+        compare.MAX_ROWS = 5
+        try:
+            report = compare.compare_snapshots(baseline, current)
+        finally:
+            compare.MAX_ROWS = original
+        self.assertTrue(report["truncated"])
+        self.assertEqual(len(report["rows"]), 5, "返回行按 MAX_ROWS 截断")
+        self.assertEqual(report["rows_total"], 20, "汇总为截断前全量（20 个子项，depth 视图不含根行）")
+        self.assertEqual(report["max_growth"], 19, "最大增长取自全量行集（r019 = +19）")
+        self.assertEqual(report["zero_count"], 0, "zero_count 按返回行（Top-|delta|）统计")
+
 
 class ZeroFilterAndOrderingTests(unittest.TestCase):
     """P4（问题 6）：零增量过滤（排序/截断之前）+ top_growth 排序口径。
