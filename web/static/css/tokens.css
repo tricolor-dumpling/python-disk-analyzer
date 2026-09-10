@@ -61,6 +61,17 @@
   --fs-xs:12px; --fs-sm:13px; --fs-md:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px;
   --radius-md:8px; --radius-sm:6px;
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-8:32px;
+  /* ---- P6（D6-1/变更集1）：间距与字号刻度补齐 + 折线几何单一来源 ----
+     ① --space-7（28px）：补齐 1..8 连续刻度（P3 迁入段缺 7，两页改用刻度时无法表达 28px）；
+     ② --fs-2xs（11px）：此前 11px 以魔法数散落在 .tag（671）/ .kbd（407）/ .strip-label（874）
+        与紧凑档状态行（1150），统一收口后由刻度消费；
+     ③ --spark-w/--spark-h：趋势卡 sparkline 画布尺寸的**唯一来源**
+        （snapshots.js 原 `const W=120,H=28` 与 style.css `.trend-spark*` 各写一遍）；
+     ④ --line-h：对比页多快照折线卡高度（viz/line.js 与 CSS 同源消费）。
+     同既有增补规则：无 hex、**未动任何既有值**、未触碰 --dur-* 与 --ease-*。 */
+  --space-7:28px; --fs-2xs:11px;
+  --spark-w:120px; --spark-h:28px;
+  --line-h:132px;
 }
 :root[data-theme="light"]{
   --bg:#f4f6fa; --bg-aurora-1:rgba(59,130,246,.10); --bg-aurora-2:rgba(125,211,252,.10);

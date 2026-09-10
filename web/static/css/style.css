@@ -194,20 +194,27 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .page-body{flex:1;min-height:0;display:flex;flex-direction:column}
 
 /* ============================================================ */
-/* U3.3 快照管理页（#/snapshots）：页头 64px + 趋势卡×2 128px + 会话列表 flex:1 内滚 */
+/* U3.3 快照管理页（#/snapshots）：页头 64px + 趋势卡×2 128px + 会话列表 flex:1 内滚
+   P6（D6-1·变更集1）：本节全面令牌化——间距一律 var(--space-*)、字号一律
+   var(--fs-*)，卡片统一消费「卡片原语」（--card + --border + --radius-card +
+   --shadow-sm，全站单一圆角）；原散落在 cards 分区（.session-item）与 list
+   分区（.trend-reason）的两条规则归位到本节对应位置。 */
 /* ============================================================ */
-.page-head-row{flex-direction:row;align-items:center;justify-content:space-between;gap:16px}
-.page-head-titles{min-width:0;display:flex;flex-direction:column;gap:4px}
-.page-head-actions{display:flex;align-items:center;gap:8px;flex:none}
+.page-head-row{flex-direction:row;align-items:center;justify-content:space-between;gap:var(--space-4)}
+.page-head-titles{min-width:0;display:flex;flex-direction:column;gap:var(--space-1)}
+.page-head-actions{display:flex;align-items:center;gap:var(--space-2);flex:none}
 
-/* 趋势区 128px（N07：较昨日/较上周）。
+/* 趋势区 128px（N07：较昨日/较上周）
    ⚠️ 降级注记：/api/snapshots 会话数据无逐次总量字段 → sparkline（L3-5）降级为
-   「两快照对比差值卡」——无折线，保留 ▲/▼ 与百分比；L3-5 后端补字段后启用 */
-.trend-row{flex:none;height:128px;display:flex;gap:12px}
+   「两快照对比差值卡」——无折线，保留 ▲/▼ 与百分比；L3-5 后端补字段后启用
+   （P6 实测：/api/snapshots 已逐会话返回 additive total_by_root，sparkline 已在
+   阶段G 启用，上面这条注记仅为历史沿革留痕） */
+.trend-row{flex:none;height:128px;display:flex;gap:var(--space-3)}
 .trend-card{
-  flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px;
-  padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-card);
+  flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:var(--space-1);
+  padding:var(--space-3) var(--space-4);border:1px solid var(--border);border-radius:var(--radius-card);
   background:var(--card);color:var(--text);text-align:left;font:inherit;cursor:pointer;
+  box-shadow:var(--shadow-sm);
   /* U4.2 红线终核：hover 边框/阴影状态瞬时切换，不参与过渡（仅 transform/opacity） */
 }
 .trend-card:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
@@ -215,19 +222,25 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .trend-card:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .trend-card.is-empty{cursor:default}
 .trend-card.is-empty:hover{border-color:var(--border);box-shadow:none}
-.trend-label-line{display:flex;align-items:baseline;gap:8px;min-width:0}
+.trend-label-line{display:flex;align-items:baseline;gap:var(--space-2);min-width:0}
 .trend-label{font-size:var(--fs-sm);font-weight:600;white-space:nowrap}
 .trend-root{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.trend-main{display:flex;align-items:baseline;gap:10px;min-width:0}
+.trend-main{display:flex;align-items:baseline;gap:var(--space-2);min-width:0}
 .trend-delta{font-size:var(--fs-xl);font-weight:700;font-variant-numeric:var(--font-num);white-space:nowrap}
 .trend-pct{font-size:var(--fs-sm);color:var(--muted);font-variant-numeric:var(--font-num);white-space:nowrap}
 .trend-sub{font-size:var(--fs-xs);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .trend-pending,.trend-empty{font-size:var(--fs-sm);color:var(--muted)}
 .trend-err{font-size:var(--fs-xs);color:var(--danger);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 阶段C（C-4）：趋势卡空态原因行（从 sessions 推导；纯文本无动画）
+   P6（D6-1）：自「list 分区」归位到趋势卡同节——原定义距卡片 500+ 行，
+   改趋势卡样式时极易漏改（D6-1 根因 #1 的「离趋势卡分区 500 行远」）。 */
+.trend-reason{display:block;font-size:var(--fs-xs);color:var(--muted);margin-top:var(--space-1);line-height:1.5;max-width:260px}
 /* 阶段G（G-2）：sparkline（L3-5）——趋势卡折线 + 终点脉冲（--dur-sparkline 描线
-   由 motion.sparkline 驱动；终点脉冲仅 opacity（P7 红线）） */
-.trend-spark{flex:none;width:120px;height:28px;margin-left:auto}
-.trend-spark-svg{display:block;width:120px;height:28px;overflow:visible}
+   由 motion.sparkline 驱动；终点脉冲仅 opacity（P7 红线））
+   P6（D6-1）：画布尺寸改由 tokens.css 的 --spark-w/--spark-h 单一来源派生
+   （原先 JS `const W=120,H=28` 与本节各写一遍 = 两处真相） */
+.trend-spark{flex:none;width:var(--spark-w);height:var(--spark-h);margin-left:auto}
+.trend-spark-svg{display:block;width:var(--spark-w);height:var(--spark-h);overflow:visible}
 .trend-spark-line{stroke:var(--primary);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .trend-spark-dot{fill:var(--primary);transform-box:fill-box;transform-origin:center;animation:trend-spark-pulse 2s var(--ease-out) infinite}
 @keyframes trend-spark-pulse{
@@ -238,13 +251,25 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   .trend-spark-dot{animation:none}
 }
 
-/* 会话列表（F17：会话分组 + 逐盘对比/标签/跳过原因 tooltip——红线 #7 SKIP_REASON_TEXT） */
-.snapshots-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}
-.snapshots-list-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:var(--fs-xs);color:var(--muted)}
+/* 会话列表（F17：会话分组 + 逐盘对比/标签/跳过原因 tooltip——红线 #7 SKIP_REASON_TEXT）
+   P6（D6-1）：卡片原语统一（--radius-card + --card + --border + --shadow-sm）；
+   .session-item 本体自「cards 分区」归位到本节（原列表样式与卡片样式分离两处）。 */
+.snapshots-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-2)}
+.snapshots-list-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);font-size:var(--fs-xs);color:var(--muted)}
 .snapshots-list-scroll{flex:1;min-height:0;overflow-y:auto;padding-right:2px}
-.session-roots{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:var(--fs-xs)}
-.session-roots li{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
-.session-roots code{font-size:var(--fs-xs);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 6px;word-break:break-all;color:var(--text-2)}
+.snapshot-list{list-style:none;margin:var(--space-2) 0 0;padding:0;display:flex;flex-direction:column;gap:var(--space-2)}
+.session-item{
+  display:flex;flex-direction:column;gap:var(--space-2);min-width:0;
+  padding:var(--space-3) var(--space-4);border:1px solid var(--border);
+  border-radius:var(--radius-card);background:var(--card);box-shadow:var(--shadow-sm);
+  font-size:var(--fs-sm);
+}
+.session-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-width:0}
+.session-title{display:flex;align-items:center;gap:var(--space-2);font-weight:600;min-width:0}
+.session-sub{font-size:var(--fs-xs);color:var(--faint);word-break:break-all}
+.session-roots{list-style:none;margin:var(--space-2) 0 0;padding:0;display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--fs-xs)}
+.session-roots li{display:flex;align-items:center;gap:var(--space-2);min-width:0;flex-wrap:wrap}
+.session-roots code{font-size:var(--fs-xs);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px var(--space-2);word-break:break-all;color:var(--text-2)}
 .skip-reason{color:var(--warning);cursor:help}
 
 /* ============================================================ */
@@ -256,36 +281,49 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* ============================================================ */
 .page-head-compare{min-height:64px}
 .page-head-compare .page-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px}
-.compare-controls{display:flex;align-items:center;gap:10px;flex:none;min-width:0}
-.compare-ctl{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.compare-controls{display:flex;align-items:center;gap:var(--space-3);flex:none;min-width:0;flex-wrap:wrap;justify-content:flex-end}
+.compare-ctl{display:flex;align-items:center;gap:var(--space-2);font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
 .compare-ctl input{width:220px;font-size:var(--fs-sm)}
 /* P5（D5-1）：当前磁盘状态 = 只读文本行（原 .compare-ctl-target 只读输入框已删除；
    保底截断，长根路径不挤压页头控件行） */
 .compare-current{
-  flex:none;display:inline-flex;align-items:center;gap:4px;max-width:260px;
-  padding:3px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  flex:none;display:inline-flex;align-items:center;gap:var(--space-1);max-width:260px;
+  padding:3px var(--space-2);border:1px solid var(--border);border-radius:var(--radius-sm);
   background:var(--bg);color:var(--muted);font-size:var(--fs-xs);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
-/* P5（D5-2）：对比基准下拉（原 datalist 文本框 → 下拉；宽度容纳「最近一份 · 时间 · 盘符 · 自动」） */
+/* P5（D5-2）→ P6（D6-5）：对比基准选择器 = 原生 <select multiple>（id 不变）
+   ——原单选下拉（240px）升级为可多选列表：3 行可视 + 面板内滚，
+   与页头 64px 预算同行（含 caption 与「已选 N 份」chip）。 */
+.compare-ctl-baseline{flex-direction:column;align-items:flex-start;gap:var(--space-1)}
 .compare-ctl-baseline select{width:240px;max-width:240px}
+.compare-baseline-list{
+  width:240px;height:64px;padding:var(--space-1);
+  border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+  background:var(--card);color:var(--text);font:inherit;font-size:var(--fs-xs);
+  overflow-y:auto;
+}
+.compare-baseline-list option{padding:2px var(--space-1);border-radius:var(--radius-sm)}
+.compare-baseline-list option:checked{background:var(--primary-soft);color:var(--primary);font-weight:600}
+.compare-baseline-hint{font-size:var(--fs-2xs);color:var(--faint);white-space:nowrap}
+.compare-baseline-hint .is-on{color:var(--primary);font-weight:600}
 .compare-controls .btn{flex:none}
 /* P4（D4-2/D4-3）：深度选择器 + 隐藏零变化开关（页头控件；不动既有 .compare-ctl input 规则，
    勾选框用更高一层的专用选择器收回 220px 宽度） */
 .compare-ctl select{
   font:inherit;font-size:var(--fs-sm);color:var(--text);background:var(--card);
-  border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px 6px;
+  border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px var(--space-1);
 }
-.compare-ctl-zero{gap:5px;cursor:pointer}
+.compare-ctl-zero{gap:var(--space-1);cursor:pointer}
 .compare-ctl-zero input{width:13px;height:13px;margin:0;accent-color:var(--primary);cursor:pointer}
 /* P4（D4-6）：下钻面包屑（未下钻 hidden 不占高；每级可点返回） */
 .compare-crumb{
-  flex:none;display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-height:0;
+  flex:none;display:flex;align-items:center;gap:var(--space-1);flex-wrap:nowrap;min-height:0;
   overflow:hidden;font-size:var(--fs-xs);
 }
 .compare-crumb[hidden]{display:none!important}
 .compare-crumb .crumb-item{
-  flex:none;max-width:320px;padding:2px 8px;border:1px solid var(--border);
+  flex:none;max-width:320px;padding:2px var(--space-2);border:1px solid var(--border);
   border-radius:var(--radius-sm);background:var(--card);color:var(--text-2);
   font:inherit;font-size:var(--fs-xs);cursor:pointer;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
@@ -294,34 +332,37 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .compare-crumb .crumb-item.is-current{color:var(--text);font-weight:600;border-color:var(--border-strong);cursor:default}
 .compare-crumb .crumb-sep{flex:none;color:var(--faint)}
 
-.page-compare-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
-/* 对比页空态（定稿 6.5「选择一份基线快照，开始对比两个时间点的空间变化。」） */
-.page-compare-empty{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;border:1px dashed var(--border-strong);border-radius:var(--radius-md);background:var(--card-soft)}
+.page-compare-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-2)}
+/* 对比页空态（定稿 6.5「选择一份对比基准，开始对比两个时间点的空间变化。」）
+   P6（D6-1）：与 .empty-state 统一下沉为卡片原语（虚线边框 + 卡片底色 + 单一圆角） */
+.page-compare-empty{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;border:1px dashed var(--border-strong);border-radius:var(--radius-card);background:var(--card-soft)}
 .page-compare-empty[hidden]{display:none!important}
 /* L1-5 骨架屏（shimmer 复用 skel-* 类；reduced 经全局降级静止） */
-.compare-loading{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;justify-content:center;padding:24px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card)}
+.compare-loading{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-3);justify-content:center;padding:var(--space-6);border:1px solid var(--border);border-radius:var(--radius-card);background:var(--card)}
 .compare-loading[hidden]{display:none!important}
 .compare-loading .muted{font-size:var(--fs-xs)}
-.compare-result{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
+.compare-result{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-2)}
 .compare-result[hidden]{display:none!important}
 
-/* 摘要 3 卡（96px；▲/▼ 符号冗余 + --up/--down 双编码；数字 tabular-nums） */
-.compare-summary-row{flex:none;height:96px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.compare-stat{display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-card);background:var(--card);overflow:hidden}
+/* 摘要 3 卡（96px；▲/▼ 符号冗余 + --up/--down 双编码；数字 tabular-nums）
+   P6（D6-1）：与 .trend-card/.session-item 同源卡片原语（底色/边框/圆角/阴影） */
+.compare-summary-row{flex:none;height:96px;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.compare-stat{display:flex;flex-direction:column;justify-content:center;gap:var(--space-1);min-width:0;padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--radius-card);background:var(--card);box-shadow:var(--shadow-sm);overflow:hidden}
 .compare-stat-label{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
-.compare-stat-value{display:flex;align-items:baseline;gap:6px;font-size:var(--fs-xl);font-weight:700;font-variant-numeric:var(--font-num);white-space:nowrap;min-width:0}
+.compare-stat-value{display:flex;align-items:baseline;gap:var(--space-1);font-size:var(--fs-xl);font-weight:700;font-variant-numeric:var(--font-num);white-space:nowrap;min-width:0}
 .compare-stat-arrow{font-size:var(--fs-sm);flex:none}
 .compare-stat-num{overflow:hidden;text-overflow:ellipsis}
 .compare-stat-sub{font-size:var(--fs-xs);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.compare-legacy{flex:none;margin:0;padding:8px 12px}
+.compare-legacy{flex:none;margin:0;padding:var(--space-2) var(--space-3)}
 
 /* 红绿发散图（L3-6：中轴基线；增长条向左红(--up)、缩减条向右绿(--down)；
    中轴生长 500ms --dur-diverge（仅 transform scaleX——动画只动 transform/opacity）；
    徽标 pop-in scale .8→1（--dur-3 + --ease-spring，仅 transform/opacity）；
-   ▲/▼ 冗余；reduced 由全局降级直显终值） */
-.compare-diverge{flex:none;height:240px;display:flex;flex-direction:column;gap:3px;padding:6px 0;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card)}
+   ▲/▼ 冗余；reduced 由全局降级直显终值）
+   ⚠️ 高度 240px 与 .diverge-track 宽度 46% 为 u34 ③b/③c/③f 的几何判据，P6 未改。 */
+.compare-diverge{flex:none;height:240px;display:flex;flex-direction:column;gap:3px;padding:var(--space-1) 0;border:1px solid var(--border);border-radius:var(--radius-card);background:var(--card);box-shadow:var(--shadow-sm)}
 .diverge-row{
-  display:flex;align-items:center;gap:10px;flex:1;min-height:0;width:100%;padding:0 12px;
+  display:flex;align-items:center;gap:var(--space-2);flex:1;min-height:0;width:100%;padding:0 var(--space-3);
   border:0;background:transparent;color:var(--text);text-align:left;font:inherit;
   font-size:var(--fs-xs);cursor:pointer;border-radius:var(--radius-sm);
 }
@@ -333,14 +374,19 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .diverge-bar-grow{right:50%;background:var(--up);transform-origin:right center}
 .diverge-bar-shrink{left:50%;background:var(--down);transform-origin:left center}
 .diverge-bar-flat{left:50%;width:2px;margin-left:-1px;background:var(--faint);transform-origin:center}
-.diverge-meta{display:flex;align-items:center;gap:6px;flex:none;min-width:150px;justify-content:flex-end}
+.diverge-meta{display:flex;align-items:center;gap:var(--space-1);flex:none;min-width:150px;justify-content:flex-end}
 .diverge-sign{flex:none;font-weight:700}
 .diverge-value{font-variant-numeric:var(--font-num);white-space:nowrap}
-.diverge-badge{flex:none;min-width:52px;padding:1px 8px;border-radius:999px;background:var(--track-alt);text-align:center;font-variant-numeric:var(--font-num);white-space:nowrap}
-.diverge-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:var(--fs-sm)}
+.diverge-badge{flex:none;min-width:52px;padding:1px var(--space-2);border-radius:999px;background:var(--track-alt);text-align:center;font-variant-numeric:var(--font-num);white-space:nowrap}
+.diverge-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-1);color:var(--muted);font-size:var(--fs-sm)}
 
-/* 对比表格（面板内滚；行 stagger L1-2 由 motion 驱动；F19 操作列 定位+复制路径） */
+/* 对比表格（面板内滚；行 stagger L1-2 由 motion 驱动；F19 操作列 定位+复制路径）
+   P6（D6-1/变更集2）：列宽自页内内联 style 收口到本节的列类（.col-*），
+   页面模板不再出现任何内联尺寸。 */
 .compare-table-wrap{flex:1;min-height:0;overflow:auto}
+.compare-table .col-delta{width:120px}
+.compare-table .col-growth{width:90px}
+.compare-table .col-ops{width:80px}
 .compare-table .delta-cell{font-variant-numeric:var(--font-num);white-space:nowrap}
 .compare-table .cmp-ops{white-space:nowrap}
 .compare-table .cmp-ops .icon-btn{width:26px;height:26px}
@@ -660,15 +706,11 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .chip-pending{color:var(--faint);opacity:.75;cursor:default}
 
 /* 快照卡（U2.4 升级为迷你卡；U3.3：完整会话列表迁 #/snapshots 子页面——
-   列表不再限高，内滚由页面 .snapshots-list-scroll 承担） */
-.snapshot-list{
-  list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;
-}
-.session-item{display:flex;flex-direction:column;gap:4px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card);font-size:var(--fs-sm)}
-.session-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.session-title{display:flex;align-items:center;gap:8px;font-weight:600}
-.session-sub{font-size:var(--fs-xs);color:var(--faint);word-break:break-all}
-.tag{display:inline-flex;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600}
+   列表不再限高，内滚由页面 .snapshots-list-scroll 承担）
+   P6（D6-1）：.snapshot-list / .session-item / .session-head / .session-title /
+   .session-sub 已归位到「U3.3 快照管理页」分区（原先卡片样式在 cards 分区、
+   列表样式在 list 分区，同一张卡两处定义）。 */
+.tag{display:inline-flex;padding:2px var(--space-2);border-radius:var(--radius-chip);font-size:var(--fs-2xs);font-weight:600}
 .tag-auto{background:var(--success-soft);color:var(--success)}
 .tag-manual{background:var(--primary-soft);color:var(--primary)}
 .tag-skip{background:var(--warning-soft);color:var(--warning)}
@@ -812,8 +854,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* ---- U2.5：F19 触屏长按呼出行操作（<900px 触屏场景） ---- */
 .row-actions-pin .row-actions{opacity:1}
 
-/* 阶段C（C-4）：趋势卡空态原因行（从 sessions 推导；纯文本无动画） */
-.trend-reason{display:block;font-size:var(--fs-xs);color:var(--muted);margin-top:4px;line-height:1.5;max-width:260px}
+/* 阶段C（C-4）：趋势卡空态原因行 —— P6（D6-1）已归位到「U3.3 快照管理页」分区
+   （与 .trend-card 同节；原先定义在此处，距卡片 500+ 行）。 */
 
 /* ---- U2.5：L1-5 骨架屏（shimmer 1.4s 循环；仅 transform 扫光；reduced 经全局降级静止） ---- */
 .loading-overlay{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--card);font-size:var(--fs-xs);color:var(--muted)}
