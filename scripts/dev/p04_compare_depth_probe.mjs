@@ -516,13 +516,27 @@ async function runState(page, base, state) {
         const row = await page.$(sel);
         sample.drillRowFound = !!row;
         if (row) {
+            /* 下钻 = 行点击触发**新的一次** /api/compare（以该目录为新根），
+               必须捕获这一发的请求/响应作为本态口径（否则量到的是下钻前的报告） */
+            const waiter = page.waitForResponse(
+                (r) => r.url().includes("/api/compare") && !r.url().includes("/status"), { timeout: 60000 }
+            ).catch(() => null);
             await row.click();
+            const dresp = await waiter;
+            let dbody = null;
+            try { dbody = dresp ? await dresp.json() : null; } catch (e) { dbody = null; }
             await page.waitForFunction(
                 () => {
                     const res = document.getElementById("compare-result");
                     return res && !res.hasAttribute("hidden");
                 }, { timeout: 60000 }).catch(() => {});
             await wait(600);
+            if (dresp) {
+                resp = {
+                    status: dresp.status(), body: dbody,
+                    postData: dresp.request().postData(),
+                };
+            }
         }
     }
     sample.requestPost = resp.postData;

@@ -1,0 +1,15 @@
+﻿修复前引擎: C:\Users\Laptop\AppData\Local\Temp\p4_stage_p3_compare.py (stage-p3:compare.py)
+夹具: C:\Users\Laptop\AppData\Local\Temp\pds_p4_iso\home\PythonDiskScanner\snapshots
+  [PASS] compare_snapshots(growth) 默认                   rows=11 delta_total=50
+  [PASS] compare_snapshots(growth) leaf_only=True       rows=4 delta_total=50
+  [PASS] compare_snapshots(flat) leaf_only=True         rows=1 delta_total=0
+  [PASS] diff_from_current(growth) 默认                   rows=11 delta_total=50
+  [PASS] diff_from_current(growth) leaf_only=True       rows=4 delta_total=50
+  [PASS] diff_from_current(growth) machine_guid 同值      rows=11 delta_total=50
+  [PASS] top_growth(leaf, n=10) 默认排序逐行相等 rows=4
+  [PASS] top_growth(leaf, n=3) 默认排序逐行相等 rows=3
+  [PASS] top_growth(leaf, n=100) 默认排序逐行相等 rows=4
+  [PASS] machine_mismatch 分支 kind 一致 (machine_mismatch)
+比对字段组=7 用例=10 逐行比对行数=53
+新增键（additive，不参与旧契约比对）: ['depth', 'max_growth', 'max_release', 'rows_total', 'zero_count', 'zero_total']
+BACKCOMPAT-VERDICT: PASS

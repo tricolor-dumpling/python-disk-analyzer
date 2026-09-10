@@ -111,6 +111,37 @@ def _fake_is_running():
     return False
 
 
+def _fake_status():
+    """fullscan.status 的夹具替身：声称「当前根的全量扫描已完成、结果可用」。
+
+    为什么需要：/api/compare 的同步快路径只在 fullscan.result(root) 有行时命中，
+    而前端与 u67 等探针会先读 /api/fullscan/status 的 result_ready 决定后续路径；
+    不替换该状态，页面会按「无缓存」走 202 + SDK 直扫分支（真实磁盘扫描，红线 B）。
+    字段与 fullscan.status() 的真实返回同构（缺一即前端三态渲染异常）。
+    """
+    return {
+        "running": False,
+        "roots": [_CURRENT["root"]] if _CURRENT["root"] else [],
+        "roots_done": 1,
+        "roots_total": 1,
+        "current_root": None,
+        "error": None,
+        "result_ready": True,
+        "save_ready": False,
+        "progress_pct": 100,
+        "scan_version": 1,
+        "stop_requested": False,
+        "stop_reason": None,
+        "phase": "idle",
+        "lock_holder": None,
+        "lock_since": None,
+        "row_done": len(_CURRENT["rows"]),
+        "row_total": len(_CURRENT["rows"]),
+        "stop_ack_at": None,
+        "autosave_outcome": None,
+    }
+
+
 def _forbid_real_scan(*_args, **_kwargs):
     raise RuntimeError(
         "harness 禁止真实磁盘扫描：本进程只服务夹具数据（红线 B）。"
@@ -120,6 +151,7 @@ def _forbid_real_scan(*_args, **_kwargs):
 
 fullscan.result = _fake_result
 fullscan.is_running = _fake_is_running
+fullscan.status = _fake_status
 scan.scan_via_everything_sdk = _forbid_real_scan
 snapshots.get_machine_guid = lambda guid_file=None: _CURRENT["machine_guid"]
 

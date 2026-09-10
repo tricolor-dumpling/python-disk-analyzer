@@ -1,0 +1,956 @@
+{
+  "meta": {
+    "label": "postfix",
+    "out": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix",
+    "node": "v24.19.0",
+    "startedAt": "2026-09-10T12:13:50.557Z",
+    "fixtureRoot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner",
+    "snapshotDir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots",
+    "fixtureNow": "2026-09-08T20:00:00",
+    "viewports": [
+      "1366x768",
+      "1440x900",
+      "1920x1080"
+    ],
+    "fixtures": {
+      "generated": false,
+      "missing": []
+    },
+    "base": "http://127.0.0.1:5101/",
+    "harnessSpawned": true
+  },
+  "cases": [
+    {
+      "key": "growth-default(无 depth 旧调用)",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 6,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "depth",
+        "legacy_count",
+        "max_growth",
+        "max_release",
+        "root",
+        "rows",
+        "rows_total",
+        "total_baseline",
+        "total_current",
+        "truncated",
+        "zero_count",
+        "zero_total"
+      ],
+      "rowsTotalField": 4,
+      "zeroCountField": 1,
+      "zeroTotalField": 1,
+      "maxGrowthField": 70,
+      "maxReleaseField": 50,
+      "depthField": null,
+      "deltaTotal": 50,
+      "rowCount": 4,
+      "rowDeltas": [
+        70,
+        10,
+        0,
+        -50
+      ],
+      "rowPaths": [
+        "D:\\apps\\framework\\core\\engine\\lib.dll",
+        "D:\\apps\\framework\\core\\engine\\conf.bin",
+        "D:\\data\\docs",
+        "D:\\docs\\old"
+      ],
+      "zeroRows": 1,
+      "judges": [
+        {
+          "name": "J1 行集与参照规约一致（路径集合）",
+          "pass": true,
+          "detail": "返回=[\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\conf.bin\",\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\lib.dll\",\"D:\\\\data\\\\docs\",\"D:\\\\docs\\\\old\"] 参照=[\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\conf.bin\",\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\lib.dll\",\"D:\\\\data\\\\docs\",\"D:\\\\docs\\\\old\"]"
+        },
+        {
+          "name": "J1 逐行 delta 与参照规约一致",
+          "pass": true,
+          "detail": "返回={\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\lib.dll\":70,\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\conf.bin\":10,\"D:\\\\data\\\\docs\":0,\"D:\\\\docs\\\\old\":-50} 参照={\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\lib.dll\":70,\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\conf.bin\":10,\"D:\\\\data\\\\docs\":0,\"D:\\\\docs\\\\old\":-50}"
+        },
+        {
+          "name": "J1 返回行数==参照可见行数",
+          "pass": true,
+          "detail": "返回=4 参照可见=4"
+        },
+        {
+          "name": "J5 汇总字段口径 == 参照全量口径",
+          "pass": true,
+          "detail": "后端=[4,1,70,50,1] 参照=[4,1,70,50,1]"
+        },
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=30 残差=20 delta_total=50"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": true,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"depth\",\"legacy_count\",\"max_growth\",\"max_release\",\"root\",\"rows\",\"rows_total\",\"total_baseline\",\"total_current\",\"truncated\",\"zero_count\",\"zero_total\"]"
+        },
+        {
+          "name": "J5 depth 回显==入参",
+          "pass": true,
+          "detail": "回显=null 入参=null"
+        }
+      ],
+      "sumDelta": 30,
+      "residue": 20,
+      "coveredDirect": 30,
+      "deltaTotalRaw": 50,
+      "topLevelCount": 3,
+      "expectedDepthRows": 4,
+      "expectedVisibleRows": 4,
+      "expectedPaths": [
+        "D:\\apps\\framework\\core\\engine\\conf.bin",
+        "D:\\apps\\framework\\core\\engine\\lib.dll",
+        "D:\\data\\docs",
+        "D:\\docs\\old"
+      ],
+      "expectedDeltas": {
+        "D:\\apps\\framework\\core\\engine\\lib.dll": 70,
+        "D:\\apps\\framework\\core\\engine\\conf.bin": 10,
+        "D:\\data\\docs": 0,
+        "D:\\docs\\old": -50
+      }
+    },
+    {
+      "key": "growth-depth1",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+        "depth": 1
+      },
+      "httpStatus": 200,
+      "elapsedMs": 8,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "depth",
+        "legacy_count",
+        "max_growth",
+        "max_release",
+        "root",
+        "rows",
+        "rows_total",
+        "total_baseline",
+        "total_current",
+        "truncated",
+        "zero_count",
+        "zero_total"
+      ],
+      "rowsTotalField": 3,
+      "zeroCountField": 1,
+      "zeroTotalField": 1,
+      "maxGrowthField": 100,
+      "maxReleaseField": 50,
+      "depthField": 1,
+      "deltaTotal": 50,
+      "rowCount": 3,
+      "rowDeltas": [
+        100,
+        0,
+        -50
+      ],
+      "rowPaths": [
+        "D:\\apps",
+        "D:\\data",
+        "D:\\docs"
+      ],
+      "zeroRows": 1,
+      "judges": [
+        {
+          "name": "J1 行集与参照规约一致（路径集合）",
+          "pass": true,
+          "detail": "返回=[\"D:\\\\apps\",\"D:\\\\data\",\"D:\\\\docs\"] 参照=[\"D:\\\\apps\",\"D:\\\\data\",\"D:\\\\docs\"]"
+        },
+        {
+          "name": "J1 逐行 delta 与参照规约一致",
+          "pass": true,
+          "detail": "返回={\"D:\\\\apps\":100,\"D:\\\\data\":0,\"D:\\\\docs\":-50} 参照={\"D:\\\\apps\":100,\"D:\\\\data\":0,\"D:\\\\docs\":-50}"
+        },
+        {
+          "name": "J1 返回行数==参照可见行数",
+          "pass": true,
+          "detail": "返回=3 参照可见=3"
+        },
+        {
+          "name": "J1 (计划硬判据) depth=1 行数 == 顶层目录数",
+          "pass": true,
+          "detail": "返回=3 顶层条目=3"
+        },
+        {
+          "name": "J5 汇总字段口径 == 参照全量口径",
+          "pass": true,
+          "detail": "后端=[3,1,100,50,1] 参照=[3,1,100,50,1]"
+        },
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=50 残差=0 delta_total=50"
+        },
+        {
+          "name": "J1 depth=1 返回行数 > 0（无假空态）",
+          "pass": true,
+          "detail": "rows=3 参照可见=3"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": true,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"depth\",\"legacy_count\",\"max_growth\",\"max_release\",\"root\",\"rows\",\"rows_total\",\"total_baseline\",\"total_current\",\"truncated\",\"zero_count\",\"zero_total\"]"
+        },
+        {
+          "name": "J5 depth 回显==入参",
+          "pass": true,
+          "detail": "回显=1 入参=1"
+        }
+      ],
+      "sumDelta": 50,
+      "residue": 0,
+      "coveredDirect": 50,
+      "deltaTotalRaw": 50,
+      "topLevelCount": 3,
+      "expectedDepthRows": 3,
+      "expectedVisibleRows": 3,
+      "expectedPaths": [
+        "D:\\apps",
+        "D:\\data",
+        "D:\\docs"
+      ],
+      "expectedDeltas": {
+        "D:\\apps": 100,
+        "D:\\data": 0,
+        "D:\\docs": -50
+      }
+    },
+    {
+      "key": "growth-depth2",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+        "depth": 2
+      },
+      "httpStatus": 200,
+      "elapsedMs": 8,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "depth",
+        "legacy_count",
+        "max_growth",
+        "max_release",
+        "root",
+        "rows",
+        "rows_total",
+        "total_baseline",
+        "total_current",
+        "truncated",
+        "zero_count",
+        "zero_total"
+      ],
+      "rowsTotalField": 3,
+      "zeroCountField": 1,
+      "zeroTotalField": 1,
+      "maxGrowthField": 80,
+      "maxReleaseField": 50,
+      "depthField": 2,
+      "deltaTotal": 50,
+      "rowCount": 3,
+      "rowDeltas": [
+        80,
+        0,
+        -50
+      ],
+      "rowPaths": [
+        "D:\\apps\\framework",
+        "D:\\data\\docs",
+        "D:\\docs\\old"
+      ],
+      "zeroRows": 1,
+      "judges": [
+        {
+          "name": "J1 行集与参照规约一致（路径集合）",
+          "pass": true,
+          "detail": "返回=[\"D:\\\\apps\\\\framework\",\"D:\\\\data\\\\docs\",\"D:\\\\docs\\\\old\"] 参照=[\"D:\\\\apps\\\\framework\",\"D:\\\\data\\\\docs\",\"D:\\\\docs\\\\old\"]"
+        },
+        {
+          "name": "J1 逐行 delta 与参照规约一致",
+          "pass": true,
+          "detail": "返回={\"D:\\\\apps\\\\framework\":80,\"D:\\\\data\\\\docs\":0,\"D:\\\\docs\\\\old\":-50} 参照={\"D:\\\\apps\\\\framework\":80,\"D:\\\\data\\\\docs\":0,\"D:\\\\docs\\\\old\":-50}"
+        },
+        {
+          "name": "J1 返回行数==参照可见行数",
+          "pass": true,
+          "detail": "返回=3 参照可见=3"
+        },
+        {
+          "name": "J5 汇总字段口径 == 参照全量口径",
+          "pass": true,
+          "detail": "后端=[3,1,80,50,1] 参照=[3,1,80,50,1]"
+        },
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=30 残差=20 delta_total=50"
+        },
+        {
+          "name": "J1 depth=2 返回行数 > 0（无假空态）",
+          "pass": true,
+          "detail": "rows=3 参照可见=3"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": true,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"depth\",\"legacy_count\",\"max_growth\",\"max_release\",\"root\",\"rows\",\"rows_total\",\"total_baseline\",\"total_current\",\"truncated\",\"zero_count\",\"zero_total\"]"
+        },
+        {
+          "name": "J5 depth 回显==入参",
+          "pass": true,
+          "detail": "回显=2 入参=2"
+        }
+      ],
+      "sumDelta": 30,
+      "residue": 20,
+      "coveredDirect": 30,
+      "deltaTotalRaw": 50,
+      "topLevelCount": 3,
+      "expectedDepthRows": 3,
+      "expectedVisibleRows": 3,
+      "expectedPaths": [
+        "D:\\apps\\framework",
+        "D:\\data\\docs",
+        "D:\\docs\\old"
+      ],
+      "expectedDeltas": {
+        "D:\\apps\\framework": 80,
+        "D:\\data\\docs": 0,
+        "D:\\docs\\old": -50
+      }
+    },
+    {
+      "key": "growth-depth1+drop_zero+order_by=abs",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+        "depth": 1,
+        "drop_zero": true,
+        "order_by": "abs"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 8,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "depth",
+        "legacy_count",
+        "max_growth",
+        "max_release",
+        "root",
+        "rows",
+        "rows_total",
+        "total_baseline",
+        "total_current",
+        "truncated",
+        "zero_count",
+        "zero_total"
+      ],
+      "rowsTotalField": 3,
+      "zeroCountField": 0,
+      "zeroTotalField": 1,
+      "maxGrowthField": 100,
+      "maxReleaseField": 50,
+      "depthField": 1,
+      "deltaTotal": 50,
+      "rowCount": 2,
+      "rowDeltas": [
+        100,
+        -50
+      ],
+      "rowPaths": [
+        "D:\\apps",
+        "D:\\docs"
+      ],
+      "zeroRows": 0,
+      "judges": [
+        {
+          "name": "J1 行集与参照规约一致（路径集合）",
+          "pass": true,
+          "detail": "返回=[\"D:\\\\apps\",\"D:\\\\docs\"] 参照=[\"D:\\\\apps\",\"D:\\\\docs\"]"
+        },
+        {
+          "name": "J1 逐行 delta 与参照规约一致",
+          "pass": true,
+          "detail": "返回={\"D:\\\\apps\":100,\"D:\\\\docs\":-50} 参照={\"D:\\\\apps\":100,\"D:\\\\docs\":-50}"
+        },
+        {
+          "name": "J1 返回行数==参照可见行数",
+          "pass": true,
+          "detail": "返回=2 参照可见=2"
+        },
+        {
+          "name": "J5 汇总字段口径 == 参照全量口径",
+          "pass": true,
+          "detail": "后端=[3,1,100,50,0] 参照=[3,1,100,50,0]"
+        },
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=50 残差=0 delta_total=50"
+        },
+        {
+          "name": "J1 depth=1 返回行数 > 0（无假空态）",
+          "pass": true,
+          "detail": "rows=2 参照可见=2"
+        },
+        {
+          "name": "J3 开过滤时零行==0",
+          "pass": true,
+          "detail": "zeroRows=0 zero_count=0"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": true,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"depth\",\"legacy_count\",\"max_growth\",\"max_release\",\"root\",\"rows\",\"rows_total\",\"total_baseline\",\"total_current\",\"truncated\",\"zero_count\",\"zero_total\"]"
+        },
+        {
+          "name": "J5 depth 回显==入参",
+          "pass": true,
+          "detail": "回显=1 入参=1"
+        }
+      ],
+      "sumDelta": 50,
+      "residue": 0,
+      "coveredDirect": 50,
+      "deltaTotalRaw": 50,
+      "topLevelCount": 3,
+      "expectedDepthRows": 3,
+      "expectedVisibleRows": 2,
+      "expectedPaths": [
+        "D:\\apps",
+        "D:\\docs"
+      ],
+      "expectedDeltas": {
+        "D:\\apps": 100,
+        "D:\\docs": -50
+      }
+    },
+    {
+      "key": "growth-default+drop_zero+order_by=abs",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+        "drop_zero": true,
+        "order_by": "abs"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 8,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "depth",
+        "legacy_count",
+        "max_growth",
+        "max_release",
+        "root",
+        "rows",
+        "rows_total",
+        "total_baseline",
+        "total_current",
+        "truncated",
+        "zero_count",
+        "zero_total"
+      ],
+      "rowsTotalField": 4,
+      "zeroCountField": 0,
+      "zeroTotalField": 1,
+      "maxGrowthField": 70,
+      "maxReleaseField": 50,
+      "depthField": null,
+      "deltaTotal": 50,
+      "rowCount": 3,
+      "rowDeltas": [
+        70,
+        -50,
+        10
+      ],
+      "rowPaths": [
+        "D:\\apps\\framework\\core\\engine\\lib.dll",
+        "D:\\docs\\old",
+        "D:\\apps\\framework\\core\\engine\\conf.bin"
+      ],
+      "zeroRows": 0,
+      "judges": [
+        {
+          "name": "J1 行集与参照规约一致（路径集合）",
+          "pass": true,
+          "detail": "返回=[\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\conf.bin\",\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\lib.dll\",\"D:\\\\docs\\\\old\"] 参照=[\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\conf.bin\",\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\lib.dll\",\"D:\\\\docs\\\\old\"]"
+        },
+        {
+          "name": "J1 逐行 delta 与参照规约一致",
+          "pass": true,
+          "detail": "返回={\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\lib.dll\":70,\"D:\\\\docs\\\\old\":-50,\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\conf.bin\":10} 参照={\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\lib.dll\":70,\"D:\\\\apps\\\\framework\\\\core\\\\engine\\\\conf.bin\":10,\"D:\\\\docs\\\\old\":-50}"
+        },
+        {
+          "name": "J1 返回行数==参照可见行数",
+          "pass": true,
+          "detail": "返回=3 参照可见=3"
+        },
+        {
+          "name": "J5 汇总字段口径 == 参照全量口径",
+          "pass": true,
+          "detail": "后端=[4,1,70,50,0] 参照=[4,1,70,50,0]"
+        },
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=30 残差=20 delta_total=50"
+        },
+        {
+          "name": "J3 开过滤时零行==0",
+          "pass": true,
+          "detail": "zeroRows=0 zero_count=0"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": true,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"depth\",\"legacy_count\",\"max_growth\",\"max_release\",\"root\",\"rows\",\"rows_total\",\"total_baseline\",\"total_current\",\"truncated\",\"zero_count\",\"zero_total\"]"
+        },
+        {
+          "name": "J5 depth 回显==入参",
+          "pass": true,
+          "detail": "回显=null 入参=null"
+        }
+      ],
+      "sumDelta": 30,
+      "residue": 20,
+      "coveredDirect": 30,
+      "deltaTotalRaw": 50,
+      "topLevelCount": 3,
+      "expectedDepthRows": 4,
+      "expectedVisibleRows": 3,
+      "expectedPaths": [
+        "D:\\apps\\framework\\core\\engine\\conf.bin",
+        "D:\\apps\\framework\\core\\engine\\lib.dll",
+        "D:\\docs\\old"
+      ],
+      "expectedDeltas": {
+        "D:\\apps\\framework\\core\\engine\\lib.dll": 70,
+        "D:\\apps\\framework\\core\\engine\\conf.bin": 10,
+        "D:\\docs\\old": -50
+      }
+    },
+    {
+      "key": "flat-default(旧口径)",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_110000_explicit_3f2a1c9d.snap.gz"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 7,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "depth",
+        "legacy_count",
+        "max_growth",
+        "max_release",
+        "root",
+        "rows",
+        "rows_total",
+        "total_baseline",
+        "total_current",
+        "truncated",
+        "zero_count",
+        "zero_total"
+      ],
+      "rowsTotalField": 1,
+      "zeroCountField": 1,
+      "zeroTotalField": 1,
+      "maxGrowthField": 0,
+      "maxReleaseField": 0,
+      "depthField": null,
+      "deltaTotal": 0,
+      "rowCount": 1,
+      "rowDeltas": [
+        0
+      ],
+      "rowPaths": [
+        "D:\\flat\\a\\b\\c\\file.dat"
+      ],
+      "zeroRows": 1,
+      "judges": [
+        {
+          "name": "J1 行集与参照规约一致（路径集合）",
+          "pass": true,
+          "detail": "返回=[\"D:\\\\flat\\\\a\\\\b\\\\c\\\\file.dat\"] 参照=[\"D:\\\\flat\\\\a\\\\b\\\\c\\\\file.dat\"]"
+        },
+        {
+          "name": "J1 逐行 delta 与参照规约一致",
+          "pass": true,
+          "detail": "返回={\"D:\\\\flat\\\\a\\\\b\\\\c\\\\file.dat\":0} 参照={\"D:\\\\flat\\\\a\\\\b\\\\c\\\\file.dat\":0}"
+        },
+        {
+          "name": "J1 返回行数==参照可见行数",
+          "pass": true,
+          "detail": "返回=1 参照可见=1"
+        },
+        {
+          "name": "J5 汇总字段口径 == 参照全量口径",
+          "pass": true,
+          "detail": "后端=[1,1,0,0,1] 参照=[1,1,0,0,1]"
+        },
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=0 残差=0 delta_total=0"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": true,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"depth\",\"legacy_count\",\"max_growth\",\"max_release\",\"root\",\"rows\",\"rows_total\",\"total_baseline\",\"total_current\",\"truncated\",\"zero_count\",\"zero_total\"]"
+        },
+        {
+          "name": "J5 depth 回显==入参",
+          "pass": true,
+          "detail": "回显=null 入参=null"
+        }
+      ],
+      "sumDelta": 0,
+      "residue": 0,
+      "coveredDirect": 0,
+      "deltaTotalRaw": 0,
+      "topLevelCount": 1,
+      "expectedDepthRows": 1,
+      "expectedVisibleRows": 1,
+      "expectedPaths": [
+        "D:\\flat\\a\\b\\c\\file.dat"
+      ],
+      "expectedDeltas": {
+        "D:\\flat\\a\\b\\c\\file.dat": 0
+      }
+    },
+    {
+      "key": "flat-depth1+drop_zero",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_110000_explicit_3f2a1c9d.snap.gz",
+        "depth": 1,
+        "drop_zero": true,
+        "order_by": "abs"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 5,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "depth",
+        "legacy_count",
+        "max_growth",
+        "max_release",
+        "root",
+        "rows",
+        "rows_total",
+        "total_baseline",
+        "total_current",
+        "truncated",
+        "zero_count",
+        "zero_total"
+      ],
+      "rowsTotalField": 1,
+      "zeroCountField": 0,
+      "zeroTotalField": 1,
+      "maxGrowthField": 0,
+      "maxReleaseField": 0,
+      "depthField": 1,
+      "deltaTotal": 0,
+      "rowCount": 0,
+      "rowDeltas": [],
+      "rowPaths": [],
+      "zeroRows": 0,
+      "judges": [
+        {
+          "name": "J1 行集与参照规约一致（路径集合）",
+          "pass": true,
+          "detail": "返回=[] 参照=[]"
+        },
+        {
+          "name": "J1 逐行 delta 与参照规约一致",
+          "pass": true,
+          "detail": "返回={} 参照={}"
+        },
+        {
+          "name": "J1 返回行数==参照可见行数",
+          "pass": true,
+          "detail": "返回=0 参照可见=0"
+        },
+        {
+          "name": "J5 汇总字段口径 == 参照全量口径",
+          "pass": true,
+          "detail": "后端=[1,1,0,0,0] 参照=[1,1,0,0,0]"
+        },
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=0 残差=0 delta_total=0"
+        },
+        {
+          "name": "J1 depth=1 返回行数 > 0（无假空态）",
+          "pass": true,
+          "detail": "rows=0 参照可见=0"
+        },
+        {
+          "name": "J3 开过滤时零行==0",
+          "pass": true,
+          "detail": "zeroRows=0 zero_count=0"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": true,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"depth\",\"legacy_count\",\"max_growth\",\"max_release\",\"root\",\"rows\",\"rows_total\",\"total_baseline\",\"total_current\",\"truncated\",\"zero_count\",\"zero_total\"]"
+        },
+        {
+          "name": "J5 depth 回显==入参",
+          "pass": true,
+          "detail": "回显=1 入参=1"
+        },
+        {
+          "name": "J6 flat 夹具返回 0 行",
+          "pass": true,
+          "detail": "rows=0"
+        }
+      ],
+      "sumDelta": 0,
+      "residue": 0,
+      "coveredDirect": 0,
+      "deltaTotalRaw": 0,
+      "topLevelCount": 1,
+      "expectedDepthRows": 1,
+      "expectedVisibleRows": 0,
+      "expectedPaths": [],
+      "expectedDeltas": {}
+    },
+    {
+      "key": "drill D:\\apps depth1",
+      "request": {
+        "root": "D:\\apps",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+        "depth": 1,
+        "drop_zero": true,
+        "order_by": "abs"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 6,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "depth",
+        "legacy_count",
+        "max_growth",
+        "max_release",
+        "root",
+        "rows",
+        "rows_total",
+        "total_baseline",
+        "total_current",
+        "truncated",
+        "zero_count",
+        "zero_total"
+      ],
+      "rowsTotalField": 1,
+      "zeroCountField": 0,
+      "zeroTotalField": 0,
+      "maxGrowthField": 80,
+      "maxReleaseField": 0,
+      "depthField": 1,
+      "deltaTotal": 100,
+      "rowCount": 1,
+      "rowDeltas": [
+        80
+      ],
+      "rowPaths": [
+        "D:\\apps\\framework"
+      ],
+      "zeroRows": 0,
+      "judges": [
+        {
+          "name": "J1 行集与参照规约一致（路径集合）",
+          "pass": true,
+          "detail": "返回=[\"D:\\\\apps\\\\framework\"] 参照=[\"D:\\\\apps\\\\framework\"]"
+        },
+        {
+          "name": "J1 逐行 delta 与参照规约一致",
+          "pass": true,
+          "detail": "返回={\"D:\\\\apps\\\\framework\":80} 参照={\"D:\\\\apps\\\\framework\":80}"
+        },
+        {
+          "name": "J1 返回行数==参照可见行数",
+          "pass": true,
+          "detail": "返回=1 参照可见=1"
+        },
+        {
+          "name": "J5 汇总字段口径 == 参照全量口径",
+          "pass": true,
+          "detail": "后端=[1,0,80,0,0] 参照=[1,0,80,0,0]"
+        },
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=80 残差=20 delta_total=100"
+        },
+        {
+          "name": "J1 depth=1 返回行数 > 0（无假空态）",
+          "pass": true,
+          "detail": "rows=1 参照可见=1"
+        },
+        {
+          "name": "J3 开过滤时零行==0",
+          "pass": true,
+          "detail": "zeroRows=0 zero_count=0"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": true,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"depth\",\"legacy_count\",\"max_growth\",\"max_release\",\"root\",\"rows\",\"rows_total\",\"total_baseline\",\"total_current\",\"truncated\",\"zero_count\",\"zero_total\"]"
+        },
+        {
+          "name": "J5 depth 回显==入参",
+          "pass": true,
+          "detail": "回显=1 入参=1"
+        }
+      ],
+      "sumDelta": 80,
+      "residue": 20,
+      "coveredDirect": 80,
+      "deltaTotalRaw": 100,
+      "topLevelCount": 1,
+      "expectedDepthRows": 1,
+      "expectedVisibleRows": 1,
+      "expectedPaths": [
+        "D:\\apps\\framework"
+      ],
+      "expectedDeltas": {
+        "D:\\apps\\framework": 80
+      }
+    },
+    {
+      "key": "drill D:\\apps\\framework\\core depth1",
+      "request": {
+        "root": "D:\\apps\\framework\\core",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+        "depth": 1,
+        "drop_zero": true,
+        "order_by": "abs"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 6,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "depth",
+        "legacy_count",
+        "max_growth",
+        "max_release",
+        "root",
+        "rows",
+        "rows_total",
+        "total_baseline",
+        "total_current",
+        "truncated",
+        "zero_count",
+        "zero_total"
+      ],
+      "rowsTotalField": 1,
+      "zeroCountField": 0,
+      "zeroTotalField": 0,
+      "maxGrowthField": 80,
+      "maxReleaseField": 0,
+      "depthField": 1,
+      "deltaTotal": 80,
+      "rowCount": 1,
+      "rowDeltas": [
+        80
+      ],
+      "rowPaths": [
+        "D:\\apps\\framework\\core\\engine"
+      ],
+      "zeroRows": 0,
+      "judges": [
+        {
+          "name": "J1 行集与参照规约一致（路径集合）",
+          "pass": true,
+          "detail": "返回=[\"D:\\\\apps\\\\framework\\\\core\\\\engine\"] 参照=[\"D:\\\\apps\\\\framework\\\\core\\\\engine\"]"
+        },
+        {
+          "name": "J1 逐行 delta 与参照规约一致",
+          "pass": true,
+          "detail": "返回={\"D:\\\\apps\\\\framework\\\\core\\\\engine\":80} 参照={\"D:\\\\apps\\\\framework\\\\core\\\\engine\":80}"
+        },
+        {
+          "name": "J1 返回行数==参照可见行数",
+          "pass": true,
+          "detail": "返回=1 参照可见=1"
+        },
+        {
+          "name": "J5 汇总字段口径 == 参照全量口径",
+          "pass": true,
+          "detail": "后端=[1,0,80,0,0] 参照=[1,0,80,0,0]"
+        },
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=80 残差=0 delta_total=80"
+        },
+        {
+          "name": "J1 depth=1 返回行数 > 0（无假空态）",
+          "pass": true,
+          "detail": "rows=1 参照可见=1"
+        },
+        {
+          "name": "J3 开过滤时零行==0",
+          "pass": true,
+          "detail": "zeroRows=0 zero_count=0"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": true,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"depth\",\"legacy_count\",\"max_growth\",\"max_release\",\"root\",\"rows\",\"rows_total\",\"total_baseline\",\"total_current\",\"truncated\",\"zero_count\",\"zero_total\"]"
+        },
+        {
+          "name": "J5 depth 回显==入参",
+          "pass": true,
+          "detail": "回显=1 入参=1"
+        }
+      ],
+      "sumDelta": 80,
+      "residue": 0,
+      "coveredDirect": 80,
+      "deltaTotalRaw": 80,
+      "topLevelCount": 1,
+      "expectedDepthRows": 1,
+      "expectedVisibleRows": 1,
+      "expectedPaths": [
+        "D:\\apps\\framework\\core\\engine"
+      ],
+      "expectedDeltas": {
+        "D:\\apps\\framework\\core\\engine": 80
+      }
+    }
+  ]
+}

@@ -1,0 +1,2057 @@
+{
+  "stage": "P4（对比深度选择 + 聚合 + 下钻 / 零增量过滤）",
+  "generated_at": "2026-09-10T12:15:31.251Z",
+  "repo": "D:\\deepseek\\python-disk-analyzer",
+  "branch": "stage-p4",
+  "baseline_ref": "stage-p3 @ d37627e（tag p3-rail-layout）",
+  "fixture": {
+    "generator": "node scripts/dev/fixture_snapshots.mjs --dir %TEMP%\\pds_p4_iso\\home\\PythonDiskScanner --now 2026-09-08T20:00:00 --fixture growth,flat",
+    "snapshots": [
+      "D_20260907_170000_explicit_3f2a1c9d.snap.gz（growth-t0 基线）",
+      "D_20260908_170000_explicit_3f2a1c9d.snap.gz（growth-t1 当前侧）",
+      "D_20260907_110000_explicit_3f2a1c9d.snap.gz（flat-a 基线）",
+      "D_20260908_110000_explicit_3f2a1c9d.snap.gz（flat-b 当前侧，与 a 完全一致）"
+    ],
+    "isolation": "LOCALAPPDATA 与 DSA_SNAPSHOT_DIR 双隔离于 %TEMP%；红色 B 复核见 redline_b_datadir.txt"
+  },
+  "counts": {
+    "files": 41,
+    "images": 24,
+    "images_postfix": 12,
+    "images_prefix": 12,
+    "duplicate_hash_groups": 3
+  },
+  "duplicate_hash_groups": [
+    {
+      "sha256": "094b5320353a0c9757298be028a23a2700bed2c0701545c5153d190782ae41d9",
+      "files": [
+        "baseline_prefix/compare-growth-default-1366x768.png",
+        "baseline_prefix/compare-growth-depth1-1366x768.png",
+        "baseline_prefix/compare-growth-depth2-drill-1366x768.png"
+      ]
+    },
+    {
+      "sha256": "294c33f021ae5844f51d021d116b5f74a6c983431117b7ce46cb4e0aa7ca55a8",
+      "files": [
+        "baseline_prefix/compare-growth-default-1440x900.png",
+        "baseline_prefix/compare-growth-depth1-1440x900.png",
+        "baseline_prefix/compare-growth-depth2-drill-1440x900.png"
+      ]
+    },
+    {
+      "sha256": "d1af34f5cd597878e1a3cc7f6a3ec18e02811ec09ec185d693276c4269a526bb",
+      "files": [
+        "baseline_prefix/compare-growth-default-1920x1080.png",
+        "baseline_prefix/compare-growth-depth1-1920x1080.png",
+        "baseline_prefix/compare-growth-depth2-drill-1920x1080.png"
+      ]
+    }
+  ],
+  "items": [
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\__pycache__\\_fixture_compare_server.cpython-314.pyc",
+      "rel": "__pycache__/_fixture_compare_server.cpython-314.pyc",
+      "bytes": 10878,
+      "mtime": "2026-09-10T11:52:37.606Z",
+      "sha256": "e396eed5da80f8358f32e81edc2ceaa0d3d23c55f9e3333ffd38e2da7edf2faa",
+      "role": "其它",
+      "purpose": "—",
+      "cadence": "—",
+      "window": "—",
+      "quant": null
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\__pycache__\\_verify_backcompat.cpython-314.pyc",
+      "rel": "__pycache__/_verify_backcompat.cpython-314.pyc",
+      "bytes": 10558,
+      "mtime": "2026-09-10T11:44:35.265Z",
+      "sha256": "03180337b59fd6423900c10b5d55a9b8da971b6b93c835a41ce0ec98fbbb2e2f",
+      "role": "其它",
+      "purpose": "—",
+      "cadence": "—",
+      "window": "—",
+      "quant": null
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\_datadir_baseline_prerun.json",
+      "rel": "_datadir_baseline_prerun.json",
+      "bytes": 9709,
+      "mtime": "2026-09-10T11:48:26.963Z",
+      "sha256": "f4a42851514875efc5aecac7e3f696bd6cc73d3c0963843bd6952f1951c56804",
+      "role": "红线 B 基线",
+      "purpose": "跑测前真实数据目录清单快照（PowerShell ConvertTo-Json 写出）",
+      "cadence": "1 次（跑测前）",
+      "window": "2026-09-10T19:48 采集",
+      "quant": null
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\_fixture_compare_server.py",
+      "rel": "_fixture_compare_server.py",
+      "bytes": 8022,
+      "mtime": "2026-09-10T11:52:29.888Z",
+      "sha256": "0d44fdee945ce44a769dcd6fa1d0de0bcc4ab684808bb4941a12fd7331eecf51",
+      "role": "夹具 harness（证据侧，非生产代码）",
+      "purpose": "真实 Flask 应用 + 夹具数据源（fullscan.result/status 替换），用于确定性复现；隔离 LOCALAPPDATA/DSA_SNAPSHOT_DIR",
+      "cadence": "探针运行期间常驻（探针自拉自收）",
+      "window": "—",
+      "quant": null
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\_gen_manifest.mjs",
+      "rel": "_gen_manifest.mjs",
+      "bytes": 13450,
+      "mtime": "2026-09-10T12:15:25.464Z",
+      "sha256": "925e3d17256617e0125200283436aa7789a0b4214d90fc2b25cb83793a7b823d",
+      "role": "清单生成器",
+      "purpose": "生成本 manifest（含 SHA-256 与量化摘要）",
+      "cadence": "每次证据更新后 1 次",
+      "window": "—",
+      "quant": null
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\_verify_backcompat.py",
+      "rel": "_verify_backcompat.py",
+      "bytes": 6911,
+      "mtime": "2026-09-10T11:43:41.447Z",
+      "sha256": "62fd9f8781526ca88e8aedd093aaa9e015fca9bd75bb2566157d3fdb407d68af",
+      "role": "契约证伪脚本",
+      "purpose": "git show stage-p3:compare.py 取修复前引擎，同进程逐字段比对默认参数输出",
+      "cadence": "按需（每变更集后）",
+      "window": "—",
+      "quant": null
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\_verify_datadir_redline.mjs",
+      "rel": "_verify_datadir_redline.mjs",
+      "bytes": 4026,
+      "mtime": "2026-09-10T12:14:31.186Z",
+      "sha256": "d0e1d57a640756922719f54bac2fd7c6e96a5ba9cb6364046e5b1d171c2d7233",
+      "role": "红线 B 复核脚本",
+      "purpose": "真实数据目录清单/尺寸/mtime 三口径对照（复用 P3 同名脚本口径）",
+      "cadence": "跑测前后各 1 次",
+      "window": "—",
+      "quant": null
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\backcompat-postfix.txt",
+      "rel": "backcompat-postfix.txt",
+      "bytes": 1148,
+      "mtime": "2026-09-10T12:15:04.568Z",
+      "sha256": "755da84805bab720b1790851f23cdb041afa69e7654e94f8a2b5a1563efa6c1b",
+      "role": "契约证伪自证输出",
+      "purpose": "不传 depth 时引擎输出与 stage-p3 引擎逐字段相等（7 字段组 / 10 用例 / 53 行）",
+      "cadence": "1 次（每变更集后复跑）",
+      "window": "stage-p3 vs stage-p4（同夹具同数据）",
+      "quant": {
+        "verdict": "PASS",
+        "lines": 10
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\api-prefix.json",
+      "rel": "baseline_prefix/api-prefix.json",
+      "bytes": 16057,
+      "mtime": "2026-09-10T11:41:18.401Z",
+      "sha256": "0cca49b63c8e8307d2ff80e7b8b73fc562ff49bf5975b181834bceb3e7eca2f3",
+      "role": "API 层逐请求量化",
+      "purpose": "/api/compare 的 depth 入参 / 返回行数 / 零行 / 汇总字段 / Σ(行delta) / 残差 / delta_total",
+      "cadence": "9 组参数组合，每组 1 次真实 HTTP 请求（同一 harness 进程）",
+      "window": "stage-p3 代码（d37627e 起点基线）",
+      "quant": {
+        "cases": 9,
+        "violations": 20,
+        "per_case": [
+          {
+            "key": "growth-default(无 depth 旧调用)",
+            "httpStatus": 200,
+            "rows": 4,
+            "zeroRows": 1,
+            "sumDelta": 30,
+            "residue": 20,
+            "deltaTotal": 50,
+            "depthEcho": null
+          },
+          {
+            "key": "growth-depth1",
+            "httpStatus": 200,
+            "rows": 4,
+            "zeroRows": 1,
+            "sumDelta": 30,
+            "residue": 20,
+            "deltaTotal": 50,
+            "depthEcho": null
+          },
+          {
+            "key": "growth-depth2",
+            "httpStatus": 200,
+            "rows": 4,
+            "zeroRows": 1,
+            "sumDelta": 30,
+            "residue": 20,
+            "deltaTotal": 50,
+            "depthEcho": null
+          },
+          {
+            "key": "growth-depth1+drop_zero+order_by=abs",
+            "httpStatus": 200,
+            "rows": 4,
+            "zeroRows": 1,
+            "sumDelta": 30,
+            "residue": 20,
+            "deltaTotal": 50,
+            "depthEcho": null
+          },
+          {
+            "key": "growth-default+drop_zero+order_by=abs",
+            "httpStatus": 200,
+            "rows": 4,
+            "zeroRows": 1,
+            "sumDelta": 30,
+            "residue": 20,
+            "deltaTotal": 50,
+            "depthEcho": null
+          },
+          {
+            "key": "flat-default(旧口径)",
+            "httpStatus": 200,
+            "rows": 1,
+            "zeroRows": 1,
+            "sumDelta": 0,
+            "residue": 0,
+            "deltaTotal": 0,
+            "depthEcho": null
+          },
+          {
+            "key": "flat-depth1+drop_zero",
+            "httpStatus": 200,
+            "rows": 1,
+            "zeroRows": 1,
+            "sumDelta": 0,
+            "residue": 0,
+            "deltaTotal": 0,
+            "depthEcho": null
+          },
+          {
+            "key": "drill D:\\apps depth1",
+            "httpStatus": 200,
+            "rows": 4,
+            "zeroRows": 0,
+            "sumDelta": -220,
+            "residue": 20,
+            "deltaTotal": 100,
+            "depthEcho": null
+          },
+          {
+            "key": "drill D:\\apps\\framework\\core depth1",
+            "httpStatus": 200,
+            "rows": 4,
+            "zeroRows": 0,
+            "sumDelta": -220,
+            "residue": 0,
+            "deltaTotal": 80,
+            "depthEcho": null
+          }
+        ]
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\compare-flat-empty-1366x768.png",
+      "rel": "baseline_prefix/compare-flat-empty-1366x768.png",
+      "bytes": 85721,
+      "mtime": "2026-09-10T11:41:07.404Z",
+      "sha256": "71592c737880d273016ea7cabb42d33b93189d3333d1b9f93b225bbe971c5849",
+      "role": "红线 A 修复前基线帧",
+      "purpose": "修复前（stage-p3 d37627e）现采基线：depth 控件缺失、零增量仍入榜",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p3 代码（d37627e）现采，同一夹具与同一 harness",
+      "quant": {
+        "state": "flat-empty",
+        "state_zh": "flat 夹具零增量空态",
+        "viewport": "1366x768",
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_110000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false
+        },
+        "api_rows": 1,
+        "table_rows_rendered": 1,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "delta_total": 0,
+        "sum_row_delta": 0,
+        "row_deltas": [
+          0
+        ],
+        "row_paths": [
+          "D:\\flat\\a\\b\\c\\file.dat"
+        ],
+        "crumb": "",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\compare-flat-empty-1440x900.png",
+      "rel": "baseline_prefix/compare-flat-empty-1440x900.png",
+      "bytes": 89320,
+      "mtime": "2026-09-10T11:41:12.229Z",
+      "sha256": "8067c703deea939658292a426e392e0dc59c8370dd6c37be8f50fd389c531527",
+      "role": "红线 A 修复前基线帧",
+      "purpose": "修复前（stage-p3 d37627e）现采基线：depth 控件缺失、零增量仍入榜",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p3 代码（d37627e）现采，同一夹具与同一 harness",
+      "quant": {
+        "state": "flat-empty",
+        "state_zh": "flat 夹具零增量空态",
+        "viewport": "1440x900",
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_110000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false
+        },
+        "api_rows": 1,
+        "table_rows_rendered": 1,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "delta_total": 0,
+        "sum_row_delta": 0,
+        "row_deltas": [
+          0
+        ],
+        "row_paths": [
+          "D:\\flat\\a\\b\\c\\file.dat"
+        ],
+        "crumb": "",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\compare-flat-empty-1920x1080.png",
+      "rel": "baseline_prefix/compare-flat-empty-1920x1080.png",
+      "bytes": 102260,
+      "mtime": "2026-09-10T11:41:17.295Z",
+      "sha256": "682008ac32be22db0b58ec6b2f6f2f8d6917a5c0c7c8dae4447b8dde4309229e",
+      "role": "红线 A 修复前基线帧",
+      "purpose": "修复前（stage-p3 d37627e）现采基线：depth 控件缺失、零增量仍入榜",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p3 代码（d37627e）现采，同一夹具与同一 harness",
+      "quant": {
+        "state": "flat-empty",
+        "state_zh": "flat 夹具零增量空态",
+        "viewport": "1920x1080",
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_110000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false
+        },
+        "api_rows": 1,
+        "table_rows_rendered": 1,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "delta_total": 0,
+        "sum_row_delta": 0,
+        "row_deltas": [
+          0
+        ],
+        "row_paths": [
+          "D:\\flat\\a\\b\\c\\file.dat"
+        ],
+        "crumb": "",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\compare-growth-default-1366x768.png",
+      "rel": "baseline_prefix/compare-growth-default-1366x768.png",
+      "bytes": 101258,
+      "mtime": "2026-09-10T11:41:08.250Z",
+      "sha256": "094b5320353a0c9757298be028a23a2700bed2c0701545c5153d190782ae41d9",
+      "role": "红线 A 修复前基线帧",
+      "purpose": "修复前（stage-p3 d37627e）现采基线：depth 控件缺失、零增量仍入榜",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p3 代码（d37627e）现采，同一夹具与同一 harness",
+      "quant": {
+        "state": "growth-default",
+        "state_zh": "growth 夹具正负增量默认口径（叶子）",
+        "viewport": "1366x768",
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false
+        },
+        "api_rows": 4,
+        "table_rows_rendered": 4,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 30,
+        "row_deltas": [
+          70,
+          10,
+          0,
+          -50
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine\\lib.dll",
+          "D:\\apps\\framework\\core\\engine\\conf.bin",
+          "D:\\data\\docs",
+          "D:\\docs\\old"
+        ],
+        "crumb": "",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\compare-growth-default-1440x900.png",
+      "rel": "baseline_prefix/compare-growth-default-1440x900.png",
+      "bytes": 107063,
+      "mtime": "2026-09-10T11:41:13.076Z",
+      "sha256": "294c33f021ae5844f51d021d116b5f74a6c983431117b7ce46cb4e0aa7ca55a8",
+      "role": "红线 A 修复前基线帧",
+      "purpose": "修复前（stage-p3 d37627e）现采基线：depth 控件缺失、零增量仍入榜",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p3 代码（d37627e）现采，同一夹具与同一 harness",
+      "quant": {
+        "state": "growth-default",
+        "state_zh": "growth 夹具正负增量默认口径（叶子）",
+        "viewport": "1440x900",
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false
+        },
+        "api_rows": 4,
+        "table_rows_rendered": 4,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 30,
+        "row_deltas": [
+          70,
+          10,
+          0,
+          -50
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine\\lib.dll",
+          "D:\\apps\\framework\\core\\engine\\conf.bin",
+          "D:\\data\\docs",
+          "D:\\docs\\old"
+        ],
+        "crumb": "",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\compare-growth-default-1920x1080.png",
+      "rel": "baseline_prefix/compare-growth-default-1920x1080.png",
+      "bytes": 121238,
+      "mtime": "2026-09-10T11:41:18.159Z",
+      "sha256": "d1af34f5cd597878e1a3cc7f6a3ec18e02811ec09ec185d693276c4269a526bb",
+      "role": "红线 A 修复前基线帧",
+      "purpose": "修复前（stage-p3 d37627e）现采基线：depth 控件缺失、零增量仍入榜",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p3 代码（d37627e）现采，同一夹具与同一 harness",
+      "quant": {
+        "state": "growth-default",
+        "state_zh": "growth 夹具正负增量默认口径（叶子）",
+        "viewport": "1920x1080",
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false
+        },
+        "api_rows": 4,
+        "table_rows_rendered": 4,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 30,
+        "row_deltas": [
+          70,
+          10,
+          0,
+          -50
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine\\lib.dll",
+          "D:\\apps\\framework\\core\\engine\\conf.bin",
+          "D:\\data\\docs",
+          "D:\\docs\\old"
+        ],
+        "crumb": "",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\compare-growth-depth1-1366x768.png",
+      "rel": "baseline_prefix/compare-growth-depth1-1366x768.png",
+      "bytes": 101258,
+      "mtime": "2026-09-10T11:41:05.716Z",
+      "sha256": "094b5320353a0c9757298be028a23a2700bed2c0701545c5153d190782ae41d9",
+      "role": "红线 A 修复前基线帧",
+      "purpose": "修复前（stage-p3 d37627e）现采基线：depth 控件缺失、零增量仍入榜",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p3 代码（d37627e）现采，同一夹具与同一 harness",
+      "quant": {
+        "state": "growth-depth1",
+        "state_zh": "growth 夹具 depth=1（深度聚合）",
+        "viewport": "1366x768",
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false
+        },
+        "api_rows": 4,
+        "table_rows_rendered": 4,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 30,
+        "row_deltas": [
+          70,
+          10,
+          0,
+          -50
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine\\lib.dll",
+          "D:\\apps\\framework\\core\\engine\\conf.bin",
+          "D:\\data\\docs",
+          "D:\\docs\\old"
+        ],
+        "crumb": "",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\compare-growth-depth1-1440x900.png",
+      "rel": "baseline_prefix/compare-growth-depth1-1440x900.png",
+      "bytes": 107063,
+      "mtime": "2026-09-10T11:41:10.555Z",
+      "sha256": "294c33f021ae5844f51d021d116b5f74a6c983431117b7ce46cb4e0aa7ca55a8",
+      "role": "红线 A 修复前基线帧",
+      "purpose": "修复前（stage-p3 d37627e）现采基线：depth 控件缺失、零增量仍入榜",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p3 代码（d37627e）现采，同一夹具与同一 harness",
+      "quant": {
+        "state": "growth-depth1",
+        "state_zh": "growth 夹具 depth=1（深度聚合）",
+        "viewport": "1440x900",
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false
+        },
+        "api_rows": 4,
+        "table_rows_rendered": 4,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 30,
+        "row_deltas": [
+          70,
+          10,
+          0,
+          -50
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine\\lib.dll",
+          "D:\\apps\\framework\\core\\engine\\conf.bin",
+          "D:\\data\\docs",
+          "D:\\docs\\old"
+        ],
+        "crumb": "",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\compare-growth-depth1-1920x1080.png",
+      "rel": "baseline_prefix/compare-growth-depth1-1920x1080.png",
+      "bytes": 121238,
+      "mtime": "2026-09-10T11:41:15.582Z",
+      "sha256": "d1af34f5cd597878e1a3cc7f6a3ec18e02811ec09ec185d693276c4269a526bb",
+      "role": "红线 A 修复前基线帧",
+      "purpose": "修复前（stage-p3 d37627e）现采基线：depth 控件缺失、零增量仍入榜",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p3 代码（d37627e）现采，同一夹具与同一 harness",
+      "quant": {
+        "state": "growth-depth1",
+        "state_zh": "growth 夹具 depth=1（深度聚合）",
+        "viewport": "1920x1080",
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false
+        },
+        "api_rows": 4,
+        "table_rows_rendered": 4,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 30,
+        "row_deltas": [
+          70,
+          10,
+          0,
+          -50
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine\\lib.dll",
+          "D:\\apps\\framework\\core\\engine\\conf.bin",
+          "D:\\data\\docs",
+          "D:\\docs\\old"
+        ],
+        "crumb": "",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\compare-growth-depth2-drill-1366x768.png",
+      "rel": "baseline_prefix/compare-growth-depth2-drill-1366x768.png",
+      "bytes": 101258,
+      "mtime": "2026-09-10T11:41:06.546Z",
+      "sha256": "094b5320353a0c9757298be028a23a2700bed2c0701545c5153d190782ae41d9",
+      "role": "红线 A 修复前基线帧",
+      "purpose": "修复前（stage-p3 d37627e）现采基线：depth 控件缺失、零增量仍入榜",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p3 代码（d37627e）现采，同一夹具与同一 harness",
+      "quant": {
+        "state": "growth-depth2-drill",
+        "state_zh": "growth 夹具 depth=2 + 行点击下钻",
+        "viewport": "1366x768",
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false
+        },
+        "api_rows": 4,
+        "table_rows_rendered": 4,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 30,
+        "row_deltas": [
+          70,
+          10,
+          0,
+          -50
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine\\lib.dll",
+          "D:\\apps\\framework\\core\\engine\\conf.bin",
+          "D:\\data\\docs",
+          "D:\\docs\\old"
+        ],
+        "crumb": "",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\compare-growth-depth2-drill-1440x900.png",
+      "rel": "baseline_prefix/compare-growth-depth2-drill-1440x900.png",
+      "bytes": 107063,
+      "mtime": "2026-09-10T11:41:11.383Z",
+      "sha256": "294c33f021ae5844f51d021d116b5f74a6c983431117b7ce46cb4e0aa7ca55a8",
+      "role": "红线 A 修复前基线帧",
+      "purpose": "修复前（stage-p3 d37627e）现采基线：depth 控件缺失、零增量仍入榜",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p3 代码（d37627e）现采，同一夹具与同一 harness",
+      "quant": {
+        "state": "growth-depth2-drill",
+        "state_zh": "growth 夹具 depth=2 + 行点击下钻",
+        "viewport": "1440x900",
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false
+        },
+        "api_rows": 4,
+        "table_rows_rendered": 4,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+49.95 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+69.93 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "49.95 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 30,
+        "row_deltas": [
+          70,
+          10,
+          0,
+          -50
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine\\lib.dll",
+          "D:\\apps\\framework\\core\\engine\\conf.bin",
+          "D:\\data\\docs",
+          "D:\\docs\\old"
+        ],
+        "crumb": "",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\compare-growth-depth2-drill-1920x1080.png",
+      "rel": "baseline_prefix/compare-growth-depth2-drill-1920x1080.png",
+      "bytes": 121238,
+      "mtime": "2026-09-10T11:41:16.435Z",
+      "sha256": "d1af34f5cd597878e1a3cc7f6a3ec18e02811ec09ec185d693276c4269a526bb",
+      "role": "红线 A 修复前基线帧",
+      "purpose": "修复前（stage-p3 d37627e）现采基线：depth 控件缺失、零增量仍入榜",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p3 代码（d37627e）现采，同一夹具与同一 harness",
+      "quant": {
+        "state": "growth-depth2-drill",
+        "state_zh": "growth 夹具 depth=2 + 行点击下钻",
+        "viewport": "1920x1080",
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false
+        },
+        "api_rows": 4,
+        "table_rows_rendered": 4,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 30,
+        "row_deltas": [
+          70,
+          10,
+          0,
+          -50
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine\\lib.dll",
+          "D:\\apps\\framework\\core\\engine\\conf.bin",
+          "D:\\data\\docs",
+          "D:\\docs\\old"
+        ],
+        "crumb": "",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\harness-prefix.log",
+      "rel": "baseline_prefix/harness-prefix.log",
+      "bytes": 14173,
+      "mtime": "2026-09-10T11:41:17.383Z",
+      "sha256": "3f7607adf6c9d35791574478178211371803d12ccefc5e8f91c130a4e81bc199",
+      "role": "harness 运行日志",
+      "purpose": "夹具对比服务启动信息（隔离数据目录、快照目录、夹具 GUID、当前侧行数）",
+      "cadence": "每次探针运行 1 份",
+      "window": "stage-p3 代码（d37627e）",
+      "quant": {
+        "ready_line": "HARNESS_READY port=5101 data_dir=C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner snapshot_dir=C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots current=C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260908_170000_explicit_3f2a1c9d.snap.gz root=D:\\ rows=11 guid=3f2a1c9d-0000-4000-8000-00000000f1x7"
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\layout-prefix.json",
+      "rel": "baseline_prefix/layout-prefix.json",
+      "bytes": 43732,
+      "mtime": "2026-09-10T11:41:18.402Z",
+      "sha256": "cbde181ce4373a36e8c0e85399d8d684754685b46e60575875d4277e3d37a5fc",
+      "role": "逐视口逐态 DOM 量化",
+      "purpose": "控件存在性/取值、表格渲染行数、摘要三卡值、面包屑、空态文案、可下钻行数",
+      "cadence": "3 视口 × 4 态 = 12 样本",
+      "window": "stage-p3 代码（d37627e）",
+      "quant": {
+        "samples": 12,
+        "per_sample": [
+          {
+            "key": "growth-depth1@1366x768",
+            "depthControl": false,
+            "depthValue": null,
+            "hideZeroControl": false,
+            "tableRows": 4,
+            "apiRows": 4,
+            "crumb": "",
+            "empty": ""
+          },
+          {
+            "key": "growth-depth2-drill@1366x768",
+            "depthControl": false,
+            "depthValue": null,
+            "hideZeroControl": false,
+            "tableRows": 4,
+            "apiRows": 4,
+            "crumb": "",
+            "empty": ""
+          },
+          {
+            "key": "flat-empty@1366x768",
+            "depthControl": false,
+            "depthValue": null,
+            "hideZeroControl": false,
+            "tableRows": 1,
+            "apiRows": 1,
+            "crumb": "",
+            "empty": ""
+          },
+          {
+            "key": "growth-default@1366x768",
+            "depthControl": false,
+            "depthValue": null,
+            "hideZeroControl": false,
+            "tableRows": 4,
+            "apiRows": 4,
+            "crumb": "",
+            "empty": ""
+          },
+          {
+            "key": "growth-depth1@1440x900",
+            "depthControl": false,
+            "depthValue": null,
+            "hideZeroControl": false,
+            "tableRows": 4,
+            "apiRows": 4,
+            "crumb": "",
+            "empty": ""
+          },
+          {
+            "key": "growth-depth2-drill@1440x900",
+            "depthControl": false,
+            "depthValue": null,
+            "hideZeroControl": false,
+            "tableRows": 4,
+            "apiRows": 4,
+            "crumb": "",
+            "empty": ""
+          },
+          {
+            "key": "flat-empty@1440x900",
+            "depthControl": false,
+            "depthValue": null,
+            "hideZeroControl": false,
+            "tableRows": 1,
+            "apiRows": 1,
+            "crumb": "",
+            "empty": ""
+          },
+          {
+            "key": "growth-default@1440x900",
+            "depthControl": false,
+            "depthValue": null,
+            "hideZeroControl": false,
+            "tableRows": 4,
+            "apiRows": 4,
+            "crumb": "",
+            "empty": ""
+          },
+          {
+            "key": "growth-depth1@1920x1080",
+            "depthControl": false,
+            "depthValue": null,
+            "hideZeroControl": false,
+            "tableRows": 4,
+            "apiRows": 4,
+            "crumb": "",
+            "empty": ""
+          },
+          {
+            "key": "growth-depth2-drill@1920x1080",
+            "depthControl": false,
+            "depthValue": null,
+            "hideZeroControl": false,
+            "tableRows": 4,
+            "apiRows": 4,
+            "crumb": "",
+            "empty": ""
+          },
+          {
+            "key": "flat-empty@1920x1080",
+            "depthControl": false,
+            "depthValue": null,
+            "hideZeroControl": false,
+            "tableRows": 1,
+            "apiRows": 1,
+            "crumb": "",
+            "empty": ""
+          },
+          {
+            "key": "growth-default@1920x1080",
+            "depthControl": false,
+            "depthValue": null,
+            "hideZeroControl": false,
+            "tableRows": 4,
+            "apiRows": 4,
+            "crumb": "",
+            "empty": ""
+          }
+        ]
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix\\summary-prefix.json",
+      "rel": "baseline_prefix/summary-prefix.json",
+      "bytes": 10502,
+      "mtime": "2026-09-10T11:41:18.403Z",
+      "sha256": "456c4723abf7e4c7bf5792b579714ea8b8ee7930bfbe67472fa0a16bac2c1463",
+      "role": "判定汇总",
+      "purpose": "J1–J8 违规计数、逐态明细、console 错误、关键帧清单",
+      "cadence": "每次探针运行 1 份",
+      "window": "stage-p3 代码（d37627e）",
+      "quant": {
+        "apiViolations": 20,
+        "uiViolations": 60,
+        "consoleErrors": 0,
+        "total": 80
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\api-postfix.json",
+      "rel": "postfix/api-postfix.json",
+      "bytes": 30083,
+      "mtime": "2026-09-10T12:14:08.144Z",
+      "sha256": "890f4adbaa3e24ed7498275549a32bc7859f7b39d32378644bd2d4f777a5c42a",
+      "role": "API 层逐请求量化",
+      "purpose": "/api/compare 的 depth 入参 / 返回行数 / 零行 / 汇总字段 / Σ(行delta) / 残差 / delta_total",
+      "cadence": "9 组参数组合，每组 1 次真实 HTTP 请求（同一 harness 进程）",
+      "window": "stage-p4 代码",
+      "quant": {
+        "cases": 9,
+        "violations": 0,
+        "per_case": [
+          {
+            "key": "growth-default(无 depth 旧调用)",
+            "httpStatus": 200,
+            "rows": 4,
+            "zeroRows": 1,
+            "sumDelta": 30,
+            "residue": 20,
+            "deltaTotal": 50,
+            "depthEcho": null
+          },
+          {
+            "key": "growth-depth1",
+            "httpStatus": 200,
+            "rows": 3,
+            "zeroRows": 1,
+            "sumDelta": 50,
+            "residue": 0,
+            "deltaTotal": 50,
+            "depthEcho": 1
+          },
+          {
+            "key": "growth-depth2",
+            "httpStatus": 200,
+            "rows": 3,
+            "zeroRows": 1,
+            "sumDelta": 30,
+            "residue": 20,
+            "deltaTotal": 50,
+            "depthEcho": 2
+          },
+          {
+            "key": "growth-depth1+drop_zero+order_by=abs",
+            "httpStatus": 200,
+            "rows": 2,
+            "zeroRows": 0,
+            "sumDelta": 50,
+            "residue": 0,
+            "deltaTotal": 50,
+            "depthEcho": 1
+          },
+          {
+            "key": "growth-default+drop_zero+order_by=abs",
+            "httpStatus": 200,
+            "rows": 3,
+            "zeroRows": 0,
+            "sumDelta": 30,
+            "residue": 20,
+            "deltaTotal": 50,
+            "depthEcho": null
+          },
+          {
+            "key": "flat-default(旧口径)",
+            "httpStatus": 200,
+            "rows": 1,
+            "zeroRows": 1,
+            "sumDelta": 0,
+            "residue": 0,
+            "deltaTotal": 0,
+            "depthEcho": null
+          },
+          {
+            "key": "flat-depth1+drop_zero",
+            "httpStatus": 200,
+            "rows": 0,
+            "zeroRows": 0,
+            "sumDelta": 0,
+            "residue": 0,
+            "deltaTotal": 0,
+            "depthEcho": 1
+          },
+          {
+            "key": "drill D:\\apps depth1",
+            "httpStatus": 200,
+            "rows": 1,
+            "zeroRows": 0,
+            "sumDelta": 80,
+            "residue": 20,
+            "deltaTotal": 100,
+            "depthEcho": 1
+          },
+          {
+            "key": "drill D:\\apps\\framework\\core depth1",
+            "httpStatus": 200,
+            "rows": 1,
+            "zeroRows": 0,
+            "sumDelta": 80,
+            "residue": 0,
+            "deltaTotal": 80,
+            "depthEcho": 1
+          }
+        ]
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\compare-flat-empty-1366x768.png",
+      "rel": "postfix/compare-flat-empty-1366x768.png",
+      "bytes": 98718,
+      "mtime": "2026-09-10T12:13:56.472Z",
+      "sha256": "c367fe5c6f733663c6ebef47e41f2bf7a6589c1815033a953f64f00cd55cc7b6",
+      "role": "C 类关键帧（修复后）",
+      "purpose": "修复后对比页深度/零增量/下钻像素证据（逐张 read_image 判读）",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p4 代码；夹具时间窗 2026-09-07T17:00 → 2026-09-08T17:00（growth）/ 09-07T11:00 → 09-08T11:00（flat）",
+      "quant": {
+        "state": "flat-empty",
+        "state_zh": "flat 夹具零增量空态",
+        "viewport": "1366x768",
+        "request_depth": 1,
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_110000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false,
+          "drop_zero": true,
+          "order_by": "abs",
+          "depth": 1
+        },
+        "api_rows": 0,
+        "rows_total": 1,
+        "zero_count": 0,
+        "zero_total": 1,
+        "table_rows_rendered": 0,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "delta_total": 0,
+        "sum_row_delta": 0,
+        "row_deltas": [],
+        "row_paths": [],
+        "crumb": "D:\\",
+        "empty_text": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。"
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\compare-flat-empty-1440x900.png",
+      "rel": "postfix/compare-flat-empty-1440x900.png",
+      "bytes": 102290,
+      "mtime": "2026-09-10T12:14:01.686Z",
+      "sha256": "2ad242607aeaf8318917063204902175fd37de81ecc16fba7868df8d44b9481a",
+      "role": "C 类关键帧（修复后）",
+      "purpose": "修复后对比页深度/零增量/下钻像素证据（逐张 read_image 判读）",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p4 代码；夹具时间窗 2026-09-07T17:00 → 2026-09-08T17:00（growth）/ 09-07T11:00 → 09-08T11:00（flat）",
+      "quant": {
+        "state": "flat-empty",
+        "state_zh": "flat 夹具零增量空态",
+        "viewport": "1440x900",
+        "request_depth": 1,
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_110000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false,
+          "drop_zero": true,
+          "order_by": "abs",
+          "depth": 1
+        },
+        "api_rows": 0,
+        "rows_total": 1,
+        "zero_count": 0,
+        "zero_total": 1,
+        "table_rows_rendered": 0,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "delta_total": 0,
+        "sum_row_delta": 0,
+        "row_deltas": [],
+        "row_paths": [],
+        "crumb": "D:\\",
+        "empty_text": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。"
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\compare-flat-empty-1920x1080.png",
+      "rel": "postfix/compare-flat-empty-1920x1080.png",
+      "bytes": 116035,
+      "mtime": "2026-09-10T12:14:07.046Z",
+      "sha256": "1fe66f9516d82d124a2e9e210191a8a47900b0a7a4f476944b20b1a22ca9f866",
+      "role": "C 类关键帧（修复后）",
+      "purpose": "修复后对比页深度/零增量/下钻像素证据（逐张 read_image 判读）",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p4 代码；夹具时间窗 2026-09-07T17:00 → 2026-09-08T17:00（growth）/ 09-07T11:00 → 09-08T11:00（flat）",
+      "quant": {
+        "state": "flat-empty",
+        "state_zh": "flat 夹具零增量空态",
+        "viewport": "1920x1080",
+        "request_depth": 1,
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_110000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false,
+          "drop_zero": true,
+          "order_by": "abs",
+          "depth": 1
+        },
+        "api_rows": 0,
+        "rows_total": 1,
+        "zero_count": 0,
+        "zero_total": 1,
+        "table_rows_rendered": 0,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "delta_total": 0,
+        "sum_row_delta": 0,
+        "row_deltas": [],
+        "row_paths": [],
+        "crumb": "D:\\",
+        "empty_text": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。"
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\compare-growth-default-1366x768.png",
+      "rel": "postfix/compare-growth-default-1366x768.png",
+      "bytes": 105315,
+      "mtime": "2026-09-10T12:13:57.281Z",
+      "sha256": "81f686d5cd189db6bf258a355800209e0ae6db42980107ed482f0fad46102f14",
+      "role": "C 类关键帧（修复后）",
+      "purpose": "修复后对比页深度/零增量/下钻像素证据（逐张 read_image 判读）",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p4 代码；夹具时间窗 2026-09-07T17:00 → 2026-09-08T17:00（growth）/ 09-07T11:00 → 09-08T11:00（flat）",
+      "quant": {
+        "state": "growth-default",
+        "state_zh": "growth 夹具正负增量默认口径（叶子）",
+        "viewport": "1366x768",
+        "request_depth": null,
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false,
+          "drop_zero": true,
+          "order_by": "abs"
+        },
+        "api_rows": 3,
+        "rows_total": 4,
+        "zero_count": 0,
+        "zero_total": 1,
+        "table_rows_rendered": 3,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 30,
+        "row_deltas": [
+          70,
+          -50,
+          10
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine\\lib.dll",
+          "D:\\docs\\old",
+          "D:\\apps\\framework\\core\\engine\\conf.bin"
+        ],
+        "crumb": "D:\\",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\compare-growth-default-1440x900.png",
+      "rel": "postfix/compare-growth-default-1440x900.png",
+      "bytes": 109220,
+      "mtime": "2026-09-10T12:14:02.524Z",
+      "sha256": "800e0e5092c004a0625701cff3acf7459a4652d1c5d38d8f0939023fdce3cfbb",
+      "role": "C 类关键帧（修复后）",
+      "purpose": "修复后对比页深度/零增量/下钻像素证据（逐张 read_image 判读）",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p4 代码；夹具时间窗 2026-09-07T17:00 → 2026-09-08T17:00（growth）/ 09-07T11:00 → 09-08T11:00（flat）",
+      "quant": {
+        "state": "growth-default",
+        "state_zh": "growth 夹具正负增量默认口径（叶子）",
+        "viewport": "1440x900",
+        "request_depth": null,
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false,
+          "drop_zero": true,
+          "order_by": "abs"
+        },
+        "api_rows": 3,
+        "rows_total": 4,
+        "zero_count": 0,
+        "zero_total": 1,
+        "table_rows_rendered": 3,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 30,
+        "row_deltas": [
+          70,
+          -50,
+          10
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine\\lib.dll",
+          "D:\\docs\\old",
+          "D:\\apps\\framework\\core\\engine\\conf.bin"
+        ],
+        "crumb": "D:\\",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\compare-growth-default-1920x1080.png",
+      "rel": "postfix/compare-growth-default-1920x1080.png",
+      "bytes": 122982,
+      "mtime": "2026-09-10T12:14:07.936Z",
+      "sha256": "5e961b319b059f43bf777d29a1f280d02e1fbd165714dfac5e617a774a3cbb43",
+      "role": "C 类关键帧（修复后）",
+      "purpose": "修复后对比页深度/零增量/下钻像素证据（逐张 read_image 判读）",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p4 代码；夹具时间窗 2026-09-07T17:00 → 2026-09-08T17:00（growth）/ 09-07T11:00 → 09-08T11:00（flat）",
+      "quant": {
+        "state": "growth-default",
+        "state_zh": "growth 夹具正负增量默认口径（叶子）",
+        "viewport": "1920x1080",
+        "request_depth": null,
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false,
+          "drop_zero": true,
+          "order_by": "abs"
+        },
+        "api_rows": 3,
+        "rows_total": 4,
+        "zero_count": 0,
+        "zero_total": 1,
+        "table_rows_rendered": 3,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 30,
+        "row_deltas": [
+          70,
+          -50,
+          10
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine\\lib.dll",
+          "D:\\docs\\old",
+          "D:\\apps\\framework\\core\\engine\\conf.bin"
+        ],
+        "crumb": "D:\\",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\compare-growth-depth1-1366x768.png",
+      "rel": "postfix/compare-growth-depth1-1366x768.png",
+      "bytes": 96760,
+      "mtime": "2026-09-10T12:13:54.114Z",
+      "sha256": "bdb56c1918eccc14c9f8b46f7deb77a130a8e79cc43c2c791093d978290450c3",
+      "role": "C 类关键帧（修复后）",
+      "purpose": "修复后对比页深度/零增量/下钻像素证据（逐张 read_image 判读）",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p4 代码；夹具时间窗 2026-09-07T17:00 → 2026-09-08T17:00（growth）/ 09-07T11:00 → 09-08T11:00（flat）",
+      "quant": {
+        "state": "growth-depth1",
+        "state_zh": "growth 夹具 depth=1（深度聚合）",
+        "viewport": "1366x768",
+        "request_depth": 1,
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false,
+          "drop_zero": true,
+          "order_by": "abs",
+          "depth": 1
+        },
+        "api_rows": 2,
+        "rows_total": 3,
+        "zero_count": 0,
+        "zero_total": 1,
+        "table_rows_rendered": 2,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "100",
+            "text": "+100.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 50,
+        "row_deltas": [
+          100,
+          -50
+        ],
+        "row_paths": [
+          "D:\\apps",
+          "D:\\docs"
+        ],
+        "crumb": "D:\\",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\compare-growth-depth1-1440x900.png",
+      "rel": "postfix/compare-growth-depth1-1440x900.png",
+      "bytes": 100969,
+      "mtime": "2026-09-10T12:13:59.312Z",
+      "sha256": "d455a969180e9442ec31a3dd075e046950dc63782cc1a403b9d8f39f03ae8e0e",
+      "role": "C 类关键帧（修复后）",
+      "purpose": "修复后对比页深度/零增量/下钻像素证据（逐张 read_image 判读）",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p4 代码；夹具时间窗 2026-09-07T17:00 → 2026-09-08T17:00（growth）/ 09-07T11:00 → 09-08T11:00（flat）",
+      "quant": {
+        "state": "growth-depth1",
+        "state_zh": "growth 夹具 depth=1（深度聚合）",
+        "viewport": "1440x900",
+        "request_depth": 1,
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false,
+          "drop_zero": true,
+          "order_by": "abs",
+          "depth": 1
+        },
+        "api_rows": 2,
+        "rows_total": 3,
+        "zero_count": 0,
+        "zero_total": 1,
+        "table_rows_rendered": 2,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "100",
+            "text": "+100.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 50,
+        "row_deltas": [
+          100,
+          -50
+        ],
+        "row_paths": [
+          "D:\\apps",
+          "D:\\docs"
+        ],
+        "crumb": "D:\\",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\compare-growth-depth1-1920x1080.png",
+      "rel": "postfix/compare-growth-depth1-1920x1080.png",
+      "bytes": 114552,
+      "mtime": "2026-09-10T12:14:04.546Z",
+      "sha256": "8e46926c4abe224632b4e92eedd8a8f7aceffb1065da044b4bf00c0566da0d0d",
+      "role": "C 类关键帧（修复后）",
+      "purpose": "修复后对比页深度/零增量/下钻像素证据（逐张 read_image 判读）",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p4 代码；夹具时间窗 2026-09-07T17:00 → 2026-09-08T17:00（growth）/ 09-07T11:00 → 09-08T11:00（flat）",
+      "quant": {
+        "state": "growth-depth1",
+        "state_zh": "growth 夹具 depth=1（深度聚合）",
+        "viewport": "1920x1080",
+        "request_depth": 1,
+        "request_payload": {
+          "root": "D:\\",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false,
+          "drop_zero": true,
+          "order_by": "abs",
+          "depth": 1
+        },
+        "api_rows": 2,
+        "rows_total": 3,
+        "zero_count": 0,
+        "zero_total": 1,
+        "table_rows_rendered": 2,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "100",
+            "text": "+100.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "delta_total": 50,
+        "sum_row_delta": 50,
+        "row_deltas": [
+          100,
+          -50
+        ],
+        "row_paths": [
+          "D:\\apps",
+          "D:\\docs"
+        ],
+        "crumb": "D:\\",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\compare-growth-depth2-drill-1366x768.png",
+      "rel": "postfix/compare-growth-depth2-drill-1366x768.png",
+      "bytes": 104339,
+      "mtime": "2026-09-10T12:13:55.632Z",
+      "sha256": "3d7853c27736fc9919e2b0fa56a4d8afa092276fe5af09c360df1182685d0d43",
+      "role": "C 类关键帧（修复后）",
+      "purpose": "修复后对比页深度/零增量/下钻像素证据（逐张 read_image 判读）",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p4 代码；夹具时间窗 2026-09-07T17:00 → 2026-09-08T17:00（growth）/ 09-07T11:00 → 09-08T11:00（flat）",
+      "quant": {
+        "state": "growth-depth2-drill",
+        "state_zh": "growth 夹具 depth=2 + 行点击下钻",
+        "viewport": "1366x768",
+        "request_depth": 2,
+        "request_payload": {
+          "root": "D:\\apps\\framework",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false,
+          "drop_zero": true,
+          "order_by": "abs",
+          "depth": 2
+        },
+        "api_rows": 1,
+        "rows_total": 1,
+        "zero_count": 0,
+        "zero_total": 0,
+        "table_rows_rendered": 1,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "80",
+            "text": "+80.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "80",
+            "text": "+80.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "delta_total": 80,
+        "sum_row_delta": 80,
+        "row_deltas": [
+          80
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine"
+        ],
+        "crumb": "D:\\›D:\\apps›D:\\apps\\framework",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\compare-growth-depth2-drill-1440x900.png",
+      "rel": "postfix/compare-growth-depth2-drill-1440x900.png",
+      "bytes": 107608,
+      "mtime": "2026-09-10T12:14:00.843Z",
+      "sha256": "12bd024ca1c9ca44d0ef06771c142470b9de0a48d6b1aa8359248ef3dbcf0067",
+      "role": "C 类关键帧（修复后）",
+      "purpose": "修复后对比页深度/零增量/下钻像素证据（逐张 read_image 判读）",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p4 代码；夹具时间窗 2026-09-07T17:00 → 2026-09-08T17:00（growth）/ 09-07T11:00 → 09-08T11:00（flat）",
+      "quant": {
+        "state": "growth-depth2-drill",
+        "state_zh": "growth 夹具 depth=2 + 行点击下钻",
+        "viewport": "1440x900",
+        "request_depth": 2,
+        "request_payload": {
+          "root": "D:\\apps\\framework",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false,
+          "drop_zero": true,
+          "order_by": "abs",
+          "depth": 2
+        },
+        "api_rows": 1,
+        "rows_total": 1,
+        "zero_count": 0,
+        "zero_total": 0,
+        "table_rows_rendered": 1,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "80",
+            "text": "+80.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "80",
+            "text": "+80.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "delta_total": 80,
+        "sum_row_delta": 80,
+        "row_deltas": [
+          80
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine"
+        ],
+        "crumb": "D:\\›D:\\apps›D:\\apps\\framework",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\compare-growth-depth2-drill-1920x1080.png",
+      "rel": "postfix/compare-growth-depth2-drill-1920x1080.png",
+      "bytes": 123416,
+      "mtime": "2026-09-10T12:14:06.131Z",
+      "sha256": "05fb33726a251381a7fc8347a80a2046ef1424e12329fe764f5dfcdcd4d7431d",
+      "role": "C 类关键帧（修复后）",
+      "purpose": "修复后对比页深度/零增量/下钻像素证据（逐张 read_image 判读）",
+      "cadence": "3 视口（1366×768 / 1440×900 / 1920×1080）× 4 态，每态 1 帧（headless Chromium，viewport 截图）",
+      "window": "2026-09-10 会话内 stage-p4 代码；夹具时间窗 2026-09-07T17:00 → 2026-09-08T17:00（growth）/ 09-07T11:00 → 09-08T11:00（flat）",
+      "quant": {
+        "state": "growth-depth2-drill",
+        "state_zh": "growth 夹具 depth=2 + 行点击下钻",
+        "viewport": "1920x1080",
+        "request_depth": 2,
+        "request_payload": {
+          "root": "D:\\apps\\framework",
+          "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+          "allow_other_machine": false,
+          "drop_zero": true,
+          "order_by": "abs",
+          "depth": 2
+        },
+        "api_rows": 1,
+        "rows_total": 1,
+        "zero_count": 0,
+        "zero_total": 0,
+        "table_rows_rendered": 1,
+        "summary_cards": [
+          {
+            "label": "总变化",
+            "target": "80",
+            "text": "+80.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "80",
+            "text": "+80.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "delta_total": 80,
+        "sum_row_delta": 80,
+        "row_deltas": [
+          80
+        ],
+        "row_paths": [
+          "D:\\apps\\framework\\core\\engine"
+        ],
+        "crumb": "D:\\›D:\\apps›D:\\apps\\framework",
+        "empty_text": ""
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\harness-postfix.log",
+      "rel": "postfix/harness-postfix.log",
+      "bytes": 15268,
+      "mtime": "2026-09-10T12:14:07.166Z",
+      "sha256": "402d12bf0cfc947b369018aa57ab02ae5c6de27bab508799c5578405858f236c",
+      "role": "harness 运行日志",
+      "purpose": "夹具对比服务启动信息（隔离数据目录、快照目录、夹具 GUID、当前侧行数）",
+      "cadence": "每次探针运行 1 份",
+      "window": "stage-p4 代码",
+      "quant": {
+        "ready_line": "HARNESS_READY port=5101 data_dir=C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner snapshot_dir=C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots current=C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260908_170000_explicit_3f2a1c9d.snap.gz root=D:\\ rows=11 guid=3f2a1c9d-0000-4000-8000-00000000f1x7"
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\layout-postfix.json",
+      "rel": "postfix/layout-postfix.json",
+      "bytes": 47595,
+      "mtime": "2026-09-10T12:14:08.145Z",
+      "sha256": "d1c9a830ed16958d9727cf7e84214e1b9ebd7e725ab8850d18f0140364b97fbd",
+      "role": "逐视口逐态 DOM 量化",
+      "purpose": "控件存在性/取值、表格渲染行数、摘要三卡值、面包屑、空态文案、可下钻行数",
+      "cadence": "3 视口 × 4 态 = 12 样本",
+      "window": "stage-p4 代码",
+      "quant": {
+        "samples": 12,
+        "per_sample": [
+          {
+            "key": "growth-depth1@1366x768",
+            "depthControl": true,
+            "depthValue": "1",
+            "hideZeroControl": true,
+            "tableRows": 2,
+            "apiRows": 2,
+            "crumb": "D:\\",
+            "empty": ""
+          },
+          {
+            "key": "growth-depth2-drill@1366x768",
+            "depthControl": true,
+            "depthValue": "2",
+            "hideZeroControl": true,
+            "tableRows": 1,
+            "apiRows": 1,
+            "crumb": "D:\\›D:\\apps›D:\\apps\\framework",
+            "empty": ""
+          },
+          {
+            "key": "flat-empty@1366x768",
+            "depthControl": true,
+            "depthValue": "1",
+            "hideZeroControl": true,
+            "tableRows": 0,
+            "apiRows": 0,
+            "crumb": "D:\\",
+            "empty": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。"
+          },
+          {
+            "key": "growth-default@1366x768",
+            "depthControl": true,
+            "depthValue": "",
+            "hideZeroControl": true,
+            "tableRows": 3,
+            "apiRows": 3,
+            "crumb": "D:\\",
+            "empty": ""
+          },
+          {
+            "key": "growth-depth1@1440x900",
+            "depthControl": true,
+            "depthValue": "1",
+            "hideZeroControl": true,
+            "tableRows": 2,
+            "apiRows": 2,
+            "crumb": "D:\\",
+            "empty": ""
+          },
+          {
+            "key": "growth-depth2-drill@1440x900",
+            "depthControl": true,
+            "depthValue": "2",
+            "hideZeroControl": true,
+            "tableRows": 1,
+            "apiRows": 1,
+            "crumb": "D:\\›D:\\apps›D:\\apps\\framework",
+            "empty": ""
+          },
+          {
+            "key": "flat-empty@1440x900",
+            "depthControl": true,
+            "depthValue": "1",
+            "hideZeroControl": true,
+            "tableRows": 0,
+            "apiRows": 0,
+            "crumb": "D:\\",
+            "empty": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。"
+          },
+          {
+            "key": "growth-default@1440x900",
+            "depthControl": true,
+            "depthValue": "",
+            "hideZeroControl": true,
+            "tableRows": 3,
+            "apiRows": 3,
+            "crumb": "D:\\",
+            "empty": ""
+          },
+          {
+            "key": "growth-depth1@1920x1080",
+            "depthControl": true,
+            "depthValue": "1",
+            "hideZeroControl": true,
+            "tableRows": 2,
+            "apiRows": 2,
+            "crumb": "D:\\",
+            "empty": ""
+          },
+          {
+            "key": "growth-depth2-drill@1920x1080",
+            "depthControl": true,
+            "depthValue": "2",
+            "hideZeroControl": true,
+            "tableRows": 1,
+            "apiRows": 1,
+            "crumb": "D:\\›D:\\apps›D:\\apps\\framework",
+            "empty": ""
+          },
+          {
+            "key": "flat-empty@1920x1080",
+            "depthControl": true,
+            "depthValue": "1",
+            "hideZeroControl": true,
+            "tableRows": 0,
+            "apiRows": 0,
+            "crumb": "D:\\",
+            "empty": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。"
+          },
+          {
+            "key": "growth-default@1920x1080",
+            "depthControl": true,
+            "depthValue": "",
+            "hideZeroControl": true,
+            "tableRows": 3,
+            "apiRows": 3,
+            "crumb": "D:\\",
+            "empty": ""
+          }
+        ]
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix\\summary-postfix.json",
+      "rel": "postfix/summary-postfix.json",
+      "bytes": 4729,
+      "mtime": "2026-09-10T12:14:08.153Z",
+      "sha256": "394cf2d44a99c4cd3b530766d4baa544c666c65d212b94273b07e283210ce917",
+      "role": "判定汇总",
+      "purpose": "J1–J8 违规计数、逐态明细、console 错误、关键帧清单",
+      "cadence": "每次探针运行 1 份",
+      "window": "stage-p4 代码",
+      "quant": {
+        "apiViolations": 0,
+        "uiViolations": 0,
+        "consoleErrors": 0,
+        "total": 0
+      }
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\redline_b_datadir.txt",
+      "rel": "redline_b_datadir.txt",
+      "bytes": 375,
+      "mtime": "2026-09-10T12:14:53.694Z",
+      "sha256": "2e1773d174b2abe916e3a9a7335ef870875ed4cc81b1ed996def05004bc7c3f1",
+      "role": "红线 B 复核输出",
+      "purpose": "用户真实数据目录跑测前后「清单 + 尺寸 + mtime」零变化",
+      "cadence": "1 次（全部跑测结束后）",
+      "window": "基线 2026-09-10 19:48 采集 → 收尾复核",
+      "quant": {
+        "verdict": "PASS",
+        "before": "43 文件 / 5361990 B",
+        "after": "43 文件 / 5361990 B",
+        "diff": "新增=0  删除=0  尺寸变化=0  mtime 超差=0  mtime 完全相等=0/43"
+      }
+    }
+  ]
+}

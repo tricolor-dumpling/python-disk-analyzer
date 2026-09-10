@@ -1,0 +1,190 @@
+{
+  "meta": {
+    "label": "postfix",
+    "out": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix",
+    "node": "v24.19.0",
+    "startedAt": "2026-09-10T12:13:50.557Z",
+    "fixtureRoot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner",
+    "snapshotDir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots",
+    "fixtureNow": "2026-09-08T20:00:00",
+    "viewports": [
+      "1366x768",
+      "1440x900",
+      "1920x1080"
+    ],
+    "fixtures": {
+      "generated": false,
+      "missing": []
+    },
+    "base": "http://127.0.0.1:5101/",
+    "harnessSpawned": true
+  },
+  "shots": [
+    "compare-growth-depth1-1366x768.png",
+    "compare-growth-depth2-drill-1366x768.png",
+    "compare-flat-empty-1366x768.png",
+    "compare-growth-default-1366x768.png",
+    "compare-growth-depth1-1440x900.png",
+    "compare-growth-depth2-drill-1440x900.png",
+    "compare-flat-empty-1440x900.png",
+    "compare-growth-default-1440x900.png",
+    "compare-growth-depth1-1920x1080.png",
+    "compare-growth-depth2-drill-1920x1080.png",
+    "compare-flat-empty-1920x1080.png",
+    "compare-growth-default-1920x1080.png"
+  ],
+  "consoleErrors": [],
+  "totals": {
+    "apiViolations": 0,
+    "uiViolations": 0,
+    "consoleErrors": 0,
+    "total": 0
+  },
+  "violations": [],
+  "perState": [
+    {
+      "key": "growth-depth1@1366x768",
+      "tableRows": 2,
+      "apiRows": 2,
+      "depth": 1,
+      "zeroRows": 0,
+      "deltaTotal": 50,
+      "sumDelta": 50,
+      "crumb": "D:\\",
+      "empty": "",
+      "violations": 0
+    },
+    {
+      "key": "growth-depth2-drill@1366x768",
+      "tableRows": 1,
+      "apiRows": 1,
+      "depth": 2,
+      "zeroRows": 0,
+      "deltaTotal": 80,
+      "sumDelta": 80,
+      "crumb": "D:\\›D:\\apps›D:\\apps\\framework",
+      "empty": "",
+      "violations": 0
+    },
+    {
+      "key": "flat-empty@1366x768",
+      "tableRows": 0,
+      "apiRows": 0,
+      "depth": 1,
+      "zeroRows": 0,
+      "deltaTotal": 0,
+      "sumDelta": 0,
+      "crumb": "D:\\",
+      "empty": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。",
+      "violations": 0
+    },
+    {
+      "key": "growth-default@1366x768",
+      "tableRows": 3,
+      "apiRows": 3,
+      "depth": null,
+      "zeroRows": 0,
+      "deltaTotal": 50,
+      "sumDelta": 30,
+      "crumb": "D:\\",
+      "empty": "",
+      "violations": 0
+    },
+    {
+      "key": "growth-depth1@1440x900",
+      "tableRows": 2,
+      "apiRows": 2,
+      "depth": 1,
+      "zeroRows": 0,
+      "deltaTotal": 50,
+      "sumDelta": 50,
+      "crumb": "D:\\",
+      "empty": "",
+      "violations": 0
+    },
+    {
+      "key": "growth-depth2-drill@1440x900",
+      "tableRows": 1,
+      "apiRows": 1,
+      "depth": 2,
+      "zeroRows": 0,
+      "deltaTotal": 80,
+      "sumDelta": 80,
+      "crumb": "D:\\›D:\\apps›D:\\apps\\framework",
+      "empty": "",
+      "violations": 0
+    },
+    {
+      "key": "flat-empty@1440x900",
+      "tableRows": 0,
+      "apiRows": 0,
+      "depth": 1,
+      "zeroRows": 0,
+      "deltaTotal": 0,
+      "sumDelta": 0,
+      "crumb": "D:\\",
+      "empty": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。",
+      "violations": 0
+    },
+    {
+      "key": "growth-default@1440x900",
+      "tableRows": 3,
+      "apiRows": 3,
+      "depth": null,
+      "zeroRows": 0,
+      "deltaTotal": 50,
+      "sumDelta": 30,
+      "crumb": "D:\\",
+      "empty": "",
+      "violations": 0
+    },
+    {
+      "key": "growth-depth1@1920x1080",
+      "tableRows": 2,
+      "apiRows": 2,
+      "depth": 1,
+      "zeroRows": 0,
+      "deltaTotal": 50,
+      "sumDelta": 50,
+      "crumb": "D:\\",
+      "empty": "",
+      "violations": 0
+    },
+    {
+      "key": "growth-depth2-drill@1920x1080",
+      "tableRows": 1,
+      "apiRows": 1,
+      "depth": 2,
+      "zeroRows": 0,
+      "deltaTotal": 80,
+      "sumDelta": 80,
+      "crumb": "D:\\›D:\\apps›D:\\apps\\framework",
+      "empty": "",
+      "violations": 0
+    },
+    {
+      "key": "flat-empty@1920x1080",
+      "tableRows": 0,
+      "apiRows": 0,
+      "depth": 1,
+      "zeroRows": 0,
+      "deltaTotal": 0,
+      "sumDelta": 0,
+      "crumb": "D:\\",
+      "empty": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。",
+      "violations": 0
+    },
+    {
+      "key": "growth-default@1920x1080",
+      "tableRows": 3,
+      "apiRows": 3,
+      "depth": null,
+      "zeroRows": 0,
+      "deltaTotal": 50,
+      "sumDelta": 30,
+      "crumb": "D:\\",
+      "empty": "",
+      "violations": 0
+    }
+  ]
+}

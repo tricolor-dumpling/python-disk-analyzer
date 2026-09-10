@@ -1,0 +1,1593 @@
+{
+  "meta": {
+    "label": "postfix",
+    "out": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\postfix",
+    "node": "v24.19.0",
+    "startedAt": "2026-09-10T12:13:50.557Z",
+    "fixtureRoot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner",
+    "snapshotDir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots",
+    "fixtureNow": "2026-09-08T20:00:00",
+    "viewports": [
+      "1366x768",
+      "1440x900",
+      "1920x1080"
+    ],
+    "fixtures": {
+      "generated": false,
+      "missing": []
+    },
+    "base": "http://127.0.0.1:5101/",
+    "harnessSpawned": true
+  },
+  "samples": [
+    {
+      "state": "growth-depth1",
+      "vw": 1366,
+      "vh": 768,
+      "shot": "compare-growth-depth1-1366x768.png",
+      "requestPost": "{\"root\":\"D:\\\\\",\"baseline\":\"C:\\\\Users\\\\Laptop\\\\AppData\\\\Local\\\\Temp\\\\pds_p4_iso\\\\home\\\\PythonDiskScanner\\\\snapshots\\\\D_20260907_170000_explicit_3f2a1c9d.snap.gz\",\"allow_other_machine\":false,\"drop_zero\":true,\"order_by\":\"abs\",\"depth\":1}",
+      "responseStatus": 200,
+      "dom": {
+        "depthControl": true,
+        "depthValue": "1",
+        "depthOptions": [
+          ":叶子（默认）",
+          "1:1 层",
+          "2:2 层",
+          "3:3 层",
+          "4:4 层",
+          "5:5 层"
+        ],
+        "hideZeroControl": true,
+        "hideZeroChecked": true,
+        "crumbText": "D:\\",
+        "crumbItems": [
+          ""
+        ],
+        "drillableRows": 2,
+        "rowDeltas": [
+          "▲ +100.00 B",
+          "▼ -50.00 B"
+        ],
+        "tableRows": 2,
+        "divergeRows": 2,
+        "emptyText": "",
+        "divergeEmptyText": "",
+        "statusText": "对比完成：1000.00 B → 1.03 KB，变化 +50.00 B（展示变化最大的 2 条差异）；1 层聚合（全量 3 条聚合行）；已隐藏 1 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "summary": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "100",
+            "text": "+100.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "resultHidden": false
+      },
+      "report": {
+        "baseline_created_at": "2026-09-07T17:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": 50,
+        "depth": 1,
+        "legacy_count": 0,
+        "max_growth": 100,
+        "max_release": 50,
+        "root": "D:\\",
+        "rows": [
+          {
+            "added": false,
+            "baseline": 500,
+            "current": 600,
+            "delta": 100,
+            "growth_pct": null,
+            "path": "D:\\apps",
+            "removed": false
+          },
+          {
+            "added": false,
+            "baseline": 200,
+            "current": 150,
+            "delta": -50,
+            "growth_pct": null,
+            "path": "D:\\docs",
+            "removed": false
+          }
+        ],
+        "rows_total": 3,
+        "total_baseline": 1000,
+        "total_current": 1050,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 1
+      },
+      "judges": [
+        {
+          "name": "J1 深度选择器存在",
+          "pass": true,
+          "detail": "depthControl=true"
+        },
+        {
+          "name": "J1 页面向后端传 depth=1",
+          "pass": true,
+          "detail": "postData.depth=1"
+        },
+        {
+          "name": "J1 后端回显 depth",
+          "pass": true,
+          "detail": "report.depth=1"
+        },
+        {
+          "name": "J3 隐藏零变化开关存在且默认开",
+          "pass": true,
+          "detail": "control=true checked=true"
+        },
+        {
+          "name": "J4 表格渲染行数==后端返回行数",
+          "pass": true,
+          "detail": "dom=2 api=2"
+        },
+        {
+          "name": "J3 开过滤时返回行零行==0",
+          "pass": true,
+          "detail": "zero=0"
+        },
+        {
+          "name": "J5 摘要三卡==后端 additive 字段",
+          "pass": true,
+          "detail": "卡=50/100/50 后端=50/100/50"
+        },
+        {
+          "name": "J6/J1 有增量时行数>0 且正负同榜",
+          "pass": true,
+          "detail": "rows=2"
+        }
+      ]
+    },
+    {
+      "state": "growth-depth2-drill",
+      "vw": 1366,
+      "vh": 768,
+      "shot": "compare-growth-depth2-drill-1366x768.png",
+      "requestPost": "{\"root\":\"D:\\\\apps\\\\framework\",\"baseline\":\"C:\\\\Users\\\\Laptop\\\\AppData\\\\Local\\\\Temp\\\\pds_p4_iso\\\\home\\\\PythonDiskScanner\\\\snapshots\\\\D_20260907_170000_explicit_3f2a1c9d.snap.gz\",\"allow_other_machine\":false,\"drop_zero\":true,\"order_by\":\"abs\",\"depth\":2}",
+      "responseStatus": 200,
+      "dom": {
+        "depthControl": true,
+        "depthValue": "2",
+        "depthOptions": [
+          ":叶子（默认）",
+          "1:1 层",
+          "2:2 层",
+          "3:3 层",
+          "4:4 层",
+          "5:5 层"
+        ],
+        "hideZeroControl": true,
+        "hideZeroChecked": true,
+        "crumbText": "D:\\›D:\\apps›D:\\apps\\framework",
+        "crumbItems": [
+          "",
+          "D:\\apps",
+          "D:\\apps\\framework"
+        ],
+        "drillableRows": 1,
+        "rowDeltas": [
+          "▲ +80.00 B"
+        ],
+        "tableRows": 1,
+        "divergeRows": 1,
+        "emptyText": "",
+        "divergeEmptyText": "",
+        "statusText": "对比完成：300.00 B → 380.00 B，变化 +80.00 B（展示变化最大的 1 条差异）；2 层聚合（全量 1 条聚合行）；已下钻 D:\\apps\\framework；当前数据时间 2026-09-08 17:00:00",
+        "summary": [
+          {
+            "label": "总变化",
+            "target": "80",
+            "text": "+80.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "80",
+            "text": "+80.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "resultHidden": false
+      },
+      "report": {
+        "baseline_created_at": "2026-09-07T17:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": 80,
+        "depth": 2,
+        "legacy_count": 0,
+        "max_growth": 80,
+        "max_release": 0,
+        "root": "D:\\apps\\framework",
+        "rows": [
+          {
+            "added": false,
+            "baseline": 120,
+            "current": 200,
+            "delta": 80,
+            "growth_pct": null,
+            "path": "D:\\apps\\framework\\core\\engine",
+            "removed": false
+          }
+        ],
+        "rows_total": 1,
+        "total_baseline": 300,
+        "total_current": 380,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 0
+      },
+      "judges": [
+        {
+          "name": "J1 深度选择器存在",
+          "pass": true,
+          "detail": "depthControl=true"
+        },
+        {
+          "name": "J1 页面向后端传 depth=2",
+          "pass": true,
+          "detail": "postData.depth=2"
+        },
+        {
+          "name": "J1 后端回显 depth",
+          "pass": true,
+          "detail": "report.depth=2"
+        },
+        {
+          "name": "J3 隐藏零变化开关存在且默认开",
+          "pass": true,
+          "detail": "control=true checked=true"
+        },
+        {
+          "name": "J4 表格渲染行数==后端返回行数",
+          "pass": true,
+          "detail": "dom=1 api=1"
+        },
+        {
+          "name": "J3 开过滤时返回行零行==0",
+          "pass": true,
+          "detail": "zero=0"
+        },
+        {
+          "name": "J5 摘要三卡==后端 additive 字段",
+          "pass": true,
+          "detail": "卡=80/80/0 后端=80/80/0"
+        },
+        {
+          "name": "J6/J1 有增量时行数>0 且正负同榜",
+          "pass": true,
+          "detail": "rows=1"
+        },
+        {
+          "name": "J7 行可下钻（data-drill-path）",
+          "pass": true,
+          "detail": "drillable=1"
+        },
+        {
+          "name": "J7 下钻后面包屑反映新根",
+          "pass": true,
+          "detail": "crumb=D:\\›D:\\apps›D:\\apps\\framework"
+        },
+        {
+          "name": "J7 下钻后请求 root==下钻根",
+          "pass": true,
+          "detail": "root=\"D:\\\\apps\\\\framework\""
+        }
+      ]
+    },
+    {
+      "state": "flat-empty",
+      "vw": 1366,
+      "vh": 768,
+      "shot": "compare-flat-empty-1366x768.png",
+      "requestPost": "{\"root\":\"D:\\\\\",\"baseline\":\"C:\\\\Users\\\\Laptop\\\\AppData\\\\Local\\\\Temp\\\\pds_p4_iso\\\\home\\\\PythonDiskScanner\\\\snapshots\\\\D_20260907_110000_explicit_3f2a1c9d.snap.gz\",\"allow_other_machine\":false,\"drop_zero\":true,\"order_by\":\"abs\",\"depth\":1}",
+      "responseStatus": 200,
+      "dom": {
+        "depthControl": true,
+        "depthValue": "1",
+        "depthOptions": [
+          ":叶子（默认）",
+          "1:1 层",
+          "2:2 层",
+          "3:3 层",
+          "4:4 层",
+          "5:5 层"
+        ],
+        "hideZeroControl": true,
+        "hideZeroChecked": true,
+        "crumbText": "D:\\",
+        "crumbItems": [
+          ""
+        ],
+        "drillableRows": 0,
+        "rowDeltas": [],
+        "tableRows": 0,
+        "divergeRows": 0,
+        "emptyText": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。",
+        "divergeEmptyText": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。",
+        "statusText": "对比完成：800.00 B → 800.00 B，变化 0.00 B（展示变化最大的 0 条差异）；1 层聚合（全量 1 条聚合行）；已隐藏 1 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "summary": [
+          {
+            "label": "总变化",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "resultHidden": false
+      },
+      "report": {
+        "baseline_created_at": "2026-09-07T11:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": 0,
+        "depth": 1,
+        "legacy_count": 0,
+        "max_growth": 0,
+        "max_release": 0,
+        "root": "D:\\",
+        "rows": [],
+        "rows_total": 1,
+        "total_baseline": 800,
+        "total_current": 800,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 1
+      },
+      "judges": [
+        {
+          "name": "J1 深度选择器存在",
+          "pass": true,
+          "detail": "depthControl=true"
+        },
+        {
+          "name": "J1 页面向后端传 depth=1",
+          "pass": true,
+          "detail": "postData.depth=1"
+        },
+        {
+          "name": "J1 后端回显 depth",
+          "pass": true,
+          "detail": "report.depth=1"
+        },
+        {
+          "name": "J3 隐藏零变化开关存在且默认开",
+          "pass": true,
+          "detail": "control=true checked=true"
+        },
+        {
+          "name": "J4 表格渲染行数==后端返回行数",
+          "pass": true,
+          "detail": "dom=0 api=0"
+        },
+        {
+          "name": "J3 开过滤时返回行零行==0",
+          "pass": true,
+          "detail": "zero=0"
+        },
+        {
+          "name": "J5 摘要三卡==后端 additive 字段",
+          "pass": true,
+          "detail": "卡=0/0/0 后端=0/0/0"
+        },
+        {
+          "name": "J6 flat 空态收敛（0 数据行 + 无差异文案）",
+          "pass": true,
+          "detail": "rows=0 text=无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。"
+        }
+      ]
+    },
+    {
+      "state": "growth-default",
+      "vw": 1366,
+      "vh": 768,
+      "shot": "compare-growth-default-1366x768.png",
+      "requestPost": "{\"root\":\"D:\\\\\",\"baseline\":\"C:\\\\Users\\\\Laptop\\\\AppData\\\\Local\\\\Temp\\\\pds_p4_iso\\\\home\\\\PythonDiskScanner\\\\snapshots\\\\D_20260907_170000_explicit_3f2a1c9d.snap.gz\",\"allow_other_machine\":false,\"drop_zero\":true,\"order_by\":\"abs\"}",
+      "responseStatus": 200,
+      "dom": {
+        "depthControl": true,
+        "depthValue": "",
+        "depthOptions": [
+          ":叶子（默认）",
+          "1:1 层",
+          "2:2 层",
+          "3:3 层",
+          "4:4 层",
+          "5:5 层"
+        ],
+        "hideZeroControl": true,
+        "hideZeroChecked": true,
+        "crumbText": "D:\\",
+        "crumbItems": [
+          ""
+        ],
+        "drillableRows": 3,
+        "rowDeltas": [
+          "▲ +70.00 B",
+          "▼ -50.00 B",
+          "▲ +10.00 B"
+        ],
+        "tableRows": 3,
+        "divergeRows": 3,
+        "emptyText": "",
+        "divergeEmptyText": "",
+        "statusText": "对比完成：1000.00 B → 1.03 KB，变化 +50.00 B（展示变化最大的 3 条差异）；已隐藏 1 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "summary": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "resultHidden": false
+      },
+      "report": {
+        "baseline_created_at": "2026-09-07T17:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": 50,
+        "depth": null,
+        "legacy_count": 0,
+        "max_growth": 70,
+        "max_release": 50,
+        "root": "D:\\",
+        "rows": [
+          {
+            "added": false,
+            "baseline": 100,
+            "current": 170,
+            "delta": 70,
+            "growth_pct": null,
+            "path": "D:\\apps\\framework\\core\\engine\\lib.dll",
+            "removed": false
+          },
+          {
+            "added": false,
+            "baseline": 150,
+            "current": 100,
+            "delta": -50,
+            "growth_pct": null,
+            "path": "D:\\docs\\old",
+            "removed": false
+          },
+          {
+            "added": false,
+            "baseline": 20,
+            "current": 30,
+            "delta": 10,
+            "growth_pct": null,
+            "path": "D:\\apps\\framework\\core\\engine\\conf.bin",
+            "removed": false
+          }
+        ],
+        "rows_total": 4,
+        "total_baseline": 1000,
+        "total_current": 1050,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 1
+      },
+      "judges": [
+        {
+          "name": "J1 深度选择器存在",
+          "pass": true,
+          "detail": "depthControl=true"
+        },
+        {
+          "name": "J1 页面向后端传 depth=null",
+          "pass": true,
+          "detail": "postData.depth=undefined"
+        },
+        {
+          "name": "J1 后端回显 depth",
+          "pass": true,
+          "detail": "report.depth=null"
+        },
+        {
+          "name": "J3 隐藏零变化开关存在且默认开",
+          "pass": true,
+          "detail": "control=true checked=true"
+        },
+        {
+          "name": "J4 表格渲染行数==后端返回行数",
+          "pass": true,
+          "detail": "dom=3 api=3"
+        },
+        {
+          "name": "J3 开过滤时返回行零行==0",
+          "pass": true,
+          "detail": "zero=0"
+        },
+        {
+          "name": "J5 摘要三卡==后端 additive 字段",
+          "pass": true,
+          "detail": "卡=50/70/50 后端=50/70/50"
+        },
+        {
+          "name": "J6/J1 有增量时行数>0 且正负同榜",
+          "pass": true,
+          "detail": "rows=3"
+        }
+      ]
+    },
+    {
+      "state": "growth-depth1",
+      "vw": 1440,
+      "vh": 900,
+      "shot": "compare-growth-depth1-1440x900.png",
+      "requestPost": "{\"root\":\"D:\\\\\",\"baseline\":\"C:\\\\Users\\\\Laptop\\\\AppData\\\\Local\\\\Temp\\\\pds_p4_iso\\\\home\\\\PythonDiskScanner\\\\snapshots\\\\D_20260907_170000_explicit_3f2a1c9d.snap.gz\",\"allow_other_machine\":false,\"drop_zero\":true,\"order_by\":\"abs\",\"depth\":1}",
+      "responseStatus": 200,
+      "dom": {
+        "depthControl": true,
+        "depthValue": "1",
+        "depthOptions": [
+          ":叶子（默认）",
+          "1:1 层",
+          "2:2 层",
+          "3:3 层",
+          "4:4 层",
+          "5:5 层"
+        ],
+        "hideZeroControl": true,
+        "hideZeroChecked": true,
+        "crumbText": "D:\\",
+        "crumbItems": [
+          ""
+        ],
+        "drillableRows": 2,
+        "rowDeltas": [
+          "▲ +100.00 B",
+          "▼ -50.00 B"
+        ],
+        "tableRows": 2,
+        "divergeRows": 2,
+        "emptyText": "",
+        "divergeEmptyText": "",
+        "statusText": "对比完成：1000.00 B → 1.03 KB，变化 +50.00 B（展示变化最大的 2 条差异）；1 层聚合（全量 3 条聚合行）；已隐藏 1 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "summary": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "100",
+            "text": "+100.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "resultHidden": false
+      },
+      "report": {
+        "baseline_created_at": "2026-09-07T17:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": 50,
+        "depth": 1,
+        "legacy_count": 0,
+        "max_growth": 100,
+        "max_release": 50,
+        "root": "D:\\",
+        "rows": [
+          {
+            "added": false,
+            "baseline": 500,
+            "current": 600,
+            "delta": 100,
+            "growth_pct": null,
+            "path": "D:\\apps",
+            "removed": false
+          },
+          {
+            "added": false,
+            "baseline": 200,
+            "current": 150,
+            "delta": -50,
+            "growth_pct": null,
+            "path": "D:\\docs",
+            "removed": false
+          }
+        ],
+        "rows_total": 3,
+        "total_baseline": 1000,
+        "total_current": 1050,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 1
+      },
+      "judges": [
+        {
+          "name": "J1 深度选择器存在",
+          "pass": true,
+          "detail": "depthControl=true"
+        },
+        {
+          "name": "J1 页面向后端传 depth=1",
+          "pass": true,
+          "detail": "postData.depth=1"
+        },
+        {
+          "name": "J1 后端回显 depth",
+          "pass": true,
+          "detail": "report.depth=1"
+        },
+        {
+          "name": "J3 隐藏零变化开关存在且默认开",
+          "pass": true,
+          "detail": "control=true checked=true"
+        },
+        {
+          "name": "J4 表格渲染行数==后端返回行数",
+          "pass": true,
+          "detail": "dom=2 api=2"
+        },
+        {
+          "name": "J3 开过滤时返回行零行==0",
+          "pass": true,
+          "detail": "zero=0"
+        },
+        {
+          "name": "J5 摘要三卡==后端 additive 字段",
+          "pass": true,
+          "detail": "卡=50/100/50 后端=50/100/50"
+        },
+        {
+          "name": "J6/J1 有增量时行数>0 且正负同榜",
+          "pass": true,
+          "detail": "rows=2"
+        }
+      ]
+    },
+    {
+      "state": "growth-depth2-drill",
+      "vw": 1440,
+      "vh": 900,
+      "shot": "compare-growth-depth2-drill-1440x900.png",
+      "requestPost": "{\"root\":\"D:\\\\apps\\\\framework\",\"baseline\":\"C:\\\\Users\\\\Laptop\\\\AppData\\\\Local\\\\Temp\\\\pds_p4_iso\\\\home\\\\PythonDiskScanner\\\\snapshots\\\\D_20260907_170000_explicit_3f2a1c9d.snap.gz\",\"allow_other_machine\":false,\"drop_zero\":true,\"order_by\":\"abs\",\"depth\":2}",
+      "responseStatus": 200,
+      "dom": {
+        "depthControl": true,
+        "depthValue": "2",
+        "depthOptions": [
+          ":叶子（默认）",
+          "1:1 层",
+          "2:2 层",
+          "3:3 层",
+          "4:4 层",
+          "5:5 层"
+        ],
+        "hideZeroControl": true,
+        "hideZeroChecked": true,
+        "crumbText": "D:\\›D:\\apps›D:\\apps\\framework",
+        "crumbItems": [
+          "",
+          "D:\\apps",
+          "D:\\apps\\framework"
+        ],
+        "drillableRows": 1,
+        "rowDeltas": [
+          "▲ +80.00 B"
+        ],
+        "tableRows": 1,
+        "divergeRows": 1,
+        "emptyText": "",
+        "divergeEmptyText": "",
+        "statusText": "对比完成：300.00 B → 380.00 B，变化 +80.00 B（展示变化最大的 1 条差异）；2 层聚合（全量 1 条聚合行）；已下钻 D:\\apps\\framework；当前数据时间 2026-09-08 17:00:00",
+        "summary": [
+          {
+            "label": "总变化",
+            "target": "80",
+            "text": "+80.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "80",
+            "text": "+80.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "resultHidden": false
+      },
+      "report": {
+        "baseline_created_at": "2026-09-07T17:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": 80,
+        "depth": 2,
+        "legacy_count": 0,
+        "max_growth": 80,
+        "max_release": 0,
+        "root": "D:\\apps\\framework",
+        "rows": [
+          {
+            "added": false,
+            "baseline": 120,
+            "current": 200,
+            "delta": 80,
+            "growth_pct": null,
+            "path": "D:\\apps\\framework\\core\\engine",
+            "removed": false
+          }
+        ],
+        "rows_total": 1,
+        "total_baseline": 300,
+        "total_current": 380,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 0
+      },
+      "judges": [
+        {
+          "name": "J1 深度选择器存在",
+          "pass": true,
+          "detail": "depthControl=true"
+        },
+        {
+          "name": "J1 页面向后端传 depth=2",
+          "pass": true,
+          "detail": "postData.depth=2"
+        },
+        {
+          "name": "J1 后端回显 depth",
+          "pass": true,
+          "detail": "report.depth=2"
+        },
+        {
+          "name": "J3 隐藏零变化开关存在且默认开",
+          "pass": true,
+          "detail": "control=true checked=true"
+        },
+        {
+          "name": "J4 表格渲染行数==后端返回行数",
+          "pass": true,
+          "detail": "dom=1 api=1"
+        },
+        {
+          "name": "J3 开过滤时返回行零行==0",
+          "pass": true,
+          "detail": "zero=0"
+        },
+        {
+          "name": "J5 摘要三卡==后端 additive 字段",
+          "pass": true,
+          "detail": "卡=80/80/0 后端=80/80/0"
+        },
+        {
+          "name": "J6/J1 有增量时行数>0 且正负同榜",
+          "pass": true,
+          "detail": "rows=1"
+        },
+        {
+          "name": "J7 行可下钻（data-drill-path）",
+          "pass": true,
+          "detail": "drillable=1"
+        },
+        {
+          "name": "J7 下钻后面包屑反映新根",
+          "pass": true,
+          "detail": "crumb=D:\\›D:\\apps›D:\\apps\\framework"
+        },
+        {
+          "name": "J7 下钻后请求 root==下钻根",
+          "pass": true,
+          "detail": "root=\"D:\\\\apps\\\\framework\""
+        }
+      ]
+    },
+    {
+      "state": "flat-empty",
+      "vw": 1440,
+      "vh": 900,
+      "shot": "compare-flat-empty-1440x900.png",
+      "requestPost": "{\"root\":\"D:\\\\\",\"baseline\":\"C:\\\\Users\\\\Laptop\\\\AppData\\\\Local\\\\Temp\\\\pds_p4_iso\\\\home\\\\PythonDiskScanner\\\\snapshots\\\\D_20260907_110000_explicit_3f2a1c9d.snap.gz\",\"allow_other_machine\":false,\"drop_zero\":true,\"order_by\":\"abs\",\"depth\":1}",
+      "responseStatus": 200,
+      "dom": {
+        "depthControl": true,
+        "depthValue": "1",
+        "depthOptions": [
+          ":叶子（默认）",
+          "1:1 层",
+          "2:2 层",
+          "3:3 层",
+          "4:4 层",
+          "5:5 层"
+        ],
+        "hideZeroControl": true,
+        "hideZeroChecked": true,
+        "crumbText": "D:\\",
+        "crumbItems": [
+          ""
+        ],
+        "drillableRows": 0,
+        "rowDeltas": [],
+        "tableRows": 0,
+        "divergeRows": 0,
+        "emptyText": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。",
+        "divergeEmptyText": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。",
+        "statusText": "对比完成：800.00 B → 800.00 B，变化 0.00 B（展示变化最大的 0 条差异）；1 层聚合（全量 1 条聚合行）；已隐藏 1 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "summary": [
+          {
+            "label": "总变化",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "resultHidden": false
+      },
+      "report": {
+        "baseline_created_at": "2026-09-07T11:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": 0,
+        "depth": 1,
+        "legacy_count": 0,
+        "max_growth": 0,
+        "max_release": 0,
+        "root": "D:\\",
+        "rows": [],
+        "rows_total": 1,
+        "total_baseline": 800,
+        "total_current": 800,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 1
+      },
+      "judges": [
+        {
+          "name": "J1 深度选择器存在",
+          "pass": true,
+          "detail": "depthControl=true"
+        },
+        {
+          "name": "J1 页面向后端传 depth=1",
+          "pass": true,
+          "detail": "postData.depth=1"
+        },
+        {
+          "name": "J1 后端回显 depth",
+          "pass": true,
+          "detail": "report.depth=1"
+        },
+        {
+          "name": "J3 隐藏零变化开关存在且默认开",
+          "pass": true,
+          "detail": "control=true checked=true"
+        },
+        {
+          "name": "J4 表格渲染行数==后端返回行数",
+          "pass": true,
+          "detail": "dom=0 api=0"
+        },
+        {
+          "name": "J3 开过滤时返回行零行==0",
+          "pass": true,
+          "detail": "zero=0"
+        },
+        {
+          "name": "J5 摘要三卡==后端 additive 字段",
+          "pass": true,
+          "detail": "卡=0/0/0 后端=0/0/0"
+        },
+        {
+          "name": "J6 flat 空态收敛（0 数据行 + 无差异文案）",
+          "pass": true,
+          "detail": "rows=0 text=无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。"
+        }
+      ]
+    },
+    {
+      "state": "growth-default",
+      "vw": 1440,
+      "vh": 900,
+      "shot": "compare-growth-default-1440x900.png",
+      "requestPost": "{\"root\":\"D:\\\\\",\"baseline\":\"C:\\\\Users\\\\Laptop\\\\AppData\\\\Local\\\\Temp\\\\pds_p4_iso\\\\home\\\\PythonDiskScanner\\\\snapshots\\\\D_20260907_170000_explicit_3f2a1c9d.snap.gz\",\"allow_other_machine\":false,\"drop_zero\":true,\"order_by\":\"abs\"}",
+      "responseStatus": 200,
+      "dom": {
+        "depthControl": true,
+        "depthValue": "",
+        "depthOptions": [
+          ":叶子（默认）",
+          "1:1 层",
+          "2:2 层",
+          "3:3 层",
+          "4:4 层",
+          "5:5 层"
+        ],
+        "hideZeroControl": true,
+        "hideZeroChecked": true,
+        "crumbText": "D:\\",
+        "crumbItems": [
+          ""
+        ],
+        "drillableRows": 3,
+        "rowDeltas": [
+          "▲ +70.00 B",
+          "▼ -50.00 B",
+          "▲ +10.00 B"
+        ],
+        "tableRows": 3,
+        "divergeRows": 3,
+        "emptyText": "",
+        "divergeEmptyText": "",
+        "statusText": "对比完成：1000.00 B → 1.03 KB，变化 +50.00 B（展示变化最大的 3 条差异）；已隐藏 1 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "summary": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "resultHidden": false
+      },
+      "report": {
+        "baseline_created_at": "2026-09-07T17:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": 50,
+        "depth": null,
+        "legacy_count": 0,
+        "max_growth": 70,
+        "max_release": 50,
+        "root": "D:\\",
+        "rows": [
+          {
+            "added": false,
+            "baseline": 100,
+            "current": 170,
+            "delta": 70,
+            "growth_pct": null,
+            "path": "D:\\apps\\framework\\core\\engine\\lib.dll",
+            "removed": false
+          },
+          {
+            "added": false,
+            "baseline": 150,
+            "current": 100,
+            "delta": -50,
+            "growth_pct": null,
+            "path": "D:\\docs\\old",
+            "removed": false
+          },
+          {
+            "added": false,
+            "baseline": 20,
+            "current": 30,
+            "delta": 10,
+            "growth_pct": null,
+            "path": "D:\\apps\\framework\\core\\engine\\conf.bin",
+            "removed": false
+          }
+        ],
+        "rows_total": 4,
+        "total_baseline": 1000,
+        "total_current": 1050,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 1
+      },
+      "judges": [
+        {
+          "name": "J1 深度选择器存在",
+          "pass": true,
+          "detail": "depthControl=true"
+        },
+        {
+          "name": "J1 页面向后端传 depth=null",
+          "pass": true,
+          "detail": "postData.depth=undefined"
+        },
+        {
+          "name": "J1 后端回显 depth",
+          "pass": true,
+          "detail": "report.depth=null"
+        },
+        {
+          "name": "J3 隐藏零变化开关存在且默认开",
+          "pass": true,
+          "detail": "control=true checked=true"
+        },
+        {
+          "name": "J4 表格渲染行数==后端返回行数",
+          "pass": true,
+          "detail": "dom=3 api=3"
+        },
+        {
+          "name": "J3 开过滤时返回行零行==0",
+          "pass": true,
+          "detail": "zero=0"
+        },
+        {
+          "name": "J5 摘要三卡==后端 additive 字段",
+          "pass": true,
+          "detail": "卡=50/70/50 后端=50/70/50"
+        },
+        {
+          "name": "J6/J1 有增量时行数>0 且正负同榜",
+          "pass": true,
+          "detail": "rows=3"
+        }
+      ]
+    },
+    {
+      "state": "growth-depth1",
+      "vw": 1920,
+      "vh": 1080,
+      "shot": "compare-growth-depth1-1920x1080.png",
+      "requestPost": "{\"root\":\"D:\\\\\",\"baseline\":\"C:\\\\Users\\\\Laptop\\\\AppData\\\\Local\\\\Temp\\\\pds_p4_iso\\\\home\\\\PythonDiskScanner\\\\snapshots\\\\D_20260907_170000_explicit_3f2a1c9d.snap.gz\",\"allow_other_machine\":false,\"drop_zero\":true,\"order_by\":\"abs\",\"depth\":1}",
+      "responseStatus": 200,
+      "dom": {
+        "depthControl": true,
+        "depthValue": "1",
+        "depthOptions": [
+          ":叶子（默认）",
+          "1:1 层",
+          "2:2 层",
+          "3:3 层",
+          "4:4 层",
+          "5:5 层"
+        ],
+        "hideZeroControl": true,
+        "hideZeroChecked": true,
+        "crumbText": "D:\\",
+        "crumbItems": [
+          ""
+        ],
+        "drillableRows": 2,
+        "rowDeltas": [
+          "▲ +100.00 B",
+          "▼ -50.00 B"
+        ],
+        "tableRows": 2,
+        "divergeRows": 2,
+        "emptyText": "",
+        "divergeEmptyText": "",
+        "statusText": "对比完成：1000.00 B → 1.03 KB，变化 +50.00 B（展示变化最大的 2 条差异）；1 层聚合（全量 3 条聚合行）；已隐藏 1 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "summary": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "100",
+            "text": "+100.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "resultHidden": false
+      },
+      "report": {
+        "baseline_created_at": "2026-09-07T17:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": 50,
+        "depth": 1,
+        "legacy_count": 0,
+        "max_growth": 100,
+        "max_release": 50,
+        "root": "D:\\",
+        "rows": [
+          {
+            "added": false,
+            "baseline": 500,
+            "current": 600,
+            "delta": 100,
+            "growth_pct": null,
+            "path": "D:\\apps",
+            "removed": false
+          },
+          {
+            "added": false,
+            "baseline": 200,
+            "current": 150,
+            "delta": -50,
+            "growth_pct": null,
+            "path": "D:\\docs",
+            "removed": false
+          }
+        ],
+        "rows_total": 3,
+        "total_baseline": 1000,
+        "total_current": 1050,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 1
+      },
+      "judges": [
+        {
+          "name": "J1 深度选择器存在",
+          "pass": true,
+          "detail": "depthControl=true"
+        },
+        {
+          "name": "J1 页面向后端传 depth=1",
+          "pass": true,
+          "detail": "postData.depth=1"
+        },
+        {
+          "name": "J1 后端回显 depth",
+          "pass": true,
+          "detail": "report.depth=1"
+        },
+        {
+          "name": "J3 隐藏零变化开关存在且默认开",
+          "pass": true,
+          "detail": "control=true checked=true"
+        },
+        {
+          "name": "J4 表格渲染行数==后端返回行数",
+          "pass": true,
+          "detail": "dom=2 api=2"
+        },
+        {
+          "name": "J3 开过滤时返回行零行==0",
+          "pass": true,
+          "detail": "zero=0"
+        },
+        {
+          "name": "J5 摘要三卡==后端 additive 字段",
+          "pass": true,
+          "detail": "卡=50/100/50 后端=50/100/50"
+        },
+        {
+          "name": "J6/J1 有增量时行数>0 且正负同榜",
+          "pass": true,
+          "detail": "rows=2"
+        }
+      ]
+    },
+    {
+      "state": "growth-depth2-drill",
+      "vw": 1920,
+      "vh": 1080,
+      "shot": "compare-growth-depth2-drill-1920x1080.png",
+      "requestPost": "{\"root\":\"D:\\\\apps\\\\framework\",\"baseline\":\"C:\\\\Users\\\\Laptop\\\\AppData\\\\Local\\\\Temp\\\\pds_p4_iso\\\\home\\\\PythonDiskScanner\\\\snapshots\\\\D_20260907_170000_explicit_3f2a1c9d.snap.gz\",\"allow_other_machine\":false,\"drop_zero\":true,\"order_by\":\"abs\",\"depth\":2}",
+      "responseStatus": 200,
+      "dom": {
+        "depthControl": true,
+        "depthValue": "2",
+        "depthOptions": [
+          ":叶子（默认）",
+          "1:1 层",
+          "2:2 层",
+          "3:3 层",
+          "4:4 层",
+          "5:5 层"
+        ],
+        "hideZeroControl": true,
+        "hideZeroChecked": true,
+        "crumbText": "D:\\›D:\\apps›D:\\apps\\framework",
+        "crumbItems": [
+          "",
+          "D:\\apps",
+          "D:\\apps\\framework"
+        ],
+        "drillableRows": 1,
+        "rowDeltas": [
+          "▲ +80.00 B"
+        ],
+        "tableRows": 1,
+        "divergeRows": 1,
+        "emptyText": "",
+        "divergeEmptyText": "",
+        "statusText": "对比完成：300.00 B → 380.00 B，变化 +80.00 B（展示变化最大的 1 条差异）；2 层聚合（全量 1 条聚合行）；已下钻 D:\\apps\\framework；当前数据时间 2026-09-08 17:00:00",
+        "summary": [
+          {
+            "label": "总变化",
+            "target": "80",
+            "text": "+80.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "80",
+            "text": "+80.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "resultHidden": false
+      },
+      "report": {
+        "baseline_created_at": "2026-09-07T17:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": 80,
+        "depth": 2,
+        "legacy_count": 0,
+        "max_growth": 80,
+        "max_release": 0,
+        "root": "D:\\apps\\framework",
+        "rows": [
+          {
+            "added": false,
+            "baseline": 120,
+            "current": 200,
+            "delta": 80,
+            "growth_pct": null,
+            "path": "D:\\apps\\framework\\core\\engine",
+            "removed": false
+          }
+        ],
+        "rows_total": 1,
+        "total_baseline": 300,
+        "total_current": 380,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 0
+      },
+      "judges": [
+        {
+          "name": "J1 深度选择器存在",
+          "pass": true,
+          "detail": "depthControl=true"
+        },
+        {
+          "name": "J1 页面向后端传 depth=2",
+          "pass": true,
+          "detail": "postData.depth=2"
+        },
+        {
+          "name": "J1 后端回显 depth",
+          "pass": true,
+          "detail": "report.depth=2"
+        },
+        {
+          "name": "J3 隐藏零变化开关存在且默认开",
+          "pass": true,
+          "detail": "control=true checked=true"
+        },
+        {
+          "name": "J4 表格渲染行数==后端返回行数",
+          "pass": true,
+          "detail": "dom=1 api=1"
+        },
+        {
+          "name": "J3 开过滤时返回行零行==0",
+          "pass": true,
+          "detail": "zero=0"
+        },
+        {
+          "name": "J5 摘要三卡==后端 additive 字段",
+          "pass": true,
+          "detail": "卡=80/80/0 后端=80/80/0"
+        },
+        {
+          "name": "J6/J1 有增量时行数>0 且正负同榜",
+          "pass": true,
+          "detail": "rows=1"
+        },
+        {
+          "name": "J7 行可下钻（data-drill-path）",
+          "pass": true,
+          "detail": "drillable=1"
+        },
+        {
+          "name": "J7 下钻后面包屑反映新根",
+          "pass": true,
+          "detail": "crumb=D:\\›D:\\apps›D:\\apps\\framework"
+        },
+        {
+          "name": "J7 下钻后请求 root==下钻根",
+          "pass": true,
+          "detail": "root=\"D:\\\\apps\\\\framework\""
+        }
+      ]
+    },
+    {
+      "state": "flat-empty",
+      "vw": 1920,
+      "vh": 1080,
+      "shot": "compare-flat-empty-1920x1080.png",
+      "requestPost": "{\"root\":\"D:\\\\\",\"baseline\":\"C:\\\\Users\\\\Laptop\\\\AppData\\\\Local\\\\Temp\\\\pds_p4_iso\\\\home\\\\PythonDiskScanner\\\\snapshots\\\\D_20260907_110000_explicit_3f2a1c9d.snap.gz\",\"allow_other_machine\":false,\"drop_zero\":true,\"order_by\":\"abs\",\"depth\":1}",
+      "responseStatus": 200,
+      "dom": {
+        "depthControl": true,
+        "depthValue": "1",
+        "depthOptions": [
+          ":叶子（默认）",
+          "1:1 层",
+          "2:2 层",
+          "3:3 层",
+          "4:4 层",
+          "5:5 层"
+        ],
+        "hideZeroControl": true,
+        "hideZeroChecked": true,
+        "crumbText": "D:\\",
+        "crumbItems": [
+          ""
+        ],
+        "drillableRows": 0,
+        "rowDeltas": [],
+        "tableRows": 0,
+        "divergeRows": 0,
+        "emptyText": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。",
+        "divergeEmptyText": "无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。",
+        "statusText": "对比完成：800.00 B → 800.00 B，变化 0.00 B（展示变化最大的 0 条差异）；1 层聚合（全量 1 条聚合行）；已隐藏 1 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "summary": [
+          {
+            "label": "总变化",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "0",
+            "text": "0.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "0",
+            "text": "0.00 B"
+          }
+        ],
+        "resultHidden": false
+      },
+      "report": {
+        "baseline_created_at": "2026-09-07T11:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": 0,
+        "depth": 1,
+        "legacy_count": 0,
+        "max_growth": 0,
+        "max_release": 0,
+        "root": "D:\\",
+        "rows": [],
+        "rows_total": 1,
+        "total_baseline": 800,
+        "total_current": 800,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 1
+      },
+      "judges": [
+        {
+          "name": "J1 深度选择器存在",
+          "pass": true,
+          "detail": "depthControl=true"
+        },
+        {
+          "name": "J1 页面向后端传 depth=1",
+          "pass": true,
+          "detail": "postData.depth=1"
+        },
+        {
+          "name": "J1 后端回显 depth",
+          "pass": true,
+          "detail": "report.depth=1"
+        },
+        {
+          "name": "J3 隐藏零变化开关存在且默认开",
+          "pass": true,
+          "detail": "control=true checked=true"
+        },
+        {
+          "name": "J4 表格渲染行数==后端返回行数",
+          "pass": true,
+          "detail": "dom=0 api=0"
+        },
+        {
+          "name": "J3 开过滤时返回行零行==0",
+          "pass": true,
+          "detail": "zero=0"
+        },
+        {
+          "name": "J5 摘要三卡==后端 additive 字段",
+          "pass": true,
+          "detail": "卡=0/0/0 后端=0/0/0"
+        },
+        {
+          "name": "J6 flat 空态收敛（0 数据行 + 无差异文案）",
+          "pass": true,
+          "detail": "rows=0 text=无差异已按「隐藏零变化」过滤 1 条 0 增量条目；关闭该开关可查看完整列表。"
+        }
+      ]
+    },
+    {
+      "state": "growth-default",
+      "vw": 1920,
+      "vh": 1080,
+      "shot": "compare-growth-default-1920x1080.png",
+      "requestPost": "{\"root\":\"D:\\\\\",\"baseline\":\"C:\\\\Users\\\\Laptop\\\\AppData\\\\Local\\\\Temp\\\\pds_p4_iso\\\\home\\\\PythonDiskScanner\\\\snapshots\\\\D_20260907_170000_explicit_3f2a1c9d.snap.gz\",\"allow_other_machine\":false,\"drop_zero\":true,\"order_by\":\"abs\"}",
+      "responseStatus": 200,
+      "dom": {
+        "depthControl": true,
+        "depthValue": "",
+        "depthOptions": [
+          ":叶子（默认）",
+          "1:1 层",
+          "2:2 层",
+          "3:3 层",
+          "4:4 层",
+          "5:5 层"
+        ],
+        "hideZeroControl": true,
+        "hideZeroChecked": true,
+        "crumbText": "D:\\",
+        "crumbItems": [
+          ""
+        ],
+        "drillableRows": 3,
+        "rowDeltas": [
+          "▲ +70.00 B",
+          "▼ -50.00 B",
+          "▲ +10.00 B"
+        ],
+        "tableRows": 3,
+        "divergeRows": 3,
+        "emptyText": "",
+        "divergeEmptyText": "",
+        "statusText": "对比完成：1000.00 B → 1.03 KB，变化 +50.00 B（展示变化最大的 3 条差异）；已隐藏 1 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "summary": [
+          {
+            "label": "总变化",
+            "target": "50",
+            "text": "+50.00 B"
+          },
+          {
+            "label": "最大增长",
+            "target": "70",
+            "text": "+70.00 B"
+          },
+          {
+            "label": "可释放",
+            "target": "50",
+            "text": "50.00 B"
+          }
+        ],
+        "resultHidden": false
+      },
+      "report": {
+        "baseline_created_at": "2026-09-07T17:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": 50,
+        "depth": null,
+        "legacy_count": 0,
+        "max_growth": 70,
+        "max_release": 50,
+        "root": "D:\\",
+        "rows": [
+          {
+            "added": false,
+            "baseline": 100,
+            "current": 170,
+            "delta": 70,
+            "growth_pct": null,
+            "path": "D:\\apps\\framework\\core\\engine\\lib.dll",
+            "removed": false
+          },
+          {
+            "added": false,
+            "baseline": 150,
+            "current": 100,
+            "delta": -50,
+            "growth_pct": null,
+            "path": "D:\\docs\\old",
+            "removed": false
+          },
+          {
+            "added": false,
+            "baseline": 20,
+            "current": 30,
+            "delta": 10,
+            "growth_pct": null,
+            "path": "D:\\apps\\framework\\core\\engine\\conf.bin",
+            "removed": false
+          }
+        ],
+        "rows_total": 4,
+        "total_baseline": 1000,
+        "total_current": 1050,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 1
+      },
+      "judges": [
+        {
+          "name": "J1 深度选择器存在",
+          "pass": true,
+          "detail": "depthControl=true"
+        },
+        {
+          "name": "J1 页面向后端传 depth=null",
+          "pass": true,
+          "detail": "postData.depth=undefined"
+        },
+        {
+          "name": "J1 后端回显 depth",
+          "pass": true,
+          "detail": "report.depth=null"
+        },
+        {
+          "name": "J3 隐藏零变化开关存在且默认开",
+          "pass": true,
+          "detail": "control=true checked=true"
+        },
+        {
+          "name": "J4 表格渲染行数==后端返回行数",
+          "pass": true,
+          "detail": "dom=3 api=3"
+        },
+        {
+          "name": "J3 开过滤时返回行零行==0",
+          "pass": true,
+          "detail": "zero=0"
+        },
+        {
+          "name": "J5 摘要三卡==后端 additive 字段",
+          "pass": true,
+          "detail": "卡=50/70/50 后端=50/70/50"
+        },
+        {
+          "name": "J6/J1 有增量时行数>0 且正负同榜",
+          "pass": true,
+          "detail": "rows=3"
+        }
+      ]
+    }
+  ]
+}
