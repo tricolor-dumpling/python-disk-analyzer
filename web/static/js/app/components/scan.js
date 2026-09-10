@@ -396,6 +396,12 @@ function renderFullscanState(st) {
     } else if (etaEl) {
         etaEl.hidden = true;
     }
+    /* P3（D3-3）：耗时/ETA 分层容器——两者均隐藏时收起整行（data-empty=1，
+       样式见 style.css `.scan-meta[data-empty="1"]{display:none}`），
+       避免空容器在状态行里多占一行（空态/完成态零额外行高）。
+       注：本块在任何 renderFullscanState 提前 return 之前执行，覆盖全部状态分支。 */
+    const metaEl = $("scan-meta");
+    if (metaEl) metaEl.setAttribute("data-empty", (elapsedEl && !elapsedEl.hidden) || (etaEl && !etaEl.hidden) ? "0" : "1");
     /* 停止请求中（stop_requested && running）时 chips 保持当前态
        不被重绘为「扫描中」文案——任何轮询渲染不得覆盖停止反馈 */
     const stopping = !!(st.stop_requested && runningNow);

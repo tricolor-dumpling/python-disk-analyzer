@@ -154,11 +154,25 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* [N09] 迷你条带位（U2.3 装配 treemap 上级上下文，48px） */
 .strip-slot{flex:none;height:48px}
 
-/* 右栏 300px（§3.3；面板内滚允许 §3.4） */
+/* 右栏：区间自适应（§3.3 原固定 300px；P3/D3-2 改 clamp(280px,22vw,380px)——
+   1024→280（下限）/ 1366→300.5（≈原 300，1366×768 紧凑档宽度基本不变，
+   故 P6「1366 右栏无内滚」内容预算不受影响）/ 1440→316.8 / 1920→380（上限）；
+   面板内滚允许 §3.4；横向仍 overflow-x:hidden，但 P3 起右栏内不得再有元素
+   越过内容盒（见下方各文本截断策略） */
 .side-rail{
-  width:300px;flex:none;min-height:0;display:flex;flex-direction:column;gap:12px;
+  width:clamp(280px,22vw,380px);flex:none;min-height:0;display:flex;flex-direction:column;gap:12px;
   overflow-y:auto;overflow-x:hidden;
 }
+
+/* P3/D3-4：右栏内「可能溢出的文本」统一截断策略——
+   · .btn 自带 white-space:nowrap（按钮标签不换行是 UI 约定），故必须保证
+     「盒子装得下文本」：flex:none + max-width:100%，让按钮换行而不是被压窄裁字
+     （基线实测 #btn-stop-scan 被压窄 2px 裁字）。容器的 flex-wrap 负责换行。
+   · .chip 长盘符/长盘名允许词内换行（overflow-wrap:anywhere）且不得超出内容盒
+     （max-width:100%），信息零丢失（原样全文可见，title 仍带完整路径）。 */
+.side-rail .btn{flex:none;max-width:100%}
+.side-rail .chip{max-width:100%;min-width:0;overflow-wrap:anywhere}
+.side-rail .chips-row{min-width:0}
 
 /* 状态栏 32px（F22） */
 .statusbar{
@@ -371,7 +385,10 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   padding:14px 16px;box-shadow:var(--shadow-sm);
 }
 .card-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-.card-head h2{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--fs-lg)}
+/* P3/D3-4：卡标题按「整词」断行（word-break:keep-all）——CJK 默认逐字可断，
+   标题被挤压时会竖排成每行 1–2 字；keep-all 后标题成为不可分单元，
+   配合各卡头的 flex-wrap 换取「换行而非竖排」 */
+.card-head h2{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--fs-lg);word-break:keep-all}
 .card-head h2 .icon{color:var(--primary)}
 .card-sub{margin:2px 0 0;font-size:var(--fs-xs);color:var(--muted);width:100%}
 
@@ -386,9 +403,15 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   padding:14px 16px;border:1px solid var(--primary-border);border-radius:var(--radius-card);
   background:var(--card-glass);box-shadow:var(--shadow-md);
 }
-.overview-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.overview-head h2{margin:0;font-size:var(--fs-xl)}
-.overview-head p{margin:2px 0 0;color:var(--muted);font-size:var(--fs-xs)}
+.overview-head{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap}
+/* P3/D3-5：标题列可收缩但不逐字断行（word-break:keep-all 让「存储概览」成为
+   不可再分的最小单元 → flex 自动最小尺寸 = 整词宽，标题永不竖排成「存储概 / 览」）；
+   动作组 flex:none（按钮文本 nowrap，见 .btn——绝不被压窄到裁字），
+   一行放不下时整体换行到第二行，而不是挤压标题 */
+.overview-head > div:first-child{flex:1 1 auto;min-width:0}
+.overview-head h2{margin:0;font-size:var(--fs-xl);word-break:keep-all}
+.overview-head p{margin:2px 0 0;color:var(--muted);font-size:var(--fs-xs);overflow-wrap:anywhere}
+.overview-actions{display:flex;flex-wrap:wrap;gap:6px;flex:none;margin-left:auto}
 .overview-roots{display:block;margin-top:12px}
 .overview-roots-donut{min-height:180px}
 .overview-empty{
@@ -399,7 +422,10 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .overview-open{margin-top:10px;width:100%}
 
 /* ---------- 环形图（viz/donut.js；L3-4 参数 token 化见 tokens.css U2.4 增补） ---------- */
-.storage-row{display:flex;align-items:center;gap:14px;margin-top:12px}
+/* P3/D3-4：改 grid（donut 列 auto = 环形固定宽，图例列 minmax(0,1fr) 可收缩到 0）
+   ——flex 版下 `.donut-legend` 的 min-width:auto 会让图例列拒绝收缩并被
+   `.side-rail` 的 overflow-x:hidden 静默切掉右缘（基线实测：图例值右缘越界 19px） */
+.storage-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;margin-top:12px}
 .donut-host{flex:none}
 .donut-box{position:relative;width:160px;height:160px}
 .donut-svg{display:block;width:100%;height:100%}
@@ -430,12 +456,17 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 }
 .donut-value{font-size:var(--fs-lg);font-weight:700;line-height:1.15;font-variant-numeric:var(--font-num)}
 .donut-sub{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-xs);color:var(--muted)}
-/* 图例两行（已使用 / 全部盘累计——「可用」因后端无总容量字段降级，见 storage.js 注记） */
+/* 图例两行（已使用 / 全部盘累计——「可用」因后端无总容量字段降级，见 storage.js 注记）
+   P3/D3-4：全部文本显式「换行」——标签与数值均 white-space:normal + overflow-wrap:anywhere，
+   禁止裸 nowrap（基线实测：`.donut-legend-value` nowrap 且无 overflow →
+   1920 下 scrollWidth 111 vs clientWidth 92 硬切 19px）。
+   注：@media (max-height:820px) 里 `.donut-legend-row{white-space:nowrap}` 为继承值，
+   下方两个子元素各自显式声明 normal —— 直接规则恒强于继承，紧凑档同样不裁字。 */
 .donut-legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
 .donut-legend-row{display:flex;flex-direction:column;gap:2px;min-width:0}
-.donut-legend-label{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
-.donut-legend-value{font-size:var(--fs-md);font-weight:600;font-variant-numeric:var(--font-num);white-space:nowrap}
-.donut-legend-value em{font-style:normal;font-weight:400;font-size:var(--fs-xs);color:var(--muted);margin-left:4px}
+.donut-legend-label{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--muted);white-space:normal;overflow-wrap:anywhere;min-width:0;flex:none}
+.donut-legend-value{font-size:var(--fs-md);font-weight:600;font-variant-numeric:var(--font-num);white-space:normal;overflow-wrap:anywhere;min-width:0;flex:1 1 auto}
+.donut-legend-value em{font-style:normal;font-weight:400;font-size:var(--fs-xs);color:var(--muted);margin-left:4px;white-space:nowrap}
 .donut-dot{width:9px;height:9px;border-radius:50%;flex:none}
 .donut-dot-used{background:var(--grad-brand)}
 .donut-dot-all{background:var(--border-strong)}
@@ -446,7 +477,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .chip.is-active{border-color:var(--primary);background:var(--primary-soft);color:var(--primary);font-weight:600}
 
 /* ---------- [N06] 快照迷你卡（U2.4；components/snapshot-mini.js） ---------- */
-.snapshot-mini-card .card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.snapshot-mini-card .card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .snapshot-mini-entry{margin-top:4px}
 .snapshot-mini-item{
   width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);
@@ -465,7 +496,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .snapshot-mini-open-btn{margin-top:6px;align-self:flex-start}
 
 /* ---------- 「最近对比」迷你卡（U2.4；state.compare.lastSummary） ---------- */
-.compare-mini-card .card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.compare-mini-card .card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .compare-mini-body{margin-top:4px}
 .compare-mini-item,.compare-mini-empty{
   width:100%;display:flex;flex-direction:column;gap:4px;padding:8px 10px;border:1px solid var(--border);
@@ -555,13 +586,20 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .scan-check svg{width:20px;height:20px;display:block}
 .scan-check[hidden]{display:none!important}
 
-/* 耗时计时（前端 startTs + formatElapsed；随状态行内联，零额外行高） */
-.scan-elapsed{font-variant-numeric:var(--font-num);white-space:nowrap}
+/* 耗时计时（前端 startTs + formatElapsed；P3/D3-3：随 `.scan-meta` 独立成第二行，
+   自身允许换行——原 white-space:nowrap 在有界宽右栏里必然越界被裁） */
+.scan-elapsed{font-variant-numeric:var(--font-num);white-space:normal;overflow-wrap:anywhere;min-width:0}
 .scan-elapsed[hidden]{display:none!important}
 
-/* 阶段B（B-12）：预计剩余（估算）——行尾 inline，与耗时同款样式 */
-.scan-eta{font-variant-numeric:var(--font-num);white-space:nowrap;color:var(--faint)}
+/* 阶段B（B-12）：预计剩余（估算）——P3/D3-3：与耗时同处状态行第二层 */
+.scan-eta{font-variant-numeric:var(--font-num);white-space:normal;overflow-wrap:anywhere;color:var(--faint);min-width:0}
 .scan-eta[hidden]{display:none!important}
+
+/* P3/D3-3：扫描态状态行信息分层容器（耗时 + ETA 独占第二行；两个子项均 [hidden]
+   时由 scan.js 同步 data-empty 收起整行，见 components/scan.js renderFullscanState）。
+   不使用 :has()——显式状态类在无 :has 支持的宿主上同样成立。 */
+.scan-meta{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;min-width:0;font-size:var(--fs-xs)}
+.scan-meta[data-empty="1"]{display:none}
 
 /* 阶段B（B-12）：「？」引导气泡按钮（扫描卡按钮行内；折叠/展开 #scan-progress-hint） */
 .scan-help-btn{flex:none;min-width:28px;border-radius:999px;font-weight:700}
@@ -626,7 +664,10 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .crumb-ellipsis{font-weight:700;letter-spacing:.08em}
 .crumb-ellipsis:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:var(--radius-ctl)}
 
-.status-line{display:flex;align-items:center;gap:8px;font-size:var(--fs-xs);color:var(--muted);margin:4px 0;min-height:18px}
+/* P3/D3-3/D3-4：状态行改 flex-wrap 分层——文本子项允许换行（禁止裸 nowrap 硬挤：
+   基线实测扫描态被压成 30px 宽、每行 1–2 字竖排） */
+.status-line{display:flex;align-items:center;gap:4px 8px;flex-wrap:wrap;font-size:var(--fs-xs);color:var(--muted);margin:4px 0;min-height:18px}
+.status-line > span:not(.dot){min-width:0;overflow-wrap:anywhere}
 .status-line .dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
 .status-line.ok{color:var(--success)}
 .status-line.ok .dot{background:var(--success)}

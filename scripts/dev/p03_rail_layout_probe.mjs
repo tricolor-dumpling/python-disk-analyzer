@@ -7,10 +7,13 @@
      → 右栏（#side-rail）文本溢出 / 竖排 / 兄弟重叠 / 横向逃逸 / 内滚 量化。
 
    判据（硬违规，任一 >0 即 exit 1）：
-     1. clipped   文本被硬切：元素 scrollWidth > clientWidth+1 且
-                  computed text-overflow ≠ ellipsis（无「换行」也无「省略号」）。
+     1. clipped   **文本被硬切**：元素内文本节点的 Range 外延超出其内容盒 >1px，
+                  且 computed text-overflow ≠ ellipsis（既未换行也无省略号）。
                   —— 对应 D3-4「禁止裸 nowrap + 无 overflow」。
-     2. escape   元素右/左缘越过 #side-rail 内容盒 → 被 overflow-x:hidden 静默切掉。
+                  ⚠️ 判据用「文本外延 vs 内容盒」，不用 scrollWidth−clientWidth：
+                  装饰性绝对定位伪元素也计入可滚动溢出区（`.btn-stop::after
+                  {inset:-2px}` 的呼吸光环恒贡献 2px），会把装饰误判为文字裁切。
+     2. escape   元素边框盒右/左缘越过 #side-rail 内容盒 → 被 overflow-x:hidden 静默切掉。
      3. overlap  同容器直接子元素两两 rect 交集 >4px（父子包含豁免）→ 压盖。
      4. titleWrap 卡标题（右栏 h2）文本行数 >1 → 竖排/折行（「存储概 / 览」形态）。
      5. railScroll（仅 1366×768，P6 红线口径）右栏 scrollHeight > clientHeight+1。
@@ -163,6 +166,29 @@ function measure() {
         }
         return tops.size;
     };
+    /* 文本实际外延（Range 逐文本节点 client rects 求并集）。
+       ⚠️ 判「文本是否被硬切」必须用文本外延 vs 内容盒，**不能**用
+       scrollWidth − clientWidth：装饰性绝对定位伪元素同样计入可滚动溢出区
+       （实测 `.btn-stop::after{inset:-2px}` 的呼吸光环让 #btn-stop-scan
+       恒有 scrollWidth−clientWidth = 2px，与文字无关——首版探针的第二处缺陷，
+       已在修复前/后对照时定位并以文本外延判据取代）。 */
+    const textExtent = (el) => {
+        let L = Infinity, R = -Infinity;
+        const w3 = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+        let t;
+        while ((t = w3.nextNode())) {
+            if (!t.nodeValue || !t.nodeValue.trim()) continue;
+            const rng = document.createRange();
+            rng.selectNodeContents(t);
+            const rects = rng.getClientRects();
+            for (let i = 0; i < rects.length; i++) {
+                if (rects[i].width === 0 && rects[i].height === 0) continue;
+                L = Math.min(L, rects[i].left);
+                R = Math.max(R, rects[i].right);
+            }
+        }
+        return L === Infinity ? null : { left: L, right: R };
+    };
 
     /* 1) 逐文本节点（父元素去重） */
     const texts = [];
@@ -182,6 +208,11 @@ function measure() {
         const lines = lineCount(el);
         const over = el.scrollWidth - el.clientWidth;
         const isEllipsis = c.textOverflow === "ellipsis" && (c.overflowX === "hidden" || c.overflowX === "clip");
+        /* 文本外延 vs 内容盒（内容盒 = 边框盒 − 边框 − 内边距） */
+        const ext = textExtent(el);
+        const contentL = r.left + (parseFloat(c.borderLeftWidth) || 0) + (parseFloat(c.paddingLeft) || 0);
+        const contentR = r.right - (parseFloat(c.borderRightWidth) || 0) - (parseFloat(c.paddingRight) || 0);
+        const textOver = ext ? Math.round(Math.max(ext.right - contentR, contentL - ext.left) * 10) / 10 : 0;
         texts.push({
             sel: ident(el), tag: el.tagName, inline,
             text: raw.trim().slice(0, 70), textLen: raw.trim().length,
@@ -189,8 +220,9 @@ function measure() {
             rect: r, lines,
             whiteSpace: c.whiteSpace, overflowX: c.overflowX, textOverflow: c.textOverflow,
             overflowWrap: c.overflowWrap, wordBreak: c.wordBreak, display: c.display,
-            clipped: (!inline && over > 1 && !isEllipsis),
-            ellipsized: (!inline && over > 1 && isEllipsis),
+            textOver: Math.max(0, textOver),
+            clipped: (textOver > 1 && !isEllipsis),
+            ellipsized: (textOver > 1 && isEllipsis),
             escape: Math.round((Math.max(r.right - cRight, cLeft - r.left)) * 10) / 10,
         });
     }
@@ -305,7 +337,7 @@ function tally(sample) {
         escape: escape.length, overlap: sample.overlaps.length, titleWrap: titleWrap.length,
         railScrollDelta: sample.rail.scrollDelta,
         railScrollViolation: sample.vw === 1366 && sample.rail.scrollDelta > 1 ? 1 : 0,
-        clippedList: clipped.map((t) => ({ sel: t.sel, text: t.text, over: t.over, whiteSpace: t.whiteSpace, textOverflow: t.textOverflow })),
+        clippedList: clipped.map((t) => ({ sel: t.sel, text: t.text, textOver: t.textOver, over: t.over, whiteSpace: t.whiteSpace, textOverflow: t.textOverflow })),
         escapeList: escape.map((t) => ({ sel: t.sel, text: t.text, escape: t.escape })),
         overlapList: sample.overlaps,
         titleWrapList: titleWrap.map((t) => ({ sel: t.sel, text: t.text, lines: t.lines, w: t.rect.w })),

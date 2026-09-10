@@ -1235,7 +1235,7 @@ const WORKSPACE_HTML =
     '<div class="strip-slot" id="strip-slot" data-slot="minimap" hidden></div>' +
     '</main>' +
 
-    '<!-- 右栏 300px（§3.2；面板内滚允许） -->' +
+    '<!-- 右栏（P3/D3-2 起区间自适应 clamp(280px,22vw,380px)，§3.2；面板内滚允许） -->' +
     '<aside class="side-rail" id="side-rail">' +
 
     '<!-- [N04] 存储概览卡（U2.4 环形图卡：viz/donut.js + 盘符 chips（D15 只切环形数据不切目录）+ 图例 + 「浏览此盘」唯一跳转入口；数据源不变 /api/overview；无总容量字段 → 环形=已使用之环比降级，见 components/storage.js 注记） -->' +
@@ -1268,10 +1268,13 @@ const WORKSPACE_HTML =
     '<button id="btn-scan-help" class="btn btn-sm btn-ghost scan-help-btn" type="button" title="扫描提示（可关闭）" aria-label="扫描提示" aria-expanded="false">？</button>' +
     '</div>' +
     // 阶段B（B-12）：进度行整合——总进度 % · 已完成 x/y 盘 · 当前 C:\ · 已用 t · 预计剩余 ~T（估算）
+    // P3（D3-3）：状态行信息分层——「总进度 · 已完成 x/y 盘 · 当前盘」为第一层（#fullscan-status-text，
+    // flex:1 1 auto 可换行），耗时/ETA 收进 .scan-meta 独立第二层（flex:1 1 100%），
+    // 不再靠 nowrap 与主文案抢宽度（基线实测被压成 30px 宽、每行 1–2 字竖排）。
     '<div class="progress-wrap"><div id="progress" class="progress"><div id="progress-fill" class="progress-fill"></div></div>' +
     '<span id="progress-pct" class="progress-pct muted">0%</span>' +
     '<span id="scan-check" class="scan-check hidden" hidden aria-label="已完成"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>' +
-    '<div id="fullscan-status" class="status-line" role="status"><span class="dot"></span><span id="fullscan-status-text">尚未开始全量扫描</span><span id="scan-elapsed" class="scan-elapsed muted" hidden></span><span id="scan-eta" class="scan-eta muted" hidden></span></div>' +
+    '<div id="fullscan-status" class="status-line status-line-scan" role="status"><span class="dot"></span><span id="fullscan-status-text">尚未开始全量扫描</span><span id="scan-meta" class="scan-meta" data-empty="1"><span id="scan-elapsed" class="scan-elapsed muted" hidden></span><span id="scan-eta" class="scan-eta muted" hidden></span></span></div>' +
     '<div id="scan-roots" class="chips-row hidden"></div>' +
     '<div id="scan-progress-hint" class="notice notice-info hidden"></div>' +
     // P1（D1-2）：自动保存三态结果区（已自动保存 / 已跳过+原因 / 失败+手动补救）。
