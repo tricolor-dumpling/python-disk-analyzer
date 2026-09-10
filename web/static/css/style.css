@@ -132,7 +132,25 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 
 /* 视图区（flex:1；面板内滚；U2.5：treemap/table 两容器 absolute 叠加共用视口——120ms 交叉淡化） */
 .view-area{flex:1;min-height:0;display:flex;position:relative}
-.view-area .table-wrap{position:absolute;inset:0;min-width:0}
+.view-area .table-wrap{position:absolute;inset:0;min-width:0;z-index:1} /* P2：终态基值（交叉淡化层序见 .v-crossfade-* 规则） */
+/* P2（R2/R3）：交叉淡化层序契约。两容器同为 position:absolute;inset:0，DOM 中
+   #treemap-wrap 靠后 → 叠加时矩形图恒在上层（旧实现无 z-index 无规则，靠 DOM 顺序）；
+   且旧 JS 已加 `.v-crossfade` 类但 style.css 中不存在该规则（层序/指针/裁剪从未定义）。
+   现补齐为完整语义：
+     · .v-crossfade-in  = 入向视图，压在出向之上；
+     · .v-crossfade-out = 出向视图，置于下层；
+     · 交叉淡化期间两者 pointer-events:none —— 过渡中不得拦截命中测试
+       （收束后由 finishViewSwap 移除语义类并还原内联 opacity）；
+     · 层序取值 2/3 均低于 #browse-loading 骨架屏（z-index:5，在 .view-area 层叠上下文内），
+       故骨架屏仍覆盖视区（DoD 5 帧级断言）；全屏态 .view-fullscreen(z 800) 与
+       .tool-row(z 810) 在本层叠上下文之外，不受影响。
+   终态基值（z-index:1）随各自容器的定位声明一并给出：
+     `.treemap-wrap`（本文件 treemap 段）与 `.view-area .table-wrap`（上一行）。 */
+.treemap-wrap.v-crossfade,.table-wrap.v-crossfade{pointer-events:none}
+.treemap-wrap.v-crossfade-in{z-index:3}
+.treemap-wrap.v-crossfade-out{z-index:2}
+.table-wrap.v-crossfade-in{z-index:3}
+.table-wrap.v-crossfade-out{z-index:2}
 /* [N09] 迷你条带位（U2.3 装配 treemap 上级上下文，48px） */
 .strip-slot{flex:none;height:48px}
 
@@ -745,7 +763,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* ============================================================ */
 
 .treemap-wrap{
-  position:absolute;inset:0;min-width:0;
+  position:absolute;inset:0;min-width:0;z-index:1; /* P2：终态基值（交叉淡化层序见 .v-crossfade-* 规则） */
   border:1px solid var(--border);border-radius:var(--radius-md);
   background:var(--card);overflow:hidden;
 }
