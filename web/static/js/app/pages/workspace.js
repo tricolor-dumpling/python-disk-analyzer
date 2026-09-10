@@ -60,6 +60,7 @@ import { colorFor, OTHER_COLOR } from "../palette.js";
 import { toast } from "../components/toast.js";
 import { setStatus } from "../components/statusbar.js";
 import { renderApiError } from "../components/feedback.js";
+import { getDrives } from "../components/drives.js"; // P5（D5-4）：盘符清单唯一来源（后端真枚举）
 import { flip as motionFlip, motionDur, motionEase, reducedMotion } from "../motion.js";
 import { isTypingEvent } from "../keys.js"; // U4.1：单键守卫共享（Backspace 同口径）
 import {
@@ -74,8 +75,12 @@ import {
 
 /* ================= 目录浏览 ================= */
 
-let currentRoot = "D:\\"; // 用户本次浏览会话的根（面包屑/返回不越过它）
-let currentPath = "D:\\"; // 当前正在查看的目录
+/* P5（D5-4）：默认根去魔法值——原为写死的 "D:\\"。
+   现在统一口径「上次浏览 → 枚举盘首项 → 空（UI 显示「请选择盘符」）」，
+   盘符一律来自后端 /api/roots（components/drives.js），本文件不再出现任何硬编码盘符。
+   空字符串是合法初值：main.js 启动时用 applyDefaultRoot() 落定实际根。 */
+let currentRoot = ""; // 用户本次浏览会话的根（面包屑/返回不越过它）
+let currentPath = ""; // 当前正在查看的目录
 let browseHistory = [];
 
 export function getCurrentRoot() { return currentRoot; }
@@ -84,6 +89,64 @@ export function getCurrentPath() { return currentPath; }
 export function resetBrowseHistory() { browseHistory = []; }
 /* U3.1：命令面板「浏览历史」数据源（跨模块可变状态经访问器；副本防外部篡改） */
 export function getBrowseHistory() { return browseHistory.slice(); }
+
+/* ================= P5（D5-4）：默认根统一与盘符动态渲染 ================= */
+
+/* 统一默认根口径（main.js 启动时调用一次）：
+     ① 上次浏览位置（pds_last_browse_v1，F06 既有能力）
+     ② 枚举盘首项（后端 /api/roots 真枚举；**不是**硬编码 "D:\\"）
+     ③ 空串 → UI 显示「请选择盘符」（不编造一个可能不存在的盘）
+   返回最终落定的根（空串表示未落定）。 */
+export function applyDefaultRoot(startup) {
+    const st = startup || null;
+    const picked = st && st.path ? st.path : "";
+    if (picked) {
+        const root = (st && st.root) || getLastRoots()[0] || "";
+        setCurrentRoot(root || picked);
+        const el = $("browse-root");
+        if (el) el.value = picked;
+        return root || picked;
+    }
+    const typed = getLastRoots()[0] || "";
+    let root = typed;
+    if (!root) {
+        const drives = getDrives() || [];
+        const first = drives.find((d) => d && d.ready !== false) || drives[0];
+        root = first ? first.root : "";
+    }
+    setCurrentRoot(root);
+    const el = $("browse-root");
+    if (el) el.value = root;
+    return root;
+}
+
+/* 盘符 datalist 动态渲染（D5-4）：选项 = 后端枚举盘符 + 最近浏览记录。
+   P5 前这里是模板里写死的 '<option value="C:\\">…"F:\\"' 四个——真机盘符一变就不准。 */
+export function renderRootsSuggest(drives) {
+    const list = $("roots-suggest");
+    if (!list) return 0;
+    const seen = new Set();
+    const opts = [];
+    (drives || []).forEach((d) => {
+        const v = String((d && d.root) || d || "");
+        if (!v || seen.has(v)) return;
+        seen.add(v);
+        opts.push({ value: v, label: (d && d.label) || v, ready: d ? d.ready !== false : true });
+    });
+    lastRoots.forEach((r) => {
+        if (!r || seen.has(r)) return;
+        seen.add(r);
+        opts.push({ value: r, label: r + "（最近浏览）", ready: true, recent: true });
+    });
+    list.innerHTML = opts
+        .map((o) => '<option value="' + esc(o.value) + '"' +
+            (o.recent ? ' data-recent="1"' : "") +
+            (o.ready ? "" : ' data-not-ready="1"') +
+            ">" + esc(o.label) + "</option>")
+        .join("");
+    list.dataset.dynamic = "1"; // 自证：内容来自接口而非模板硬编码
+    return opts.length;
+}
 
 /* P12·W1.4 行动闭环：行内 hover 操作区（U2.5 起由 components/list.js 统一构建——
    F19 三图标 下钻/定位/复制路径；事件委托见 bindWorkspace 底部） */
@@ -215,7 +278,7 @@ function handleBrowseHistoryKey(ev) {
     }
 }
 let browseParent = null;   // 当前目录的上级（null = 已在根）
-let lastBrowse = { root: "D:\\", path: "D:\\" }; // 供「重试」按钮使用
+let lastBrowse = { root: "", path: "" }; // 供「重试」按钮使用（P5：初值去魔法值，首次浏览后落定）
 
 function normalizeRoot(text) {
     return String(text || "").trim();
@@ -827,6 +890,10 @@ export async function browsePath(path, quiet) {
         setStatus("browse-status", "warn", "请输入盘符或目录路径（例如 D:\\）");
         return;
     }
+    /* P5（D5-4）：默认根去魔法值后 currentRoot 可能尚未落定（无 last_roots 且枚举失败）。
+       此时用户显式输入了 target → 用它补上会话根，否则下游 POST /api/browse 会因 root 为空而 400
+       （现象：路径明明填了却报「缺少 root 参数」）。 */
+    if (!currentRoot) setCurrentRoot(target);
     hideBrowseError();
     setBrowseLoading(true);
     setStatus("browse-status", "busy", "正在扫描目录，请稍候…");
@@ -970,15 +1037,8 @@ function renderRecentChips() {
             browsePath(currentRoot);
         });
     });
-    // 同步 datalist 建议
-    const list = $("roots-suggest");
-    list.querySelectorAll('option[data-recent="1"]').forEach((o) => o.remove());
-    lastRoots.forEach((r) => {
-        const opt = document.createElement("option");
-        opt.value = r;
-        opt.dataset.recent = "1";
-        list.appendChild(opt);
-    });
+    // 同步 datalist 建议（P5·D5-4：改为整表重建——枚举盘符在前、最近浏览在后）
+    renderRootsSuggest(getDrives() || []);
 }
 
 /* P12·W2.6（K5）：最近浏览 POST 防抖 300ms（trailing），连跳目录只落一次盘 */
@@ -1151,8 +1211,10 @@ const WORKSPACE_HTML =
     '<!-- ===== 面包屑 / 工具栏行（48px 预算：F06 路径行 + N10 视图工具栏位） ===== -->' +
     '<div class="tool-row">' +
     '<div class="path-row">' +
-    '<input id="browse-root" list="roots-suggest" type="text" placeholder="输入盘符或路径，例如 D:\\" value="D:\\" aria-label="浏览根目录">' +
-    '<datalist id="roots-suggest"><option value="C:\\"></option><option value="D:\\"></option><option value="E:\\"></option><option value="F:\\"></option></datalist>' +
+    // P5（D5-4）：初值不再写死 D:\（由 main.js 启动链 applyDefaultRoot 落定：
+    // 上次浏览 → 枚举盘首项 → 空=「请选择盘符」）；候选列表同样不硬编码，由 renderRootsSuggest 渲染
+    '<input id="browse-root" list="roots-suggest" type="text" placeholder="输入盘符或路径，例如 D:\\" aria-label="浏览根目录">' +
+    '<datalist id="roots-suggest" data-dynamic="1"></datalist>' +
     '<!-- 阶段G（G-3，P-2）：浏览历史下拉入口（时钟按钮 → 面板，命令面板同款分组样式） -->' +
     '<button id="btn-browse-history" class="btn btn-sm" type="button" title="浏览历史（最近 8 条）" aria-haspopup="listbox" aria-expanded="false" hidden>' +
     ICONS.clock + "</button>" +

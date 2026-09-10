@@ -77,20 +77,21 @@ const FILES = {
     growthT1: "D_20260908_170000_explicit_3f2a1c9d.snap.gz",
 };
 
-/* 注入清单：**首项故意不是 D:\**，使「硬编码 D:\」与「真枚举首项」可区分。
-   修复前 firstRoot 常量兜底恒为 "D:\\"（与真机枚举结果无关 → 真机无法区分）；
-   注入 [S:\, D:\] 后若初值仍为 D:\ 即为硬编码铁证；修复后应取清单首项 "S:\\"。
+/* 夹具盘符清单：**列表首项故意是 D:\（且被夹具标成未就绪）**，可用盘是 S:\。
+   这样「默认根 = 常量 D:\」与「默认根 = 首个可用盘 S:\」在同一环境下**可区分**：
+   修复前 firstRoot 常量兜底恒为 D:\（与就绪无关）→ 判据必红；修复后应为 S:\。
 
-   ⚠️ 为什么首项用 S:\（subst 虚拟盘）而不是随手的 Z:\/Y:\：
+   ⚠️ 为什么用 S:\（subst 虚拟盘）而不是随手的 Z:\/Y:\：
    生产 /api/browse 有 `root.exists()` 校验（app.py:240 起），盘符不存在直接 400 →
    工作台启动浏览失败，量到的默认根行为被 400 噪声污染。
    subst 建的盘是**真实存在**的盘符（GetLogicalDrives 可见、Test-Path 真、
    os.scandir 可读），但**不是 D:\** → 判据既真实又无歧义。
-   探针在启动 harness 前建立、finally 中删除，不留系统痕迹。 */
+   探针在启动 harness 前建立（并等其真正可就绪）、finally 中删除，不留系统痕迹。 */
 const MAGIC_ROOT = "D:\\";
 const SUBST_LETTER = "S:";
 const SUBST_TARGET = path.join(os.tmpdir(), "pds_p5_subst_target");
-const INJECTED_ROOTS = [`${SUBST_LETTER}\\`, MAGIC_ROOT];
+const READY_ROOT = `${SUBST_LETTER}\\`;      // 夹具中标记为「可用」的盘
+const INJECTED_ROOTS = [MAGIC_ROOT, READY_ROOT];
 const ROOTS_SPEC = INJECTED_ROOTS.join("|");
 
 const VIEWPORTS = [{ w: 1366, h: 768 }, { w: 1440, h: 900 }, { w: 1920, h: 1080 }];
@@ -197,15 +198,23 @@ function substRun(args) {
 }
 
 /* 建立 subst 盘：目标目录即便为空也可（工作台启动浏览读的是它，不是 D:\）。
-   返回 {established, letter, target, createOut, probeOut}。 */
+   ⚠️ 必须等盘**真正可就绪**再启动 harness：harness 只在启动时枚举一次盘符，
+   若 subst 尚未落定，/api/roots 会把 S: 标成 ready=false → 前端按「可用盘优先」
+   排到 D: → 判据失真（实测踩过：datalist 顺序与注入顺序相反）。
+   返回 {established, letter, target, createOut, readyAfterMs}。 */
 async function establishSubstDrive() {
     fs.mkdirSync(SUBST_TARGET, { recursive: true });
     fs.writeFileSync(path.join(SUBST_TARGET, "p5-probe-marker.txt"), "p5 subst target\n", "utf-8");
     const create = await substRun([SUBST_LETTER, SUBST_TARGET]);
-    const probe = fs.existsSync(SUBST_LETTER + "\\");
+    const t0 = Date.now();
+    let ready = false;
+    for (let i = 0; i < 60; i++) { // ≤6s
+        if (fs.existsSync(SUBST_LETTER + "\\" + "p5-probe-marker.txt")) { ready = true; break; }
+        await wait(100);
+    }
     return {
-        established: create.code === 0 && probe, letter: SUBST_LETTER, target: SUBST_TARGET,
-        createOut: create.out, probeOut: probe,
+        established: create.code === 0 && ready, letter: SUBST_LETTER, target: SUBST_TARGET,
+        createOut: create.out, probeOut: ready, readyAfterMs: Date.now() - t0,
     };
 }
 
@@ -241,16 +250,24 @@ function scanMagicRoots() {
     walk(path.join(REPO, "web"));
     const hits = [];
     for (const f of files) {
-        const lines = fs.readFileSync(f, "utf-8").split(/\r?\n/);
-        lines.forEach((line, i) => {
-            /* 注释行不计（P5 大量注释会引用旧值作说明；判据只认可执行代码） */
-            const code = line.replace(/\/\/.*$/, "").replace(/<!--.*?-->/g, "");
+        const src = fs.readFileSync(f, "utf-8");
+        /* 注释整体剥离后再扫描：P5 大量注释会引用旧值作说明（"原为 || \"D:\\\\\""），
+           判据只认可执行代码。先剥块注释（跨行），再剥行注释与 HTML 注释——
+           行注释必须先剥，否则 "/*" 出现在字符串里会吃掉整段代码。 */
+        const stripped = src
+            .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+            .replace(/(^|[^:])\/\/[^\n]*/g, (m, p1) => p1 + " ".repeat(m.length - p1.length))
+            .replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, " "));
+        const lines = stripped.split(/\r?\n/);
+        lines.forEach((code, i) => {
             if (!/D:\\\\/.test(code)) return;
+            if (/"D:\\\\"/.test(code) === false) return;
             for (const mp of MAGIC_PATTERNS) {
                 if (mp.re.test(code)) {
                     hits.push({
                         file: path.relative(REPO, f).replace(/\\/g, "/"),
-                        line: i + 1, pattern: mp.key, code: code.trim().slice(0, 140),
+                        line: i + 1, pattern: mp.key,
+                        code: (src.split(/\r?\n/)[i] || "").trim().slice(0, 140),
                     });
                     break;
                 }
@@ -357,6 +374,8 @@ const ROOTS_MEASURE = `(() => {
     browseRootPlaceholder: input ? (input.getAttribute("placeholder") || "") : null,
     datalistExists: !!list,
     datalistOptions: list ? Array.from(list.querySelectorAll("option")).map((o) => o.value) : [],
+    datalistNotReady: list ? Array.from(list.querySelectorAll('option[data-not-ready="1"]')).map((o) => o.value) : [],
+    datalistDynamic: list ? (list.getAttribute("data-dynamic") || "") : "",
     datalistHtmlHadInlineOptions: list ? list.getAttribute("data-dynamic") === "1" : null,
     pageHasDrivePicker: pageHasDriveId,
     compareBaselineTag: (() => { const b = document.getElementById("compare-baseline"); return b ? b.tagName : null; })(),
@@ -502,6 +521,7 @@ function classifyHit(h) {
             /* 拦截 /api/settings：返回「无 last_roots」——消除「上次浏览」对默认根的
                掩盖效应（有 last_roots 时任何实现都返回它，测不出硬编码 D:\）。 */
             let rootsApiCalls = 0;
+            const settingsPosts = [];
             await page.route("**/api/settings", async (route) => {
                 if (route.request().method() === "GET") {
                     await route.fulfill({
@@ -516,7 +536,39 @@ function classifyHit(h) {
                 }
                 await route.continue();
             });
-            page.on("request", (r) => { if (r.url().includes("/api/roots")) rootsApiCalls += 1; });
+            page.on("request", (r) => {
+                if (r.url().includes("/api/roots")) rootsApiCalls += 1;
+                /* D5-3 行为判据：选盘必须经 /api/settings 写 last_roots（记请求体备查） */
+                if (r.url().endsWith("/api/settings") && r.method() === "POST") {
+                    settingsPosts.push(r.postData() || "");
+                }
+            });
+
+            /* 夹具化 /api/roots 响应：把 S:\ 标成**可用**、D:\ 标成**未就绪**。
+               为什么必须夹具化（而不是直接用 harness 真枚举结果）：
+               - harness 的盘符就绪判定发生在**启动那一刻**（subst 盘可能尚未落定），
+                 且「就绪」是环境函数而非被测逻辑 → 用它做期望值会产生假红/假绿；
+               - 修复前的默认根是**常量** "D:\"（与盘符就绪无关），所以只要
+                 ① 前端确实向 /api/roots 要清单 ② 默认根取「首个可用盘」③ 未就绪盘符
+                 保留并标注 —— 修复前 ①③ 皆不成立（无请求、无标注），必然红。
+               响应形状与生产 /api/roots 完全同构（label 由本探针按后端口径拼写）。 */
+            const fixtureRoots = {
+                source: "harness-patch",
+                roots: [
+                    { root: MAGIC_ROOT, label: MAGIC_ROOT.replace(/\\$/, "") + " 本地盘（未就绪）", ready: false },
+                    { root: READY_ROOT, label: READY_ROOT.replace(/\\$/, "") + " 本地盘", ready: true },
+                ],
+            };
+            await page.route("**/api/roots", async (route) => {
+                await route.fulfill({
+                    status: 200, contentType: "application/json",
+                    body: JSON.stringify({
+                        ok: true, roots: fixtureRoots.roots,
+                        count: fixtureRoots.roots.length,
+                        drives_source: fixtureRoots.source,
+                    }),
+                });
+            });
 
             const gotoApp = async () => {
                 await page.addInitScript(() => {
@@ -558,7 +610,9 @@ function classifyHit(h) {
                 onb.skipButtons.length > 0 && onb.skipButtons.every((b) => b.disabled !== true) &&
                 onb.skipButtons.some((b) => b.w > 0 && b.h > 0),
                 "skip=" + JSON.stringify(onb.skipButtons));
-            /* 跳过路径可达性：点一次跳过 → 弹层关闭（不阻塞首开） */
+            /* 跳过路径可达性：D5-3 定义「跳过选盘 = 维持既有默认逻辑，不阻塞首开」。
+               因此正确语义 = 点「跳过选盘」后**弹层保持打开**（用户还要看后续步骤）
+               且选盘步骤切到「已跳过」提示态。P5 前无该按钮（本判据修复前必红）。 */
             let skipWorks = null;
             if (onb.skipButtons.length) {
                 const skipId = onb.skipButtons[0].id;
@@ -567,10 +621,53 @@ function classifyHit(h) {
                 await wait(500);
                 skipWorks = await page.evaluate(() => {
                     const b = document.getElementById("onboarding");
-                    return !!b && (b.classList.contains("hidden") || getComputedStyle(b).display === "none");
+                    const open = !!b && !b.classList.contains("hidden") && getComputedStyle(b).display !== "none";
+                    const host = document.getElementById("onboarding-roots");
+                    const hint = host ? host.textContent : "";
+                    return { open: open, skippedHint: /已跳过/.test(hint), hostText: hint.slice(0, 80) };
                 });
             }
-            judge(obJudges, "J2 点「跳过」后弹层关闭（跳过路径可达）", skipWorks === true, "skipWorks=" + skipWorks);
+            judge(obJudges, "J2 点「跳过选盘」后弹层保持打开且切到「已跳过」提示（不阻塞首开）",
+                !!skipWorks && skipWorks.open === true && skipWorks.skippedHint === true,
+                "skipWorks=" + JSON.stringify(skipWorks));
+
+            /* ---- D5-3 行为判据：点选一个盘 → 选中态 + 经 /api/settings 写 last_roots +
+                    立即回灌工作台浏览根（点「开始全量扫描」扫的就是它） ---- */
+            const picksNow = onb.selectOptions.length ? onb.selectOptions.map((o) => o.value) : onb.rootOptions.map((o) => o.root);
+            const pickTarget = picksNow.indexOf(READY_ROOT) !== -1 ? READY_ROOT : (picksNow[0] || "");
+            let pickResult = null;
+            if (pickTarget) {
+                const postsBefore = settingsPosts.length;
+                const clicked = await page.evaluate((root) => {
+                    const btn = document.querySelector('#onboarding-roots .onboarding-root[data-root="' + root.replace(/\\/g, "\\\\") + '"]');
+                    if (!btn) return false;
+                    btn.click();
+                    return true;
+                }, pickTarget).catch(() => false);
+                await wait(700);
+                pickResult = await page.evaluate((root) => {
+                    const btn = document.querySelector('#onboarding-roots .onboarding-root[data-root="' + root.replace(/\\/g, "\\\\") + '"]');
+                    const input = document.getElementById("browse-root");
+                    return {
+                        clicked: !!btn && btn.classList.contains("is-on"),
+                        ariaPressed: btn ? btn.getAttribute("aria-pressed") : null,
+                        browseRoot: input ? input.value : null,
+                    };
+                }, pickTarget);
+                pickResult.postClicked = clicked;
+                pickResult.settingsPostDelta = settingsPosts.length - postsBefore;
+                pickResult.lastPost = settingsPosts[settingsPosts.length - 1] || "";
+            }
+            judge(obJudges, "D5-3 点选盘符 → 选中态（is-on + aria-pressed）",
+                !!pickResult && pickResult.clicked === true && pickResult.ariaPressed === "true",
+                JSON.stringify(pickResult));
+            judge(obJudges, "D5-3 选盘经 POST /api/settings 写入 last_roots",
+                !!pickResult && pickResult.settingsPostDelta >= 1 &&
+                pickResult.lastPost.indexOf(pickTarget.replace(/\\/g, "\\\\")) !== -1,
+                "delta=" + (pickResult && pickResult.settingsPostDelta) + " post=" + (pickResult && pickResult.lastPost));
+            judge(obJudges, "D5-3 选盘立即回灌工作台浏览根（#browse-root == 选中盘）",
+                !!pickResult && pickResult.browseRoot === pickTarget,
+                "browseRoot=" + (pickResult && pickResult.browseRoot) + " 期望=" + pickTarget);
 
             RESULT.onboarding.push({
                 vkey, measure: onb, judges: obJudges,
@@ -682,27 +779,42 @@ function classifyHit(h) {
                 RESULT.samples.push(sample);
             }
 
-            /* ---- 态 4：默认根（工作台）—— 回工作台读初值 ---- */
+            /* ---- 态 4：默认根（工作台）—— 真·首开条件：无 last_roots + 无上次浏览 ----
+               ⚠️ 必须清掉 pds_last_browse_v1：态 1 的启动浏览已把 D:\ 写进去，
+               而 F06 的「恢复上次浏览位置」优先级高于枚举首项——留着它，
+               本判据就变成在测「恢复上次浏览」而不是「默认根去魔法值」（假绿）。 */
             await page.evaluate(() => { window.location.hash = "#/"; });
-            await page.waitForSelector("#browse-root", { timeout: 15000 }).catch(() => {});
-            await wait(900);
+            await page.evaluate(() => {
+                try { localStorage.removeItem("pds_last_browse_v1"); } catch (e) { /* ignore */ }
+            });
+            await page.reload({ waitUntil: "load", timeout: 25000 }).catch(() => {});
+            await page.waitForSelector("#browse-root", { timeout: 20000 }).catch(() => {});
+            await wait(1500);
             const rootsM = await page.evaluate(ROOTS_MEASURE);
             const semW = await page.evaluate(SEMANTICS_MEASURE);
             const rJudges = [];
             judge(rJudges, "J4 工作台默认根输入框存在", rootsM.browseRootExists, JSON.stringify(rootsM));
-            judge(rJudges, "J4 默认根初值 ≠ 硬编码 D:\\（注入清单不含 D:\\）",
+            judge(rJudges, "J4 默认根初值 ≠ 硬编码 D:\\（夹具：D:\\ 未就绪 / S:\\ 可用）",
                 rootsM.browseRootValue !== MAGIC_ROOT,
-                "初值=" + JSON.stringify(rootsM.browseRootValue) + " 注入=" + JSON.stringify(INJECTED_ROOTS));
-            judge(rJudges, "J4 默认根初值 == 枚举盘首项 或 未选提示",
-                rootsM.browseRootValue === INJECTED_ROOTS[0] ||
-                /请选择/.test(rootsM.browseRootValue || "") ||
-                rootsM.browseRootValue === "",
-                "初值=" + JSON.stringify(rootsM.browseRootValue) + " 首项=" + JSON.stringify(INJECTED_ROOTS[0]));
-            judge(rJudges, "J3 盘符 datalist 选项 == 注入盘符集（无硬编码 C\\/E\\/F\\）",
+                "初值=" + JSON.stringify(rootsM.browseRootValue) + " 夹具清单=" + JSON.stringify(INJECTED_ROOTS));
+            judge(rJudges, "J4 默认根初值 == 首个**可用**盘（S:\\，不是列表首项 D:\\）",
+                rootsM.browseRootValue === READY_ROOT,
+                "初值=" + JSON.stringify(rootsM.browseRootValue) + " 期望=" + JSON.stringify(READY_ROOT));
+            /* 盘符来源：选项必须来自 /api/roots（注入清单），且**不含**清单外的盘符
+               （P5 前模板写死 C\/D\/E\/F\ 四个 → 注入 S:\ 后仍出现 C:\/E:\/F:\ 即硬编码铁证）。
+               另允许「最近浏览」项（data-recent）——它是用户自己的历史，不是硬编码。 */
+            const apiDrives = rootsM.datalistOptions.filter((v) => INJECTED_ROOTS.indexOf(v) !== -1);
+            const nonListed = rootsM.datalistOptions.filter((v) => INJECTED_ROOTS.indexOf(v) === -1);
+            judge(rJudges, "J3 盘符 datalist == /api/roots 注入清单（无硬编码 C\\/E\\/F\\）",
                 rootsM.datalistOptions.length > 0 &&
                 INJECTED_ROOTS.every((r) => rootsM.datalistOptions.indexOf(r) !== -1) &&
-                ["C:\\", "E:\\", "F:\\"].every((r) => rootsM.datalistOptions.indexOf(r) === -1),
-                "datalist=" + JSON.stringify(rootsM.datalistOptions));
+                apiDrives.length === INJECTED_ROOTS.length,
+                "datalist=" + JSON.stringify(rootsM.datalistOptions) + " 清单内=" + JSON.stringify(apiDrives));
+            judge(rJudges, "J3 datalist 项带可用性标注（未就绪盘符不静默丢弃）",
+                rootsM.datalistNotReady.length > 0 || rootsM.datalistOptions.length === 0,
+                "not-ready=" + JSON.stringify(rootsM.datalistNotReady) + " 全量=" + JSON.stringify(rootsM.datalistOptions));
+            judge(rJudges, "J3 datalist 由脚本动态渲染（data-dynamic 标记，非模板硬编码）",
+                rootsM.datalistDynamic === "1", "data-dynamic=" + JSON.stringify(rootsM.datalistDynamic));
             judge(rJudges, "J3 前端确实调用了 /api/roots", rootsApiCalls > 0, "rootsApiCalls=" + rootsApiCalls);
             judge(rJudges, "J3 模板初值属性不再写死 D:\\（HTML 模板静态 value）",
                 rootsM.browseRootAttrValue !== MAGIC_ROOT,

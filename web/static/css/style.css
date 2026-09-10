@@ -1051,7 +1051,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .popover-sub{font-size:var(--fs-xs);margin:-4px 0 0 74px;word-break:break-all}
 .popover-body .btn{align-self:flex-start;margin-top:4px}
 
-/* [F02] 首启引导弹层（U3.1：4 步纵排 + 进度点；入弹窗栈） */
+/* [F02] 首启引导弹层（U3.1：纵排步骤 + 进度点；入弹窗栈）
+   P5（D5-3）：第 2 步「选择要分析的盘」的盘符选择器（选项由 drives.js 从
+   /api/roots 动态渲染；未就绪盘符置灰但**仍然可见**，不静默丢弃） */
 .onboarding-overlay{z-index:900}
 .onboarding-panel{
   width:600px;max-width:calc(100vw - 32px);max-height:88vh;overflow:auto;
@@ -1062,6 +1064,18 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .onboarding-panel .steps{display:flex;flex-direction:column;padding:14px 20px;gap:8px}
 .onboarding-panel .step{background:var(--card-glass);border-color:var(--border)}
 .onboarding-panel .step p{margin:2px 0 0;font-size:var(--fs-sm);color:var(--text-2)}
+.onboarding-roots{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:26px}
+.onboarding-root{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+  border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card);
+  color:var(--text);font:inherit;font-size:var(--fs-sm);cursor:pointer;
+}
+.onboarding-root:hover,.onboarding-root:focus-visible{background:var(--primary-soft)}
+.onboarding-root.is-on{border-color:var(--primary);background:var(--primary-soft);font-weight:600}
+.onboarding-root[data-not-ready="1"]{opacity:.6}
+.onboarding-root-state{font-size:var(--fs-xs);color:var(--muted);font-weight:400}
+.onboarding-roots-hint{font-size:var(--fs-xs);color:var(--muted)}
+.onboarding-roots-foot{display:flex;justify-content:flex-end;margin-top:6px}
 .onboarding-dots{display:flex;justify-content:center;gap:8px;padding:0 20px 18px}
 .onboarding-dot{width:8px;height:8px;border-radius:50%;background:var(--border-strong)}
 .onboarding-dot.is-on{background:var(--primary)}

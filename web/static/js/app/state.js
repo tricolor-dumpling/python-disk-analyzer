@@ -16,12 +16,21 @@ export const APP_STATE = {
     theme: "light",                              // U3.5 起为三态偏好 "light"|"dark"|"system"（缺 key=system）；持久化 pds_theme_v1（index.html head 解析；theme.js 维护）
     route: "/",                                  // 由 router 维护；"/"|"/compare"|"/snapshots"（未知回落 "/"）
     health: { state: "checking", detail: null }, // 语义对齐：U2.0 旧键 health 为载荷对象（见下），本命名空间 U3.1 徽章 popover 启用
-    browse: { root: "D:\\", path: "D:\\", parent: null, history: [], seq: 0 }, // U2.3 面包屑联动/迷你条带启用（现由 workspace 模块级状态承载）
+    /* P5（D5-4）：默认根去魔法值——原为写死的 "D:\\"。现由 main.js 启动链
+       applyDefaultRoot() 落定「上次浏览 → 后端枚举盘首项 → ""（UI 显示「请选择盘符」）」；
+       盘符清单一律来自 /api/roots（components/drives.js），本文件不再持有盘符字面量。
+       onboarding：引导选盘状态（pickedRoots=用户已选盘，跳过后保持空）。 */
+    browse: { root: "", path: "", parent: null, history: [], seq: 0 }, // U2.3 面包屑联动/迷你条带启用（现由 workspace 模块级状态承载）
     view: { mode: "treemap", mergeTop: 24, sort: "size-desc", kind: "all", filter: "" }, // U2.2/U2.5 启用（P3/D3-6：density 字段已删除，行高固定 36px）
     selection: { keys: [], anchor: null },       // N08 多选（key=条目 path）；U2.5 启用
     scan: { running: false, startTs: 0, roots: [], done: [], current: null,
             stopAvailable: false, stopRequested: false, version: 0, finishedAt: null }, // U3.2 启用
     snapshots: { sessions: [] },                 // U3.3 启用
+    /* P5（D5-3）：首开选盘状态。pickedRoots = 用户在引导弹层「选择要分析的盘」里选中的盘
+       （多选，原始 "X:\\" 形式）；跳过后保持空数组（= 走既有默认逻辑）。
+       归属 components/onboarding.js 维护；持久化另走 localStorage
+       pds_selected_drives_v1 + /api/settings 的 last_roots（见 components/drives.js）。 */
+    onboarding: { pickedRoots: [] },             // P5 启用
     /* P4（问题 5/6）：depth=""（叶子口径，缺省）/ "1".."5"（聚合到第 N 层）；
        hideZero=true（请求带 drop_zero）；drillRoot=""（未下钻）或下钻目录全路径。
        三者由 pages/compare.js 维护（切页不丢），resetCompareData 复位。 */

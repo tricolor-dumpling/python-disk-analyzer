@@ -118,7 +118,10 @@ export function evaluateEnvGate(h, autoScanEligible) {
     if (h.ready) {
         hideBrowseGuide();
         const startup = getStartupBrowsePath();
-        const target = (startup && startup.path) || getCurrentRoot() || "D:\\";
+        /* P5（D5-4）：兜底去魔法值——原为 `|| "D:\\"`。改用 getCurrentRoot()
+           （由 main.js 启动链 applyDefaultRoot 落定为「上次浏览 → 枚举盘首项」），
+           仍未落定时不再编造盘符：不发起启动浏览（工作台显示「请选择盘符」由用户决定）。 */
+        const target = (startup && startup.path) || getCurrentRoot() || "";
         /* 阶段F（R6）回归修复：启动（首根）浏览是工作台专属行为——browsePath 会
            操作工作台 DOM（#dir-body / #browse-root 等），冷启动直达 #/compare 或
            #/snapshots 时这些容器不在 DOM，无条件 browse 触发 null 解引用
@@ -137,9 +140,11 @@ export function evaluateEnvGate(h, autoScanEligible) {
             }, { once: true });
             try { window.dispatchEvent(new CustomEvent("pds:auto-scan-start")); } catch (e) { /* ignore */ }
         } else if (onWorkspace) {
-            /* F06（U4.2 G1 核销）：启动恢复上次浏览位置——优先恢复路径，缺失回落首根/默认 D:\；
+            /* F06（U4.2 G1 核销）：启动恢复上次浏览位置——优先恢复路径，缺失回落首根；
+               P5（D5-4）：首根 = 后端枚举盘首项（不再是硬编码 D:\）；空则不发请求，
+               由工作台提示「请选择盘符」（零 400 请求、零 console 噪声）。
                恢复路径与旧「首根浏览」共用同一次 browse 调用（Network 时序不变，零额外请求） */
-            browsePath(target, true);
+            if (target) browsePath(target, true);
         }
     } else {
         showBrowseGuide(h);

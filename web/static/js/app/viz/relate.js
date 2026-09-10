@@ -46,10 +46,12 @@ function currentEntries(data) {
     return entries;
 }
 
-/* 层级标题（当前层 = pathStack 尾） */
+/* 层级标题（当前层 = pathStack 尾）
+   P5（D5-4）：根标签兜底去魔法值——原为 `|| "D:\\"`。根缺失时返回空串，
+   由渲染侧呈现为「根目录」；不编造一个可能不存在的盘符（与默认根统一口径）。 */
 function levelLabel(data) {
     const parts = pathStack.slice();
-    return parts.length ? parts[parts.length - 1] : String(data.root || "D:\\");
+    return parts.length ? parts[parts.length - 1] : String(data.root || "");
 }
 
 /* ================= 虚拟窗口 ================= */
@@ -157,7 +159,7 @@ export function renderRelateTree(data, opts) {
     }
     host.removeAttribute("hidden");
     host.setAttribute("aria-label",
-        "关系目录树：当前层 " + esc(levelLabel(data)) + "，共 " + total + " 项（" +
+        "关系目录树：当前层 " + esc(levelLabel(data) || "根目录") + "，共 " + total + " 项（" +
         (data.directories || []).length + " 个目录 / " + (data.files || []).length + " 个文件）");
 }
 

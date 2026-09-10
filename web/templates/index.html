@@ -271,7 +271,10 @@
     </div>
 </div>
 
-<!-- [F02] 首启引导弹层（U3.1：由工作台 hero 卡迁出为壳级弹层；4 步内容不变；
+<!-- [F02] 首启引导弹层（U3.1：由工作台 hero 卡迁出为壳级弹层；
+     P5（D5-3）：新增「选择要分析的盘」步骤——盘符数据源 = 后端 GET /api/roots 真枚举
+     （不再硬编码 C/D/E/F）；选中的盘经 /api/settings 写入 last_roots；
+     本步骤**可跳过**（跳过则维持既有默认逻辑：上次浏览 → 枚举首项 → 请选择盘符）；
      pds_onboarding_dismissed_v1 沿用；「使用指引」按钮重开；入弹窗栈 -->
 <div id="onboarding" class="modal onboarding-overlay hidden" role="dialog" aria-modal="true" aria-label="使用指引">
     <div class="modal-panel onboarding-panel">
@@ -284,12 +287,22 @@
         <p class="onboarding-sub">先扫描一次，建立空间索引。</p>
         <ol class="steps">
             <li class="step"><span class="step-num">1</span><div><b>检查环境</b><p>确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。</p></div></li>
-            <li class="step"><span class="step-num">2</span><div><b>全量扫描</b><p>点击「开始全量扫描」，程序在后台依次扫描 C、D 等所有本地盘，进度条实时显示。</p></div></li>
-            <li class="step"><span class="step-num">3</span><div><b>保存快照</b><p>扫描完成会提示「是否保存本次快照」，保存后生成 C、D 各一份快照与清单；也可在设置中开启自动保存。</p></div></li>
-            <li class="step"><span class="step-num">4</span><div><b>对比与清空</b><p>保存快照后，历史列表中每个盘符旁可「一键对比」；跨盘快照会先切换盘符再自动发起对比（次日即可回看变化）。设置里可一键清空数据目录（需输入确认文字）。</p></div></li>
+            <!-- P5（D5-3）：选盘步骤（可跳过；选项由 drives.js 从 /api/roots 动态渲染） -->
+            <li class="step" id="step-pick-root"><span class="step-num">2</span><div><b>选择要分析的盘</b>
+                <p>列表来自本机实际盘符（可用性已标注）：选中的盘会被记住，并作为「开始全量扫描」与分析范围的默认盘。也可以直接跳过——跳过则按上次浏览的位置或第一个可用盘。</p>
+                <div id="onboarding-roots" class="onboarding-roots" role="group" aria-label="选择要分析的盘" data-drive-picker>
+                    <span class="onboarding-roots-hint" id="onboarding-roots-hint">正在读取本机盘符…</span>
+                </div>
+                <div class="onboarding-roots-foot">
+                    <button id="btn-onboarding-skip-root" class="btn btn-sm btn-ghost" type="button">跳过选盘</button>
+                </div>
+            </div></li>
+            <li class="step"><span class="step-num">3</span><div><b>全量扫描</b><p>点击「开始全量扫描」，程序在后台依次扫描所选盘，进度条实时显示。</p></div></li>
+            <li class="step"><span class="step-num">4</span><div><b>保存快照</b><p>扫描完成会提示「是否保存本次快照」，保存后每个盘各生成一份快照与清单；也可在设置中开启自动保存。</p></div></li>
+            <li class="step"><span class="step-num">5</span><div><b>对比与清空</b><p>保存快照后，历史列表中每个盘符旁可「一键对比」；对比基准默认取最近一份历史快照，对比的另一侧是本机当前磁盘状态（实时）。设置里可一键清空数据目录（需输入确认文字）。</p></div></li>
         </ol>
         <div class="onboarding-dots" aria-hidden="true">
-            <span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span>
+            <span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span><span class="onboarding-dot is-on"></span>
         </div>
     </div>
 </div>

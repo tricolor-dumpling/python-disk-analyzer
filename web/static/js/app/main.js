@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    UI 2.0（SpaceLens Pro）· main.js 入口装配（U2.0 建，U2.1 路由化）
    - 装配顺序：壳级绑定（顶栏/主题/设置/弹窗族）
      → router 初始化（首渲染当前路由，默认工作台直装）
@@ -22,7 +22,9 @@ import {
     getBrowseHistory, renderWorkspace, unmountWorkspace, restoreWorkspaceView,
     getTreemapView, getTreemapTiles, setMergeTop, renderTreemapFromState,
     getStartupBrowsePath,
+    applyDefaultRoot, renderRootsSuggest, // P5（D5-4）：默认根统一 + 盘符 datalist 动态渲染
 } from "./pages/workspace.js";
+import { loadDrives, getDrives } from "./components/drives.js"; // P5（D5-3/D5-4）：盘符真枚举
 import { evaluateEnvGate, refreshHealth, bindTopbar, bindWorkspaceGuide } from "./components/topbar.js";
 import { markNavDot } from "./components/nav-dots.js"; // U3.1：N13 圆点（探针/引导面再导出）
 import { pollFullscan, startFullscan, saveSnapshot, setAutoSaveSetting, undoLastSave, bindScan, applyScanView, probeStopSupport, isStopAvailable, requestStopScan, isSaveAvailable, downloadExport, getLastScanStatus } from "./components/scan.js";
@@ -393,22 +395,24 @@ export async function start() {
         }
     } catch (e) { /* 设置读取失败不影响使用 */ }
 
+    // P5（D5-4）：盘符清单（后端 /api/roots 真枚举）+ 默认根落定。
+    // 与 settings 读取并行（两者互不依赖）；失败只记空清单，绝不硬编码兜底。
+    await loadDrives();
+    renderRootsSuggest(getDrives() || []);
+
     refreshSnapshots();
     pollFullscan(); // 页面刷新后也能恢复「扫描中」状态
     refreshOverview();
 
-    const firstRoot = getLastRoots()[0] || "D:\\";
     /* F06（U4.2 G1 核销）：启动恢复上次浏览位置（pds_last_browse_v1——成功浏览时写入；
        非法/缺失回落首根；恢复路径经既有 init 链同一 browse 调用加载——零额外请求）
+       P5（D5-4）：首根不再写死 "D:\\"——统一口径「上次浏览 → 后端枚举盘首项 →
+       空（UI 提示「请选择盘符」）」，逻辑集中在 workspace.applyDefaultRoot()。
        阶段F（R6）回归修复：`#browse-root` 是工作台专属元素，冷启动直达 `#/compare`
-       等非工作台路由时 DOM 不存在——补 null 守卫，杜绝 `.value` 对 null 赋值的
-       未处理运行时错误（console 0 纪律）。工作台路由行为不变。 */
+       等非工作台路由时 DOM 不存在——applyDefaultRoot 内部已做 null 守卫。 */
     const startup = getStartupBrowsePath();
-    setCurrentRoot((startup && startup.root) || firstRoot);
-    const browseRootEl = $("browse-root");
-    if (browseRootEl) {
-        browseRootEl.value = (startup && startup.path) || firstRoot;
-    }
+    applyDefaultRoot(startup);
+    renderRootsSuggest(getDrives() || []); // root 落定后再渲一次（含最近浏览项）
 
     // P12·W1.3 init 门控（RT-02 边界：仅首拍求值；替换旧的无条件浏览）：
     // ready → 自动浏览首根；未就绪 → 引导态。15s 轮询只刷徽章不重评门控。
