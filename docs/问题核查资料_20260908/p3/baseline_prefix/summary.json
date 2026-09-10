@@ -1,0 +1,329 @@
+{
+  "meta": {
+    "base": "http://127.0.0.1:5000/",
+    "out": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix",
+    "label": "prefix",
+    "node": "v24.19.0",
+    "startedAt": "2026-09-10T10:44:41.030Z",
+    "viewports": [
+      "1366x768",
+      "1440x900",
+      "1920x1080"
+    ],
+    "states": [
+      "idle",
+      "scanning",
+      "done"
+    ]
+  },
+  "totals": {
+    "clipped": 11,
+    "escape": 12,
+    "overlap": 0,
+    "titleWrap": 3,
+    "railScrollViolation": 3,
+    "ellipsized": 6
+  },
+  "consoleErrors": [],
+  "perSample": [
+    {
+      "key": "idle@1366x768",
+      "clipped": 0,
+      "ellipsized": 0,
+      "escape": 3,
+      "overlap": 0,
+      "titleWrap": 1,
+      "railScrollDelta": 138,
+      "railScrollViolation": 1,
+      "clippedList": [],
+      "escapeList": [
+        {
+          "sel": "strong.donut-legend-value",
+          "text": "40.04 GB",
+          "escape": 19
+        },
+        {
+          "sel": "em",
+          "text": "35.3%",
+          "escape": 19
+        },
+        {
+          "sel": "strong.donut-legend-value",
+          "text": "113.43 GB",
+          "escape": 13.5
+        }
+      ],
+      "overlapList": [],
+      "titleWrapList": [
+        {
+          "sel": "h2",
+          "text": "存储概览",
+          "lines": 2,
+          "w": 58
+        }
+      ]
+    },
+    {
+      "key": "scanning@1366x768",
+      "clipped": 1,
+      "ellipsized": 1,
+      "escape": 0,
+      "overlap": 0,
+      "titleWrap": 1,
+      "railScrollDelta": 484,
+      "railScrollViolation": 1,
+      "clippedList": [
+        {
+          "sel": "#btn-stop-scan",
+          "text": "停止",
+          "over": 2,
+          "whiteSpace": "nowrap",
+          "textOverflow": "clip"
+        }
+      ],
+      "escapeList": [],
+      "overlapList": [],
+      "titleWrapList": [
+        {
+          "sel": "h2",
+          "text": "存储概览",
+          "lines": 2,
+          "w": 58
+        }
+      ]
+    },
+    {
+      "key": "done@1366x768",
+      "clipped": 0,
+      "ellipsized": 1,
+      "escape": 3,
+      "overlap": 0,
+      "titleWrap": 1,
+      "railScrollDelta": 228,
+      "railScrollViolation": 1,
+      "clippedList": [],
+      "escapeList": [
+        {
+          "sel": "strong.donut-legend-value",
+          "text": "25.39 GB",
+          "escape": 19
+        },
+        {
+          "sel": "em",
+          "text": "22.4%",
+          "escape": 19
+        },
+        {
+          "sel": "strong.donut-legend-value",
+          "text": "113.43 GB",
+          "escape": 13.5
+        }
+      ],
+      "overlapList": [],
+      "titleWrapList": [
+        {
+          "sel": "h2",
+          "text": "存储概览",
+          "lines": 2,
+          "w": 58
+        }
+      ]
+    },
+    {
+      "key": "idle@1440x900",
+      "clipped": 2,
+      "ellipsized": 0,
+      "escape": 1,
+      "overlap": 0,
+      "titleWrap": 0,
+      "railScrollDelta": 434,
+      "railScrollViolation": 0,
+      "clippedList": [
+        {
+          "sel": "strong.donut-legend-value",
+          "text": "40.04 GB",
+          "over": 19,
+          "whiteSpace": "nowrap",
+          "textOverflow": "clip"
+        },
+        {
+          "sel": "span.donut-legend-label",
+          "text": "全部盘累计",
+          "over": 3,
+          "whiteSpace": "nowrap",
+          "textOverflow": "clip"
+        }
+      ],
+      "escapeList": [
+        {
+          "sel": "em",
+          "text": "35.3%",
+          "escape": 2
+        }
+      ],
+      "overlapList": [],
+      "titleWrapList": []
+    },
+    {
+      "key": "scanning@1440x900",
+      "clipped": 1,
+      "ellipsized": 1,
+      "escape": 1,
+      "overlap": 0,
+      "titleWrap": 0,
+      "railScrollDelta": 902,
+      "railScrollViolation": 0,
+      "clippedList": [
+        {
+          "sel": "#btn-stop-scan",
+          "text": "停止",
+          "over": 2,
+          "whiteSpace": "nowrap",
+          "textOverflow": "clip"
+        }
+      ],
+      "escapeList": [
+        {
+          "sel": "#scan-eta",
+          "text": "· 预计剩余 ~04:06:11（估算）",
+          "escape": 110.4
+        }
+      ],
+      "overlapList": [],
+      "titleWrapList": []
+    },
+    {
+      "key": "done@1440x900",
+      "clipped": 2,
+      "ellipsized": 1,
+      "escape": 1,
+      "overlap": 0,
+      "titleWrap": 0,
+      "railScrollDelta": 543,
+      "railScrollViolation": 0,
+      "clippedList": [
+        {
+          "sel": "strong.donut-legend-value",
+          "text": "25.39 GB",
+          "over": 19,
+          "whiteSpace": "nowrap",
+          "textOverflow": "clip"
+        },
+        {
+          "sel": "span.donut-legend-label",
+          "text": "全部盘累计",
+          "over": 3,
+          "whiteSpace": "nowrap",
+          "textOverflow": "clip"
+        }
+      ],
+      "escapeList": [
+        {
+          "sel": "em",
+          "text": "22.4%",
+          "escape": 2
+        }
+      ],
+      "overlapList": [],
+      "titleWrapList": []
+    },
+    {
+      "key": "idle@1920x1080",
+      "clipped": 2,
+      "ellipsized": 0,
+      "escape": 1,
+      "overlap": 0,
+      "titleWrap": 0,
+      "railScrollDelta": 254,
+      "railScrollViolation": 0,
+      "clippedList": [
+        {
+          "sel": "strong.donut-legend-value",
+          "text": "40.04 GB",
+          "over": 19,
+          "whiteSpace": "nowrap",
+          "textOverflow": "clip"
+        },
+        {
+          "sel": "span.donut-legend-label",
+          "text": "全部盘累计",
+          "over": 3,
+          "whiteSpace": "nowrap",
+          "textOverflow": "clip"
+        }
+      ],
+      "escapeList": [
+        {
+          "sel": "em",
+          "text": "35.3%",
+          "escape": 2
+        }
+      ],
+      "overlapList": [],
+      "titleWrapList": []
+    },
+    {
+      "key": "scanning@1920x1080",
+      "clipped": 1,
+      "ellipsized": 1,
+      "escape": 1,
+      "overlap": 0,
+      "titleWrap": 0,
+      "railScrollDelta": 722,
+      "railScrollViolation": 0,
+      "clippedList": [
+        {
+          "sel": "#btn-stop-scan",
+          "text": "停止",
+          "over": 2,
+          "whiteSpace": "nowrap",
+          "textOverflow": "clip"
+        }
+      ],
+      "escapeList": [
+        {
+          "sel": "#scan-eta",
+          "text": "· 预计剩余 ~04:06:11（估算）",
+          "escape": 110.4
+        }
+      ],
+      "overlapList": [],
+      "titleWrapList": []
+    },
+    {
+      "key": "done@1920x1080",
+      "clipped": 2,
+      "ellipsized": 1,
+      "escape": 1,
+      "overlap": 0,
+      "titleWrap": 0,
+      "railScrollDelta": 363,
+      "railScrollViolation": 0,
+      "clippedList": [
+        {
+          "sel": "strong.donut-legend-value",
+          "text": "25.39 GB",
+          "over": 19,
+          "whiteSpace": "nowrap",
+          "textOverflow": "clip"
+        },
+        {
+          "sel": "span.donut-legend-label",
+          "text": "全部盘累计",
+          "over": 3,
+          "whiteSpace": "nowrap",
+          "textOverflow": "clip"
+        }
+      ],
+      "escapeList": [
+        {
+          "sel": "em",
+          "text": "22.4%",
+          "escape": 2
+        }
+      ],
+      "overlapList": [],
+      "titleWrapList": []
+    }
+  ]
+}
