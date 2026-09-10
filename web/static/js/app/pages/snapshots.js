@@ -24,7 +24,7 @@
      防环：scan.js → snapshots.js 已有单向依赖）。
    ============================================================ */
 
-import { $, api, postJson, esc, signedBytes } from "../api.js";
+import { $, api, postJson, esc, humanBytes, signedBytes } from "../api.js";
 import { ICONS } from "../icons.js";
 import { APP_STATE } from "../state.js";
 import { setStatus } from "../components/statusbar.js";
@@ -154,6 +154,61 @@ function syncListCount() {
 
 /* ================= 会话列表（F17；renderSnapshotList 语义迁移） ================= */
 
+/* P6（D6-2/变更集3）：列表正文**不再外露原始文件名**。
+   原实现直接渲染 `session_20260908_200846_598651_56fbc221_000001.json` 与
+   `C_20260908_200846_auto_56fbc221.snap.gz`——用户实测「像 demo」的最大来源。
+   新口径（每行只讲用户语言）：
+     · 会话行 = 时间 · 自动/手动 · N 个盘 · 合计大小；
+     · 盘行   = 盘符 · 该盘快照大小（/api/snapshots additive total_by_root）；
+     · 原始文件名（快照名 / 会话 ID / 会话清单文件名）收进行尾「详情」展开区，
+       并保留在按钮 title 悬停提示里（信息零丢失，但不再占据正文）。
+   判据（p06 探针）：列表可见文本不得出现 `.snap.gz` / `session_` 形态串。 */
+
+/* 快照大小展示（total_by_root 为 additive 字段：旧后端/桩态缺失 → 显示占位符，
+   不编造数字、不隐藏该列） */
+function fmtSnapSize(bytes) {
+    const n = Number(bytes);
+    return Number.isFinite(n) && n > 0 ? humanBytes(n) : "—";
+}
+
+/* 会话内逐盘合计（仅统计有 size 的盘；无一份可得 → ""） */
+function sessionTotalText(s) {
+    const totals = s.total_by_root || {};
+    let sum = 0;
+    let seen = 0;
+    Object.values(s.roots || {}).forEach((r) => {
+        if (!r || r.skipped || !r.snapshot_path) return;
+        const n = Number(totals[r.root]);
+        if (Number.isFinite(n) && n > 0) { sum += n; seen += 1; }
+    });
+    return seen ? humanBytes(sum) : "";
+}
+
+/* 「详情」展开区：会话 ID + 各盘快照文件名/全路径（原始名唯一可见处，可选中复制） */
+function sessionDetailHtml(s, roots) {
+    const rows = roots
+        .map((r) => {
+            const name = r.snapshot || (r.skipped ? "（跳过，无快照）" : "缺快照");
+            const path = r.snapshot_path ? '<span class="session-detail-path">' + esc(r.snapshot_path) + "</span>" : "";
+            return (
+                '<li><span class="session-detail-label">' + esc(rootLabel(r.root)) + "</span>" +
+                "<code>" + esc(name) + "</code>" + path + "</li>"
+            );
+        })
+        .join("");
+    const fileLine = s._file
+        ? '<li><span class="session-detail-label">会话清单</span><code>' + esc(s._file) + "</code></li>"
+        : "";
+    return (
+        '<details class="session-detail">' +
+        "<summary>详情（会话 ID 与快照文件名）</summary>" +
+        '<ul class="session-detail-list">' +
+        '<li><span class="session-detail-label">会话 ID</span><code>' + esc(s.session_id || "?") + "</code></li>" +
+        fileLine + rows +
+        "</ul></details>"
+    );
+}
+
 export function renderSnapshotList(sessions) {
     const list = $("snapshot-list");
     if (!list) return; // U2.1：子页面时快照卡不在 DOM；U3.3 起列表随快照页渲染
@@ -170,6 +225,10 @@ export function renderSnapshotList(sessions) {
     list.innerHTML = sessions
         .map((s) => {
             const roots = Object.values(s.roots || {});
+            const okCount = roots.filter((r) => r && !r.skipped && r.snapshot_path).length;
+            const totalText = sessionTotalText(s);
+            const metaBits = [okCount + " 个盘"];
+            if (totalText) metaBits.push("合计 " + totalText);
             const rootLines = roots.length
                 ? '<ul class="session-roots">' +
                   roots
@@ -177,29 +236,30 @@ export function renderSnapshotList(sessions) {
                           if (r.skipped) {
                               const reason = esc(skipReasonText(r.skip_reason));
                               return (
-                                  "<li>" + ICONS.drive +
-                                  '<span>' + esc(r.root || "?") + '</span>' +
+                                  '<li class="session-root-row is-skipped">' + ICONS.drive +
+                                  '<span class="session-root-name">' + esc(rootLabel(r.root) || "?") + "</span>" +
                                   // F17：跳过原因 tooltip（红线 #7 SKIP_REASON_TEXT；文案可见+悬停提示）
                                   '<span class="tag tag-skip" title="' + reason + '">跳过</span>' +
                                   '<span class="skip-reason" title="' + reason + '" aria-label="' + reason + '">' +
                                   reason + "</span></li>"
                               );
                           }
-                          // P12·W2.4：每盘子行尾「对比此快照」一键入口（U3.3 迁移到
+                          // P12·W2.4：每盘行尾「对比此快照」一键入口（U3.3 迁移到
                           // 快照页：点击=预填 state.compare + 跳 #/compare——§6.4 跨页形态）
                           // 阶段C（C-3）：追加「删除」按钮（单盘删除，D1 主入口）
+                          // P6（D6-2）：正文只留「盘符 · 大小」，文件名移入「详情」
                           const cmpBtn = r.snapshot_path
                               ? '<button class="btn btn-sm act-cmp-snap" data-baseline="' + esc(r.snapshot_path) +
-                                '" data-root="' + esc(r.root || "") + '">对比此快照</button>'
+                                '" data-root="' + esc(r.root || "") + '" title="以该盘这份快照为对比基准，打开空间对比页">对比此快照</button>'
                               : "";
                           const delBtn = r.snapshot_path || r.root
                               ? '<button class="btn btn-sm btn-ghost act-del-snap" data-session="' + esc(s.session_id || "") +
                                 '" data-root="' + esc(r.root || "") + '" title="删除该盘快照（其他盘保留）">删除</button>'
                               : "";
                           return (
-                              "<li>" + ICONS.drive +
-                              "<span>" + esc(r.root || "?") + " →</span>" +
-                              "<code>" + esc(r.snapshot || "缺快照") + "</code>" +
+                              '<li class="session-root-row">' + ICONS.drive +
+                              '<span class="session-root-name">' + esc(rootLabel(r.root) || "?") + "</span>" +
+                              '<span class="session-root-meta">' + esc(fmtSnapSize((s.total_by_root || {})[r.root])) + "</span>" +
                               cmpBtn + delBtn + "</li>"
                           );
                       })
@@ -211,12 +271,14 @@ export function renderSnapshotList(sessions) {
                 '<div class="session-head">' +
                 '<span class="session-title">' + ICONS.clock +
                 esc(formatCreatedAt(s.created_at || s.session_id)) + "</span>" +
+                '<span class="session-tags">' +
                 (s.auto ? '<span class="tag tag-auto">自动</span>' : '<span class="tag tag-manual">手动</span>') +
+                '<span class="session-meta">' + esc(metaBits.join(" · ")) + "</span></span>" +
                 '<button class="btn btn-sm btn-ghost act-del-session" data-session="' + esc(s.session_id || "") +
                 '" title="删除整个会话（全部盘快照与清单）">删除整会话</button>' +
                 "</div>" +
-                '<div class="session-sub">' + esc(s.session_id) + "</div>" +
                 rootLines +
+                sessionDetailHtml(s, roots) +
                 "</li>"
             );
         })

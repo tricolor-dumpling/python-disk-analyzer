@@ -272,6 +272,21 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .session-roots li{display:flex;align-items:center;gap:var(--space-2);min-width:0;flex-wrap:wrap}
 .session-roots code{font-size:var(--fs-xs);background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px var(--space-2);word-break:break-all;color:var(--text-2)}
 .skip-reason{color:var(--warning);cursor:help}
+/* P6（D6-2/变更集3）：会话行 = 「盘符 · 大小」正文 + 行尾动作；原始文件名进「详情」 */
+.session-root-row{padding:var(--space-1) 0}
+.session-root-name{font-weight:600;font-size:var(--fs-sm);color:var(--text);flex:none;white-space:nowrap}
+.session-root-meta{color:var(--muted);font-variant-numeric:var(--font-num);flex:none;white-space:nowrap}
+.session-root-row.is-skipped .session-root-name{color:var(--muted);font-weight:400}
+.session-tags{display:inline-flex;align-items:center;gap:var(--space-2);min-width:0;margin-left:auto}
+.session-meta{font-size:var(--fs-xs);color:var(--faint);white-space:nowrap}
+.session-detail{margin-top:var(--space-1);font-size:var(--fs-xs);color:var(--muted)}
+.session-detail > summary{cursor:pointer;color:var(--muted);width:fit-content;padding:2px 0}
+.session-detail > summary:hover{color:var(--primary)}
+.session-detail-list{list-style:none;margin:var(--space-1) 0 0;padding:0 0 0 var(--space-3);display:flex;flex-direction:column;gap:var(--space-1);border-left:2px solid var(--border)}
+.session-detail-list li{display:flex;align-items:baseline;gap:var(--space-2);min-width:0;flex-wrap:wrap}
+.session-detail-label{flex:none;min-width:56px;color:var(--faint)}
+.session-detail-list code{word-break:break-all}
+.session-detail-path{color:var(--faint);word-break:break-all}
 
 /* ============================================================ */
 /* U3.4 空间对比页（#/compare）：页头 64px（对比基准下拉 + 当前磁盘状态行 + 开始对比）
