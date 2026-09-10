@@ -355,17 +355,10 @@ window.fetch = function (url, options) {
             return { last: idxs[idxs.length - 1], count: idxs.length };
         });
         ok("滚动到底渲染最后一行（4999）", bottomInfo.last === 4999, JSON.stringify(bottomInfo));
-        // 紧凑密度：行高 26 + 窗口重算
-        await page.click("#btn-density");
-        await wait(150);
-        const compactInfo = await page.evaluate(() => ({
-            rowH: document.querySelector("#dir-body tr:not(.v-spacer)").getBoundingClientRect().height,
-            compact: document.getElementById("dir-body").classList.contains("compact-list"),
-            pressed: document.getElementById("btn-density").getAttribute("aria-pressed"),
-        }));
-        ok("紧凑密度行高 ≈ 26px + 类/按钮态生效", Math.abs(compactInfo.rowH - 26) <= 1 && compactInfo.compact && compactInfo.pressed === "true",
-            JSON.stringify(compactInfo));
-        await page.click("#btn-density"); // 恢复舒适
+        // P3（D3-6）：密度开关已整体删除——原「紧凑密度行高 ≈ 26px + 类/按钮态生效」
+        // 断言段（page.click("#btn-density") 两处 + compactInfo 采样）退役。
+        // 行高唯一 36px，已由上方「虚拟滚动无跳行/窗口行 idx 连续」同口径覆盖；
+        // 本探针其余断言语义与阈值未改。
         shot(page, "02-virtual-ranking");
 
         // 排序/筛选后重算窗口（筛选 5000→{dir1*}+big）

@@ -654,15 +654,10 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);
   position:sticky;top:0;z-index:1; /* 面板内滚时表头固定 */
 }
-.dir-table tbody.compact-list td{padding-top:3px;padding-bottom:3px}
-/* 阶段C（C-8）：紧凑档信息密度差异（手册 2-12 推荐方向）——
-   compact 隐藏尺寸占比条与排行行图标（仅数值，极简高密度）；
-   cozy 保持完整 icon + 占比条（信息完整）。DOM 保留（aria/选择器不变）。 */
-.dir-table tbody.compact-list .size-track{display:none}
-.dir-table tbody.compact-list .ranking-name > .icon{display:none}
-.dir-table tbody.compact-list .cell-name > .icon{display:none}
-.dir-table tbody.compact-list .dir-link > .icon{display:none}
-.dir-table tbody.compact-list .col-share{width:0;padding-left:0;padding-right:0}
+/* P3（D3-6）：密度开关已整体删除——原阶段C（C-8）「紧凑档信息密度差异」
+   6 条 `.compact-list` 规则（行内 padding / 隐藏占比条与行图标 / 占比列 width:0）
+   同步移除：占比条与行图标为常驻信息（compact 会 display:none 掉它们 = 信息损失，
+   收益仅 1.38×），行高唯一 36px。 */
 .dir-table td{padding:7px 12px;border-bottom:1px solid var(--row-border);vertical-align:middle}
 .dir-table tbody:not(.v-virtual) tr:nth-child(even) td{background:var(--row-alt)}
 .dir-table tbody tr:hover td{background:var(--primary-soft)}
@@ -670,16 +665,13 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* U2.5 虚拟滚动：行号奇偶按数据索引着色（滚动窗口重渲染时位置奇偶不稳定，data-alt 为真值） */
 .dir-table tbody.v-virtual tr[data-alt="1"] td{background:var(--row-alt)}
 .dir-table tbody.v-virtual td{height:36px;padding:0 12px;border:0;box-shadow:inset 0 -1px var(--row-border);white-space:nowrap}
-.dir-table tbody.v-virtual.compact-list td{height:26px;padding-top:0;padding-bottom:0}
-/* 虚拟模式下行内容固定行高（36/26 为虚拟窗口精确高度；实测值驱动窗口计算）；
-   行内操作区绝对定位（hover 浮现，不参与行高） */
+/* 虚拟模式下行内容固定行高（36px 为虚拟窗口精确高度；实测值驱动窗口计算）；
+   行内操作区绝对定位（hover 浮现，不参与行高）。P3（D3-6）：原 26px 紧凑档规则已删。 */
 .dir-table tbody.v-virtual .ranking-row,
 .dir-table tbody.v-virtual .ranking-row-static{
   position:relative;height:36px;box-sizing:border-box;
   padding:6px 104px 6px 4px;
 }
-.dir-table tbody.v-virtual.compact-list .ranking-row,
-.dir-table tbody.v-virtual.compact-list .ranking-row-static{height:26px;padding:2px 104px 2px 4px}
 .dir-table tbody.v-virtual .row-actions{position:absolute;right:4px;top:50%;transform:translateY(-50%)}
 .dir-table tbody.v-virtual .row-actions .icon-btn{width:24px;height:24px}
 .dir-table tbody tr.v-spacer td{height:auto;padding:0;border:0;background:transparent!important;box-shadow:none}
@@ -1119,7 +1111,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 
 /* ---- 阶段C（C-7）：关系目录树（父子层级；viz/relate.js；与表格互斥显示） ----
    容器 = table-wrap 内独立块；行高与 list.js ROW_HEIGHT 同口径
-   （cozy 36 / compact 26——u24 断言面一致）；动画仅 opacity/transform（P7）。 */
+   （P3/D3-6 起固定 36px——原 26px 紧凑档规则已删——u24 断言面一致）；
+   动画仅 opacity/transform（P7）。 */
 .relate-tree{
   position:absolute;inset:0;overflow:auto;padding:4px 0;
   outline:none;background:var(--card);display:flex;flex-direction:column;
@@ -1137,7 +1130,6 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 }
 .relate-row:hover{background:var(--primary-soft)}
 .relate-row:focus-visible,.relate-row.is-focus{background:var(--primary-soft);outline:2px solid var(--primary);outline-offset:-2px}
-.relate-tree.compact-list .relate-row{min-height:26px;padding-top:2px;padding-bottom:2px}
 .relate-caret{flex:none;width:14px;color:var(--muted);font-size:10px;transition:transform var(--dur-2) var(--ease-out)}
 .relate-dir .relate-caret{transform:rotate(90deg)}
 .relate-caret-leaf{visibility:hidden}
@@ -1149,7 +1141,6 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .relate-actions{flex:none;display:inline-flex;gap:6px;opacity:0;transition:opacity var(--dur-2) var(--ease-out)}
 .relate-row:hover .relate-actions,.relate-row:focus-within .relate-actions{opacity:1}
 .relate-tree.v-virtual .relate-row{height:36px;border:0;box-shadow:inset 0 -1px var(--row-border)}
-.relate-tree.v-virtual.compact-list .relate-row{height:26px}
 .relate-spacer{flex:none;pointer-events:none}
 .relate-empty{padding:36px 16px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:8px;align-items:center}
 .relate-empty b{color:var(--text)}

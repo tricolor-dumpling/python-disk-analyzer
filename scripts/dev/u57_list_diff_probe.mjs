@@ -151,11 +151,14 @@ async function waitListRows(page, n, timeoutMs) {
         await page.close();
     }
 
-    /* ② cozy vs compact 密度差异（含行高实测） */
-    log("scenario ② cozy-vs-compact");
+    /* ② 列表信息完整性（P3/D3-6：密度开关已整体删除，行高唯一 36px——
+         原「cozy vs compact 密度差异」对照段退役：compact 分支会 display:none
+         掉占比条并零宽占比列（信息损失），D3-1 裁定唯一档 = cozy。
+         保留并强化「信息不丢」正向断言 + 新增「密度入口已删除」断言） */
+    log("scenario ② list-info-integrity");
     {
         const { page } = await openStub(browser);
-        // cozy（默认）：完整 icon + 条
+        // 唯一档（原 cozy）：完整 icon + 条
         await page.click("#btn-view-ranking", { timeout: 5000 });
         await waitListRows(page, 6);
         const cozy = await page.evaluate(() => {
@@ -165,38 +168,20 @@ async function waitListRows(page, n, timeoutMs) {
             return {
                 rowH: r ? r.height : 0,
                 compactClass: body.classList.contains("compact-list"),
-                sizeTrackVisible: (() => { const t = document.querySelector("#dir-body .size-track"); return t ? getComputedStyle(t).display !== "none" : false; })(),
-                iconVisible: (() => { const i = document.querySelector("#dir-body .ranking-name > .icon, #dir-body .cell-name > .icon, #dir-body .dir-link > .icon"); return i ? getComputedStyle(i).display !== "none" : false; })(),
-            };
-        });
-        check("cozy 完整信息（尺寸条 + icon 可见）", cozy.sizeTrackVisible && cozy.iconVisible, JSON.stringify(cozy));
-        check("cozy 行高 ≥ 32px（内容自适应合法）", cozy.rowH >= 32, "rowH=" + cozy.rowH);
-        await shot(page, "cozy-ranking-1366.png");
-        RESULT.shots.push("cozy-ranking-1366.png");
-        // compact：隐藏条与图标（仅数值）
-        await page.click("#btn-density", { timeout: 5000 });
-        await waitListRows(page, 6);
-        const compact = await page.evaluate(() => {
-            const row = document.querySelector("#dir-body tr:not(.v-spacer)");
-            const r = row ? row.getBoundingClientRect() : null;
-            const body = document.getElementById("dir-body");
-            return {
-                rowH: r ? r.height : 0,
-                compactClass: body.classList.contains("compact-list"),
+                densityBtn: !!document.getElementById("btn-density"),
                 sizeTrackVisible: (() => { const t = document.querySelector("#dir-body .size-track"); return t ? getComputedStyle(t).display !== "none" : false; })(),
                 iconVisible: (() => { const i = document.querySelector("#dir-body .ranking-name > .icon, #dir-body .cell-name > .icon, #dir-body .dir-link > .icon"); return i ? getComputedStyle(i).display !== "none" : false; })(),
                 nameVisible: (() => { const n = document.querySelector("#dir-body .ranking-name, #dir-body .cell-name"); return n ? getComputedStyle(n).display !== "none" : false; })(),
                 sizeVisible: (() => { const s = document.querySelector("#dir-body strong, #dir-body .col-size"); return s ? getComputedStyle(s).display !== "none" : false; })(),
             };
         });
-        check("compact 类生效", compact.compactClass, "");
-        check("compact 行高 ≥ 24px（内容自适应合法）", compact.rowH >= 24, "rowH=" + compact.rowH);
-        check("compact 隐藏尺寸条（仅数值）", !compact.sizeTrackVisible, JSON.stringify(compact));
-        check("compact 隐藏行图标", !compact.iconVisible, JSON.stringify(compact));
-        check("compact 名称与数值仍可见", compact.nameVisible && compact.sizeVisible, JSON.stringify(compact));
-        await shot(page, "compact-ranking-1366.png");
-        RESULT.shots.push("compact-ranking-1366.png");
-        // 表格视图 compact 同验
+        check("列表完整信息（尺寸条 + icon 可见）", cozy.sizeTrackVisible && cozy.iconVisible, JSON.stringify(cozy));
+        check("列表名称与数值仍可见", cozy.nameVisible && cozy.sizeVisible, JSON.stringify(cozy));
+        check("列表行高 ≥ 32px（内容自适应合法）", cozy.rowH >= 32, "rowH=" + cozy.rowH);
+        check("密度开关已删除（无 #btn-density / 无 .compact-list 类）", !cozy.densityBtn && !cozy.compactClass, JSON.stringify(cozy));
+        await shot(page, "ranking-1366.png");
+        RESULT.shots.push("ranking-1366.png");
+        // 表格视图同验（唯一档）
         await page.click("#btn-view-table", { timeout: 5000 });
         await waitListRows(page, 6);
         const compactTbl = await page.evaluate(() => {
@@ -206,22 +191,14 @@ async function waitListRows(page, n, timeoutMs) {
                 sizeTrackVisible: (() => { const t = document.querySelector("#dir-body .size-track"); return t ? getComputedStyle(t).display !== "none" : false; })(),
             };
         });
-        check("compact 表格视图也隐藏尺寸条", !compactTbl.sizeTrackVisible, JSON.stringify(compactTbl));
-        check("compact 表格行高 ≥ 24px（非虚拟内容自适应合法）", compactTbl.rowH >= 24, "rowH=" + compactTbl.rowH);
-        await shot(page, "compact-table-1366.png");
-        RESULT.shots.push("compact-table-1366.png");
-        // 回到 cozy 验证恢复
-        await page.click("#btn-density", { timeout: 5000 });
-        await page.waitForTimeout(500);
-        const cozyBack = await page.evaluate(() => {
-            const t = document.querySelector("#dir-body .size-track");
-            return t ? getComputedStyle(t).display !== "none" : false;
-        });
-        check("切回 cozy 尺寸条恢复", cozyBack, "");
+        check("表格视图尺寸条可见（信息不丢）", compactTbl.sizeTrackVisible, JSON.stringify(compactTbl));
+        check("表格行高 ≥ 24px（非虚拟内容自适应合法）", compactTbl.rowH >= 24, "rowH=" + compactTbl.rowH);
+        await shot(page, "table-1366.png");
+        RESULT.shots.push("table-1366.png");
         await page.close();
     }
 
-    /* ③ 虚拟滚动行高（u24 断言面同步：>200 行虚拟模式 cozy 36 / compact 26） */
+    /* ③ 虚拟滚动行高（u24 断言面同步：>200 行虚拟模式行高唯一 36px） */
     log("scenario ③ virtual-row-height");
     {
         const page = await browser.newPage({ viewport: { width: 1366, height: 768 } });
@@ -248,22 +225,11 @@ async function waitListRows(page, n, timeoutMs) {
             };
         });
         check(">200 行虚拟化启用", vCozy.vVirtual, JSON.stringify(vCozy));
-        check("虚拟 cozy 行高 ≈ 36px（u24 断言面）", Math.abs(vCozy.rowH - 36) <= 1, "rowH=" + vCozy.rowH);
-        // compact 密度虚拟行高 26
-        await page.click("#btn-density", { timeout: 5000 });
-        await waitListRows(page, 40);
-        const vCompact = await page.evaluate(() => {
-            const r = document.querySelector("#dir-body tr:not(.v-spacer)");
-            return {
-                compact: document.getElementById("dir-body").classList.contains("compact-list"),
-                rowH: r ? r.getBoundingClientRect().height : 0,
-                trackHidden: (() => { const t = document.querySelector("#dir-body .size-track"); return t ? getComputedStyle(t).display === "none" : false; })(),
-            };
-        });
-        check("虚拟 compact 行高 ≈ 26px（u24 断言面）", Math.abs(vCompact.rowH - 26) <= 1, "rowH=" + vCompact.rowH);
-        check("虚拟 compact 隐藏尺寸条", vCompact.trackHidden, JSON.stringify(vCompact));
-        await shot(page, "virtual-compact-250-rows.png");
-        RESULT.shots.push("virtual-compact-250-rows.png");
+        check("虚拟行高 ≈ 36px（u24 断言面；P3/D3-6 起唯一档）", Math.abs(vCozy.rowH - 36) <= 1, "rowH=" + vCozy.rowH);
+        /* P3（D3-6）：原「compact 密度虚拟行高 26 / 隐藏尺寸条」断言段退役
+           （#btn-density 已删除；虚拟行高唯一 36px，由上一行断言覆盖）。 */
+        await shot(page, "virtual-ranking-250-rows.png");
+        RESULT.shots.push("virtual-ranking-250-rows.png");
         RESULT.consoleErrors.push(...errs);
         await page.close();
     }

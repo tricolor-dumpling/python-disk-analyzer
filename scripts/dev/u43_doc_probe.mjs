@@ -138,14 +138,16 @@ const browser = await chromium.launch();
         ws: {
           filter: !!document.querySelector("#browse-filter"),
           treemap: !!document.querySelector("#treemap-wrap"),
-          density: !!document.querySelector("#btn-density"),
+          // P3（D3-6）：原「density: !!#btn-density」断言退役，改为断言入口已删除
+          densityRemoved: !document.querySelector("#btn-density") && !document.querySelector(".compact-list"),
           merge: !!document.querySelector("#merge-group"),
         },
       };
     });
   }
   ok(routeInfo["#/"].title === "工作台", "路由 #/ → 工作台（页头标题）");
-  ok(routeInfo["#/"].ws.filter && routeInfo["#/"].ws.treemap && routeInfo["#/"].ws.density && routeInfo["#/"].ws.merge, "工作台元素齐全（筛选框/矩形图/密度/合并阈值）");
+  ok(routeInfo["#/"].ws.filter && routeInfo["#/"].ws.treemap && routeInfo["#/"].ws.merge, "工作台元素齐全（筛选框/矩形图/合并阈值）");
+  ok(routeInfo["#/"].ws.densityRemoved, "密度开关已删除（DOM 无 #btn-density、无 .compact-list；P3/D3-6）");
   ok(routeInfo["#/compare"].title === "历史对比" && routeInfo["#/compare"].compare.baseline && routeInfo["#/compare"].compare.target && routeInfo["#/compare"].compare.btn, "路由 #/compare → 历史对比（基线下拉+目标只读+开始对比）");
   ok(routeInfo["#/snapshots"].title === "快照管理" && routeInfo["#/snapshots"].snapshots.trends >= 2, "路由 #/snapshots → 快照管理（趋势卡×2）");
 
