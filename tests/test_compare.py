@@ -91,6 +91,129 @@ class TotalFromRootRowsTests(unittest.TestCase):
         self.assertEqual(full["delta_total"], -1000)
 
 
+class DepthAggregationTests(unittest.TestCase):
+    """P4（问题 5）：depth 深度聚合——折叠到相对根的第 N 层、根行不入行集。
+
+    夹具与 scripts/dev/fixture_snapshots.mjs 的 growth 夹具同构（4 层深链 +
+    正/零/负增量混合），数值直接取自该夹具的两份快照：
+      t0：D:\\ 1000 / apps 500 / framework 300 / core 200 / engine 120 /
+          lib.dll 100 / conf.bin 20 / data 300 / data\\docs 150 / docs 200 / docs\\old 150
+      t1：D:\\ 1050 / apps 600 / framework 380 / core 280 / engine 200 /
+          lib.dll 170 / conf.bin 30 / data 300 / data\\docs 150 / docs 150 / docs\\old 100
+    """
+
+    T0 = [
+        ("D:\\", 1000), ("D:\\apps", 500), ("D:\\apps\\framework", 300),
+        ("D:\\apps\\framework\\core", 200), ("D:\\apps\\framework\\core\\engine", 120),
+        ("D:\\apps\\framework\\core\\engine\\lib.dll", 100),
+        ("D:\\apps\\framework\\core\\engine\\conf.bin", 20),
+        ("D:\\data", 300), ("D:\\data\\docs", 150),
+        ("D:\\docs", 200), ("D:\\docs\\old", 150),
+    ]
+    T1 = [
+        ("D:\\", 1050), ("D:\\apps", 600), ("D:\\apps\\framework", 380),
+        ("D:\\apps\\framework\\core", 280), ("D:\\apps\\framework\\core\\engine", 200),
+        ("D:\\apps\\framework\\core\\engine\\lib.dll", 170),
+        ("D:\\apps\\framework\\core\\engine\\conf.bin", 30),
+        ("D:\\data", 300), ("D:\\data\\docs", 150),
+        ("D:\\docs", 150), ("D:\\docs\\old", 100),
+    ]
+
+    def _report(self, **kw):
+        return compare.compare_snapshots(
+            _snapshot_dict("D:\\", self.T0), _snapshot_dict("D:\\", self.T1), **kw
+        )
+
+    def test_depth1_rows_are_top_level_only_and_root_row_excluded(self):
+        """depth=1：行集 = 顶层目录（3 条），不含根行；Σ(行 delta) == delta_total。"""
+        report = self._report(depth=1)
+        self.assertEqual(
+            [r["path"] for r in report["rows"]],
+            ["D:\\apps", "D:\\docs", "D:\\data"],  # 既有排序：|delta| 降序（100/-50/0）
+        )
+        self.assertNotIn("D:\\", [r["path"] for r in report["rows"]], "深度视图不呈现根行")
+        deltas = {r["path"]: r["delta"] for r in report["rows"]}
+        self.assertEqual(deltas, {"D:\\apps": 100, "D:\\data": 0, "D:\\docs": -50})
+        self.assertEqual(sum(r["delta"] for r in report["rows"]), report["delta_total"])
+        self.assertEqual(report["delta_total"], 50, "合计仍取原始根行 delta")
+
+    def test_depth2_rolls_deep_chain_into_level2(self):
+        """depth=2：4 层深链折叠到第 2 层（framework 取自身值，不累加后代）。"""
+        report = self._report(depth=2)
+        self.assertEqual(
+            [r["path"] for r in report["rows"]],
+            ["D:\\apps\\framework", "D:\\docs\\old", "D:\\data\\docs"],
+        )
+        deltas = {r["path"]: r["delta"] for r in report["rows"]}
+        self.assertEqual(deltas["D:\\apps\\framework"], 80, "聚合=目标键自身值（380-300）")
+        self.assertNotIn("D:\\apps\\framework\\core", deltas, "更深层键已折叠")
+        self.assertNotIn("D:\\apps", deltas, "被折叠祖先不入行集")
+
+    def test_depth_rows_keep_seven_keys_and_sign_flags(self):
+        """聚合行行键仍为既有七项；removed/added 由聚合后的两侧映射判定。"""
+        report = self._report(depth=1)
+        expected = {"path", "baseline", "current", "delta", "growth_pct", "removed", "added"}
+        for row in report["rows"]:
+            self.assertEqual(set(row.keys()), expected)
+        row = next(r for r in report["rows"] if r["path"] == "D:\\docs")
+        self.assertEqual((row["baseline"], row["current"]), (200, 150))
+        self.assertIs(row["removed"], False)
+
+    def test_depth_wins_over_leaf_only(self):
+        """depth 与 leaf_only 同传：以 depth 为准（rollup 行集互不重叠，不再叠叶子过滤）。"""
+        with_depth = self._report(depth=1)
+        both = self._report(depth=1, leaf_only=True)
+        self.assertEqual(
+            [r["path"] for r in with_depth["rows"]], [r["path"] for r in both["rows"]]
+        )
+
+    def test_no_depth_keeps_default_row_set(self):
+        """不给 depth：行集合语义与既有完全一致（含根行与祖先行）。"""
+        report = self._report()
+        paths = [r["path"] for r in report["rows"]]
+        self.assertIn("D:\\", paths)
+        self.assertIn("D:\\apps", paths)
+        self.assertEqual(len(paths), len(self.T0), "默认（leaf_only=False）逐键产行")
+
+    def test_rollup_gap_uses_top_member_without_double_count(self):
+        """层级缺口（根 D:\\a 下只有 D:\\a\\b\\c）：折叠到 D:\\a\\b，取顶层成员值不重复累加。"""
+        baseline = _snapshot_dict("D:\\a", [("D:\\a\\b\\c", 100), ("D:\\a\\b\\c\\d.bin", 60)])
+        current = _snapshot_dict("D:\\a", [("D:\\a\\b\\c", 150), ("D:\\a\\b\\c\\d.bin", 90)])
+        report = compare.compare_snapshots(baseline, current, depth=1)
+        self.assertEqual([r["path"] for r in report["rows"]], ["D:\\a\\b"])
+        self.assertEqual(report["rows"][0]["baseline"], 100, "顶层成员值（含后代），非 160")
+        self.assertEqual(report["rows"][0]["delta"], 50)
+
+    def test_rollup_preserves_path_case(self):
+        """折叠保留原大小写（normcase 仅用于比较键，不改行路径）。"""
+        baseline = _snapshot_dict("D:\\T", [("D:\\T\\Apps\\Sub", 10)])
+        current = _snapshot_dict("D:\\T", [("D:\\T\\Apps\\Sub", 30)])
+        report = compare.compare_snapshots(baseline, current, depth=1)
+        self.assertEqual([r["path"] for r in report["rows"]], ["D:\\T\\Apps"])
+
+    def test_invalid_depth_rejected(self):
+        """depth 必须是 ≥1 的 int；0/负数/bool/字符串一律 CompareError。"""
+        for bad in (0, -1, True, "2"):
+            with self.assertRaises(CompareError, msg="应拒绝 depth=%r" % (bad,)):
+                self._report(depth=bad)
+
+    def test_additive_summary_fields(self):
+        """D4-5：additive 汇总字段（全量聚合行口径）与 delta_total 自洽。"""
+        report = self._report(depth=1)
+        for key in ("rows_total", "zero_count", "zero_total", "max_growth", "max_release", "depth"):
+            self.assertIn(key, report)
+        self.assertEqual(report["rows_total"], 3, "全量聚合行数（零行计入）")
+        self.assertEqual(report["zero_total"], 1, "D:\\data 零增量")
+        self.assertEqual(report["zero_count"], 1, "未开过滤时零行仍在返回行内")
+        self.assertEqual(report["max_growth"], 100)
+        self.assertEqual(report["max_release"], 50)
+        self.assertEqual(report["depth"], 1)
+        self.assertEqual(
+            report["max_growth"] - report["max_release"], report["delta_total"],
+            "摘要口径与 delta_total 自洽（本例：仅 apps 增长、docs 缩减）",
+        )
+
+
 class ThresholdConstantsTests(unittest.TestCase):
     """P12·W1.1：scan/snapshots/compare 三处 legacy 阈值常量同值（防单方漂移）。"""
 
