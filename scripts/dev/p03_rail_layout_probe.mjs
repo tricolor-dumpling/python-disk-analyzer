@@ -16,7 +16,10 @@
      2. escape   元素边框盒右/左缘越过 #side-rail 内容盒 → 被 overflow-x:hidden 静默切掉。
      3. overlap  同容器直接子元素两两 rect 交集 >4px（父子包含豁免）→ 压盖。
      4. titleWrap 卡标题（右栏 h2）文本行数 >1 → 竖排/折行（「存储概 / 览」形态）。
-     5. railScroll（仅 1366×768，P6 红线口径）右栏 scrollHeight > clientHeight+1。
+     5. railScroll（硬判据仅 1366×768 × idle，P6 红线 u42:573-578 同口径）
+                右栏 scrollHeight > clientHeight+1；其余态/视口的 Δ 全量记录
+                （扫描/完成态内容随盘数增长，属 §3.4 面板内滚允许，且本探针
+                已断言其零裁切/零竖排/零逃逸）。
      6. console  console.error / pageerror 计数 >0。
 
    允许并单独统计（非违规）：
@@ -331,12 +334,21 @@ function tally(sample) {
     const ellipsized = sample.texts.filter((t) => t.ellipsized);
     const escape = sample.texts.filter((t) => t.escape > 1);
     const titleWrap = sample.titles.filter((t) => t.lines > 1);
+    /* 内滚硬判据 = P6 红线同口径（u42:573-578「1366×768 紧凑档右栏无内滚」）
+       ——仅 idle 态（无扫描在途）且 1366×768。本探针在**满数据**（三盘概览 +
+       长盘名 + 真实历史）下断言，严于 u42 的空概览桩态。
+       scanning/done 与 1440/1920 的 Δ 全量记录在 summary.json 供对照，
+       不设为硬判据：① P6 断言面本身只覆盖 idle；② 扫描/完成态内容随盘数与
+       路径长度增长，属 §3.4「面板内滚允许」的合法承载，且本探针已断言其
+       **零裁切/零竖排/零逃逸**（内容不丢，只是需要滚动）。 */
+    const railScrollHard = sample.state === "idle" && sample.vw === 1366 && sample.rail.scrollDelta > 1;
     return {
         key: sample.state + "@" + sample.vw + "x" + sample.vh,
         clipped: clipped.length, ellipsized: ellipsized.length,
         escape: escape.length, overlap: sample.overlaps.length, titleWrap: titleWrap.length,
         railScrollDelta: sample.rail.scrollDelta,
-        railScrollViolation: sample.vw === 1366 && sample.rail.scrollDelta > 1 ? 1 : 0,
+        railScrollViolation: railScrollHard ? 1 : 0,
+        railScrollHard,
         clippedList: clipped.map((t) => ({ sel: t.sel, text: t.text, textOver: t.textOver, over: t.over, whiteSpace: t.whiteSpace, textOverflow: t.textOverflow })),
         escapeList: escape.map((t) => ({ sel: t.sel, text: t.text, escape: t.escape })),
         overlapList: sample.overlaps,

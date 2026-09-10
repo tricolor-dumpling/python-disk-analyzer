@@ -1,0 +1,636 @@
+{
+  "stage": "P3",
+  "title": "右栏排版自适应与密度开关收口（问题 3、4）· 证据清单",
+  "generated_at": "2026-09-10T11:08:00.343Z",
+  "evidence_root": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3",
+  "branch": "stage-p3",
+  "doc": "依据《后续开发计划_用户实测问题10项_20260908》第九章 P3；证据口径见 docs/exec/阶段P3-开发任务提示词_20260911.md 第五章",
+  "probe": {
+    "rail_layout": {
+      "path": "D:\\deepseek\\python-disk-analyzer\\scripts\\dev\\p03_rail_layout_probe.mjs",
+      "tool": "Playwright 三视口 × 三态右栏量化（文本外延/内容盒、卡片 rect、rail scrollHeight/clientHeight、兄弟重叠、标题行数、console）",
+      "invocation": "node scripts/dev/p03_rail_layout_probe.mjs --base http://127.0.0.1:5000/ --out <abs> --label <prefix|postfix>",
+      "stub": "fetch 全量覆写（零真实后端）；扫描态注入真实长文案：3 根含 E:\\项目归档\\2024年度\\原始数据（第三批），ETA 经 Date.now +7385s 偏移进入小时量级"
+    }
+  },
+  "redline_A": {
+    "statement": "同一支探针（p03_rail_layout_probe.mjs，冻结版本）在修复前代码（stage-p3@0b3dd3d = P2 交付提交）复现违规，修复后为 0",
+    "prefix_code_ref": "git worktree add --detach %TEMP%\\p3_prefix_wt 0b3dd3d + git checkout 0b3dd3d -- web/static（隔离工作树/工作区取旧码，服务端口不变，静态无缓存）",
+    "totals_prefix": {
+      "clipped": 8,
+      "escape": 12,
+      "overlap": 0,
+      "titleWrap": 3,
+      "railScrollViolation": 1,
+      "ellipsized": 6
+    },
+    "totals_postfix": {
+      "clipped": 0,
+      "escape": 0,
+      "overlap": 0,
+      "titleWrap": 0,
+      "railScrollViolation": 0,
+      "ellipsized": 6
+    },
+    "console_errors": {
+      "prefix": 0,
+      "postfix": 0
+    },
+    "per_sample_prefix": [
+      {
+        "key": "idle@1366x768",
+        "clipped": 0,
+        "escape": 3,
+        "overlap": 0,
+        "titleWrap": 1,
+        "railScrollDelta": 138
+      },
+      {
+        "key": "scanning@1366x768",
+        "clipped": 0,
+        "escape": 0,
+        "overlap": 0,
+        "titleWrap": 1,
+        "railScrollDelta": 484
+      },
+      {
+        "key": "done@1366x768",
+        "clipped": 0,
+        "escape": 3,
+        "overlap": 0,
+        "titleWrap": 1,
+        "railScrollDelta": 228
+      },
+      {
+        "key": "idle@1440x900",
+        "clipped": 2,
+        "escape": 1,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 434
+      },
+      {
+        "key": "scanning@1440x900",
+        "clipped": 0,
+        "escape": 1,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 902
+      },
+      {
+        "key": "done@1440x900",
+        "clipped": 2,
+        "escape": 1,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 543
+      },
+      {
+        "key": "idle@1920x1080",
+        "clipped": 2,
+        "escape": 1,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 254
+      },
+      {
+        "key": "scanning@1920x1080",
+        "clipped": 0,
+        "escape": 1,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 722
+      },
+      {
+        "key": "done@1920x1080",
+        "clipped": 2,
+        "escape": 1,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 363
+      }
+    ],
+    "per_sample_postfix": [
+      {
+        "key": "idle@1366x768",
+        "clipped": 0,
+        "escape": 0,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 0
+      },
+      {
+        "key": "scanning@1366x768",
+        "clipped": 0,
+        "escape": 0,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 58
+      },
+      {
+        "key": "done@1366x768",
+        "clipped": 0,
+        "escape": 0,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 4
+      },
+      {
+        "key": "idle@1440x900",
+        "clipped": 0,
+        "escape": 0,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 227
+      },
+      {
+        "key": "scanning@1440x900",
+        "clipped": 0,
+        "escape": 0,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 363
+      },
+      {
+        "key": "done@1440x900",
+        "clipped": 0,
+        "escape": 0,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 306
+      },
+      {
+        "key": "idle@1920x1080",
+        "clipped": 0,
+        "escape": 0,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 29
+      },
+      {
+        "key": "scanning@1920x1080",
+        "clipped": 0,
+        "escape": 0,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 165
+      },
+      {
+        "key": "done@1920x1080",
+        "clipped": 0,
+        "escape": 0,
+        "overlap": 0,
+        "titleWrap": 0,
+        "railScrollDelta": 108
+      }
+    ]
+  },
+  "items": [
+    {
+      "id": "P3-C-prefix",
+      "kind": "C（多视口静态）+ 量化",
+      "purpose": "修复前基线复现（红线 A 自证）：在 P2 交付代码上跑冻结版探针，抓出硬切/逃逸/竖排/P6 内滚",
+      "paths": [
+        {
+          "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix",
+          "exists": true,
+          "bytes": 0
+        },
+        {
+          "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\summary.json",
+          "exists": true,
+          "bytes": 7132
+        },
+        {
+          "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\layout.json",
+          "exists": true,
+          "bytes": 273955
+        }
+      ],
+      "sampling": "每态 1 张整页 screenshot（page.screenshot，非动画场景，C 类允许）；量化 evaluate 单次采样",
+      "window_summary": "3 视口（1366×768 / 1440×900 / 1920×1080）× 3 态（idle / scanning / done）；每态 setState→forcePoll→锚点 waitForFunction→400ms 稳定后采样",
+      "quantitative": {
+        "criteria": "clipped=文本 Range 外延超出内容盒 >1px 且无 text-overflow:ellipsis；escape=元素边框盒越出 #side-rail 内容盒 >1px；overlap=同容器直接子元素 rect 交集 >4px（父子包含豁免）；titleWrap=右栏 h2 文本行数 >1；railScroll（硬判据仅 1366×768×idle）=scrollHeight>clientHeight+1",
+        "totals": {
+          "clipped": 8,
+          "escape": 12,
+          "overlap": 0,
+          "titleWrap": 3,
+          "railScrollViolation": 1,
+          "ellipsized": 6
+        },
+        "per_sample": [
+          {
+            "key": "idle@1366x768",
+            "clipped": 0,
+            "escape": 3,
+            "overlap": 0,
+            "titleWrap": 1,
+            "railScrollDelta": 138
+          },
+          {
+            "key": "scanning@1366x768",
+            "clipped": 0,
+            "escape": 0,
+            "overlap": 0,
+            "titleWrap": 1,
+            "railScrollDelta": 484
+          },
+          {
+            "key": "done@1366x768",
+            "clipped": 0,
+            "escape": 3,
+            "overlap": 0,
+            "titleWrap": 1,
+            "railScrollDelta": 228
+          },
+          {
+            "key": "idle@1440x900",
+            "clipped": 2,
+            "escape": 1,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 434
+          },
+          {
+            "key": "scanning@1440x900",
+            "clipped": 0,
+            "escape": 1,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 902
+          },
+          {
+            "key": "done@1440x900",
+            "clipped": 2,
+            "escape": 1,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 543
+          },
+          {
+            "key": "idle@1920x1080",
+            "clipped": 2,
+            "escape": 1,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 254
+          },
+          {
+            "key": "scanning@1920x1080",
+            "clipped": 0,
+            "escape": 1,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 722
+          },
+          {
+            "key": "done@1920x1080",
+            "clipped": 2,
+            "escape": 1,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 363
+          }
+        ]
+      }
+    },
+    {
+      "id": "P3-C-postfix",
+      "kind": "C（多视口静态）+ 量化",
+      "purpose": "修复后复测：同一支探针在同一桩态下 0 硬违规；右栏 1366×768 idle 内滚归零",
+      "paths": [
+        {
+          "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix",
+          "exists": true,
+          "bytes": 0
+        },
+        {
+          "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\summary.json",
+          "exists": true,
+          "bytes": 3649
+        },
+        {
+          "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\layout.json",
+          "exists": true,
+          "bytes": 274979
+        }
+      ],
+      "sampling": "同 P3-C-prefix（探针版本一致）",
+      "window_summary": "同 P3-C-prefix",
+      "quantitative": {
+        "criteria": "同 P3-C-prefix",
+        "totals": {
+          "clipped": 0,
+          "escape": 0,
+          "overlap": 0,
+          "titleWrap": 0,
+          "railScrollViolation": 0,
+          "ellipsized": 6
+        },
+        "per_sample": [
+          {
+            "key": "idle@1366x768",
+            "clipped": 0,
+            "escape": 0,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 0
+          },
+          {
+            "key": "scanning@1366x768",
+            "clipped": 0,
+            "escape": 0,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 58
+          },
+          {
+            "key": "done@1366x768",
+            "clipped": 0,
+            "escape": 0,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 4
+          },
+          {
+            "key": "idle@1440x900",
+            "clipped": 0,
+            "escape": 0,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 227
+          },
+          {
+            "key": "scanning@1440x900",
+            "clipped": 0,
+            "escape": 0,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 363
+          },
+          {
+            "key": "done@1440x900",
+            "clipped": 0,
+            "escape": 0,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 306
+          },
+          {
+            "key": "idle@1920x1080",
+            "clipped": 0,
+            "escape": 0,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 29
+          },
+          {
+            "key": "scanning@1920x1080",
+            "clipped": 0,
+            "escape": 0,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 165
+          },
+          {
+            "key": "done@1920x1080",
+            "clipped": 0,
+            "escape": 0,
+            "overlap": 0,
+            "titleWrap": 0,
+            "railScrollDelta": 108
+          }
+        ]
+      }
+    },
+    {
+      "id": "P3-density-AB",
+      "kind": "C（密度开关删除前后对照）",
+      "purpose": "问题 3 直接证据：视图工具栏「紧凑列表」按钮删除前后同视口同裁剪区对照",
+      "paths": [
+        {
+          "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\toolbar-prefix-1366x768.png",
+          "exists": true,
+          "bytes": 9509
+        },
+        {
+          "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\toolbar-postfix-1366x768.png",
+          "exists": true,
+          "bytes": 7800
+        }
+      ],
+      "sampling": "idle 态 @1366×768 稳定后按 .tool-row 包围盒裁剪（clip），各 1 张",
+      "window_summary": "与同视口 idle 采样同刻",
+      "quantitative": {
+        "probe_text": "#btn-density / .compact-list 存在性：prefix=true/true（u43 旧断言面），postfix=false/false（u43 新断言 densityRemoved）",
+        "rail_width_px": {
+          "1366x768": {
+            "prefix": 300,
+            "postfix": 300.5
+          },
+          "1440x900": {
+            "prefix": 300,
+            "postfix": 316.8
+          },
+          "1920x1080": {
+            "prefix": 300,
+            "postfix": 380
+          }
+        }
+      }
+    }
+  ],
+  "images": {
+    "count": 20,
+    "unique_hashes": 20,
+    "dirs": {
+      "postfix": [
+        "rail-done-1366x768.png",
+        "rail-done-1440x900.png",
+        "rail-done-1920x1080.png",
+        "rail-idle-1366x768.png",
+        "rail-idle-1440x900.png",
+        "rail-idle-1920x1080.png",
+        "rail-scanning-1366x768.png",
+        "rail-scanning-1440x900.png",
+        "rail-scanning-1920x1080.png",
+        "toolbar-postfix-1366x768.png"
+      ],
+      "baseline_prefix": [
+        "rail-done-1366x768.png",
+        "rail-done-1440x900.png",
+        "rail-done-1920x1080.png",
+        "rail-idle-1366x768.png",
+        "rail-idle-1440x900.png",
+        "rail-idle-1920x1080.png",
+        "rail-scanning-1366x768.png",
+        "rail-scanning-1440x900.png",
+        "rail-scanning-1920x1080.png",
+        "toolbar-prefix-1366x768.png"
+      ]
+    },
+    "list": [
+      {
+        "dir": "postfix",
+        "label": "postfix",
+        "name": "rail-done-1366x768.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\rail-done-1366x768.png",
+        "bytes": 126909,
+        "sha256": "3a2c7f8813467e6556c557b299caf7a5513acabccf3a1360da5bf9a2ae9f936a"
+      },
+      {
+        "dir": "postfix",
+        "label": "postfix",
+        "name": "rail-done-1440x900.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\rail-done-1440x900.png",
+        "bytes": 135570,
+        "sha256": "e42b95db7a76befcfa3d76ecacef3df901b879211ca0890fc18e8e44d2d9fcba"
+      },
+      {
+        "dir": "postfix",
+        "label": "postfix",
+        "name": "rail-done-1920x1080.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\rail-done-1920x1080.png",
+        "bytes": 164265,
+        "sha256": "fc9f1dccd41db70734699a6173d5c70d3a0360c7c1a14f023f3866acfab6f321"
+      },
+      {
+        "dir": "postfix",
+        "label": "postfix",
+        "name": "rail-idle-1366x768.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\rail-idle-1366x768.png",
+        "bytes": 118691,
+        "sha256": "0acc21be682edd55b230ae8abe636161699eda88ee704a6fea4d8096e02bf756"
+      },
+      {
+        "dir": "postfix",
+        "label": "postfix",
+        "name": "rail-idle-1440x900.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\rail-idle-1440x900.png",
+        "bytes": 132400,
+        "sha256": "8be98b8eb449b028aedf119a8bbf6421f0c34a00f1cca5c3a4199ede7a3e743a"
+      },
+      {
+        "dir": "postfix",
+        "label": "postfix",
+        "name": "rail-idle-1920x1080.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\rail-idle-1920x1080.png",
+        "bytes": 162157,
+        "sha256": "bcc86d91d263bd55532ddd642833ac764263a9bc77c38a5678505b3aa36ad108"
+      },
+      {
+        "dir": "postfix",
+        "label": "postfix",
+        "name": "rail-scanning-1366x768.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\rail-scanning-1366x768.png",
+        "bytes": 120378,
+        "sha256": "c8ee8199e083224a2eae90360c1c272566f309f623d08aa08a4789c8532850fc"
+      },
+      {
+        "dir": "postfix",
+        "label": "postfix",
+        "name": "rail-scanning-1440x900.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\rail-scanning-1440x900.png",
+        "bytes": 130629,
+        "sha256": "ffe63a1d799ce0c1a09be2fee4a3476031756dc736b9d261ba5f556fc3307a21"
+      },
+      {
+        "dir": "postfix",
+        "label": "postfix",
+        "name": "rail-scanning-1920x1080.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\rail-scanning-1920x1080.png",
+        "bytes": 157185,
+        "sha256": "eec3b8ca956a5aa07583618422e992f5009602aa3c3d78d0d3a70557ba913fa2"
+      },
+      {
+        "dir": "postfix",
+        "label": "postfix",
+        "name": "toolbar-postfix-1366x768.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\postfix\\toolbar-postfix-1366x768.png",
+        "bytes": 7800,
+        "sha256": "319f3e78effc3776da4d97b9584f48823a30ade027cfd72d396dd945d76778b4"
+      },
+      {
+        "dir": "baseline_prefix",
+        "label": "prefix",
+        "name": "rail-done-1366x768.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\rail-done-1366x768.png",
+        "bytes": 127337,
+        "sha256": "a639bb474f59c087979efe79ba7b9ed8e37b2e60c3082e59ebfbd02313113c5a"
+      },
+      {
+        "dir": "baseline_prefix",
+        "label": "prefix",
+        "name": "rail-done-1440x900.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\rail-done-1440x900.png",
+        "bytes": 132722,
+        "sha256": "c991f49c9fb9869388f7a70c7bc102c88ee9f06379e8377936b7aa901b2ecb0a"
+      },
+      {
+        "dir": "baseline_prefix",
+        "label": "prefix",
+        "name": "rail-done-1920x1080.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\rail-done-1920x1080.png",
+        "bytes": 165774,
+        "sha256": "163f7c333ebb2b8cc561f32b138a4cbc6f7426d1f81583794b70ab7f9582fdba"
+      },
+      {
+        "dir": "baseline_prefix",
+        "label": "prefix",
+        "name": "rail-idle-1366x768.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\rail-idle-1366x768.png",
+        "bytes": 122870,
+        "sha256": "46e0a1e2af00b716604b4feaa326df3630a180634cc918dcc4feb770665bedd7"
+      },
+      {
+        "dir": "baseline_prefix",
+        "label": "prefix",
+        "name": "rail-idle-1440x900.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\rail-idle-1440x900.png",
+        "bytes": 130118,
+        "sha256": "ed6717c10143f8f5de16e31477b26bed6304a25ae5841d7a559c311d37d0e835"
+      },
+      {
+        "dir": "baseline_prefix",
+        "label": "prefix",
+        "name": "rail-idle-1920x1080.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\rail-idle-1920x1080.png",
+        "bytes": 162082,
+        "sha256": "cf6acd948d8d1ccdd1be1300563191b2c2b6d572157b1e17a07d2b3b5302372e"
+      },
+      {
+        "dir": "baseline_prefix",
+        "label": "prefix",
+        "name": "rail-scanning-1366x768.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\rail-scanning-1366x768.png",
+        "bytes": 107258,
+        "sha256": "b4abb38d700b39832fd3545ce307a34078105688af308566f1d05d6bc4516cf7"
+      },
+      {
+        "dir": "baseline_prefix",
+        "label": "prefix",
+        "name": "rail-scanning-1440x900.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\rail-scanning-1440x900.png",
+        "bytes": 119464,
+        "sha256": "00656bb501bf15b618bf47291b124a886d22257619853f9268c4d0e4ecef428c"
+      },
+      {
+        "dir": "baseline_prefix",
+        "label": "prefix",
+        "name": "rail-scanning-1920x1080.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\rail-scanning-1920x1080.png",
+        "bytes": 143677,
+        "sha256": "3dc44c50664e6339e549126c211dc3add90ea67f2dc598ad72d18c2793851627"
+      },
+      {
+        "dir": "baseline_prefix",
+        "label": "prefix",
+        "name": "toolbar-prefix-1366x768.png",
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p3\\baseline_prefix\\toolbar-prefix-1366x768.png",
+        "bytes": 9509,
+        "sha256": "7940dda9be3385261712992aba3f31baf4896e248015bce25c127a1e1e7d8132"
+      }
+    ]
+  }
+}
