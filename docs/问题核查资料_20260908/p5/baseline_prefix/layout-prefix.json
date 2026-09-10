@@ -1,0 +1,682 @@
+{
+  "meta": {
+    "label": "prefix",
+    "out": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p05_prefix",
+    "node": "v24.19.0",
+    "startedAt": "2026-09-10T13:44:24.973Z",
+    "fixtureRoot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner",
+    "snapshotDir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner\\snapshots",
+    "fixtureNow": "2026-09-08T20:00:00",
+    "injectedRoots": [
+      "S:\\",
+      "D:\\"
+    ],
+    "rootsSpec": "S:\\|D:\\",
+    "magicRoot": "D:\\",
+    "viewports": [
+      "1366x768",
+      "1440x900",
+      "1920x1080"
+    ],
+    "fixtures": {
+      "generated": false,
+      "missing": []
+    },
+    "subst": {
+      "established": true,
+      "letter": "S:",
+      "target": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_subst_target",
+      "createOut": "",
+      "probeOut": true
+    },
+    "base": "http://127.0.0.1:5102/",
+    "harnessSpawned": true,
+    "harnessState": {
+      "data_dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner",
+      "machine_guid": "3f2a1c9d-0000-4000-8000-00000000f1x7",
+      "root": "D:\\",
+      "roots_injected": [
+        "S:\\",
+        "D:\\"
+      ],
+      "roots_mode": "injected",
+      "rows": 11,
+      "snapshot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner\\snapshots\\D_20260908_170000_explicit_3f2a1c9d.snap.gz",
+      "snapshot_dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner\\snapshots"
+    },
+    "substRemoval": {
+      "removed": true,
+      "out": "",
+      "stillExists": false
+    }
+  },
+  "samples": [
+    {
+      "state": "compare-empty",
+      "vkey": "1366x768",
+      "shot": "compare-empty-1366x768.png",
+      "layout": {
+        "pageTitle": "历史对比",
+        "pageSub": "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:",
+        "visibleLegacy": [
+          "历史对比 @H1"
+        ],
+        "controls": [
+          {
+            "id": "compare-baseline",
+            "label": "基线",
+            "rect": {
+              "w": 250,
+              "h": 38
+            }
+          },
+          {
+            "id": "compare-target",
+            "label": "目标",
+            "rect": {
+              "w": 250,
+              "h": 38
+            }
+          },
+          {
+            "id": "compare-depth",
+            "label": "深度叶子（默认）1 层2 层3 层4 层5 层",
+            "rect": {
+              "w": 142,
+              "h": 27
+            }
+          },
+          {
+            "id": "compare-hide-zero",
+            "label": "隐藏零变化",
+            "rect": {
+              "w": 78,
+              "h": 19
+            }
+          },
+          {
+            "id": "btn-compare",
+            "label": "开始对比",
+            "rect": {
+              "w": 102,
+              "h": 36
+            }
+          }
+        ],
+        "headRect": {
+          "w": 1334,
+          "h": 64
+        },
+        "hasTargetInput": true,
+        "hasCurrentRow": false,
+        "currentRowText": "",
+        "hasBaselineSelect": false,
+        "baselineOptionCount": null,
+        "hasBaselineDatalist": true,
+        "statusText": "对比完成：1.03 KB → 1.03 KB，变化 0.00 B（展示变化最大的 0 条差异）；已隐藏 4 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "emptyText": "选择一份基线快照开始对比两个时间点的空间变化。",
+        "bodyScrollHeight": 768,
+        "docScrollHeight": 768,
+        "innerHeight": 768,
+        "pageScrollTop": 0
+      },
+      "judges": [
+        {
+          "name": "J1 可见文本无裸词「基线/目标」",
+          "pass": false,
+          "detail": "违规=3/4 [\"目标@compare-root-line:基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:\",\"基线@route-view:基线\",\"目标@route-view:目标\"]"
+        },
+        {
+          "name": "J1 可见文本无旧称「历史对比」（D5-5 术语统一）",
+          "pass": false,
+          "detail": "旧称命中=[\"历史对比 @H1\"]"
+        },
+        {
+          "name": "J5 1366×768 零页面滚动（body.scrollHeight ≤ innerHeight+1）",
+          "pass": true,
+          "detail": "body=768 inner=768"
+        },
+        {
+          "name": "J5 页面未发生滚动（scrollY == 0）",
+          "pass": true,
+          "detail": "scrollY=0"
+        },
+        {
+          "name": "J1 空态文案自解释（不再依赖裸词「基线」）",
+          "pass": true,
+          "detail": "emptyText=选择一份基线快照开始对比两个时间点的空间变化。"
+        },
+        {
+          "name": "J1 页头副行自解释",
+          "pass": true,
+          "detail": "pageSub=基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:"
+        },
+        {
+          "name": "D5-1 页头不再有只读「目标」输入框",
+          "pass": false,
+          "detail": "hasTargetInput=true"
+        }
+      ]
+    },
+    {
+      "state": "compare-result",
+      "vkey": "1366x768",
+      "shot": "compare-result-1366x768.png",
+      "layout": {
+        "pageTitle": "历史对比",
+        "pageSub": "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:",
+        "visibleLegacy": [
+          "历史对比 @H1"
+        ],
+        "controls": [
+          {
+            "id": "compare-baseline",
+            "label": "基线",
+            "rect": {
+              "w": 250,
+              "h": 38
+            }
+          },
+          {
+            "id": "compare-target",
+            "label": "目标",
+            "rect": {
+              "w": 250,
+              "h": 38
+            }
+          },
+          {
+            "id": "compare-depth",
+            "label": "深度叶子（默认）1 层2 层3 层4 层5 层",
+            "rect": {
+              "w": 142,
+              "h": 27
+            }
+          },
+          {
+            "id": "compare-hide-zero",
+            "label": "隐藏零变化",
+            "rect": {
+              "w": 78,
+              "h": 19
+            }
+          },
+          {
+            "id": "btn-compare",
+            "label": "开始对比",
+            "rect": {
+              "w": 102,
+              "h": 36
+            }
+          }
+        ],
+        "headRect": {
+          "w": 1334,
+          "h": 64
+        },
+        "hasTargetInput": true,
+        "hasCurrentRow": false,
+        "currentRowText": "",
+        "hasBaselineSelect": false,
+        "baselineOptionCount": null,
+        "hasBaselineDatalist": true,
+        "statusText": "对比完成：1.03 KB → 1.03 KB，变化 0.00 B（展示变化最大的 0 条差异）；已隐藏 4 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "emptyText": "选择一份基线快照开始对比两个时间点的空间变化。",
+        "bodyScrollHeight": 768,
+        "docScrollHeight": 768,
+        "innerHeight": 768,
+        "pageScrollTop": 0
+      },
+      "judges": [
+        {
+          "name": "J1 可见文本无裸词「基线/目标」",
+          "pass": false,
+          "detail": "违规=3/4 [\"目标@compare-root-line:基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:\",\"基线@route-view:基线\",\"目标@route-view:目标\"]"
+        },
+        {
+          "name": "J1 可见文本无旧称「历史对比」（D5-5 术语统一）",
+          "pass": false,
+          "detail": "旧称命中=[\"历史对比 @H1\"]"
+        },
+        {
+          "name": "J5 1366×768 零页面滚动（body.scrollHeight ≤ innerHeight+1）",
+          "pass": true,
+          "detail": "body=768 inner=768"
+        },
+        {
+          "name": "J5 页面未发生滚动（scrollY == 0）",
+          "pass": true,
+          "detail": "scrollY=0"
+        },
+        {
+          "name": "J1 有结果时摘要/状态行术语自解释",
+          "pass": true,
+          "detail": "status=对比完成：1.03 KB → 1.03 KB，变化 0.00 B（展示变化最大的 0 条差异）；已隐藏 4 条零变化；当前数据时间 2026-09-08 17:00:00"
+        },
+        {
+          "name": "D5-1 页头不再有只读「目标」输入框",
+          "pass": false,
+          "detail": "hasTargetInput=true"
+        }
+      ]
+    },
+    {
+      "state": "compare-empty",
+      "vkey": "1440x900",
+      "shot": "compare-empty-1440x900.png",
+      "layout": {
+        "pageTitle": "历史对比",
+        "pageSub": "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:",
+        "visibleLegacy": [
+          "历史对比 @H1"
+        ],
+        "controls": [
+          {
+            "id": "compare-baseline",
+            "label": "基线",
+            "rect": {
+              "w": 250,
+              "h": 38
+            }
+          },
+          {
+            "id": "compare-target",
+            "label": "目标",
+            "rect": {
+              "w": 250,
+              "h": 38
+            }
+          },
+          {
+            "id": "compare-depth",
+            "label": "深度叶子（默认）1 层2 层3 层4 层5 层",
+            "rect": {
+              "w": 142,
+              "h": 27
+            }
+          },
+          {
+            "id": "compare-hide-zero",
+            "label": "隐藏零变化",
+            "rect": {
+              "w": 78,
+              "h": 19
+            }
+          },
+          {
+            "id": "btn-compare",
+            "label": "开始对比",
+            "rect": {
+              "w": 102,
+              "h": 36
+            }
+          }
+        ],
+        "headRect": {
+          "w": 1392,
+          "h": 64
+        },
+        "hasTargetInput": true,
+        "hasCurrentRow": false,
+        "currentRowText": "",
+        "hasBaselineSelect": false,
+        "baselineOptionCount": null,
+        "hasBaselineDatalist": true,
+        "statusText": "对比完成：1.03 KB → 1.03 KB，变化 0.00 B（展示变化最大的 0 条差异）；已隐藏 4 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "emptyText": "选择一份基线快照开始对比两个时间点的空间变化。",
+        "bodyScrollHeight": 900,
+        "docScrollHeight": 900,
+        "innerHeight": 900,
+        "pageScrollTop": 0
+      },
+      "judges": [
+        {
+          "name": "J1 可见文本无裸词「基线/目标」",
+          "pass": false,
+          "detail": "违规=3/4 [\"目标@compare-root-line:基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:\",\"基线@route-view:基线\",\"目标@route-view:目标\"]"
+        },
+        {
+          "name": "J1 可见文本无旧称「历史对比」（D5-5 术语统一）",
+          "pass": false,
+          "detail": "旧称命中=[\"历史对比 @H1\"]"
+        },
+        {
+          "name": "J5 1366×768 零页面滚动（body.scrollHeight ≤ innerHeight+1）",
+          "pass": true,
+          "detail": "body=900 inner=900"
+        },
+        {
+          "name": "J5 页面未发生滚动（scrollY == 0）",
+          "pass": true,
+          "detail": "scrollY=0"
+        },
+        {
+          "name": "J1 空态文案自解释（不再依赖裸词「基线」）",
+          "pass": true,
+          "detail": "emptyText=选择一份基线快照开始对比两个时间点的空间变化。"
+        },
+        {
+          "name": "J1 页头副行自解释",
+          "pass": true,
+          "detail": "pageSub=基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:"
+        },
+        {
+          "name": "D5-1 页头不再有只读「目标」输入框",
+          "pass": false,
+          "detail": "hasTargetInput=true"
+        }
+      ]
+    },
+    {
+      "state": "compare-result",
+      "vkey": "1440x900",
+      "shot": "compare-result-1440x900.png",
+      "layout": {
+        "pageTitle": "历史对比",
+        "pageSub": "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:",
+        "visibleLegacy": [
+          "历史对比 @H1"
+        ],
+        "controls": [
+          {
+            "id": "compare-baseline",
+            "label": "基线",
+            "rect": {
+              "w": 250,
+              "h": 38
+            }
+          },
+          {
+            "id": "compare-target",
+            "label": "目标",
+            "rect": {
+              "w": 250,
+              "h": 38
+            }
+          },
+          {
+            "id": "compare-depth",
+            "label": "深度叶子（默认）1 层2 层3 层4 层5 层",
+            "rect": {
+              "w": 142,
+              "h": 27
+            }
+          },
+          {
+            "id": "compare-hide-zero",
+            "label": "隐藏零变化",
+            "rect": {
+              "w": 78,
+              "h": 19
+            }
+          },
+          {
+            "id": "btn-compare",
+            "label": "开始对比",
+            "rect": {
+              "w": 102,
+              "h": 36
+            }
+          }
+        ],
+        "headRect": {
+          "w": 1392,
+          "h": 64
+        },
+        "hasTargetInput": true,
+        "hasCurrentRow": false,
+        "currentRowText": "",
+        "hasBaselineSelect": false,
+        "baselineOptionCount": null,
+        "hasBaselineDatalist": true,
+        "statusText": "对比完成：1.03 KB → 1.03 KB，变化 0.00 B（展示变化最大的 0 条差异）；已隐藏 4 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "emptyText": "选择一份基线快照开始对比两个时间点的空间变化。",
+        "bodyScrollHeight": 900,
+        "docScrollHeight": 900,
+        "innerHeight": 900,
+        "pageScrollTop": 0
+      },
+      "judges": [
+        {
+          "name": "J1 可见文本无裸词「基线/目标」",
+          "pass": false,
+          "detail": "违规=3/4 [\"目标@compare-root-line:基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:\",\"基线@route-view:基线\",\"目标@route-view:目标\"]"
+        },
+        {
+          "name": "J1 可见文本无旧称「历史对比」（D5-5 术语统一）",
+          "pass": false,
+          "detail": "旧称命中=[\"历史对比 @H1\"]"
+        },
+        {
+          "name": "J5 1366×768 零页面滚动（body.scrollHeight ≤ innerHeight+1）",
+          "pass": true,
+          "detail": "body=900 inner=900"
+        },
+        {
+          "name": "J5 页面未发生滚动（scrollY == 0）",
+          "pass": true,
+          "detail": "scrollY=0"
+        },
+        {
+          "name": "J1 有结果时摘要/状态行术语自解释",
+          "pass": true,
+          "detail": "status=对比完成：1.03 KB → 1.03 KB，变化 0.00 B（展示变化最大的 0 条差异）；已隐藏 4 条零变化；当前数据时间 2026-09-08 17:00:00"
+        },
+        {
+          "name": "D5-1 页头不再有只读「目标」输入框",
+          "pass": false,
+          "detail": "hasTargetInput=true"
+        }
+      ]
+    },
+    {
+      "state": "compare-empty",
+      "vkey": "1920x1080",
+      "shot": "compare-empty-1920x1080.png",
+      "layout": {
+        "pageTitle": "历史对比",
+        "pageSub": "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:",
+        "visibleLegacy": [
+          "历史对比 @H1"
+        ],
+        "controls": [
+          {
+            "id": "compare-baseline",
+            "label": "基线",
+            "rect": {
+              "w": 250,
+              "h": 38
+            }
+          },
+          {
+            "id": "compare-target",
+            "label": "目标",
+            "rect": {
+              "w": 250,
+              "h": 38
+            }
+          },
+          {
+            "id": "compare-depth",
+            "label": "深度叶子（默认）1 层2 层3 层4 层5 层",
+            "rect": {
+              "w": 142,
+              "h": 27
+            }
+          },
+          {
+            "id": "compare-hide-zero",
+            "label": "隐藏零变化",
+            "rect": {
+              "w": 78,
+              "h": 19
+            }
+          },
+          {
+            "id": "btn-compare",
+            "label": "开始对比",
+            "rect": {
+              "w": 102,
+              "h": 36
+            }
+          }
+        ],
+        "headRect": {
+          "w": 1872,
+          "h": 64
+        },
+        "hasTargetInput": true,
+        "hasCurrentRow": false,
+        "currentRowText": "",
+        "hasBaselineSelect": false,
+        "baselineOptionCount": null,
+        "hasBaselineDatalist": true,
+        "statusText": "对比完成：1.03 KB → 1.03 KB，变化 0.00 B（展示变化最大的 0 条差异）；已隐藏 4 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "emptyText": "选择一份基线快照开始对比两个时间点的空间变化。",
+        "bodyScrollHeight": 1080,
+        "docScrollHeight": 1080,
+        "innerHeight": 1080,
+        "pageScrollTop": 0
+      },
+      "judges": [
+        {
+          "name": "J1 可见文本无裸词「基线/目标」",
+          "pass": false,
+          "detail": "违规=3/4 [\"目标@compare-root-line:基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:\",\"基线@route-view:基线\",\"目标@route-view:目标\"]"
+        },
+        {
+          "name": "J1 可见文本无旧称「历史对比」（D5-5 术语统一）",
+          "pass": false,
+          "detail": "旧称命中=[\"历史对比 @H1\"]"
+        },
+        {
+          "name": "J5 1366×768 零页面滚动（body.scrollHeight ≤ innerHeight+1）",
+          "pass": true,
+          "detail": "body=1080 inner=1080"
+        },
+        {
+          "name": "J5 页面未发生滚动（scrollY == 0）",
+          "pass": true,
+          "detail": "scrollY=0"
+        },
+        {
+          "name": "J1 空态文案自解释（不再依赖裸词「基线」）",
+          "pass": true,
+          "detail": "emptyText=选择一份基线快照开始对比两个时间点的空间变化。"
+        },
+        {
+          "name": "J1 页头副行自解释",
+          "pass": true,
+          "detail": "pageSub=基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:"
+        },
+        {
+          "name": "D5-1 页头不再有只读「目标」输入框",
+          "pass": false,
+          "detail": "hasTargetInput=true"
+        }
+      ]
+    },
+    {
+      "state": "compare-result",
+      "vkey": "1920x1080",
+      "shot": "compare-result-1920x1080.png",
+      "layout": {
+        "pageTitle": "历史对比",
+        "pageSub": "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:",
+        "visibleLegacy": [
+          "历史对比 @H1"
+        ],
+        "controls": [
+          {
+            "id": "compare-baseline",
+            "label": "基线",
+            "rect": {
+              "w": 250,
+              "h": 38
+            }
+          },
+          {
+            "id": "compare-target",
+            "label": "目标",
+            "rect": {
+              "w": 250,
+              "h": 38
+            }
+          },
+          {
+            "id": "compare-depth",
+            "label": "深度叶子（默认）1 层2 层3 层4 层5 层",
+            "rect": {
+              "w": 142,
+              "h": 27
+            }
+          },
+          {
+            "id": "compare-hide-zero",
+            "label": "隐藏零变化",
+            "rect": {
+              "w": 78,
+              "h": 19
+            }
+          },
+          {
+            "id": "btn-compare",
+            "label": "开始对比",
+            "rect": {
+              "w": 102,
+              "h": 36
+            }
+          }
+        ],
+        "headRect": {
+          "w": 1872,
+          "h": 64
+        },
+        "hasTargetInput": true,
+        "hasCurrentRow": false,
+        "currentRowText": "",
+        "hasBaselineSelect": false,
+        "baselineOptionCount": null,
+        "hasBaselineDatalist": true,
+        "statusText": "对比完成：1.03 KB → 1.03 KB，变化 0.00 B（展示变化最大的 0 条差异）；已隐藏 4 条零变化；当前数据时间 2026-09-08 17:00:00",
+        "emptyText": "选择一份基线快照开始对比两个时间点的空间变化。",
+        "bodyScrollHeight": 1080,
+        "docScrollHeight": 1080,
+        "innerHeight": 1080,
+        "pageScrollTop": 0
+      },
+      "judges": [
+        {
+          "name": "J1 可见文本无裸词「基线/目标」",
+          "pass": false,
+          "detail": "违规=3/4 [\"目标@compare-root-line:基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:\",\"基线@route-view:基线\",\"目标@route-view:目标\"]"
+        },
+        {
+          "name": "J1 可见文本无旧称「历史对比」（D5-5 术语统一）",
+          "pass": false,
+          "detail": "旧称命中=[\"历史对比 @H1\"]"
+        },
+        {
+          "name": "J5 1366×768 零页面滚动（body.scrollHeight ≤ innerHeight+1）",
+          "pass": true,
+          "detail": "body=1080 inner=1080"
+        },
+        {
+          "name": "J5 页面未发生滚动（scrollY == 0）",
+          "pass": true,
+          "detail": "scrollY=0"
+        },
+        {
+          "name": "J1 有结果时摘要/状态行术语自解释",
+          "pass": true,
+          "detail": "status=对比完成：1.03 KB → 1.03 KB，变化 0.00 B（展示变化最大的 0 条差异）；已隐藏 4 条零变化；当前数据时间 2026-09-08 17:00:00"
+        },
+        {
+          "name": "D5-1 页头不再有只读「目标」输入框",
+          "pass": false,
+          "detail": "hasTargetInput=true"
+        }
+      ]
+    }
+  ]
+}
