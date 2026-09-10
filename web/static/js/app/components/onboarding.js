@@ -115,13 +115,19 @@ export async function renderRootPicker() {
 }
 
 /* 「跳过选盘」：清空本次选择、不写设置；与既有默认逻辑等价（首开不阻塞）。
-   仅切换本步骤的提示态——引导弹层**不关闭**（用户还要看后续步骤）。 */
+   仅切换本步骤的提示态——引导弹层**不关闭**（用户还要看后续步骤）。
+   ⚠️ 提示态必须**可逆**：给出「重新选择盘」入口。实测缺陷（第一版）：只把 options
+   换成提示文字，用户一旦点了跳过就再也选不了盘，只能关掉引导重开。 */
 export function onSkipRoot() {
     picked = [];
     const host = $("onboarding-roots");
     if (host) {
-        host.innerHTML = '<span class="onboarding-roots-hint">已跳过：将按上次浏览的位置或第一个可用盘分析。' +
-            '可在工作台工具栏随时改盘。</span>';
+        host.innerHTML =
+            '<span class="onboarding-roots-hint">已跳过：将按上次浏览的位置或第一个可用盘分析。' +
+            '可在工作台工具栏随时改盘。</span>' +
+            '<button id="btn-onboarding-pick-again" class="btn btn-sm btn-ghost" type="button">重新选择盘</button>';
+        const again = $("btn-onboarding-pick-again");
+        if (again) again.addEventListener("click", () => { renderRootPicker(); });
     }
 }
 

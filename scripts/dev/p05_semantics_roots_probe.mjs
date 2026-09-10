@@ -631,35 +631,59 @@ function classifyHit(h) {
                 !!skipWorks && skipWorks.open === true && skipWorks.skippedHint === true,
                 "skipWorks=" + JSON.stringify(skipWorks));
 
-            /* ---- D5-3 行为判据：点选一个盘 → 选中态 + 经 /api/settings 写 last_roots +
-                    立即回灌工作台浏览根（点「开始全量扫描」扫的就是它） ---- */
-            const picksNow = onb.selectOptions.length ? onb.selectOptions.map((o) => o.value) : onb.rootOptions.map((o) => o.root);
-            const pickTarget = picksNow.indexOf(READY_ROOT) !== -1 ? READY_ROOT : (picksNow[0] || "");
+            /* ---- D5-3 行为判据：跳过 → 「重新选择盘」恢复 → 点选 → 选中态 +
+                    经 /api/settings 写 last_roots + 立即回灌工作台浏览根 ----
+                    （先跳过再选，正好覆盖「跳过可逆」这条实测缺陷的回归面） ---- */
+            const recover = await page.evaluate(() => {
+                const btn = document.getElementById("btn-onboarding-pick-again");
+                if (!btn) return { found: false };
+                btn.click();
+                return { found: true };
+            }).catch((e) => ({ found: false, error: String(e) }));
+            await wait(600);
+            const afterRecover = await page.evaluate(() => {
+                const btns = Array.from(document.querySelectorAll("#onboarding-roots .onboarding-root"));
+                return { count: btns.length, roots: btns.map((b) => b.getAttribute("data-root")) };
+            });
+            judge(obJudges, "D5-3 「跳过选盘」可逆：点「重新选择盘」后盘符按钮恢复",
+                recover.found === true && afterRecover.count > 0,
+                "recover=" + JSON.stringify(recover) + " after=" + JSON.stringify(afterRecover));
+
+            const pickTarget = afterRecover.roots.indexOf(READY_ROOT) !== -1
+                ? READY_ROOT : (afterRecover.roots[0] || "");
             let pickResult = null;
             if (pickTarget) {
                 const postsBefore = settingsPosts.length;
+                /* 用 DOM 属性精确匹配（CSS 属性选择器里的反斜杠是标识符转义，不是字面量——
+                   直接拼 "S:\\" 会变成无匹配的选择器）。同时先确认按钮存在，避免
+                   「选择器写错」被误读成「功能缺失」。 */
                 const clicked = await page.evaluate((root) => {
-                    const btn = document.querySelector('#onboarding-roots .onboarding-root[data-root="' + root.replace(/\\/g, "\\\\") + '"]');
-                    if (!btn) return false;
+                    const btns = Array.from(document.querySelectorAll("#onboarding-roots .onboarding-root"));
+                    const btn = btns.find((b) => b.getAttribute("data-root") === root);
+                    if (!btn) return { found: false, all: btns.map((b) => b.getAttribute("data-root")) };
                     btn.click();
-                    return true;
-                }, pickTarget).catch(() => false);
-                await wait(700);
+                    return { found: true };
+                }, pickTarget).catch((e) => ({ found: false, error: String(e) }));
+                await wait(800);
                 pickResult = await page.evaluate((root) => {
-                    const btn = document.querySelector('#onboarding-roots .onboarding-root[data-root="' + root.replace(/\\/g, "\\\\") + '"]');
+                    const btns = Array.from(document.querySelectorAll("#onboarding-roots .onboarding-root"));
+                    const btn = btns.find((b) => b.getAttribute("data-root") === root);
                     const input = document.getElementById("browse-root");
                     return {
-                        clicked: !!btn && btn.classList.contains("is-on"),
+                        isOn: !!btn && btn.classList.contains("is-on"),
                         ariaPressed: btn ? btn.getAttribute("aria-pressed") : null,
                         browseRoot: input ? input.value : null,
                     };
                 }, pickTarget);
-                pickResult.postClicked = clicked;
+                pickResult.btnFound = clicked && clicked.found === true;
+                pickResult.btnsSeen = clicked && clicked.all ? clicked.all : null;
                 pickResult.settingsPostDelta = settingsPosts.length - postsBefore;
+                pickResult.postsTotal = settingsPosts.length;
                 pickResult.lastPost = settingsPosts[settingsPosts.length - 1] || "";
             }
             judge(obJudges, "D5-3 点选盘符 → 选中态（is-on + aria-pressed）",
-                !!pickResult && pickResult.clicked === true && pickResult.ariaPressed === "true",
+                !!pickResult && pickResult.btnFound === true && pickResult.isOn === true &&
+                pickResult.ariaPressed === "true",
                 JSON.stringify(pickResult));
             judge(obJudges, "D5-3 选盘经 POST /api/settings 写入 last_roots",
                 !!pickResult && pickResult.settingsPostDelta >= 1 &&
@@ -667,7 +691,8 @@ function classifyHit(h) {
                 "delta=" + (pickResult && pickResult.settingsPostDelta) + " post=" + (pickResult && pickResult.lastPost));
             judge(obJudges, "D5-3 选盘立即回灌工作台浏览根（#browse-root == 选中盘）",
                 !!pickResult && pickResult.browseRoot === pickTarget,
-                "browseRoot=" + (pickResult && pickResult.browseRoot) + " 期望=" + pickTarget);
+                "browseRoot=" + (pickResult && pickResult.browseRoot) + " 期望=" + pickTarget +
+                " 可点盘=" + JSON.stringify(afterRecover.roots));
 
             RESULT.onboarding.push({
                 vkey, measure: onb, judges: obJudges,
