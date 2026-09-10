@@ -2,8 +2,9 @@
   "state": "skipped",
   "viewport": "1366x768",
   "base": "http://127.0.0.1:5000/",
-  "captured_at": "2026-09-08T17:02:54.560Z",
+  "captured_at": "2026-09-10T04:31:30.513Z",
   "absolute_png": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p1\\c_class_1366\\skipped-1366x768.png",
+  "absolute_png_full": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p1\\c_class_1366\\skipped-1366x768-full.png",
   "clip": {
     "x": 1050,
     "y": 343,
@@ -11,28 +12,83 @@
     "height": 548
   },
   "quant": {
-    "areaClass": "notice notice-warn",
-    "areaText": "已跳过自动保存：该根今天已自动保存过。可点「仍要保存（强制）」手动保存。",
-    "areaOverflow": true,
-    "areaRect": {
-      "x": 1063,
-      "y": 564,
-      "w": 274,
-      "h": 96
+    "area": {
+      "textPreview": "已跳过自动保存：该根今天已自动保存过。可点「仍要保存（强制）」手动保存。",
+      "title": null,
+      "scroll": {
+        "scrollWidth": 269,
+        "clientWidth": 269,
+        "scrollHeight": 94,
+        "clientHeight": 94
+      },
+      "rect": {
+        "x": 1063,
+        "y": 564,
+        "w": 274,
+        "h": 96
+      }
+    },
+    "card": {
+      "scroll": {
+        "scrollWidth": 298,
+        "clientWidth": 298,
+        "scrollHeight": 486,
+        "clientHeight": 486
+      },
+      "rect": {
+        "x": 1050,
+        "y": 351,
+        "w": 300,
+        "h": 488
+      }
+    },
+    "rail": {
+      "scroll": {
+        "scrollWidth": 319,
+        "clientWidth": 300,
+        "scrollHeight": 963,
+        "clientHeight": 656
+      },
+      "rect": {
+        "x": 1050,
+        "y": 70,
+        "w": 300,
+        "h": 656
+      }
+    },
+    "page": {
+      "scrollWidth": 1366,
+      "clientWidth": 1366,
+      "scrollHeight": 768,
+      "clientHeight": 768
     },
     "saveDisabled": false,
-    "cardRect": {
-      "x": 1050,
-      "y": 351,
-      "w": 300,
-      "h": 488
-    },
     "statusText": "全量扫描已完成，结果就绪，已跳过自动保存"
   },
+  "semantics": {
+    "areaOverflow_v2": "areaHorizOverflowOk：横向判据 scrollWidth≤clientWidth+1（文本无硬切，与 4.3-5 同口径）；旧版布尔 areaOverflow:'true' 即该判据通过，现拆为两轴数值给出",
+    "areaHorizOverflowOk": true,
+    "areaVertOverflowNote": {
+      "scrollHeight": 94,
+      "clientHeight": 94,
+      "verticalOverflow": false
+    },
+    "cardHorizOverflowOk": true,
+    "railHorizOverflowOk": false,
+    "pageHorizOverflowOk": true,
+    "pageVertOverflowNote": {
+      "scrollHeight": 768,
+      "clientHeight": 768,
+      "verticalOverflow": false
+    }
+  },
+  "failed_full_reason": null,
+  "failed_title_attr": null,
   "checks": {
     "class=notice-warn": true,
     "text含「已跳过自动保存」": true,
-    "原因文案不截断(scrollWidth≤clientWidth+1)": true,
+    "结果区无横向溢出(area scrollWidth≤clientWidth+1)": true,
+    "整页无横向滚动(documentElement scrollWidth≤clientWidth+1)": true,
     "保存按钮disabled=false": true,
     "console/pageerror 0(favicon 404 除外)": true
   },

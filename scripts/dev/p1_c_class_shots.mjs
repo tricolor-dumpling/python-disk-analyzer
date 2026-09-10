@@ -1,13 +1,26 @@
 /* ============================================================
-   P1（问题1）· C 类证据探针：扫描卡自动保存三态截图（真实服务，非桩态）
+   P1（问题1）· C 类证据探针 v2：扫描卡自动保存三态截图 + 数值化溢出 + 完整错误原因
    - 三态：saved（已自动保存）/ skipped（已跳过+原因可见）/ failed（失败+手动入口）
-   - 视口：--viewport 1366x768 | 1920x1080（各状态各 1 张）
-   - 判据（可脚本化，写入 meta.json）：
-       · #autosave-result 可见且类名含期望态 class；
-       · 文案不截断：scrollWidth ≤ clientWidth+1（4.3-5）；
-       · 保存按钮 disabled 与态匹配（saved→禁用；skipped/failed→可用）；
-       · console.error/pageerror 0（favicon 404 噪音除外——本机 P0 挂账）。
-   - 输出：--out/<state>-<w>x<h>.png + meta.json（量化数据 + 绝对路径）。
+   - 视口：--viewport 1366x768 | 1920x1080（各状态各 1 张裁剪图 + 1 张整页图）
+   - v2 补强（Luna 判读反馈，变更集6）：
+       1. 整页 viewport 截图（非 clip）：`<state>-<w>x<h>-full.png`，判整页滚动容器无溢出；
+       2. meta 数值化：结果区/卡片/右栏各自
+          scrollWidth/clientWidth/scrollHeight/clientHeight + getBoundingClientRect()，
+          以及整页 document.documentElement.scrollWidth/clientWidth（横向）与
+          scrollHeight/clientHeight（纵向）；
+       3. `areaOverflow` 语义澄清 → 拆为 `areaHorizOverflowOk`（横向：scrollWidth ≤
+          clientWidth+1，即无横向裁剪/文本硬切）与 `areaVertOverflowNote`
+          （纵向：scrollHeight vs clientHeight，.notice 随内容撑开，静态文案 case
+          通常 scrollHeight≤clientHeight；若超标需说明）；
+       4. failed 态：完整错误文本（area.title=完整异常串）写入 meta
+          `failed_full_reason`/`failed_title_attr`；悬停提示即 title 属性（headless
+          Chromium 不渲染原生 tooltip，故以 title 属性值 + 摘要对照为完整原因证据）。
+   - 判据（可脚本化）：
+       · 三态 class/文案关键字/保存按钮 disabled/console 0（favicon 404 除外）；
+       · 结果区无横向溢出（scrollWidth ≤ clientWidth+1）；
+       · 整页 documentElement.scrollWidth ≤ clientWidth（无整页横向滚动）。
+   - 输出：--out/<state>-<w>x<h>.png（裁剪） + --out/<state>-<w>x<h>-full.png（整页）
+            + meta_<state>_<w>x<h>.json（数值 + 判据 + console）。
    - 运行：node scripts/dev/p1_c_class_shots.mjs --base http://127.0.0.1:5000/ --out <abs> --state saved --viewport 1366x768
    ============================================================ */
 
@@ -60,60 +73,115 @@ async function main() {
     }
     await wait(800); // 渲染稳定
 
-    // 量化：文案不截断 + 按钮态 + 类名
-    const m = await page.evaluate((expCls) => {
+    // v2 数值化采集：结果区/卡片/右栏 scroll 尺寸 + rect + 整页 documentElement
+    const m = await page.evaluate(() => {
         const area = document.getElementById("autosave-result");
         const saveBtn = document.getElementById("btn-save");
         const card = document.querySelector('.card[aria-label="全量扫描"]');
-        const rect = (el) => {
+        const rail = document.getElementById("side-rail");
+        const de = document.documentElement;
+        const scrollOf = (el) => (el ? {
+            scrollWidth: el.scrollWidth, clientWidth: el.clientWidth,
+            scrollHeight: el.scrollHeight, clientHeight: el.clientHeight,
+        } : null);
+        const rectOf = (el) => {
+            if (!el) return null;
             const r = el.getBoundingClientRect();
             return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
         };
         return {
             areaClass: area ? area.className : null,
             areaText: area ? area.textContent : null,
-            areaOverflow: area ? (area.scrollWidth <= area.clientWidth + 1) : null,
-            areaRect: area ? rect(area) : null,
+            areaTitle: area ? (area.getAttribute("title") || "") : "",
+            areaScroll: scrollOf(area),
+            areaRect: rectOf(area),
+            cardScroll: scrollOf(card),
+            cardRect: rectOf(card),
+            railScroll: scrollOf(rail),
+            railRect: rectOf(rail),
+            pageScroll: { scrollWidth: de.scrollWidth, clientWidth: de.clientWidth, scrollHeight: de.scrollHeight, clientHeight: de.clientHeight },
             saveDisabled: saveBtn ? saveBtn.disabled : null,
-            cardRect: card ? rect(card) : null,
             statusText: (document.getElementById("fullscan-status-text") || {}).textContent || "",
         };
-    }, exp.cls);
+    });
 
-    // 截图：整卡（右栏扫描卡，宽视口可容）——clip 用卡 rect（页面顶部固定）
+    // 语义判定（v2：明确两轴）
+    //  横向：scrollWidth ≤ clientWidth+1 → 无横向溢出（文本无硬切，4.3-5 同口径）
+    const areaHorizOk = m.areaScroll ? m.areaScroll.scrollWidth <= m.areaScroll.clientWidth + 1 : null;
+    const cardHorizOk = m.cardScroll ? m.cardScroll.scrollWidth <= m.cardScroll.clientWidth + 1 : null;
+    const railHorizOk = m.railScroll ? m.railScroll.scrollWidth <= m.railScroll.clientWidth + 1 : null;
+    const pageHorizOk = m.pageScroll.scrollWidth <= m.pageScroll.clientWidth + 1; // 整页无横向滚动
+    //  纵向：记录 scrollHeight vs clientHeight（.notice 随内容撑开，静态文案预期 ≤；
+    //        右栏面板内滚是既有规格允许——只记录不判失败）
+    const areaVertNote = m.areaScroll ? { scrollHeight: m.areaScroll.scrollHeight, clientHeight: m.areaScroll.clientHeight, verticalOverflow: m.areaScroll.scrollHeight > m.areaScroll.clientHeight + 1 } : null;
+    const pageVertNote = { scrollHeight: m.pageScroll.scrollHeight, clientHeight: m.pageScroll.clientHeight, verticalOverflow: m.pageScroll.scrollHeight > m.pageScroll.clientHeight + 1 };
+
+    // 截图：裁剪图（结果卡）保留为高分辨率补充
     const clip = m.cardRect ? { x: m.cardRect.x, y: Math.max(0, m.cardRect.y - 8), width: m.cardRect.w, height: m.cardRect.h + 60 } : undefined;
     const png = path.join(OUT, STATE + "-" + W + "x" + H + ".png");
     await page.screenshot({ path: png, clip }).catch((e) => console.log("shot err", e.message));
+    // 整页 viewport 截图（非 clip，fullPage:false）：证明整页无横向/纵向溢出
+    const pngFull = path.join(OUT, STATE + "-" + W + "x" + H + "-full.png");
+    await page.screenshot({ path: pngFull }).catch((e) => console.log("shot full err", e.message));
 
     const passClass = m.areaClass && m.areaClass.indexOf(exp.cls) !== -1;
     const passText = m.areaText && m.areaText.indexOf(exp.keyword) !== -1;
-    const passOverflow = m.areaOverflow === true;
+    const passHoriz = areaHorizOk === true;
     const passBtn = m.saveDisabled === exp.saveDisabled;
     const passConsole = errs.length === 0;
+    const passPageHoriz = pageHorizOk === true;
+
+    const quant = {
+        area: { textPreview: (m.areaText || "").slice(0, 60), title: m.areaTitle || null, scroll: m.areaScroll, rect: m.areaRect },
+        card: { scroll: m.cardScroll, rect: m.cardRect },
+        rail: { scroll: m.railScroll, rect: m.railRect },
+        page: m.pageScroll,
+        saveDisabled: m.saveDisabled,
+        statusText: m.statusText,
+    };
+    // 判据与语义结论（v2 明确）
+    const checks = {
+        ["class=" + exp.cls]: passClass,
+        ["text含「" + exp.keyword + "」"]: passText,
+        "结果区无横向溢出(area scrollWidth≤clientWidth+1)": passHoriz,
+        "整页无横向滚动(documentElement scrollWidth≤clientWidth+1)": passPageHoriz,
+        ["保存按钮disabled=" + exp.saveDisabled]: passBtn,
+        "console/pageerror 0(favicon 404 除外)": passConsole,
+    };
+    // 语义注记（驳回 Luna 对原 areaOverflow 的歧义）
+    const semantics = {
+        areaOverflow_v2: "areaHorizOverflowOk：横向判据 scrollWidth≤clientWidth+1（文本无硬切，与 4.3-5 同口径）；旧版布尔 areaOverflow:'true' 即该判据通过，现拆为两轴数值给出",
+        areaHorizOverflowOk: areaHorizOk,
+        areaVertOverflowNote: areaVertNote,
+        cardHorizOverflowOk: cardHorizOk,
+        railHorizOverflowOk: railHorizOk,
+        pageHorizOverflowOk: pageHorizOk,
+        pageVertOverflowNote: pageVertNote,
+    };
 
     const meta = {
         state: STATE, viewport: VW, base: BASE,
         captured_at: new Date().toISOString(),
         absolute_png: path.resolve(png),
+        absolute_png_full: path.resolve(pngFull),
         clip,
-        quant: m,
-        checks: {
-            ["class=" + exp.cls]: passClass,
-            ["text含「" + exp.keyword + "」"]: passText,
-            "原因文案不截断(scrollWidth≤clientWidth+1)": passOverflow,
-            ["保存按钮disabled=" + exp.saveDisabled]: passBtn,
-            "console/pageerror 0(favicon 404 除外)": passConsole,
-        },
+        quant,
+        semantics,
+        failed_full_reason: (STATE === "failed") ? (m.areaTitle || m.areaText || "") : null,
+        failed_title_attr: (STATE === "failed") ? (m.areaTitle || "") : null,
+        checks,
         consoleErrors: errs,
     };
     fs.writeFileSync(path.join(OUT, "meta_" + STATE + "_" + W + "x" + H + ".json"), JSON.stringify(meta, null, 2), "utf-8");
-    console.log("== P1 C 类 " + STATE + " " + VW + " ==");
-    console.log("png=" + meta.absolute_png);
+    console.log("== P1 C 类 v2 " + STATE + " " + VW + " ==");
+    console.log("clip=" + meta.absolute_png);
+    console.log("full=" + meta.absolute_png_full);
     console.log(JSON.stringify(meta.checks, null, 2));
-    console.log("areaText=" + (m.areaText || "").slice(0, 80));
+    console.log("areas=scroll:" + JSON.stringify(m.areaScroll) + " page:" + JSON.stringify(m.pageScroll));
+    console.log("failed_full_reason=" + (meta.failed_full_reason || "").slice(0, 120));
     console.log("console errors=" + JSON.stringify(errs));
     await browser.close();
-    process.exit((passClass && passText && passOverflow && passBtn) ? 0 : 1);
+    process.exit((passClass && passText && passHoriz && passBtn && passPageHoriz) ? 0 : 1);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

@@ -2,8 +2,9 @@
   "state": "saved",
   "viewport": "1920x1080",
   "base": "http://127.0.0.1:5000/",
-  "captured_at": "2026-09-08T17:01:55.101Z",
+  "captured_at": "2026-09-10T04:30:28.470Z",
   "absolute_png": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p1\\c_class_1920\\saved-1920x1080.png",
+  "absolute_png_full": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p1\\c_class_1920\\saved-1920x1080-full.png",
   "clip": {
     "x": 1596,
     "y": 509,
@@ -11,28 +12,83 @@
     "height": 466
   },
   "quant": {
-    "areaClass": "notice notice-success",
-    "areaText": "已自动保存快照（每根每日自动 1 份，滚动保留 10 份）",
-    "areaOverflow": true,
-    "areaRect": {
-      "x": 1613,
-      "y": 826,
-      "w": 266,
-      "h": 72
+    "area": {
+      "textPreview": "已自动保存快照（每根每日自动 1 份，滚动保留 10 份）",
+      "title": null,
+      "scroll": {
+        "scrollWidth": 261,
+        "clientWidth": 261,
+        "scrollHeight": 70,
+        "clientHeight": 70
+      },
+      "rect": {
+        "x": 1613,
+        "y": 826,
+        "w": 266,
+        "h": 72
+      }
+    },
+    "card": {
+      "scroll": {
+        "scrollWidth": 298,
+        "clientWidth": 298,
+        "scrollHeight": 404,
+        "clientHeight": 404
+      },
+      "rect": {
+        "x": 1596,
+        "y": 517,
+        "w": 300,
+        "h": 406
+      }
+    },
+    "rail": {
+      "scroll": {
+        "scrollWidth": 302,
+        "clientWidth": 300,
+        "scrollHeight": 1211,
+        "clientHeight": 964
+      },
+      "rect": {
+        "x": 1596,
+        "y": 72,
+        "w": 300,
+        "h": 964
+      }
+    },
+    "page": {
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "scrollHeight": 1080,
+      "clientHeight": 1080
     },
     "saveDisabled": true,
-    "cardRect": {
-      "x": 1596,
-      "y": 517,
-      "w": 300,
-      "h": 406
-    },
     "statusText": "全量扫描已完成，结果就绪，已自动保存"
   },
+  "semantics": {
+    "areaOverflow_v2": "areaHorizOverflowOk：横向判据 scrollWidth≤clientWidth+1（文本无硬切，与 4.3-5 同口径）；旧版布尔 areaOverflow:'true' 即该判据通过，现拆为两轴数值给出",
+    "areaHorizOverflowOk": true,
+    "areaVertOverflowNote": {
+      "scrollHeight": 70,
+      "clientHeight": 70,
+      "verticalOverflow": false
+    },
+    "cardHorizOverflowOk": true,
+    "railHorizOverflowOk": false,
+    "pageHorizOverflowOk": true,
+    "pageVertOverflowNote": {
+      "scrollHeight": 1080,
+      "clientHeight": 1080,
+      "verticalOverflow": false
+    }
+  },
+  "failed_full_reason": null,
+  "failed_title_attr": null,
   "checks": {
     "class=notice-success": true,
     "text含「已自动保存」": true,
-    "原因文案不截断(scrollWidth≤clientWidth+1)": true,
+    "结果区无横向溢出(area scrollWidth≤clientWidth+1)": true,
+    "整页无横向滚动(documentElement scrollWidth≤clientWidth+1)": true,
     "保存按钮disabled=true": true,
     "console/pageerror 0(favicon 404 除外)": true
   },
