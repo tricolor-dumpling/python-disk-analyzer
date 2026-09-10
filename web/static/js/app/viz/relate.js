@@ -7,8 +7,8 @@
      供键盘 ←/Backspace 收起与树形态渲染。
    - 渲染：宿主 = #relate-tree（table-wrap 内独立容器，与 #dir-body 表格
      互斥显示——relate 激活时表格 hidden、树显示；切走时树 hidden）。
-   - 虚拟化：展开后可见行 > 200 启用（缓冲上下各 5 行；行高 cozy 36 /
-     compact 26，与 list.js ROW_HEIGHT 同口径——u24 断言面一致）。
+   - 虚拟化：展开后可见行 > 200 启用（缓冲上下各 5 行；行高固定 36px，
+     与 list.js ROW_HEIGHT 同口径——u24 断言面一致）。
    - 键盘可达（U4.1 矩阵）：容器 tabindex=0；↑/↓ 移动焦点行；
      → / Enter 展开（目录 → browsePath 下钻）；← 收起/返回上级；
      Home/End 跳首尾。行内按钮（下钻/定位/复制）Enter 交按钮。
@@ -22,22 +22,21 @@
 import { $, esc, humanBytes } from "../api.js";
 import { ICONS } from "../icons.js";
 
-/* ---- 虚拟滚动参数（与 list.js 同口径：>200 启用、缓冲 5、行高 cozy 36/compact 26） ---- */
+/* ---- 虚拟滚动参数（与 list.js 同口径：>200 启用、缓冲 5、行高固定 36px。
+       P3/D3-6：密度开关删除后行高唯一，故为常量而非 cozy/compact 映射表） ---- */
 const VIRTUAL_THRESHOLD = 200;
 const VIRTUAL_BUFFER = 5;
-const ROW_HEIGHT = { cozy: 36, compact: 26 };
+const ROW_HEIGHT = 36;
 
 /* 展开栈（模块级，路由切换不丢：path 数组 = 已展开的目录链，末位为当前层）。
    browsePath 下钻/返回上级后由 workspace 通知本模块重算（setPathStack）。 */
 let pathStack = [];
 let lastData = null;
-let density = "cozy";
 let focusPath = null; // 键盘焦点行（path）
 
-/* 当前密度读取（workspace 维护 APP_STATE.view.density；本模块只读镜像，
-   由 renderRelateTree 每次传入——避免反向 import workspace 成环） */
+/* 行高（P3/D3-6：固定 36px；虚拟窗口按此计算） */
 function rowHeight() {
-    return density === "compact" ? ROW_HEIGHT.compact : ROW_HEIGHT.cozy;
+    return ROW_HEIGHT;
 }
 
 /* 当前层条目（目录在前；与 list.js 排序同源：按大小降序） */
@@ -132,7 +131,6 @@ export function renderRelateTree(data, opts) {
     const host = $("relate-tree");
     if (!host) return; // 工作台未挂载
     lastData = data;
-    density = (opts && opts.density) || "cozy";
     const entries = currentEntries(data);
     const total = entries.length;
     const virtual = total > VIRTUAL_THRESHOLD;
@@ -141,7 +139,6 @@ export function renderRelateTree(data, opts) {
     virtualState.start = -1;
     virtualState.end = -1;
     host.classList.toggle("v-virtual", virtual);
-    host.classList.toggle("compact-list", density === "compact");
     const depth = pathStack.length;
     if (virtual) {
         const rowH = rowHeight();

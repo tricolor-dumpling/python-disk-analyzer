@@ -40,9 +40,10 @@
    - U2.5：列表视图升级——排行/表格渲染迁 components/list.js（filteredEntries/
      renderList + N08 多选 + 虚拟滚动 + 页脚 + CSV 导出 + F19 行内操作三图标 +
      L1-2/L1-3），本文件保留接线（treemap 派发/视图切换交叉淡化/事件委托/浏览闭环）；
-     · view 状态对齐 §3.2：browseView/compactDensity 模块状态迁入
-       APP_STATE.view.{mode,density}（默认 treemap——定稿 N01 接管，
-       旧「默认排行」裁决于本项核销）；
+     · view 状态对齐 §3.2：browseView 模块状态迁入 APP_STATE.view.mode
+       （默认 treemap——定稿 N01 接管，旧「默认排行」裁决于本项核销）；
+       P3/D3-6：密度开关（原 compactDensity → view.density）已整体删除，
+       列表行高固定 36px（list.js/relate.js ROW_HEIGHT 常量）；
      · 三视图切换 120ms 交叉淡化（--dur-1；reduced 直切）；
      · 骨架屏 L1-5 替代 spinner（模板内 skel-*，shimmer 1.4s token）；
      · 缓存徽标 L2-9（translateX(-8px)+fade 200ms token --dur-2）；
@@ -332,8 +333,10 @@ function setBrowseLoading(loading, text) {
     if (btn) btn.disabled = loading;
 }
 
-/* U2.5：view 状态对齐 §3.2（browseView/compactDensity → APP_STATE.view.{mode,density}；
-   默认 = treemap（state.js 预置），定稿 N01「默认矩形图」由本项接管） */
+/* U2.5：view 状态对齐 §3.2（browseView → APP_STATE.view.mode；
+   默认 = treemap（state.js 预置），定稿 N01「默认矩形图」由本项接管）。
+   P3（D3-6）：密度开关整体删除（原 compactDensity → view.density），
+   列表行高固定 36px（list.js ROW_HEIGHT 常量）。 */
 let treemapView = null; // U2.2：treemap 渲染器实例（宿主随路由重建；失连自动重建）
 let scanRunning = false; // U2.3：扫描进行中（pds:scan 事件记账；驱动 L3-2 实时生长/L3-3 扫掠）
 let liveTimer = 0;       // L3-2 实时刷新定时器（500ms 主页矩形图 / 2s 子页面低频）
@@ -760,7 +763,7 @@ export function renderEntries(data, opts) {
         if (!entries.length) {
             renderRelateEmpty(data);
         } else {
-            renderRelateTree(data, { animate: !!opts && !!opts.animate, density: APP_STATE.view.density });
+            renderRelateTree(data, { animate: !!opts && !!opts.animate });
         }
         setStatus("browse-status", "ok", "关系目录 · 共 " + data.total_dirs + " 个子目录 / " + data.total_files + " 个文件");
         return;
@@ -1039,14 +1042,6 @@ export function bindWorkspace() {
             }
         });
     }
-    $("btn-density").addEventListener("click", () => {
-        // U2.5：密度状态存 APP_STATE.view.density（§3.2；紧凑 26px / 舒适 36px 行高）
-        APP_STATE.view.density = APP_STATE.view.density === "compact" ? "cozy" : "compact";
-        const compact = APP_STATE.view.density === "compact";
-        $("btn-density").setAttribute("aria-pressed", String(compact));
-        $("btn-density").textContent = compact ? "舒适列表" : "紧凑列表";
-        if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
-    });
     // U2.3：合并阈值 −/+（L3-9，步长 10）与全屏（L3-8）
     $("btn-merge-minus").addEventListener("click", () => setMergeTop(APP_STATE.view.mergeTop - 10));
     $("btn-merge-plus").addEventListener("click", () => setMergeTop(APP_STATE.view.mergeTop + 10));
@@ -1168,8 +1163,8 @@ const WORKSPACE_HTML =
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>' +
     '返回上级</button>' +
     '</div>' +
-    '<!-- [N10] 视图工具栏位：三视图切换（U2.2 矩形图/排行/表格）+ 合并阈值 −/+（D11，仅矩形图）+ 全屏（L3-8） -->' +
-    '<div class="view-toolbar" aria-label="视图切换与密度">' +
+    '<!-- [N10] 视图工具栏位：三视图切换（U2.2 矩形图/排行/表格）+ 合并阈值 −/+（D11，仅矩形图）+ 全屏（L3-8）；P3（D3-6）密度开关已整体删除 -->' +
+    '<div class="view-toolbar" aria-label="视图切换">' +
     '<button id="btn-view-treemap" class="btn btn-sm btn-primary" title="矩形图视图（默认，定稿 N01）">矩形图</button>' +
     '<button id="btn-view-ranking" class="btn btn-sm">排行</button>' +
     '<button id="btn-view-table" class="btn btn-sm">表格</button>' +
@@ -1179,7 +1174,6 @@ const WORKSPACE_HTML =
     '<button id="btn-merge-minus" class="btn btn-sm" title="减少合并数量（更多独立块）">−</button>' +
     '<span id="merge-top-label" class="merge-label">24</span>' +
     '<button id="btn-merge-plus" class="btn btn-sm" title="增加合并数量（更少独立块）">+</button></span>' +
-    '<button id="btn-density" class="btn btn-sm" aria-pressed="false">紧凑列表</button>' +
     '<button id="btn-view-fullscreen" class="btn btn-sm" aria-pressed="false" title="视图区全屏（Esc 退出）">全屏</button>' +
     '</div></div>' +
 
@@ -1338,7 +1332,7 @@ export function restoreWorkspaceView() {
         // 阶段C（C-7）：关系树回灌——显示树容器 + 隐藏表格（互斥终态）
         showRelate();
         const entries = (APP_STATE.lastBrowseData.directories || []).concat(APP_STATE.lastBrowseData.files || []);
-        if (entries.length) renderRelateTree(APP_STATE.lastBrowseData, { animate: false, density: APP_STATE.view.density });
+        if (entries.length) renderRelateTree(APP_STATE.lastBrowseData, { animate: false });
         else renderRelateEmpty(APP_STATE.lastBrowseData);
     }
     else renderEntries(APP_STATE.lastBrowseData, { animate: false });

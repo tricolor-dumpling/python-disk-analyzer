@@ -8,13 +8,14 @@
      导出 = 前端 Blob（D9：文件名 所选-{目录名}-{日期}.csv；CSV 转义
      引号/逗号/换行；列：名称/路径/类型/大小(字节)/大小(可读)，复用
      humanBytes；BOM utf-8-sig 与后端 /api/export 口径一致）；
-   - 虚拟滚动：>200 行启用（缓冲上下各 5 行；行高 cozy 36 / compact 26，
-     实际值以渲染后测量为准——全部行同构，测量值即真值，无跳行）；
-     滚动窗口重渲染（scroll/resize/密度变化）不重放 L1-2/L1-3；
+   - 虚拟滚动：>200 行启用（缓冲上下各 5 行；行高固定 36px，实际值以渲染后
+     测量为准——全部行同构，测量值即真值，无跳行）；
+     滚动窗口重渲染（scroll/resize）不重放 L1-2/L1-3；
    - L1-2 列表行 stagger（可视区前 12 行 fadeSlide8，间隔 24ms token
      --dur-stagger-row；虚拟滚动中不重放）；L1-3 占比条生长（width
      0→目标 600ms（--dur-4）ease-out，同屏同起点）；reduced 直显；
-   - 状态对齐 §3.2：view.{mode,density} 由 workspace 维护（本模块只读）；
+   - 状态对齐 §3.2：view.mode 由 workspace 维护（本模块只读）；P3（D3-6）密度
+     开关整体删除——行高固定 36px，本模块不再读 view.density；
      selection 命名空间（{keys,anchor}；key=条目 path）本模块启用。
    ============================================================ */
 
@@ -24,17 +25,18 @@ import { APP_STATE } from "../state.js";
 import { staggerIn, motionDur, reducedMotion } from "../motion.js";
 import { setStatus, renderStatusbarSelection } from "./statusbar.js";
 
-/* ---- 虚拟滚动参数（手册 §U2.5：>200 行启用；缓冲 5 行；行高 cozy 36/compact 26） ---- */
+/* ---- 虚拟滚动参数（手册 §U2.5：>200 行启用；缓冲 5 行；行高固定 36px
+       ——P3/D3-6：密度开关删除后行高唯一，故为常量而非 cozy/compact 映射表） ---- */
 const VIRTUAL_THRESHOLD = 200;
 const VIRTUAL_BUFFER = 5;
-const ROW_HEIGHT = { cozy: 36, compact: 26 };
+const ROW_HEIGHT = 36;
 /* 触屏长按呼出行操作（F19；交互参数非动画时长，故不入 motion token） */
 const TOUCH_HOLD_MS = 500;
 
 /* 当前渲染的筛选后条目（多选 range / CSV 导出 / 定位所选的数据源） */
 let currentEntries = [];
-/* 虚拟窗口渲染态（排序/筛选/密度变化后由 renderList 重置） */
-let virtualState = { active: false, rowH: 0, start: -1, end: -1, density: null };
+/* 虚拟窗口渲染态（排序/筛选变化后由 renderList 重置；rowH=0 表示待实测） */
+let virtualState = { active: false, rowH: 0, start: -1, end: -1 };
 
 /* ================= 筛选/排序（沿用既有 id 与语义，红线 #12 空态在 renderList） ================= */
 
@@ -262,8 +264,9 @@ function emptyStateHtml(kind, activeQuery) {
 
 /* ================= 虚拟滚动窗口 ================= */
 
+/* 行高（P3/D3-6：密度开关删除后唯一值 = 36px；虚拟窗口按此计算） */
 function rowHeight() {
-    return APP_STATE.view.density === "compact" ? ROW_HEIGHT.compact : ROW_HEIGHT.cozy;
+    return ROW_HEIGHT;
 }
 
 function scrollBox() { return $("table-wrap"); }
@@ -392,8 +395,6 @@ export function renderList(data, opts = {}) {
     if (!body) return; // U2.1：子页面时列表不在 DOM
     const animate = !!opts.animate;
     const mode = APP_STATE.view.mode === "table" ? "table" : "ranking";
-    const compact = APP_STATE.view.density === "compact";
-    body.classList.toggle("compact-list", compact);
     currentEntries = getFilteredEntries(data);
 
     /* P12·W2.5-H：筛选空态——原始条目非空但被筛选清空时给出统一空态＋一键清除（红线 #12） */
@@ -423,8 +424,6 @@ export function renderList(data, opts = {}) {
     const maxSize = Math.max(1, ...currentEntries.map((e) => Number(e.size) || 0));
     const virtual = total > VIRTUAL_THRESHOLD;
     virtualState.active = virtual;
-    const density = compact ? "compact" : "cozy";
-    if (virtualState.density !== density) { virtualState.rowH = 0; virtualState.density = density; } // 密度切换：行高重新实测
     body.classList.toggle("v-virtual", virtual);
     const rowH = virtualState.rowH || rowHeight();
 

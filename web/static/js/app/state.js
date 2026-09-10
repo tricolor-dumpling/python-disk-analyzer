@@ -17,7 +17,7 @@ export const APP_STATE = {
     route: "/",                                  // 由 router 维护；"/"|"/compare"|"/snapshots"（未知回落 "/"）
     health: { state: "checking", detail: null }, // 语义对齐：U2.0 旧键 health 为载荷对象（见下），本命名空间 U3.1 徽章 popover 启用
     browse: { root: "D:\\", path: "D:\\", parent: null, history: [], seq: 0 }, // U2.3 面包屑联动/迷你条带启用（现由 workspace 模块级状态承载）
-    view: { mode: "treemap", density: "cozy", mergeTop: 24, sort: "size-desc", kind: "all", filter: "" }, // U2.2/U2.5 启用
+    view: { mode: "treemap", mergeTop: 24, sort: "size-desc", kind: "all", filter: "" }, // U2.2/U2.5 启用（P3/D3-6：density 字段已删除，行高固定 36px）
     selection: { keys: [], anchor: null },       // N08 多选（key=条目 path）；U2.5 启用
     scan: { running: false, startTs: 0, roots: [], done: [], current: null,
             stopAvailable: false, stopRequested: false, version: 0, finishedAt: null }, // U3.2 启用
