@@ -248,16 +248,27 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .skip-reason{color:var(--warning);cursor:help}
 
 /* ============================================================ */
-/* U3.4 对比工作台页（#/compare）：页头 64px（基线 datalist+目标只读+开始对比）
+/* U3.4 空间对比页（#/compare）：页头 64px（对比基准下拉 + 当前磁盘状态行 + 开始对比）
    → 摘要 3 卡 96px（count-up L1-4）→ 红绿发散图 240px（L3-6）
-   → 对比表格 flex:1 面板内滚（列：变化/增速/路径/操作 F19） */
+   → 对比表格 flex:1 面板内滚（列：变化/增速/路径/操作 F19）
+   P5（D5-1/D5-2）：原「基线 datalist + 目标只读」两控件改为
+   「对比基准（历史快照）下拉 + 当前磁盘状态只读文本行」。 */
 /* ============================================================ */
 .page-head-compare{min-height:64px}
 .page-head-compare .page-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px}
 .compare-controls{display:flex;align-items:center;gap:10px;flex:none;min-width:0}
 .compare-ctl{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
 .compare-ctl input{width:220px;font-size:var(--fs-sm)}
-.compare-ctl-target input{color:var(--muted);background:var(--bg)}
+/* P5（D5-1）：当前磁盘状态 = 只读文本行（原 .compare-ctl-target 只读输入框已删除；
+   保底截断，长根路径不挤压页头控件行） */
+.compare-current{
+  flex:none;display:inline-flex;align-items:center;gap:4px;max-width:260px;
+  padding:3px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--bg);color:var(--muted);font-size:var(--fs-xs);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* P5（D5-2）：对比基准下拉（原 datalist 文本框 → 下拉；宽度容纳「最近一份 · 时间 · 盘符 · 自动」） */
+.compare-ctl-baseline select{width:240px;max-width:240px}
 .compare-controls .btn{flex:none}
 /* P4（D4-2/D4-3）：深度选择器 + 隐藏零变化开关（页头控件；不动既有 .compare-ctl input 规则，
    勾选框用更高一层的专用选择器收回 220px 宽度） */

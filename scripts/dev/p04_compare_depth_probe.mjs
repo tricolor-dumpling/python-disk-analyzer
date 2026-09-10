@@ -491,10 +491,31 @@ async function runState(page, base, state) {
     await setCurrent(base, state.dataset);
     const sample = { state: state.key, vw: page.viewportSize().width, vh: page.viewportSize().height, judges: [] };
 
-    /* 表单：基线 + 深度 + 隐藏零变化 */
+    /* 表单：对比基准 + 深度 + 隐藏零变化
+       P5（D5-2）起 #compare-baseline 由 datalist 文本框改为 <select>：
+       本探针原用 page.fill 写自由文本，形态变更后改用**形态无关**的写法
+       （select → 注入 option 后选中；input → 直接写值 + 派发 input），
+       判据本身（深度聚合/零增量/下钻/守恒）一字未改。 */
     await page.evaluate(() => { window.location.hash = "#/compare"; });
     await page.waitForSelector("#compare-baseline", { timeout: 15000 });
-    await page.fill("#compare-baseline", path.join(SNAP_DIR, state.baseline));
+    const baselinePath = path.join(SNAP_DIR, state.baseline);
+    await page.evaluate((v) => {
+        const el = document.getElementById("compare-baseline");
+        if (!el) return;
+        if (el.tagName === "SELECT") {
+            if (!Array.from(el.options).some((o) => o.value === v)) {
+                const opt = document.createElement("option");
+                opt.value = v;
+                opt.textContent = v;
+                el.appendChild(opt);
+            }
+            el.value = v;
+            el.dispatchEvent(new Event("change", { bubbles: true }));
+        } else {
+            el.value = v;
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+    }, baselinePath);
     const hasDepth = await page.$("#compare-depth");
     if (hasDepth) {
         await page.selectOption("#compare-depth", state.depth === "" ? "" : state.depth).catch(async () => {
@@ -512,6 +533,15 @@ async function runState(page, base, state) {
     }
     /* 下钻：先做一次对比，再点行下钻（页内下钻语义） */
     const clickCompare = async () => {
+        /* P5 形态变更后的时序加固：基线下拉的 change 监听会**自行**触发一次对比
+           （D5-2 起下拉即算一次换基准），因此本函数等待的响应必须**属于本次点击**——
+           先等骨架屏收敛（在途请求结束），再点按钮并捕获紧随其后的那一发。 */
+        await page.waitForFunction(
+            () => {
+                const l = document.getElementById("compare-loading");
+                return !l || l.hasAttribute("hidden");
+            }, { timeout: 60000 }).catch(() => {});
+        await wait(250);
         const waiter = page.waitForResponse(
             (r) => r.url().includes("/api/compare") && !r.url().includes("/status"), { timeout: 60000 }
         ).catch(() => null);

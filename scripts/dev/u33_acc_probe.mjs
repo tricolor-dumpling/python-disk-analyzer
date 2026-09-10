@@ -1,10 +1,10 @@
-/* ============================================================
+﻿/* ============================================================
    UI 2.0（SpaceLens Pro）· U3.3 快照管理页验收探针
    - 验收口径（手册 §U3.3 + N07/F15/F16/F17 + 红线#7）：
      ①页头装配（创建快照 F15 复用保存流程 + 撤销最近保存 F16=-确认弹窗流）；
      ②趋势卡×2（N07）：基线选取（≤24h / (24h,7d] 最近一份）、目标=该盘最新、
        ▲/▼ + 百分比（降级差值卡——/api/snapshots 无逐次总量字段 → 无折线）、
-       无合适基线 →「暂无对比基线」、点击卡 → #/compare 预填（state.compare）；
+       无合适基线 →「暂无可用的对比基准」、点击卡 → #/compare 预填（state.compare）；
      ③回灌不重发（路由往返不重打 /api/compare）；
      ④列表（F17）：会话分组/标签/逐盘「对比此快照」预填/跳过原因 tooltip（红线#7）；
      ⑤撤销确认流（POST /api/save/undo）+ 列表刷新；
@@ -166,7 +166,7 @@ async function metricViewport(page, w, h) {
     ok("①a 快照页装配（page-head + 趋势区 + 列表区）", r.routeOk && r.create && r.undo);
     ok("①b 无扫描结果 → 创建快照置灰（N06）", r.createDisabled === true);
     ok("①c 有会话 → 撤销可用", r.undoDisabled === false);
-    ok("①d 趋势卡×2 且单快照均「暂无对比基线」", r.cards === 2 && r.empties.length === 2 && r.empties.every((t) => t.indexOf("暂无对比基线") !== -1), JSON.stringify(r.empties));
+    ok("①d 趋势卡×2 且单快照均「暂无可用的对比基准」", r.cards === 2 && r.empties.length === 2 && r.empties.every((t) => t.indexOf("暂无可用的对比基准") !== -1), JSON.stringify(r.empties));
     ok("①e 列表 1 会话 + 计数", r.items === 1 && r.countText === "共 1 个快照会话");
 
     /* ---- ② 趋势卡（trend 模式）：基线选取/降级差值卡/无 sparkline ---- */
@@ -278,7 +278,7 @@ async function metricViewport(page, w, h) {
         };
     });
     ok("⑦a 空会话：撤销灰置 + 列表空态（定稿 6.5 文案）", r.undoDisabled === true && r.emptyText.indexOf("还没有快照") !== -1, JSON.stringify(r));
-    ok("⑦b 空会话：趋势卡均「暂无对比基线」+ 计数归零", r.trendEmpties === 2 && r.countText === "共 0 个快照会话");
+    ok("⑦b 空会话：趋势卡均「暂无可用的对比基准」+ 计数归零", r.trendEmpties === 2 && r.countText === "共 0 个快照会话");
 
     /* ---- ⑧ 50 次路由往返节点无增长 + console 0 ---- */
     r = await page.evaluate(async () => {

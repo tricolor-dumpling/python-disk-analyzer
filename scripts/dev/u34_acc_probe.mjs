@@ -176,23 +176,46 @@ function clearCompare(page) {
         location.hash = "#/compare";
         await window.__wait(() => document.querySelector("[data-page='compare']"), 5000);
         await window.__wait(() => document.querySelector("#compare-result") && !document.getElementById("compare-result").hasAttribute("hidden"), 8000);
+        const baseEl = document.getElementById("compare-baseline");
+        const curEl = document.getElementById("compare-current");
+        const subEl = document.getElementById("compare-root-line");
         return {
             page: !!document.querySelector("[data-page='compare']"),
             title: document.querySelector(".page-title") ? document.querySelector(".page-title").textContent : "",
-            baseline: !!document.getElementById("compare-baseline"),
-            target: !!document.getElementById("compare-target"),
+            baseline: !!baseEl,
+            baselineTag: baseEl ? baseEl.tagName : null,
+            current: !!curEl,
+            currentTag: curEl ? curEl.tagName : null,
+            legacyTarget: !!document.getElementById("compare-target"),
+            legacyDatalist: !!document.getElementById("baseline-suggest"),
             btn: !!document.getElementById("btn-compare"),
-            targetReadonly: document.getElementById("compare-target").readOnly,
-            options: document.querySelectorAll("#baseline-suggest option").length,
-            sub: document.getElementById("compare-root-line").textContent,
-            inputBase: document.getElementById("compare-baseline").value,
-            inputTarget: document.getElementById("compare-target").value,
+            options: baseEl && baseEl.tagName === "SELECT" ? baseEl.options.length : 0,
+            optionTexts: baseEl && baseEl.tagName === "SELECT"
+                ? Array.from(baseEl.options).map((o) => o.textContent) : [],
+            sub: subEl ? subEl.textContent : "",
+            inputBase: baseEl ? baseEl.value : null,
+            currentText: curEl ? curEl.textContent : "",
         };
     });
-    ok("①a 对比页装配（data-page=compare + 页头三件套）", r.page && r.title === "历史对比" && r.baseline && r.target && r.btn, JSON.stringify({ t: r.title, b: r.baseline, t2: r.target, btn: r.btn }));
-    ok("①b 目标输入只读（tabindex -1 展示口径）", r.targetReadonly === true);
-    ok("①c datalist 全量快照路径（3 个）+ 副行带盘符", r.options === 3 && r.sub.indexOf("盘 D:") !== -1, JSON.stringify({ o: r.options, sub: r.sub }));
-    ok("①d 挂载自动预填默认（基线=最新一份/目标=同盘符最新快照）", r.inputBase === "C:\\snap\\D_120000_a.snap.gz" && r.inputTarget === "C:\\snap\\D_120000_a.snap.gz", JSON.stringify({ b: r.inputBase, t: r.inputTarget }));
+    ok("①a 空间对比页装配（data-page=compare + 页头三件套：对比基准下拉/当前磁盘状态行/开始对比）",
+       r.page && r.title === "空间对比" && r.baseline && r.current && r.btn,
+       JSON.stringify({ t: r.title, b: r.baseline, c: r.current, btn: r.btn }));
+    ok("①a2 旧「目标」只读输入框与 #baseline-suggest datalist 均已删除（P5·D5-1/D5-2）",
+       r.legacyTarget === false && r.legacyDatalist === false,
+       JSON.stringify({ target: r.legacyTarget, datalist: r.legacyDatalist }));
+    ok("①b 对比基准为下拉列表（select + 3 个快照选项 + 首项标注「最近一份」）",
+       r.baselineTag === "SELECT" && r.options === 3 && r.optionTexts[0].indexOf("最近一份") === 0,
+       JSON.stringify({ tag: r.baselineTag, o: r.options, first: r.optionTexts[0] }));
+    ok("①b2 下拉每项含「时间 · 盘符 · 自动/手动」（D5-2 三项信息）",
+       r.optionTexts.length === 3 && r.optionTexts.every((t) => /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} · [A-Z]: · (自动|手动)/.test(t)),
+       JSON.stringify(r.optionTexts));
+    ok("①c 副行自解释（对比基准（历史快照）→ 当前磁盘状态（实时））+ 带盘符",
+       r.sub.indexOf("对比基准（历史快照）") !== -1 && r.sub.indexOf("当前磁盘状态") !== -1 && r.sub.indexOf("盘 D:") !== -1,
+       r.sub);
+    ok("①d 挂载自动预填默认（对比基准=最近一份；当前状态行显示当前盘+数据时间）",
+       r.inputBase === "C:\\snap\\D_120000_a.snap.gz" && r.currentText.indexOf("当前：D:") === 0 &&
+       r.currentText.indexOf("数据时间") !== -1,
+       JSON.stringify({ b: r.inputBase, cur: r.currentText }));
 
     /* ---- ② 摘要 3 卡（L1-4 count-up 600ms；终值精确） ---- */
     r = await page.evaluate(async () => {
@@ -325,8 +348,8 @@ function clearCompare(page) {
         };
     });
     ok("⑥a 无快照：挂载不自动对比（0 次 compare）", r.compareDelta === 0, "delta=" + r.compareDelta);
-    ok("⑥b 空态文案=定稿 6.5", r.emptyShown && r.emptyText.indexOf("选择一份基线快照") !== -1 && r.emptyText.indexOf("开始对比两个时间点的空间变化") !== -1, r.emptyText);
-    ok("⑥c 无结果时结果区隐藏 + 状态行引导", r.resultHidden && r.statusText.indexOf("选择一份基线快照") !== -1, JSON.stringify({ h: r.resultHidden, s: r.statusText }));
+    ok("⑥b 空态文案=定稿 6.5（P5·D5-1 术语改词后）", r.emptyShown && r.emptyText.indexOf("选择一份对比基准（历史快照）") !== -1 && r.emptyText.indexOf("开始对比两个时间点的空间变化") !== -1, r.emptyText);
+    ok("⑥c 无结果时结果区隐藏 + 状态行引导", r.resultHidden && r.statusText.indexOf("选择一份对比基准（历史快照）") !== -1, JSON.stringify({ h: r.resultHidden, s: r.statusText }));
 
     /* ---- ⑦ 迷你条目 → trio 预填 + 自动对比（single 模式） ---- */
     r = await page.evaluate(async () => {
@@ -342,11 +365,12 @@ function clearCompare(page) {
         return {
             baseline: m.APP_STATE.compare.baseline, root: m.APP_STATE.compare.root, target: m.APP_STATE.compare.target,
             inputBase: document.getElementById("compare-baseline").value,
-            inputTarget: document.getElementById("compare-target").value,
+            selectedText: (document.getElementById("compare-baseline").selectedOptions[0] || {}).textContent || "",
+            currentText: document.getElementById("compare-current").textContent,
         };
     });
-    ok("⑦a 迷你条目 → trio 预填（single：基线=目标=该份）", r.baseline === "C:\\snap\\D_120000_a.snap.gz" && r.root === "D:\\" && r.target === "C:\\snap\\D_120000_a.snap.gz", JSON.stringify(r));
-    ok("⑦b 表单回显（基线输入 + 目标只读）", r.inputBase === r.baseline && r.inputTarget === r.target);
+    ok("⑦a 迷你条目 → trio 预填（single：对比基准=该份；root/target 状态键保持既有契约）", r.baseline === "C:\\snap\\D_120000_a.snap.gz" && r.root === "D:\\" && r.target === "C:\\snap\\D_120000_a.snap.gz", JSON.stringify(r));
+    ok("⑦b 表单回显（对比基准下拉选中 + 当前状态行）", r.inputBase === r.baseline && r.currentText.indexOf("当前：D:") === 0, JSON.stringify({ b: r.inputBase, cur: r.currentText }));
     ok("⑦c 预填即自动对比出结果", r.inputTarget !== "");
 
     /* ---- ⑧ 趋势卡 → trio 预填 + 结果共享不重发 ---- */
@@ -369,7 +393,7 @@ function clearCompare(page) {
             cards: document.querySelectorAll("#compare-summary .compare-stat").length,
         };
     });
-    ok("⑧a 趋势卡 → trio 预填（较昨日基线）", r.baseline === "C:\\snap\\D_100000_b.snap.gz" && r.root === "D:\\" && r.target === "C:\\snap\\D_120000_a.snap.gz", JSON.stringify(r));
+    ok("⑧a 趋势卡 → trio 预填（较昨日对比基准）", r.baseline === "C:\\snap\\D_100000_b.snap.gz" && r.root === "D:\\" && r.target === "C:\\snap\\D_120000_a.snap.gz", JSON.stringify(r));
     ok("⑧b 结果共享：落地渲染不重发 /api/compare", r.after === r.before, JSON.stringify({ b: r.before, a: r.after }));
     ok("⑧c 摘要 3 卡渲染", r.cards === 3, "cards=" + r.cards);
 
@@ -500,15 +524,15 @@ function clearCompare(page) {
             tableRows: document.querySelectorAll("#compare-body tr").length,
             statusText: document.getElementById("compare-status-text").textContent,
             baselineFilled: !!document.getElementById("compare-baseline").value,
-            targetReadonly: document.getElementById("compare-target").readOnly,
+            currentRowFilled: /^当前：/.test(document.getElementById("compare-current").textContent),
         }));
         const realCompleted = real.hasResult && real.summaryCards === 3 && real.tableRows >= 1;
         const realPending = /正在对比|暂不可用/.test(real.statusText);
         ok("真实页 a：真机对比发起（挂载自动执行；结果完成或如实待续）",
            realCompleted || realPending, JSON.stringify(real));
         if (realCompleted) {
-            ok("真实页 a2：真机对比完成（摘要/发散/表格渲染 + 基线/目标预填）",
-               real.baselineFilled && real.targetReadonly, JSON.stringify({ d: real.divergeRows, t: real.tableRows }));
+            ok("真实页 a2：真机对比完成（摘要/发散/表格渲染 + 对比基准预填/当前状态行）",
+               real.baselineFilled && real.currentRowFilled, JSON.stringify({ d: real.divergeRows, t: real.tableRows }));
         } else {
             console.log("  （注：SDK 直扫分钟级未在窗口内完成——完整对比渲染链已由桩态确定性验证）");
         }

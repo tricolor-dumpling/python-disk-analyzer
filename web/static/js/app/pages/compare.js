@@ -1,18 +1,26 @@
 /* ============================================================
-   UI 2.0（SpaceLens Pro）· pages/compare.js = #/compare 对比工作台（U3.4 全量填充）
-   - 布局（§3.3/§3.5）：页头 64px（标题 + 基线 datalist + 目标只读 + 深度选择器 +
-     隐藏零变化开关 + 开始对比）→ 面包屑（下钻时才显示）→ 摘要 3 卡 96px
+   UI 2.0（SpaceLens Pro）· pages/compare.js = #/compare 空间对比页（U3.4 全量填充）
+   - 布局（§3.3/§3.5）：页头 64px（标题「空间对比」+ 对比基准下拉 + 当前磁盘状态行 +
+     深度选择器 + 隐藏零变化开关 + 开始对比）→ 面包屑（下钻时才显示）→ 摘要 3 卡 96px
      （总变化/最大增长/可释放，count-up L1-4）→ 红绿发散图 240px
-     （L3-6：中轴基线、增长条向左红 --up、缩减条向右绿 --down、中轴生长 500ms
+     （L3-6：中轴基准、增长条向左红 --up、缩减条向右绿 --down、中轴生长 500ms
      --dur-diverge、徽标 pop-in scale .8→1 ease-spring、▲/▼ 冗余）→ 表格 flex:1
      面板内滚（变化/增速/路径/操作 F19 定位+复制路径；行 stagger L1-2）；
    - 流程（定稿 6.4）：趋势卡/迷你卡/直达三入口 → APP_STATE.compare 预填
-     （§6.4 跨页形态；root 为 §3.2 之外附加键 U3.3 已记）→ 自动填基线
-     （默认=最近一份）→ 目标=同盘符最新快照（只读展示）→ 骨架屏 → 摘要/图表/表格；
+     （§6.4 跨页形态；root 为 §3.2 之外附加键 U3.3 已记）→ 自动填对比基准
+     （默认=最近一份历史快照）→ 骨架屏 → 摘要/图表/表格；
+   - P5（问题 7·D5-1/D5-2/D5-5）术语与控件改造（**只改表达，不改计算**）：
+     · 页头两个裸词控件改词：「基线」→「对比基准（历史快照）」、「目标」→ 删除；
+       新增只读文本行 #compare-current「当前：D: · 数据时间 …」（非表单控件）；
+     · 对比基准由 datalist 自由文本框升级为 <select>（保留 id #compare-baseline），
+       每项「时间 · 盘符 · 自动/手动」，首项（最近一份）标注「最近一份」；
+     · 页头副行自解释：「对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时）」；
+     · 页面标题「历史对比」→「空间对比」（「历史」与「当前」自相矛盾）；
    - ⚠️ 数据源口径核对（app.py api_compare 执行核对）：/api/compare 的「当前」侧
-     数据 = fullscan.result(root) 缓存 or SDK 直扫（非快照文件）——「目标=同盘符
-     最新快照」为展示口径（标识性文案），对比目标实为当前磁盘状态；零后端改动，
-     见执行记录偏差注记；
+     数据 = fullscan.result(root) 缓存 or SDK 直扫（**非快照文件**）。P5 前该事实只写在
+     注释与 title= 悬停里，界面上却把这一侧标成「目标=同盘符最新快照」——把一个
+     "当前磁盘状态"伪装成"目标快照"，这正是问题 7「用户看不懂」的直接成因；
+     D5-1 起界面如实表述为「当前磁盘状态（实时）」；
    - P4（问题 5：深度选择 + 聚合 + 下钻）：页头新增 #compare-depth
      （叶子（默认，= 修复前口径，不发 depth）/ 1..5 层）——depth 由**后端**在
      排序/截断之前聚合（D4-1，前端不做聚合：那只能处理已被 top-100 截断的叶子行，
@@ -27,8 +35,9 @@
      为按 rows 现算（u34 桩态断言保持）；
    - 结果缓存：APP_STATE.compare.result（{root,baseline,depth,hideZero,report,at}）
      ——路由往返从缓存回灌不重发（缓存键含 depth + 隐藏零变化开关：口径不同必须重发）；
-     快照页趋势卡已完成同基线计算时结果共享（snapshots.js prefillAndGoCompare 写入），
-     落地即渲染不回源；
+     快照页趋势卡已完成同对比基准计算时结果共享（snapshots.js prefillAndGoCompare 写入），
+     落地即渲染不回源（**P5 未改该共享语义**：snapshots.js 写入的缓存不带 depth/hideZero
+     键时沿用「不重发」口径 —— u34 ⑧b / smoke A17·A18 红线）；
    - 旧工作台「历史对比」卡本项迁整页并移除（主页仅留「最近对比」迷你卡）；
      compareSnapshots 保持 DOM 无关（页面未挂载时仅记账/圆点，供 u31 等
      跨页触发路径）；
@@ -44,7 +53,7 @@ import { setStatus } from "../components/statusbar.js";
 import { toast } from "../components/toast.js";
 import { confirmDialog } from "../components/modals.js";
 import { copyPath, openInExplorer, getCurrentRoot } from "./workspace.js";
-import { getSessionsCache, rebuildBaselineSuggest } from "./snapshots.js";
+import { getSessionsCache } from "./snapshots.js"; // P5（D5-2）：下拉选项改由本页 rebuildBaselineOptions 构建
 import { pollFullscan } from "../components/scan.js";
 import { renderCompareMini } from "../components/snapshot-mini.js"; // U2.4：最近对比迷你卡
 import { markNavDot } from "../components/nav-dots.js"; // U3.1：N13 圆点提醒（对比完成）
@@ -207,17 +216,132 @@ function ensurePrefill() {
     return { root: root, baseline: baseline, target: target };
 }
 
-/* 表单回显（输入框/目标只读/页头副行根提示） */
+/* 表单回显（对比基准下拉 / 当前磁盘状态行 / 页头副行）
+   P5（D5-1/D5-2）：
+   - 「对比基准（历史快照）」= <select>：选项由 rebuildBaselineOptions 重建，
+     本函数在挂载/预填时把选中项对齐到 sel.baseline；
+   - 「当前磁盘状态（实时）」= #compare-current 只读文本行（原只读「目标」输入框删除）；
+     它显示的是**当前磁盘状态**，不是快照——「目标=同盘符最新快照」是旧标识性口径，
+     已随 D5-1 删除（app.py 的 /api/compare「当前」侧 = fullscan.result(root) 或 SDK 直扫，
+     与快照文件无关；旧文案把一个"当前磁盘状态"伪装成"目标快照"）。
+     ⚠️ APP_STATE.compare.target 仍由三入口预填写入（snapshots.js 契约与 smoke/u34
+     预填断言面），本页只把它当作「当前数据的展示标识」，不再宣称它是对比目标。 */
 function syncForm(sel) {
+    const p = sel || { root: String(APP_STATE.compare.root || ""), baseline: String(APP_STATE.compare.baseline || "") };
+    rebuildBaselineOptions(sessionsOf());
     const b = $("compare-baseline");
-    if (b) b.value = sel ? sel.baseline : String(APP_STATE.compare.baseline || "");
-    const t = $("compare-target");
-    if (t) t.value = sel ? sel.target : String(APP_STATE.compare.target || "");
+    if (b) {
+        const want = String(p.baseline || "");
+        if (want) b.value = want;
+        /* 选项集里没有该路径（外部预填/缓存共享）时补一条，避免选中态与 state 不一致 */
+        if (b.value !== want && want) {
+            const opt = document.createElement("option");
+            opt.value = want;
+            opt.textContent = baselineOptionText(want, snapMetaFor(want));
+            b.appendChild(opt);
+            b.value = want;
+        }
+        b.dataset.root = String(p.root || "");
+    }
+    syncCurrentRow(p.root);
     const rl = $("compare-root-line");
-    if (rl) rl.textContent = (sel ? sel.root : String(APP_STATE.compare.root || ""))
-        ? "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 " +
-          String((sel ? sel.root : String(APP_STATE.compare.root || "")) || "?").replace(/\\+$/, "")
-        : "基线=最近一份快照 · 目标=同盘符最新快照";
+    if (rl) {
+        const rootText = String(p.root || "").replace(/\\+$/, "");
+        rl.textContent = rootText
+            ? "对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 " + rootText
+            : "对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时）";
+    }
+}
+
+/* 页头「当前磁盘状态」一行（D5-1）：盘符 + 数据时间；数据时间取该盘最新快照的
+   采集时刻（#compare-current 单行，因此不再单列该盘最新快照全文）。
+   无信息时不编造——显示「尚未扫描」并说明原因。 */
+function syncCurrentRow(root) {
+    const host = $("compare-current");
+    if (!host) return;
+    const r = String(root || APP_STATE.compare.root || "");
+    const rootText = r.replace(/\\+$/, "");
+    const dataAt = snapMetaFor(latestForRoot(r)).atText;
+    host.textContent = rootText
+        ? "当前：" + rootText + " · " + (dataAt ? "数据时间 " + dataAt : "尚未扫描（无快照）")
+        : "当前：尚未选择盘符";
+    host.dataset.root = r;
+    host.dataset.at = dataAt || "";
+}
+
+/* 快照标识 → {createdText, atText, auto}（下拉选项与当前状态行共用同一取值口径） */
+function snapMetaFor(snapshotPath) {
+    const p = String(snapshotPath || "").trim();
+    if (!p) return { createdText: "", atText: "", auto: null };
+    for (const s of sessionsOf()) {
+        for (const x of Object.values(s.roots || {})) {
+            if (x && x.snapshot_path === p) {
+                const created = String(s.created_at || "");
+                return {
+                    createdText: created.replace("T", " "),
+                    atText: created.replace("T", " "),
+                    auto: s.auto === undefined ? null : !!s.auto,
+                };
+            }
+        }
+    }
+    /* 会话缓存不可得（外部路径/缓存共享）：退回文件名内嵌时间戳 D_YYYYMMDD_HHMMSS_* */
+    const m = /_(\d{8})_(\d{6})_/.exec(p);
+    const text = m ? m[1].slice(0, 4) + "-" + m[1].slice(4, 6) + "-" + m[1].slice(6, 8) +
+        " " + m[2].slice(0, 2) + ":" + m[2].slice(2, 4) + ":" + m[2].slice(4, 6) : "";
+    return { createdText: text, atText: text, auto: null };
+}
+
+/* 下拉选项文案（D5-2）：每项「时间 · 盘符 · 自动/手动」；最近一份额外标注「最近一份」
+   ⚠️ 时间必须与 snapshots.js formatCreatedAt 同口径（ISO 的 "T" 换成空格）——
+   直接把 created_at 原文塞进选项会显示 "2026-08-24T12:00:00"，可读性差且与快照页不一致。 */
+function baselineOptionText(path, meta, isLatest) {
+    const parts = [];
+    const created = String(meta.createdText || "").replace("T", " ");
+    if (created) parts.push(created);
+    const owner = ownerRootFor(path, "");
+    if (owner) parts.push(owner.replace(/\\+$/, ""));
+    if (meta.auto === true) parts.push("自动");
+    else if (meta.auto === false) parts.push("手动");
+    const head = parts.length ? parts.join(" · ") : "该盘快照";
+    return (isLatest ? "最近一份 · " : "") + head;
+}
+
+/* 重建对比基准下拉（D5-2）：时间倒序（最近在前）；最近一份 = 首个可用项。
+   返回值 = 选项数（契约/断言可读；0 表示无可用快照 → 保持空态）。 */
+export function rebuildBaselineOptions(sessions) {
+    const sel = $("compare-baseline");
+    if (!sel || sel.tagName !== "SELECT") return 0;
+    const entries = [];
+    (sessions || []).forEach((s) => {
+        Object.values(s.roots || {}).forEach((r) => {
+            if (r && r.snapshot_path && !r.skipped) {
+                entries.push({
+                    path: r.snapshot_path, root: r.root,
+                    created: String(s.created_at || ""),
+                    auto: s.auto === undefined ? null : !!s.auto,
+                });
+            }
+        });
+    });
+    entries.sort((a, b) => String(b.created).localeCompare(String(a.created)));
+    const seen = new Set();
+    const uniq = entries.filter((e) => (seen.has(e.path) ? false : (seen.add(e.path), true)));
+    const keep = String(sel.value || APP_STATE.compare.baseline || "");
+    sel.innerHTML = "";
+    uniq.forEach((e, i) => {
+        const opt = document.createElement("option");
+        opt.value = e.path;
+        opt.textContent = baselineOptionText(e.path, { createdText: e.created, auto: e.auto }, i === 0);
+        opt.title = e.path;
+        opt.dataset.root = e.root || "";
+        opt.dataset.created = e.created;
+        if (i === 0) opt.dataset.latest = "1";
+        sel.appendChild(opt);
+    });
+    if (keep && uniq.some((e) => e.path === keep)) sel.value = keep;
+    sel.dataset.optionCount = String(uniq.length);
+    return uniq.length;
 }
 
 /* 结果缓存命中判定（同根同基线 **同口径** → 回灌渲染不重发）
@@ -404,14 +528,14 @@ function pollCompareJob(jobId, jobRoot, jobBaseline) {
 export async function compareSnapshots(opts, allowOtherMachine) {
     cancelCompare(false); // 上一次对比仍在途则先取消（幂等）
     if (!(opts && opts.autoretry)) scanRetries = 0; // 用户/挂载发起 → 重试计数复位
-    const input = $("compare-baseline");
+    const baselineEl = $("compare-baseline"); // P5：<select>（原 datalist 文本框）
     const btn = $("btn-compare");
     const st = APP_STATE.compare;
     const drill = drillRootOf();
     let root = (opts && opts.root) || drill || String(st.root || getCurrentRoot() || "");
     let baseline = (opts && opts.baseline)
         ? String(opts.baseline).trim()
-        : String((input ? input.value.trim() : "") || st.baseline || "").trim();
+        : String((baselineEl ? String(baselineEl.value || "").trim() : "") || st.baseline || "").trim();
     if (!baseline) baseline = defaultBaseline(root);
     if (!baseline) {
         setStatus("compare-status", "warn", "没有可用的历史快照，请先完成全量扫描并保存");
@@ -761,11 +885,30 @@ function renderReport(r, root, baseline, opts) {
 /* ================= 页面接线（每次挂载新 DOM 重绑） ================= */
 
 function bindComparePage() {
-    // 对比（按钮 + 基线输入 Enter）
+    // 对比（按钮 + 对比基准下拉变更即重算）
     $("btn-compare").addEventListener("click", () => compareSnapshots());
-    $("compare-baseline").addEventListener("keydown", (ev) => {
-        if (ev.key === "Enter") compareSnapshots();
-    });
+    // P5（D5-2）：下拉列表取代原 datalist 文本框——change 即换对比基准并重算
+    //（原 keydown Enter 路径随文本框一并移除；select 无自由输入）
+    const baselineSel = $("compare-baseline");
+    if (baselineSel) {
+        baselineSel.addEventListener("change", () => {
+            APP_STATE.compare.baseline = String(baselineSel.value || "").trim();
+            /* P4：换对比基准 = 换对比对象 → 下钻根失效（避免把 A 盘的子目录当成 B 盘的新根） */
+            if (APP_STATE.compare.drillRoot) {
+                APP_STATE.compare.drillRoot = "";
+                renderCrumb();
+            }
+            const root = ownerRootFor(APP_STATE.compare.baseline, APP_STATE.compare.root || getCurrentRoot()) || "";
+            if (root) {
+                APP_STATE.compare.root = root;
+                const latest = latestForRoot(root);
+                if (latest) APP_STATE.compare.target = latest; // 展示标识（见 syncForm 注记）
+            }
+            syncForm();
+            APP_STATE.compare.result = null; // 换基准 → 弃用旧报告缓存
+            compareSnapshots();
+        });
+    }
     // P4（D4-2/D4-6）：深度切换 → 记状态并重发（口径变了不能吃缓存）；下钻中换深度
     // 以「当前下钻根」为新根重新聚合，不回到整盘。
     const depthSel = $("compare-depth");
@@ -820,23 +963,6 @@ function bindComparePage() {
             }
         });
     }
-    // 基线输入变化 → 回写 state（切页不丢）+ 目标随同盘符联动（只读展示）
-    $("compare-baseline").addEventListener("input", () => {
-        const b = $("compare-baseline").value.trim();
-        APP_STATE.compare.baseline = b;
-        /* P4：换基线 = 换对比对象 → 下钻根失效（避免把 A 盘的子目录当成 B 盘的新根） */
-        if (APP_STATE.compare.drillRoot) {
-            APP_STATE.compare.drillRoot = "";
-            renderCrumb();
-        }
-        const root = ownerRootFor(b, APP_STATE.compare.root || getCurrentRoot()) || "";
-        if (root) {
-            APP_STATE.compare.root = root;
-            const target = latestForRoot(root);
-            if (target) APP_STATE.compare.target = target;
-        }
-        syncForm();
-    });
     // P12·W1.4：对比明细行尾操作（定位 F19 / 复制路径）——行为保留，委托渲染内容更新
     // P4（D4-6）：整行点击 = 页内下钻（行尾操作按钮优先，命中则不下钻）
     $("compare-body").addEventListener("click", (ev) => {
@@ -863,20 +989,19 @@ const COMPARE_PAGE_HTML =
     '<section class="page page-compare" data-page="compare">' +
     '<header class="page-head page-head-row page-head-compare">' +
     '<div class="page-head-titles">' +
-    '<h1 class="page-title" data-page-title>历史对比</h1>' +
-    '<p class="page-sub" id="compare-root-line">基线=最近一份快照 · 目标=同盘符最新快照</p>' +
+    '<h1 class="page-title" data-page-title>空间对比</h1>' +
+    '<p class="page-sub" id="compare-root-line">对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时）</p>' +
     "</div>" +
     '<div class="compare-controls" role="group" aria-label="对比参数">' +
-    '<label class="compare-ctl" for="compare-baseline" title="基线快照（datalist 可选；留空自动取最近一份）">' +
-    "基线" +
-    '<input id="compare-baseline" list="baseline-suggest" type="text" autocomplete="off" spellcheck="false"' +
-    ' placeholder="默认取最近一份快照" aria-label="基线快照路径（留空自动选最近一份）" title="基线快照（datalist 可选；留空自动取最近一份）">' +
-    "</label>" +
-    '<datalist id="baseline-suggest"></datalist>' +
-    '<label class="compare-ctl compare-ctl-target" for="compare-target" title="仅展示：对比的目标为当前磁盘最新状态（同盘符最新快照为标识性口径）">' +
-    "目标" +
-    '<input id="compare-target" type="text" readonly tabindex="-1" placeholder="同盘符最新快照" aria-label="目标（只读）=同盘符最新快照" title="同盘符最新快照（只读展示；对比目标实为当前磁盘状态）">' +
-    "</label>" +
+    // P5（D5-2）：对比基准由 datalist 文本框升级为下拉列表，每项「时间 · 盘符 · 自动/手动」
+    '<label class="compare-ctl compare-ctl-baseline" for="compare-baseline" title="对比基准 = 一份历史快照；下拉里按时间倒序列出所有已保存快照，默认选中最近一份">' +
+    "对比基准（历史快照）" +
+    '<select id="compare-baseline" aria-label="对比基准（历史快照）" title="对比基准 = 一份历史快照；下拉里按时间倒序列出所有已保存快照，默认选中最近一份">' +
+    "</select></label>" +
+    // P5（D5-1）：删除只读「目标」输入框；改为一行只读文本「当前：…」（非表单控件）
+    '<span id="compare-current" class="compare-current" role="status" ' +
+    'title="当前磁盘状态 = 本机此刻的实际占用（由全量扫描结果或实时索引得出，不是快照文件）">' +
+    "当前：尚未选择盘符</span>" +
     // P4（D4-2）：深度选择器——缺省「叶子（默认）」= 修复前口径（不发 depth）
     '<label class="compare-ctl compare-ctl-depth" for="compare-depth" title="深度：按相对对比根的第 N 层聚合目录增量（后端在排序/截断之前聚合，不由前端近似）">' +
     "深度" +
@@ -898,12 +1023,12 @@ const COMPARE_PAGE_HTML =
     "</div></header>" +
     '<div class="page-body page-compare-body">' +
     '<div id="compare-status" class="status-line" role="status"><span class="dot"></span>' +
-    '<span id="compare-status-text">选择一份基线快照，开始对比两个时间点的空间变化。</span></div>' +
+    '<span id="compare-status-text">选择一份对比基准（历史快照），开始对比它的采集时刻与本机当前磁盘状态的差异。</span></div>' +
     // P4（D4-6）：下钻面包屑（未下钻时 hidden，不占高度）
     '<nav id="compare-crumb" class="compare-crumb" aria-label="下钻路径（点击返回上级）" hidden></nav>' +
     '<div id="compare-empty" class="page-compare-empty">' +
     '<div class="empty-state">' +
-    '<b>选择一份基线快照</b>' +
+    '<b>选择一份对比基准（历史快照）</b>' +
     "<p>开始对比两个时间点的空间变化。</p>" +
     "</div></div>" +
     '<div id="compare-loading" class="compare-loading" hidden>' +
@@ -934,7 +1059,7 @@ export function renderCompare() {
 
 export function mountCompare() {
     bindComparePage();
-    rebuildBaselineSuggest(sessionsOf()); // datalist 全量快照路径（回灌填充）
+    rebuildBaselineOptions(sessionsOf()); // P5（D5-2）：对比基准下拉全量快照选项（回灌填充）
     /* P4：回灌口径控件（切页不丢：深度选择器 + 隐藏零变化开关），再渲面包屑 */
     const depthSel = $("compare-depth");
     if (depthSel) depthSel.value = String(APP_STATE.compare.depth || "");
@@ -965,8 +1090,8 @@ export function resetCompareData() {
     APP_STATE.compare.hideZero = true;
     renderCompareMini();
     if (isPageMounted()) {
-        const input = $("compare-baseline");
-        if (input) input.value = "";
+        const baselineSel = $("compare-baseline");
+        if (baselineSel) { baselineSel.innerHTML = ""; baselineSel.dataset.optionCount = "0"; }
         const depthSel = $("compare-depth");
         if (depthSel) depthSel.value = "";
         const zeroBox = $("compare-hide-zero");
@@ -974,8 +1099,9 @@ export function resetCompareData() {
         APP_STATE.compare.baseline = "";
         APP_STATE.compare.root = "";
         APP_STATE.compare.target = "";
+        syncCurrentRow("");
         renderCrumb();
-        setStatus("compare-status", "", "选择一份基线快照，开始对比两个时间点的空间变化。");
+        setStatus("compare-status", "", "选择一份对比基准（历史快照），开始对比它的采集时刻与本机当前磁盘状态的差异。");
         showEmpty();
     }
 }

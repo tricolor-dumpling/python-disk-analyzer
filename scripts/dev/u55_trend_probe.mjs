@@ -205,7 +205,7 @@ async function openScenario(browser, mode, scan) {
         check("点击趋势卡 → 跳转 #/compare", (await page.evaluate(() => location.hash)) === "#/compare", "");
         // 前端渲染为 humanBytes（15.63 KB → 15.62 KB），断言匹配显示格式而非原始字节
         check("对比页摘要 delta 与趋势卡一致（▼15.63 KB）", compareState.deltaText.indexOf("▼") !== -1 && compareState.deltaText.indexOf("15.63 KB") !== -1, compareState.deltaText);
-        check("对比页摘要含 基线→当前 数值（15.63 KB → 15.62 KB）", compareState.deltaText.indexOf("15.63 KB → 15.62 KB") !== -1, compareState.deltaText);
+        check("对比页摘要含 对比基准→当前 数值（15.63 KB → 15.62 KB）", compareState.deltaText.indexOf("15.63 KB → 15.62 KB") !== -1, compareState.deltaText);
         await shot(page, "trend-consistency-compare.png");
         RESULT.shots.push("trend-consistency-compare.png");
         await page.close();

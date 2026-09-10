@@ -127,7 +127,7 @@ const browser = await chromium.launch();
         title: t ? t.textContent : null,
         compare: {
           baseline: !!document.querySelector("#compare-baseline"),
-          target: !!document.querySelector("#compare-target"),
+          current: !!document.querySelector("#compare-current"),
           btn: !!document.querySelector("#btn-compare"),
         },
         snapshots: {
@@ -148,7 +148,7 @@ const browser = await chromium.launch();
   ok(routeInfo["#/"].title === "工作台", "路由 #/ → 工作台（页头标题）");
   ok(routeInfo["#/"].ws.filter && routeInfo["#/"].ws.treemap && routeInfo["#/"].ws.merge, "工作台元素齐全（筛选框/矩形图/合并阈值）");
   ok(routeInfo["#/"].ws.densityRemoved, "密度开关已删除（DOM 无 #btn-density、无 .compact-list；P3/D3-6）");
-  ok(routeInfo["#/compare"].title === "历史对比" && routeInfo["#/compare"].compare.baseline && routeInfo["#/compare"].compare.target && routeInfo["#/compare"].compare.btn, "路由 #/compare → 历史对比（基线下拉+目标只读+开始对比）");
+  ok(routeInfo["#/compare"].title === "空间对比" && routeInfo["#/compare"].compare.baseline && routeInfo["#/compare"].compare.current && routeInfo["#/compare"].compare.btn, "路由 #/compare → 空间对比（对比基准下拉+当前磁盘状态行+开始对比；P5·D5-1/D5-2/D5-5）");
   ok(routeInfo["#/snapshots"].title === "快照管理" && routeInfo["#/snapshots"].snapshots.trends >= 2, "路由 #/snapshots → 快照管理（趋势卡×2）");
 
   // 主题三态（设置弹窗 radio）
@@ -250,10 +250,13 @@ section("⑥ 真实页：壳结构/版本/零滚动/console 0（路由往返）"
   const cmp = await page.evaluate(() => ({
     title: (document.querySelector("[data-page-title]") || {}).textContent,
     baseline: !!document.querySelector("#compare-baseline"),
-    target: !!document.querySelector("#compare-target"),
+    current: !!document.querySelector("#compare-current"),
+    baselineIsSelect: (document.querySelector("#compare-baseline") || {}).tagName === "SELECT",
+    legacyTargetRemoved: !document.querySelector("#compare-target"),
     skeleton: !!document.querySelector("#compare-loading"),
   }));
-  ok(cmp.title === "历史对比" && cmp.baseline && cmp.target, "真实页 #/compare 页头 DOM（标题/基线/目标只读）");
+  ok(cmp.title === "空间对比" && cmp.baseline && cmp.current && cmp.baselineIsSelect && cmp.legacyTargetRemoved,
+     "真实页 #/compare 页头 DOM（标题「空间对比」/对比基准下拉/当前磁盘状态行；旧目标只读框已删）");
   await page.evaluate(() => { location.hash = "#/"; });
   await page.waitForTimeout(500);
   /* 挂账清理（P4）：console 判据细化——**409 单列**。

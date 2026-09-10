@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    UI 2.0（SpaceLens Pro）· main.js 入口装配（U2.0 建，U2.1 路由化）
    - 装配顺序：壳级绑定（顶栏/主题/设置/弹窗族）
      → router 初始化（首渲染当前路由，默认工作台直装）
@@ -226,14 +226,14 @@ function buildPaletteItems() {
     items.push({ group: "命令", label: "开始扫描", hint: "全量扫描所有本地盘", keywords: ["scan", "start", "fullscan", "kssm"], exec: () => navigateAndRun("/", () => startFullscan()) });
     items.push({ group: "命令", label: "保存快照", hint: "把最近一次全量结果保存为快照", keywords: ["save", "snapshot", "bckz"], exec: () => saveSnapshot(false) });
     // U3.4：命令「开始对比」= 预填默认（最近一份）+ 跳 #/compare（替换旧工作台卡 compareSnapshots）
-    items.push({ group: "命令", label: "开始对比", hint: "对比工作台（基线默认最近一份）", keywords: ["compare", "diff", "ksdb"],
+    items.push({ group: "命令", label: "开始对比", hint: "空间对比页（对比基准默认最近一份历史快照）", keywords: ["compare", "diff", "ksdb"],
         exec: () => {
             APP_STATE.compare.baseline = "";
             APP_STATE.compare.root = getCurrentRoot();
-            APP_STATE.compare.result = null; // 强制新一轮（默认基线）
+            APP_STATE.compare.result = null; // 强制新一轮（默认对比基准）
             if (APP_STATE.route === "/compare") {
                 const input = document.getElementById("compare-baseline");
-                if (input) input.value = ""; // 已在本页：清输入后重跑（默认基线）
+                if (input) input.value = ""; // 已在本页：清选后重跑（默认对比基准）
                 const cmp = document.getElementById("btn-compare");
                 if (cmp) cmp.click();
             } else {
@@ -264,7 +264,7 @@ function mountWorkspacePage() {
     renderCompareMini();  // U2.4：最近对比迷你卡（state.compare.lastSummary 回灌）
     bindWorkspaceGuide();
     if (_workspaceMountedOnce) refreshOverview();
-    applySnapshotsView();     // 快照列表/基线下拉回灌（含 N06 迷你条目）
+    applySnapshotsView();     // 快照列表/对比基准下拉回灌（含 N06 迷你条目）
     applyScanView();          // 扫描卡最近状态回灌
     restoreWorkspaceView();   // 浏览视图回灌（缓存渲染，不重发请求）
     _workspaceMountedOnce = true;

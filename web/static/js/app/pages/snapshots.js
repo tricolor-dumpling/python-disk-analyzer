@@ -2,10 +2,14 @@
    UI 2.0（SpaceLens Pro）· pages/snapshots.js（U2.0 模块化迁入，U3.3 快照管理页）
    - 布局（§3.3/§3.5）：页头 64px（创建快照 F15 + 撤销最近保存 F16）→
      趋势区 128px（趋势卡×2 N07）→ 会话分组列表（F17，flex:1 面板内滚）；
-   - [N07] 趋势卡（较昨日/较上周）：基线=同盘符快照中时间 ≤24h（较昨日）/
-     (24h,7d]（较上周）最近的一份（D7：前端就近选基线，复用 /api/compare，无新后端）；
-     目标=该盘最新快照；无合适基线 → 「暂无对比基线」；点击卡 → #/compare 并预填
+   - [N07] 趋势卡（较昨日/较上周）：对比基准（历史快照）= 同盘符快照中时间 ≤24h（较昨日）/
+     (24h,7d]（较上周）最近的一份（D7：前端就近选对比基准，复用 /api/compare，无新后端）；
+     另一侧 = 当前磁盘状态（实时，由全量扫描结果/SDK 直扫得出，**不是**「该盘最新快照」）；
+     无合适对比基准 → 「暂无可用的对比基准」；点击卡 → #/compare 并预填
      （APP_STATE.compare，§6.4 跨页传递）；
+     P5（D5-5）：术语统一为「对比基准（历史快照）/ 当前磁盘状态（实时）」——
+     原「基线=…；目标=该盘最新快照」的措辞把一个"当前磁盘状态"伪装成"目标快照"，
+     与 /api/compare 实际口径（app.py 同步/异步两条路径的「当前」侧）自相矛盾；
    - ⚠️ 字段核对结论（执行记录）：/api/snapshots 会话数据（app.py api_snapshots /
      session.py save_session）无「逐次总量」字段（session 载荷仅
      session_id/auto/machine_guid/roots/ledger_backup/created_at，roots 条目仅
@@ -219,19 +223,28 @@ export function renderSnapshotList(sessions) {
         .join("");
 }
 
+/* P5（D5-2）：原「基线 datalist 填充」——P5 起对比页的对比基准改为 <select>
+   （#compare-baseline），选项由 compare.js 的 rebuildBaselineOptions 构建
+   （在那里做 owner 根/自动手动/「最近一份」标注，单一实现）。
+   本函数保留为**兼容空操作**：`#baseline-suggest` 已随 D5-2 从 DOM 移除，
+   快照刷新时本函数自然返回 0，不再触碰任何 DOM（调用点保持零改动，
+   避免 snapshots.js 反向依赖 compare.js 形成 import 环）。 */
 export function rebuildBaselineSuggest(sessions) {
     const list = $("baseline-suggest");
-    if (!list) return;
+    if (!list) return 0;
     list.innerHTML = "";
+    let n = 0;
     sessions.forEach((s) => {
         Object.values(s.roots || {}).forEach((r) => {
             if (r.snapshot_path) {
                 const opt = document.createElement("option");
                 opt.value = r.snapshot_path;
                 list.appendChild(opt);
+                n += 1;
             }
         });
     });
+    return n;
 }
 
 /* ================= U3.3：趋势卡×2（N07；sparkline 降级为差值卡） =================
@@ -381,7 +394,7 @@ function trendEmptyReason(sessions, slot) {
     }
     const anyUsable = entries.some((e) => e.snapPath);
     if (!anyUsable) {
-        return "基线快照不可用（已删除或损坏）";
+        return "对比基准快照不可用（已删除或损坏）";
     }
     // 与 pickTrendForSlot 同口径：每盘最新为「目标」，其同盘更早条目若有落在
     // (minMs, windowMs] 的则非空；全部盘都没有 → 窗口外（给最近快照时间提示）。
@@ -406,22 +419,23 @@ function trendEmptyReason(sessions, slot) {
         "，超出 " + (slot.windowMs / DAY_MS).toFixed(0) + " 天窗口，请保存新快照后查看";
 }
 
-/* 窗口口径 tooltip（阶段C C-4：两卡分别注明窗口口径） */
+/* 窗口口径 tooltip（阶段C C-4：两卡分别注明窗口口径；P5·D5-5：术语与对比页统一——
+   「对比基准（历史快照）」/「当前磁盘状态（实时）」，不再出现裸词「基线/目标」） */
 function trendSlotTooltip(slot) {
     const label = slot.key === "day" ? "较昨日" : "较上周";
     const caliber = slot.key === "day"
         ? "同盘 0&lt;Δt≤24h 最近一份"
         : "同盘 24h&lt;Δt≤7d 最近一份";
-    return label + "＝" + caliber + "；目标＝该盘最新快照";
+    return label + "＝对比基准（历史快照：" + caliber + "）→ 当前磁盘状态（实时）";
 }
 
 function trendCardEmpty(slot, sessions) {
     const reason = trendEmptyReason(sessions, slot);
     return (
         '<div class="trend-card is-empty" data-slot="' + slot.key + '"' +
-        ' title="' + esc(trendSlotTooltip(slot)) + '" aria-label="' + esc(slot.label + "：" + (reason || "暂无对比基线")) + '">' +
+        ' title="' + esc(trendSlotTooltip(slot)) + '" aria-label="' + esc(slot.label + "：" + (reason || "暂无可用的对比基准（历史快照）")) + '">' +
         '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span></span>" +
-        '<span class="trend-empty">暂无对比基线</span>' +
+        '<span class="trend-empty">暂无可用的对比基准</span>' +
         (reason ? '<span class="trend-reason">' + esc(reason) + "</span>" : "") +
         "</div>"
     );
@@ -431,11 +445,11 @@ function trendCardPending(slot, trend) {
     return (
         '<button class="trend-card" type="button" data-slot="' + slot.key + '"' +
         ' data-root="' + esc(trend.root) + '" data-baseline="' + esc(trend.baseline) + '"' +
-        ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，基线已预填）">' +
+        ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，对比基准已预填）">' +
         '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span>" +
         '<span class="trend-root">' + esc(rootLabel(trend.root)) + "</span></span>" +
         '<span class="trend-pending">正在计算对比…</span>' +
-        '<span class="trend-sub">基线 ' + esc(trend.baselineAtText) + " → 最新 " + esc(trend.targetAtText) + "</span>" +
+        '<span class="trend-sub">对比基准 ' + esc(trend.baselineAtText) + " → 最新 " + esc(trend.targetAtText) + "</span>" +
         "</button>"
     );
 }
@@ -475,7 +489,7 @@ function trendCardBody(slot, trend, cached) {
         return (
             '<button class="trend-card" type="button" data-slot="' + slot.key + '"' +
             ' data-root="' + esc(trend.root) + '" data-baseline="' + esc(trend.baseline) + '"' +
-            ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，基线已预填）">' +
+            ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，对比基准已预填）">' +
             '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span>" +
             '<span class="trend-root">' + esc(rootLabel(trend.root)) + "</span></span>" +
             '<span class="trend-err" title="' + esc(errDetail) + '">' + esc(errText) + "：" +
@@ -491,14 +505,14 @@ function trendCardBody(slot, trend, cached) {
     return (
         '<button class="trend-card" type="button" data-slot="' + slot.key + '"' +
         ' data-root="' + esc(trend.root) + '" data-baseline="' + esc(trend.baseline) + '"' +
-        ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，基线已预填）">' +
+        ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，对比基准已预填）">' +
         '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span>" +
         '<span class="trend-root">' + esc(rootLabel(trend.root)) + "</span></span>" +
         '<span class="trend-main">' +
         '<span class="trend-delta ' + cls + '">' + arrow + " " + esc(signedBytes(d)) + "</span>" +
         '<span class="trend-pct">' + esc(pctText) + "</span>" +
         (spark ? spark.html : "") + "</span>" +
-        '<span class="trend-sub">基线 ' + esc(trend.baselineAtText) + " → 最新 " + esc(trend.targetAtText) + "</span>" +
+        '<span class="trend-sub">对比基准 ' + esc(trend.baselineAtText) + " → 最新 " + esc(trend.targetAtText) + "</span>" +
         "</button>"
     );
 }
@@ -509,7 +523,7 @@ function trendCardBody(slot, trend, cached) {
    - 无全量结果（result_ready=false 且非扫描中）→ 提示先做全量扫描，不静默
      触发后台 SDK 直扫（分钟级，G8）。
    三态文案：计算中（pending）/ 失败（err）/ 无基线（empty 原因行）。
-   禁止把「暂无对比基线」改为误导性「无变化」（手册 2-4 注意点）。 */
+   禁止把「暂无可用的对比基准」改为误导性「无变化」（手册 2-4 注意点）。 */
 const TREND_COMPARE_TIMEOUT_MS = 30000;
 
 async function pollCompareJob(jobId) {
