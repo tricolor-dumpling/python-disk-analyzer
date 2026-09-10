@@ -699,7 +699,13 @@ function classifyHit(h) {
                 semanticsHits: sem1.hits.length, shot: shot1,
             });
 
-            /* ===== 态 2：对比页空态 ===== */
+            /* ===== 态 2：对比页空态 =====
+               先关掉引导弹层（探针读 #compare-current 的 dataset.at 时需要工作台 DOM，
+               且对比页截图不应被弹层遮挡——术语扫描本身对遮挡不敏感，但视觉验收要干净）。
+               关闭方式用真实用户动作（点击标题栏关闭按钮 = dismissGuide 持久化路径，
+               同时把 dismissed 键写进 localStorage，后续态不再弹）。 */
+            await page.click("#btn-onboarding-close").catch(() => {});
+            await wait(400);
             await page.evaluate(() => { window.location.hash = "#/compare"; });
             await page.waitForSelector("#compare-baseline", { timeout: 15000 }).catch(() => {});
             await wait(900);

@@ -1,0 +1,488 @@
+{
+  "meta": {
+    "label": "postfix",
+    "out": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p05_postfix",
+    "node": "v24.19.0",
+    "startedAt": "2026-09-10T15:13:34.613Z",
+    "fixtureRoot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner",
+    "snapshotDir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner\\snapshots",
+    "fixtureNow": "2026-09-08T20:00:00",
+    "injectedRoots": [
+      "D:\\",
+      "S:\\"
+    ],
+    "rootsSpec": "D:\\|S:\\",
+    "magicRoot": "D:\\",
+    "viewports": [
+      "1366x768",
+      "1440x900",
+      "1920x1080"
+    ],
+    "fixtures": {
+      "generated": false,
+      "missing": []
+    },
+    "subst": {
+      "established": true,
+      "letter": "S:",
+      "target": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_subst_target",
+      "createOut": "",
+      "probeOut": true,
+      "readyAfterMs": 0
+    },
+    "base": "http://127.0.0.1:5102/",
+    "harnessSpawned": true,
+    "harnessState": {
+      "data_dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner",
+      "machine_guid": "3f2a1c9d-0000-4000-8000-00000000f1x7",
+      "root": "D:\\",
+      "roots_injected": [
+        "D:\\",
+        "S:\\"
+      ],
+      "roots_mode": "injected",
+      "rows": 11,
+      "snapshot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner\\snapshots\\D_20260908_170000_explicit_3f2a1c9d.snap.gz",
+      "snapshot_dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner\\snapshots"
+    },
+    "substRemoval": {
+      "removed": true,
+      "out": "",
+      "stillExists": false
+    }
+  },
+  "samples": [
+    {
+      "vkey": "1366x768",
+      "shot": "onboarding-1366x768.png",
+      "measure": {
+        "visible": true,
+        "stepCount": 5,
+        "steps": [
+          {
+            "title": "检查环境",
+            "body": "确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。"
+          },
+          {
+            "title": "选择要分析的盘",
+            "body": "列表来自本机实际盘符（可用性已标注）：选中的盘会被记住，并作为「开始全量扫描」与分析范围的默认盘。也可以直接跳过——跳过则按上次浏览的位置或第一个可用盘。"
+          },
+          {
+            "title": "全量扫描",
+            "body": "点击「开始全量扫描」，程序在后台依次扫描所选盘，进度条实时显示。"
+          },
+          {
+            "title": "保存快照",
+            "body": "扫描完成会提示「是否保存本次快照」，保存后每个盘各生成一份快照与清单；也可在设置中开启自动保存。"
+          },
+          {
+            "title": "对比与清空",
+            "body": "保存快照后，历史列表中每个盘符旁可「一键对比」；对比基准默认取最近一份历史快照，对比的另一侧是本机当前磁盘状态（实时）。设置里可一键清空数据目录（需输入确认文字）。"
+          }
+        ],
+        "buttons": [
+          {
+            "id": "btn-onboarding-close",
+            "text": "",
+            "cls": "icon-btn",
+            "w": 28,
+            "h": 28
+          },
+          {
+            "id": "",
+            "text": "S:可用",
+            "cls": "onboarding-root",
+            "w": 63,
+            "h": 30
+          },
+          {
+            "id": "",
+            "text": "D:未就绪",
+            "cls": "onboarding-root",
+            "w": 77,
+            "h": 30
+          },
+          {
+            "id": "btn-onboarding-skip-root",
+            "text": "跳过选盘",
+            "cls": "btn btn-sm btn-ghost",
+            "w": 70,
+            "h": 36
+          }
+        ],
+        "stepText": "检查环境 确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。 | 选择要分析的盘 列表来自本机实际盘符（可用性已标注）：选中的盘会被记住，并作为「开始全量扫描」与分析范围的默认盘。也可以直接跳过——跳过则按上次浏览的位置或第一个可用盘。 | 全量扫描 点击「开始全量扫描」，程序在后台依次扫描所选盘，进度条实时显示。 | 保存快照 扫描完成会提示「是否保存本次快照」，保存后每个盘各生成一份快照与清单；也可在设置中开启自动保存。 | 对比与清空 保存快照后，历史列表中每个盘符旁可「一键对比」；对比基准默认取最近一份历史快照，对比的另一侧是本机当前磁盘状态（实时）。设置里可一键清空数据目录（需输入确认文字）。",
+        "hasPicker": true,
+        "pickerTag": "DIV",
+        "pickerId": "onboarding-roots",
+        "rootOptions": [
+          {
+            "root": "S:\\",
+            "tag": "BUTTON",
+            "text": "S:可用",
+            "disabled": false,
+            "w": 63,
+            "h": 30
+          },
+          {
+            "root": "D:\\",
+            "tag": "BUTTON",
+            "text": "D:未就绪",
+            "disabled": false,
+            "w": 77,
+            "h": 30
+          }
+        ],
+        "selectOptions": [],
+        "skipButtons": [
+          {
+            "id": "btn-onboarding-skip-root",
+            "text": "跳过选盘",
+            "cls": "btn btn-sm btn-ghost",
+            "w": 70,
+            "h": 36
+          }
+        ]
+      },
+      "judges": [
+        {
+          "name": "J2 引导弹层可见",
+          "pass": true,
+          "detail": "visible=true"
+        },
+        {
+          "name": "J2 引导含「选择要分析的盘」步骤（文案层）",
+          "pass": true,
+          "detail": "steps=5 stepText=检查环境 确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。 | 选择要分析的盘 列表来自本机实际盘符（可用性已标注）：选中的盘会被记住，并作为「开始全量扫描」与分析范围的默认盘。也可以直接跳过——跳过则按上次浏览的位置或第一个可用盘。 | 全量扫描 点击「"
+        },
+        {
+          "name": "J2 引导含可选盘符的控件",
+          "pass": true,
+          "detail": "pickerTag=DIV id=onboarding-roots"
+        },
+        {
+          "name": "J3 引导选盘项数 == 注入盘符数",
+          "pass": true,
+          "detail": "选项=[\"S:\\\\\",\"D:\\\\\"] 注入=[\"D:\\\\\",\"S:\\\\\"]"
+        },
+        {
+          "name": "J2 「跳过」按钮存在且可点击（尺寸 > 0）",
+          "pass": true,
+          "detail": "skip=[{\"id\":\"btn-onboarding-skip-root\",\"text\":\"跳过选盘\",\"cls\":\"btn btn-sm btn-ghost\",\"w\":70,\"h\":36}]"
+        },
+        {
+          "name": "J2 点「跳过选盘」后弹层保持打开且切到「已跳过」提示（不阻塞首开）",
+          "pass": true,
+          "detail": "skipWorks={\"open\":true,\"skippedHint\":true,\"hostText\":\"已跳过：将按上次浏览的位置或第一个可用盘分析。可在工作台工具栏随时改盘。重新选择盘\"}"
+        },
+        {
+          "name": "D5-3 「跳过选盘」可逆：点「重新选择盘」后盘符按钮恢复",
+          "pass": true,
+          "detail": "recover={\"found\":true} after={\"count\":2,\"roots\":[\"S:\\\\\",\"D:\\\\\"]}"
+        },
+        {
+          "name": "D5-3 点选盘符 → 选中态（is-on + aria-pressed）",
+          "pass": true,
+          "detail": "{\"isOn\":true,\"ariaPressed\":\"true\",\"browseRoot\":\"S:\\\\\",\"btnFound\":true,\"btnsSeen\":null,\"settingsPostDelta\":1,\"postsTotal\":1,\"lastPost\":\"{\\\"last_roots\\\":[\\\"S:\\\\\\\\\\\"]}\"}"
+        },
+        {
+          "name": "D5-3 选盘经 POST /api/settings 写入 last_roots",
+          "pass": true,
+          "detail": "delta=1 post={\"last_roots\":[\"S:\\\\\"]}"
+        },
+        {
+          "name": "D5-3 选盘立即回灌工作台浏览根（#browse-root == 选中盘）",
+          "pass": true,
+          "detail": "browseRoot=S:\\ 期望=S:\\ 可点盘=[\"S:\\\\\",\"D:\\\\\"]"
+        }
+      ]
+    },
+    {
+      "vkey": "1440x900",
+      "shot": "onboarding-1440x900.png",
+      "measure": {
+        "visible": true,
+        "stepCount": 5,
+        "steps": [
+          {
+            "title": "检查环境",
+            "body": "确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。"
+          },
+          {
+            "title": "选择要分析的盘",
+            "body": "列表来自本机实际盘符（可用性已标注）：选中的盘会被记住，并作为「开始全量扫描」与分析范围的默认盘。也可以直接跳过——跳过则按上次浏览的位置或第一个可用盘。"
+          },
+          {
+            "title": "全量扫描",
+            "body": "点击「开始全量扫描」，程序在后台依次扫描所选盘，进度条实时显示。"
+          },
+          {
+            "title": "保存快照",
+            "body": "扫描完成会提示「是否保存本次快照」，保存后每个盘各生成一份快照与清单；也可在设置中开启自动保存。"
+          },
+          {
+            "title": "对比与清空",
+            "body": "保存快照后，历史列表中每个盘符旁可「一键对比」；对比基准默认取最近一份历史快照，对比的另一侧是本机当前磁盘状态（实时）。设置里可一键清空数据目录（需输入确认文字）。"
+          }
+        ],
+        "buttons": [
+          {
+            "id": "btn-onboarding-close",
+            "text": "",
+            "cls": "icon-btn",
+            "w": 28,
+            "h": 28
+          },
+          {
+            "id": "",
+            "text": "S:可用",
+            "cls": "onboarding-root",
+            "w": 63,
+            "h": 30
+          },
+          {
+            "id": "",
+            "text": "D:未就绪",
+            "cls": "onboarding-root",
+            "w": 77,
+            "h": 30
+          },
+          {
+            "id": "btn-onboarding-skip-root",
+            "text": "跳过选盘",
+            "cls": "btn btn-sm btn-ghost",
+            "w": 70,
+            "h": 36
+          }
+        ],
+        "stepText": "检查环境 确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。 | 选择要分析的盘 列表来自本机实际盘符（可用性已标注）：选中的盘会被记住，并作为「开始全量扫描」与分析范围的默认盘。也可以直接跳过——跳过则按上次浏览的位置或第一个可用盘。 | 全量扫描 点击「开始全量扫描」，程序在后台依次扫描所选盘，进度条实时显示。 | 保存快照 扫描完成会提示「是否保存本次快照」，保存后每个盘各生成一份快照与清单；也可在设置中开启自动保存。 | 对比与清空 保存快照后，历史列表中每个盘符旁可「一键对比」；对比基准默认取最近一份历史快照，对比的另一侧是本机当前磁盘状态（实时）。设置里可一键清空数据目录（需输入确认文字）。",
+        "hasPicker": true,
+        "pickerTag": "DIV",
+        "pickerId": "onboarding-roots",
+        "rootOptions": [
+          {
+            "root": "S:\\",
+            "tag": "BUTTON",
+            "text": "S:可用",
+            "disabled": false,
+            "w": 63,
+            "h": 30
+          },
+          {
+            "root": "D:\\",
+            "tag": "BUTTON",
+            "text": "D:未就绪",
+            "disabled": false,
+            "w": 77,
+            "h": 30
+          }
+        ],
+        "selectOptions": [],
+        "skipButtons": [
+          {
+            "id": "btn-onboarding-skip-root",
+            "text": "跳过选盘",
+            "cls": "btn btn-sm btn-ghost",
+            "w": 70,
+            "h": 36
+          }
+        ]
+      },
+      "judges": [
+        {
+          "name": "J2 引导弹层可见",
+          "pass": true,
+          "detail": "visible=true"
+        },
+        {
+          "name": "J2 引导含「选择要分析的盘」步骤（文案层）",
+          "pass": true,
+          "detail": "steps=5 stepText=检查环境 确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。 | 选择要分析的盘 列表来自本机实际盘符（可用性已标注）：选中的盘会被记住，并作为「开始全量扫描」与分析范围的默认盘。也可以直接跳过——跳过则按上次浏览的位置或第一个可用盘。 | 全量扫描 点击「"
+        },
+        {
+          "name": "J2 引导含可选盘符的控件",
+          "pass": true,
+          "detail": "pickerTag=DIV id=onboarding-roots"
+        },
+        {
+          "name": "J3 引导选盘项数 == 注入盘符数",
+          "pass": true,
+          "detail": "选项=[\"S:\\\\\",\"D:\\\\\"] 注入=[\"D:\\\\\",\"S:\\\\\"]"
+        },
+        {
+          "name": "J2 「跳过」按钮存在且可点击（尺寸 > 0）",
+          "pass": true,
+          "detail": "skip=[{\"id\":\"btn-onboarding-skip-root\",\"text\":\"跳过选盘\",\"cls\":\"btn btn-sm btn-ghost\",\"w\":70,\"h\":36}]"
+        },
+        {
+          "name": "J2 点「跳过选盘」后弹层保持打开且切到「已跳过」提示（不阻塞首开）",
+          "pass": true,
+          "detail": "skipWorks={\"open\":true,\"skippedHint\":true,\"hostText\":\"已跳过：将按上次浏览的位置或第一个可用盘分析。可在工作台工具栏随时改盘。重新选择盘\"}"
+        },
+        {
+          "name": "D5-3 「跳过选盘」可逆：点「重新选择盘」后盘符按钮恢复",
+          "pass": true,
+          "detail": "recover={\"found\":true} after={\"count\":2,\"roots\":[\"S:\\\\\",\"D:\\\\\"]}"
+        },
+        {
+          "name": "D5-3 点选盘符 → 选中态（is-on + aria-pressed）",
+          "pass": true,
+          "detail": "{\"isOn\":true,\"ariaPressed\":\"true\",\"browseRoot\":\"S:\\\\\",\"btnFound\":true,\"btnsSeen\":null,\"settingsPostDelta\":1,\"postsTotal\":1,\"lastPost\":\"{\\\"last_roots\\\":[\\\"S:\\\\\\\\\\\"]}\"}"
+        },
+        {
+          "name": "D5-3 选盘经 POST /api/settings 写入 last_roots",
+          "pass": true,
+          "detail": "delta=1 post={\"last_roots\":[\"S:\\\\\"]}"
+        },
+        {
+          "name": "D5-3 选盘立即回灌工作台浏览根（#browse-root == 选中盘）",
+          "pass": true,
+          "detail": "browseRoot=S:\\ 期望=S:\\ 可点盘=[\"S:\\\\\",\"D:\\\\\"]"
+        }
+      ]
+    },
+    {
+      "vkey": "1920x1080",
+      "shot": "onboarding-1920x1080.png",
+      "measure": {
+        "visible": true,
+        "stepCount": 5,
+        "steps": [
+          {
+            "title": "检查环境",
+            "body": "确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。"
+          },
+          {
+            "title": "选择要分析的盘",
+            "body": "列表来自本机实际盘符（可用性已标注）：选中的盘会被记住，并作为「开始全量扫描」与分析范围的默认盘。也可以直接跳过——跳过则按上次浏览的位置或第一个可用盘。"
+          },
+          {
+            "title": "全量扫描",
+            "body": "点击「开始全量扫描」，程序在后台依次扫描所选盘，进度条实时显示。"
+          },
+          {
+            "title": "保存快照",
+            "body": "扫描完成会提示「是否保存本次快照」，保存后每个盘各生成一份快照与清单；也可在设置中开启自动保存。"
+          },
+          {
+            "title": "对比与清空",
+            "body": "保存快照后，历史列表中每个盘符旁可「一键对比」；对比基准默认取最近一份历史快照，对比的另一侧是本机当前磁盘状态（实时）。设置里可一键清空数据目录（需输入确认文字）。"
+          }
+        ],
+        "buttons": [
+          {
+            "id": "btn-onboarding-close",
+            "text": "",
+            "cls": "icon-btn",
+            "w": 28,
+            "h": 28
+          },
+          {
+            "id": "",
+            "text": "S:可用",
+            "cls": "onboarding-root",
+            "w": 63,
+            "h": 30
+          },
+          {
+            "id": "",
+            "text": "D:未就绪",
+            "cls": "onboarding-root",
+            "w": 77,
+            "h": 30
+          },
+          {
+            "id": "btn-onboarding-skip-root",
+            "text": "跳过选盘",
+            "cls": "btn btn-sm btn-ghost",
+            "w": 70,
+            "h": 36
+          }
+        ],
+        "stepText": "检查环境 确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。 | 选择要分析的盘 列表来自本机实际盘符（可用性已标注）：选中的盘会被记住，并作为「开始全量扫描」与分析范围的默认盘。也可以直接跳过——跳过则按上次浏览的位置或第一个可用盘。 | 全量扫描 点击「开始全量扫描」，程序在后台依次扫描所选盘，进度条实时显示。 | 保存快照 扫描完成会提示「是否保存本次快照」，保存后每个盘各生成一份快照与清单；也可在设置中开启自动保存。 | 对比与清空 保存快照后，历史列表中每个盘符旁可「一键对比」；对比基准默认取最近一份历史快照，对比的另一侧是本机当前磁盘状态（实时）。设置里可一键清空数据目录（需输入确认文字）。",
+        "hasPicker": true,
+        "pickerTag": "DIV",
+        "pickerId": "onboarding-roots",
+        "rootOptions": [
+          {
+            "root": "S:\\",
+            "tag": "BUTTON",
+            "text": "S:可用",
+            "disabled": false,
+            "w": 63,
+            "h": 30
+          },
+          {
+            "root": "D:\\",
+            "tag": "BUTTON",
+            "text": "D:未就绪",
+            "disabled": false,
+            "w": 77,
+            "h": 30
+          }
+        ],
+        "selectOptions": [],
+        "skipButtons": [
+          {
+            "id": "btn-onboarding-skip-root",
+            "text": "跳过选盘",
+            "cls": "btn btn-sm btn-ghost",
+            "w": 70,
+            "h": 36
+          }
+        ]
+      },
+      "judges": [
+        {
+          "name": "J2 引导弹层可见",
+          "pass": true,
+          "detail": "visible=true"
+        },
+        {
+          "name": "J2 引导含「选择要分析的盘」步骤（文案层）",
+          "pass": true,
+          "detail": "steps=5 stepText=检查环境 确认右上角状态为「Everything 已就绪」。若未就绪，请先打开 Everything 并等待索引加载完成。 | 选择要分析的盘 列表来自本机实际盘符（可用性已标注）：选中的盘会被记住，并作为「开始全量扫描」与分析范围的默认盘。也可以直接跳过——跳过则按上次浏览的位置或第一个可用盘。 | 全量扫描 点击「"
+        },
+        {
+          "name": "J2 引导含可选盘符的控件",
+          "pass": true,
+          "detail": "pickerTag=DIV id=onboarding-roots"
+        },
+        {
+          "name": "J3 引导选盘项数 == 注入盘符数",
+          "pass": true,
+          "detail": "选项=[\"S:\\\\\",\"D:\\\\\"] 注入=[\"D:\\\\\",\"S:\\\\\"]"
+        },
+        {
+          "name": "J2 「跳过」按钮存在且可点击（尺寸 > 0）",
+          "pass": true,
+          "detail": "skip=[{\"id\":\"btn-onboarding-skip-root\",\"text\":\"跳过选盘\",\"cls\":\"btn btn-sm btn-ghost\",\"w\":70,\"h\":36}]"
+        },
+        {
+          "name": "J2 点「跳过选盘」后弹层保持打开且切到「已跳过」提示（不阻塞首开）",
+          "pass": true,
+          "detail": "skipWorks={\"open\":true,\"skippedHint\":true,\"hostText\":\"已跳过：将按上次浏览的位置或第一个可用盘分析。可在工作台工具栏随时改盘。重新选择盘\"}"
+        },
+        {
+          "name": "D5-3 「跳过选盘」可逆：点「重新选择盘」后盘符按钮恢复",
+          "pass": true,
+          "detail": "recover={\"found\":true} after={\"count\":2,\"roots\":[\"S:\\\\\",\"D:\\\\\"]}"
+        },
+        {
+          "name": "D5-3 点选盘符 → 选中态（is-on + aria-pressed）",
+          "pass": true,
+          "detail": "{\"isOn\":true,\"ariaPressed\":\"true\",\"browseRoot\":\"S:\\\\\",\"btnFound\":true,\"btnsSeen\":null,\"settingsPostDelta\":1,\"postsTotal\":1,\"lastPost\":\"{\\\"last_roots\\\":[\\\"S:\\\\\\\\\\\"]}\"}"
+        },
+        {
+          "name": "D5-3 选盘经 POST /api/settings 写入 last_roots",
+          "pass": true,
+          "detail": "delta=1 post={\"last_roots\":[\"S:\\\\\"]}"
+        },
+        {
+          "name": "D5-3 选盘立即回灌工作台浏览根（#browse-root == 选中盘）",
+          "pass": true,
+          "detail": "browseRoot=S:\\ 期望=S:\\ 可点盘=[\"S:\\\\\",\"D:\\\\\"]"
+        }
+      ]
+    }
+  ]
+}

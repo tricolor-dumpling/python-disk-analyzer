@@ -1,0 +1,250 @@
+{
+  "meta": {
+    "label": "prefix",
+    "out": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p05_prefix_final",
+    "node": "v24.19.0",
+    "startedAt": "2026-09-10T14:50:13.884Z",
+    "fixtureRoot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner",
+    "snapshotDir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner\\snapshots",
+    "fixtureNow": "2026-09-08T20:00:00",
+    "injectedRoots": [
+      "D:\\",
+      "S:\\"
+    ],
+    "rootsSpec": "D:\\|S:\\",
+    "magicRoot": "D:\\",
+    "viewports": [
+      "1366x768",
+      "1440x900",
+      "1920x1080"
+    ],
+    "fixtures": {
+      "generated": false,
+      "missing": []
+    },
+    "subst": {
+      "established": true,
+      "letter": "S:",
+      "target": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_subst_target",
+      "createOut": "",
+      "probeOut": true,
+      "readyAfterMs": 1
+    },
+    "base": "http://127.0.0.1:5102/",
+    "harnessSpawned": true,
+    "harnessState": {
+      "data_dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner",
+      "machine_guid": "3f2a1c9d-0000-4000-8000-00000000f1x7",
+      "root": "D:\\",
+      "roots_injected": [
+        "D:\\",
+        "S:\\"
+      ],
+      "roots_mode": "injected",
+      "rows": 11,
+      "snapshot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner\\snapshots\\D_20260908_170000_explicit_3f2a1c9d.snap.gz",
+      "snapshot_dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner\\snapshots"
+    },
+    "substRemoval": {
+      "removed": true,
+      "out": "",
+      "stillExists": false
+    }
+  },
+  "shots": [
+    "onboarding-1366x768.png",
+    "compare-empty-1366x768.png",
+    "compare-result-1366x768.png",
+    "onboarding-1440x900.png",
+    "compare-empty-1440x900.png",
+    "compare-result-1440x900.png",
+    "onboarding-1920x1080.png",
+    "compare-empty-1920x1080.png",
+    "compare-result-1920x1080.png"
+  ],
+  "consoleErrors": [],
+  "totals": {
+    "rootsApiViolations": 22,
+    "onboardingViolations": 24,
+    "sampleViolations": 18,
+    "semanticsBadHits": 18,
+    "consoleErrors": 0,
+    "total": 64
+  },
+  "violations": [
+    "J4 源码无驱动默认根的 D:\\ 字面量（§1.3 六处全消除） :: 扫描 32 文件，命中 9 处：[{\"file\":\"web/static/js/app/components/topbar.js\",\"line\":121,\"pattern\":\"|| \\\"D:\\\\\\\\\\\"（或兜底）\",\"code\":\"const target = (startup && startup.path) || getCurrentRoot() || \\\"D:\\\\\\\\\\\";\"},{\"file\":\"web/static/js/app/main.js\",\"line\":400,\"pattern\":\"|| \\\"D:\\\\\\\\\\\"（或兜底）\",\"code\":\"const firstRoot = getLastRoots()[0] || \\\"D:\\\\\\\\\\\";\"},{\"file\":\"web/static/js/app/pages/workspace.js\",\"line\":77,\"pattern\":\"= \\\"D:\\\\\\\\\\\"（直接赋值）\",\"code\":\"let currentRoot = \\\"D:\\\\\\\\\\\"; // 用户本次浏览会话的根（面包屑/返回不越过它）\"},{\"file\":\"web/static/js/app/pages/workspace.js\",\"line\":78,\"pattern\":\"= \\\"D:\\\\\\\\\\\"（直接赋值）\",\"code\":\"let currentPath = \\\"D:\\\\\\\\\\\"; // 当前正在查看的目录\"},{\"file\":\"web/static/js/app/pages/workspace.js\",\"line\":218,\"pattern\":\"root/path: \\\"D:\\\\\\\\\\\"（状态初值）\",\"code\":\"let lastBrowse = { root: \\\"D:\\\\\\\\\\\", path: \\\"D:\\\\\\\\\\\" }; // 供「重试」按钮使用\"},{\"file\":\"web/static/js/app/pages/workspace.js\",\"line\":1154,\"pattern\":\"value=\\\"D:\\\\\\\\\\\"（模板初值）\",\"code\":\"'<input id=\\\"browse-root\\\" list=\\\"roots-suggest\\\" type=\\\"text\\\" placeholder=\\\"输入盘符或路径，例如 D:\\\\\\\\\\\" value=\\\"D:\\\\\\\\\\\" aria-label=\\\"浏览根目录\\\">' +\"},{\"file\":\"web/static/js/app/pages/workspace.js\",\"line\":1155,\"pattern\":\"value=\\\"D:\\\\\\\\\\\"（模板初值）\",\"code\":\"'<datalist id=\\\"roots-suggest\\\"><option value=\\\"C:\\\\\\\\\\\"></option><option value=\\\"D:\\\\\\\\\\\"></option><option value=\\\"E:\\\\\\\\\\\"></option><option value=\\\"F:\\\\\\\\\\\"\"},{\"file\":\"web/static/js/app/state.js\",\"line\":19,\"pattern\":\"root/path: \\\"D:\\\\\\\\\\\"（状态初值）\",\"code\":\"browse: { root: \\\"D:\\\\\\\\\\\", path: \\\"D:\\\\\\\\\\\", parent: null, history: [], seq: 0 }, // U2.3 面包屑联动/迷你条带启用（现由 workspace 模块级状态承载）\"}]",
+    "J2 引导含可选盘符的控件 :: pickerTag=null id=",
+    "J3 引导选盘项数 == 注入盘符数 :: 选项=[] 注入=[\"D:\\\\\",\"S:\\\\\"]",
+    "J2 「跳过」按钮存在且可点击（尺寸 > 0） :: skip=[]",
+    "J2 点「跳过选盘」后弹层保持打开且切到「已跳过」提示（不阻塞首开） :: skipWorks=null",
+    "D5-3 「跳过选盘」可逆：点「重新选择盘」后盘符按钮恢复 :: recover={\"found\":false} after={\"count\":0,\"roots\":[]}",
+    "D5-3 点选盘符 → 选中态（is-on + aria-pressed） :: null",
+    "D5-3 选盘经 POST /api/settings 写入 last_roots :: delta=null post=null",
+    "D5-3 选盘立即回灌工作台浏览根（#browse-root == 选中盘） :: browseRoot=null 期望= 可点盘=[]",
+    "J1 可见文本无裸词「基线/目标」 :: 违规=3/4 [\"目标@compare-root-line:基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:\",\"基线@route-view:基线\",\"目标@route-view:目标\"]",
+    "J1 可见文本无旧称「历史对比」（D5-5 术语统一） :: 旧称命中=[\"历史对比 @H1\"]",
+    "D5-1 页头不再有只读「目标」输入框 :: hasTargetInput=true",
+    "J1 可见文本无裸词「基线/目标」 :: 违规=3/4 [\"目标@compare-root-line:基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:\",\"基线@route-view:基线\",\"目标@route-view:目标\"]",
+    "J1 可见文本无旧称「历史对比」（D5-5 术语统一） :: 旧称命中=[\"历史对比 @H1\"]",
+    "D5-1 页头不再有只读「目标」输入框 :: hasTargetInput=true",
+    "J4 默认根初值 ≠ 硬编码 D:\\（夹具：D:\\ 未就绪 / S:\\ 可用） :: 初值=\"D:\\\\\" 夹具清单=[\"D:\\\\\",\"S:\\\\\"]",
+    "J4 默认根初值 == 首个**可用**盘（S:\\，不是列表首项 D:\\） :: 初值=\"D:\\\\\" 期望=\"S:\\\\\"",
+    "J3 盘符 datalist == /api/roots 注入清单（无硬编码 C\\/E\\/F\\） :: datalist=[\"C:\\\\\",\"D:\\\\\",\"E:\\\\\",\"F:\\\\\",\"D:\\\\\"] 清单内=[\"D:\\\\\",\"D:\\\\\"]",
+    "J3 datalist 项带可用性标注（未就绪盘符不静默丢弃） :: not-ready=[] 全量=[\"C:\\\\\",\"D:\\\\\",\"E:\\\\\",\"F:\\\\\",\"D:\\\\\"]",
+    "J3 datalist 由脚本动态渲染（data-dynamic 标记，非模板硬编码） :: data-dynamic=\"\"",
+    "J3 前端确实调用了 /api/roots :: rootsApiCalls=0",
+    "J3 模板初值属性不再写死 D:\\（HTML 模板静态 value） :: attr value=\"D:\\\\\"",
+    "J2 引导含可选盘符的控件 :: pickerTag=null id=",
+    "J3 引导选盘项数 == 注入盘符数 :: 选项=[] 注入=[\"D:\\\\\",\"S:\\\\\"]",
+    "J2 「跳过」按钮存在且可点击（尺寸 > 0） :: skip=[]",
+    "J2 点「跳过选盘」后弹层保持打开且切到「已跳过」提示（不阻塞首开） :: skipWorks=null",
+    "D5-3 「跳过选盘」可逆：点「重新选择盘」后盘符按钮恢复 :: recover={\"found\":false} after={\"count\":0,\"roots\":[]}",
+    "D5-3 点选盘符 → 选中态（is-on + aria-pressed） :: null",
+    "D5-3 选盘经 POST /api/settings 写入 last_roots :: delta=null post=null",
+    "D5-3 选盘立即回灌工作台浏览根（#browse-root == 选中盘） :: browseRoot=null 期望= 可点盘=[]",
+    "J1 可见文本无裸词「基线/目标」 :: 违规=3/4 [\"目标@compare-root-line:基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:\",\"基线@route-view:基线\",\"目标@route-view:目标\"]",
+    "J1 可见文本无旧称「历史对比」（D5-5 术语统一） :: 旧称命中=[\"历史对比 @H1\"]",
+    "D5-1 页头不再有只读「目标」输入框 :: hasTargetInput=true",
+    "J1 可见文本无裸词「基线/目标」 :: 违规=3/4 [\"目标@compare-root-line:基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:\",\"基线@route-view:基线\",\"目标@route-view:目标\"]",
+    "J1 可见文本无旧称「历史对比」（D5-5 术语统一） :: 旧称命中=[\"历史对比 @H1\"]",
+    "D5-1 页头不再有只读「目标」输入框 :: hasTargetInput=true",
+    "J4 默认根初值 ≠ 硬编码 D:\\（夹具：D:\\ 未就绪 / S:\\ 可用） :: 初值=\"D:\\\\\" 夹具清单=[\"D:\\\\\",\"S:\\\\\"]",
+    "J4 默认根初值 == 首个**可用**盘（S:\\，不是列表首项 D:\\） :: 初值=\"D:\\\\\" 期望=\"S:\\\\\"",
+    "J3 盘符 datalist == /api/roots 注入清单（无硬编码 C\\/E\\/F\\） :: datalist=[\"C:\\\\\",\"D:\\\\\",\"E:\\\\\",\"F:\\\\\",\"D:\\\\\"] 清单内=[\"D:\\\\\",\"D:\\\\\"]",
+    "J3 datalist 项带可用性标注（未就绪盘符不静默丢弃） :: not-ready=[] 全量=[\"C:\\\\\",\"D:\\\\\",\"E:\\\\\",\"F:\\\\\",\"D:\\\\\"]",
+    "J3 datalist 由脚本动态渲染（data-dynamic 标记，非模板硬编码） :: data-dynamic=\"\"",
+    "J3 前端确实调用了 /api/roots :: rootsApiCalls=0",
+    "J3 模板初值属性不再写死 D:\\（HTML 模板静态 value） :: attr value=\"D:\\\\\"",
+    "J2 引导含可选盘符的控件 :: pickerTag=null id=",
+    "J3 引导选盘项数 == 注入盘符数 :: 选项=[] 注入=[\"D:\\\\\",\"S:\\\\\"]",
+    "J2 「跳过」按钮存在且可点击（尺寸 > 0） :: skip=[]",
+    "J2 点「跳过选盘」后弹层保持打开且切到「已跳过」提示（不阻塞首开） :: skipWorks=null",
+    "D5-3 「跳过选盘」可逆：点「重新选择盘」后盘符按钮恢复 :: recover={\"found\":false} after={\"count\":0,\"roots\":[]}",
+    "D5-3 点选盘符 → 选中态（is-on + aria-pressed） :: null",
+    "D5-3 选盘经 POST /api/settings 写入 last_roots :: delta=null post=null",
+    "D5-3 选盘立即回灌工作台浏览根（#browse-root == 选中盘） :: browseRoot=null 期望= 可点盘=[]",
+    "J1 可见文本无裸词「基线/目标」 :: 违规=3/4 [\"目标@compare-root-line:基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:\",\"基线@route-view:基线\",\"目标@route-view:目标\"]",
+    "J1 可见文本无旧称「历史对比」（D5-5 术语统一） :: 旧称命中=[\"历史对比 @H1\"]",
+    "D5-1 页头不再有只读「目标」输入框 :: hasTargetInput=true",
+    "J1 可见文本无裸词「基线/目标」 :: 违规=3/4 [\"目标@compare-root-line:基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:\",\"基线@route-view:基线\",\"目标@route-view:目标\"]",
+    "J1 可见文本无旧称「历史对比」（D5-5 术语统一） :: 旧称命中=[\"历史对比 @H1\"]",
+    "D5-1 页头不再有只读「目标」输入框 :: hasTargetInput=true",
+    "J4 默认根初值 ≠ 硬编码 D:\\（夹具：D:\\ 未就绪 / S:\\ 可用） :: 初值=\"D:\\\\\" 夹具清单=[\"D:\\\\\",\"S:\\\\\"]",
+    "J4 默认根初值 == 首个**可用**盘（S:\\，不是列表首项 D:\\） :: 初值=\"D:\\\\\" 期望=\"S:\\\\\"",
+    "J3 盘符 datalist == /api/roots 注入清单（无硬编码 C\\/E\\/F\\） :: datalist=[\"C:\\\\\",\"D:\\\\\",\"E:\\\\\",\"F:\\\\\",\"D:\\\\\"] 清单内=[\"D:\\\\\",\"D:\\\\\"]",
+    "J3 datalist 项带可用性标注（未就绪盘符不静默丢弃） :: not-ready=[] 全量=[\"C:\\\\\",\"D:\\\\\",\"E:\\\\\",\"F:\\\\\",\"D:\\\\\"]",
+    "J3 datalist 由脚本动态渲染（data-dynamic 标记，非模板硬编码） :: data-dynamic=\"\"",
+    "J3 前端确实调用了 /api/roots :: rootsApiCalls=0",
+    "J3 模板初值属性不再写死 D:\\（HTML 模板静态 value） :: attr value=\"D:\\\\\""
+  ],
+  "perState": [
+    {
+      "vkey": "1366x768",
+      "state": "onboarding",
+      "hits": 0,
+      "bad": 0,
+      "words": []
+    },
+    {
+      "vkey": "1366x768",
+      "state": "compare-empty",
+      "hits": 4,
+      "bad": 3,
+      "words": [
+        "目标@compare-root-line「基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:」",
+        "基线@route-view「基线」",
+        "目标@route-view「目标」"
+      ]
+    },
+    {
+      "vkey": "1366x768",
+      "state": "compare-result",
+      "hits": 4,
+      "bad": 3,
+      "words": [
+        "目标@compare-root-line「基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:」",
+        "基线@route-view「基线」",
+        "目标@route-view「目标」"
+      ]
+    },
+    {
+      "vkey": "1366x768",
+      "state": "workspace",
+      "hits": 0,
+      "bad": 0,
+      "words": []
+    },
+    {
+      "vkey": "1440x900",
+      "state": "onboarding",
+      "hits": 0,
+      "bad": 0,
+      "words": []
+    },
+    {
+      "vkey": "1440x900",
+      "state": "compare-empty",
+      "hits": 4,
+      "bad": 3,
+      "words": [
+        "目标@compare-root-line「基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:」",
+        "基线@route-view「基线」",
+        "目标@route-view「目标」"
+      ]
+    },
+    {
+      "vkey": "1440x900",
+      "state": "compare-result",
+      "hits": 4,
+      "bad": 3,
+      "words": [
+        "目标@compare-root-line「基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:」",
+        "基线@route-view「基线」",
+        "目标@route-view「目标」"
+      ]
+    },
+    {
+      "vkey": "1440x900",
+      "state": "workspace",
+      "hits": 0,
+      "bad": 0,
+      "words": []
+    },
+    {
+      "vkey": "1920x1080",
+      "state": "onboarding",
+      "hits": 0,
+      "bad": 0,
+      "words": []
+    },
+    {
+      "vkey": "1920x1080",
+      "state": "compare-empty",
+      "hits": 4,
+      "bad": 3,
+      "words": [
+        "目标@compare-root-line「基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:」",
+        "基线@route-view「基线」",
+        "目标@route-view「目标」"
+      ]
+    },
+    {
+      "vkey": "1920x1080",
+      "state": "compare-result",
+      "hits": 4,
+      "bad": 3,
+      "words": [
+        "目标@compare-root-line「基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:」",
+        "基线@route-view「基线」",
+        "目标@route-view「目标」"
+      ]
+    },
+    {
+      "vkey": "1920x1080",
+      "state": "workspace",
+      "hits": 0,
+      "bad": 0,
+      "words": []
+    }
+  ]
+}

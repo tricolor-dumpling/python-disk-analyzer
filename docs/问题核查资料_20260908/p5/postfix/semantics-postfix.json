@@ -1,0 +1,140 @@
+{
+  "meta": {
+    "label": "postfix",
+    "out": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p05_postfix",
+    "node": "v24.19.0",
+    "startedAt": "2026-09-10T15:13:34.613Z",
+    "fixtureRoot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner",
+    "snapshotDir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner\\snapshots",
+    "fixtureNow": "2026-09-08T20:00:00",
+    "injectedRoots": [
+      "D:\\",
+      "S:\\"
+    ],
+    "rootsSpec": "D:\\|S:\\",
+    "magicRoot": "D:\\",
+    "viewports": [
+      "1366x768",
+      "1440x900",
+      "1920x1080"
+    ],
+    "fixtures": {
+      "generated": false,
+      "missing": []
+    },
+    "subst": {
+      "established": true,
+      "letter": "S:",
+      "target": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_subst_target",
+      "createOut": "",
+      "probeOut": true,
+      "readyAfterMs": 0
+    },
+    "base": "http://127.0.0.1:5102/",
+    "harnessSpawned": true,
+    "harnessState": {
+      "data_dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner",
+      "machine_guid": "3f2a1c9d-0000-4000-8000-00000000f1x7",
+      "root": "D:\\",
+      "roots_injected": [
+        "D:\\",
+        "S:\\"
+      ],
+      "roots_mode": "injected",
+      "rows": 11,
+      "snapshot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner\\snapshots\\D_20260908_170000_explicit_3f2a1c9d.snap.gz",
+      "snapshot_dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p5_iso\\home\\PythonDiskScanner\\snapshots"
+    },
+    "substRemoval": {
+      "removed": true,
+      "out": "",
+      "stillExists": false
+    }
+  },
+  "perState": [
+    {
+      "vkey": "1366x768",
+      "state": "onboarding",
+      "hitCount": 0,
+      "badCount": 0,
+      "hits": []
+    },
+    {
+      "vkey": "1366x768",
+      "state": "compare-empty",
+      "hitCount": 0,
+      "badCount": 0,
+      "hits": []
+    },
+    {
+      "vkey": "1366x768",
+      "state": "compare-result",
+      "hitCount": 0,
+      "badCount": 0,
+      "hits": []
+    },
+    {
+      "vkey": "1366x768",
+      "state": "workspace",
+      "hitCount": 0,
+      "badCount": 0,
+      "hits": []
+    },
+    {
+      "vkey": "1440x900",
+      "state": "onboarding",
+      "hitCount": 0,
+      "badCount": 0,
+      "hits": []
+    },
+    {
+      "vkey": "1440x900",
+      "state": "compare-empty",
+      "hitCount": 0,
+      "badCount": 0,
+      "hits": []
+    },
+    {
+      "vkey": "1440x900",
+      "state": "compare-result",
+      "hitCount": 0,
+      "badCount": 0,
+      "hits": []
+    },
+    {
+      "vkey": "1440x900",
+      "state": "workspace",
+      "hitCount": 0,
+      "badCount": 0,
+      "hits": []
+    },
+    {
+      "vkey": "1920x1080",
+      "state": "onboarding",
+      "hitCount": 0,
+      "badCount": 0,
+      "hits": []
+    },
+    {
+      "vkey": "1920x1080",
+      "state": "compare-empty",
+      "hitCount": 0,
+      "badCount": 0,
+      "hits": []
+    },
+    {
+      "vkey": "1920x1080",
+      "state": "compare-result",
+      "hitCount": 0,
+      "badCount": 0,
+      "hits": []
+    },
+    {
+      "vkey": "1920x1080",
+      "state": "workspace",
+      "hitCount": 0,
+      "badCount": 0,
+      "hits": []
+    }
+  ]
+}

@@ -1,0 +1,1111 @@
+{
+  "phase": "P5（对比语义说人话与首次启动选盘 · 问题 7）",
+  "generatedAt": "2026-09-10T15:23:10.162Z",
+  "branch": "stage-p5",
+  "startPoint": "stage-p4 @ 1c23270（tag p4-compare-depth）+ P4 挂账清理提交（tag p4-backlog-cleared）",
+  "evidenceRoot": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5",
+  "probe": "docs/问题核查资料_20260908/p5/../../scripts/dev/p05_semantics_roots_probe.mjs",
+  "fixtureHarness": "docs/问题核查资料_20260908/p5/_fixture_roots_server.py",
+  "redlineB": "docs/问题核查资料_20260908/p5/_verify_datadir_redline.mjs",
+  "redlineBOutput": "docs/问题核查资料_20260908/p5/redline_b_datadir.txt",
+  "sampling": {
+    "viewports": [
+      "1366x768",
+      "1440x900",
+      "1920x1080"
+    ],
+    "states": [
+      "onboarding（首开引导含选盘步骤）",
+      "compare-empty（对比页空态）",
+      "compare-result（对比页有结果）",
+      "workspace（工作台默认根）"
+    ],
+    "shotsPerRun": 9,
+    "note": "每态整页截图（fullPage:false，视口内）；同一 viewport×state 组合在所有视口下重复采样"
+  },
+  "timeWindow": {
+    "fixtureNow": "2026-09-08T20:00:00",
+    "fixtureSnapshots": [
+      "D_20260907_170000（对比基准）",
+      "D_20260908_170000（当前侧数据集）"
+    ],
+    "probeRuns": []
+  },
+  "purpose": {
+    "baseline_prefix_final": "修复前（stage-p4 起点代码 @328ce70 的 web/ 源码）探针证据：术语裸奔、无选盘步骤、默认根硬编码 D:\\ —— 红线 A 的「修复前必红」对照面。3 视口 × 3 态截图 + 5 份量化 JSON。",
+    "postfix": "修复后（本阶段 HEAD）探针证据：同一探针、同一夹具口径，0 违规。3 视口 × 3 态截图 + 5 份量化 JSON。",
+    "_baseline_prefix_cs1": "变更集 1 当时的修复前基线（探针第一版：注入 Z:\\|Y:\\、术语判据未加旧称检查）。保留作为方法学演进留痕，**不作为红线 A 的对照数据**（对照以 baseline_prefix_final 为准）。"
+  },
+  "quantitative": {
+    "prefix": {
+      "summary": {
+        "file": "docs/问题核查资料_20260908/p5/baseline_prefix_final/summary-prefix.json",
+        "totals": {
+          "rootsApiViolations": 22,
+          "onboardingViolations": 24,
+          "sampleViolations": 18,
+          "semanticsBadHits": 18,
+          "consoleErrors": 0,
+          "total": 64
+        },
+        "perState": [
+          {
+            "vkey": "1366x768",
+            "state": "onboarding",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1366x768",
+            "state": "compare-empty",
+            "termHits": 4,
+            "nakedViolations": 3
+          },
+          {
+            "vkey": "1366x768",
+            "state": "compare-result",
+            "termHits": 4,
+            "nakedViolations": 3
+          },
+          {
+            "vkey": "1366x768",
+            "state": "workspace",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1440x900",
+            "state": "onboarding",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1440x900",
+            "state": "compare-empty",
+            "termHits": 4,
+            "nakedViolations": 3
+          },
+          {
+            "vkey": "1440x900",
+            "state": "compare-result",
+            "termHits": 4,
+            "nakedViolations": 3
+          },
+          {
+            "vkey": "1440x900",
+            "state": "workspace",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1920x1080",
+            "state": "onboarding",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1920x1080",
+            "state": "compare-empty",
+            "termHits": 4,
+            "nakedViolations": 3
+          },
+          {
+            "vkey": "1920x1080",
+            "state": "compare-result",
+            "termHits": 4,
+            "nakedViolations": 3
+          },
+          {
+            "vkey": "1920x1080",
+            "state": "workspace",
+            "termHits": 0,
+            "nakedViolations": 0
+          }
+        ],
+        "violationCount": 64
+      },
+      "onboarding": [
+        {
+          "vkey": "1366x768",
+          "stepCount": 4,
+          "hasPicker": false,
+          "pickerRoots": [],
+          "skipButtons": [],
+          "open": true
+        },
+        {
+          "vkey": "1440x900",
+          "stepCount": 4,
+          "hasPicker": false,
+          "pickerRoots": [],
+          "skipButtons": [],
+          "open": true
+        },
+        {
+          "vkey": "1920x1080",
+          "stepCount": 4,
+          "hasPicker": false,
+          "pickerRoots": [],
+          "skipButtons": [],
+          "open": true
+        }
+      ],
+      "roots": {
+        "magicScan": {
+          "scanned": 32,
+          "hits": [
+            {
+              "file": "web/static/js/app/components/topbar.js",
+              "line": 121,
+              "pattern": "|| \"D:\\\\\"（或兜底）",
+              "code": "const target = (startup && startup.path) || getCurrentRoot() || \"D:\\\\\";"
+            },
+            {
+              "file": "web/static/js/app/main.js",
+              "line": 400,
+              "pattern": "|| \"D:\\\\\"（或兜底）",
+              "code": "const firstRoot = getLastRoots()[0] || \"D:\\\\\";"
+            },
+            {
+              "file": "web/static/js/app/pages/workspace.js",
+              "line": 77,
+              "pattern": "= \"D:\\\\\"（直接赋值）",
+              "code": "let currentRoot = \"D:\\\\\"; // 用户本次浏览会话的根（面包屑/返回不越过它）"
+            },
+            {
+              "file": "web/static/js/app/pages/workspace.js",
+              "line": 78,
+              "pattern": "= \"D:\\\\\"（直接赋值）",
+              "code": "let currentPath = \"D:\\\\\"; // 当前正在查看的目录"
+            },
+            {
+              "file": "web/static/js/app/pages/workspace.js",
+              "line": 218,
+              "pattern": "root/path: \"D:\\\\\"（状态初值）",
+              "code": "let lastBrowse = { root: \"D:\\\\\", path: \"D:\\\\\" }; // 供「重试」按钮使用"
+            },
+            {
+              "file": "web/static/js/app/pages/workspace.js",
+              "line": 1154,
+              "pattern": "value=\"D:\\\\\"（模板初值）",
+              "code": "'<input id=\"browse-root\" list=\"roots-suggest\" type=\"text\" placeholder=\"输入盘符或路径，例如 D:\\\\\" value=\"D:\\\\\" aria-label=\"浏览根目录\">' +"
+            },
+            {
+              "file": "web/static/js/app/pages/workspace.js",
+              "line": 1155,
+              "pattern": "value=\"D:\\\\\"（模板初值）",
+              "code": "'<datalist id=\"roots-suggest\"><option value=\"C:\\\\\"></option><option value=\"D:\\\\\"></option><option value=\"E:\\\\\"></option><option value=\"F:\\\\\""
+            },
+            {
+              "file": "web/static/js/app/state.js",
+              "line": 19,
+              "pattern": "root/path: \"D:\\\\\"（状态初值）",
+              "code": "browse: { root: \"D:\\\\\", path: \"D:\\\\\", parent: null, history: [], seq: 0 }, // U2.3 面包屑联动/迷你条带启用（现由 workspace 模块级状态承载）"
+            },
+            {
+              "file": "web/static/js/app/viz/relate.js",
+              "line": 52,
+              "pattern": "|| \"D:\\\\\"（或兜底）",
+              "code": "return parts.length ? parts[parts.length - 1] : String(data.root || \"D:\\\\\");"
+            }
+          ]
+        },
+        "defaultRoot": [
+          {
+            "vkey": "1366x768",
+            "browseRootValue": "D:\\",
+            "datalistOptions": [
+              "C:\\",
+              "D:\\",
+              "E:\\",
+              "F:\\",
+              "D:\\"
+            ],
+            "rootsApiCalls": 0
+          },
+          {
+            "vkey": "1440x900",
+            "browseRootValue": "D:\\",
+            "datalistOptions": [
+              "C:\\",
+              "D:\\",
+              "E:\\",
+              "F:\\",
+              "D:\\"
+            ],
+            "rootsApiCalls": 0
+          },
+          {
+            "vkey": "1920x1080",
+            "browseRootValue": "D:\\",
+            "datalistOptions": [
+              "C:\\",
+              "D:\\",
+              "E:\\",
+              "F:\\",
+              "D:\\"
+            ],
+            "rootsApiCalls": 0
+          }
+        ],
+        "apiRoots": [
+          {
+            "returned": [
+              "D:\\",
+              "S:\\"
+            ]
+          }
+        ]
+      },
+      "layout": [
+        {
+          "vkey": "1366x768",
+          "state": "compare-empty",
+          "pageTitle": "历史对比",
+          "pageSub": "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:",
+          "hasTargetInput": true,
+          "hasCurrentRow": false,
+          "currentRowText": "",
+          "bodyScrollHeight": 768,
+          "innerHeight": 768,
+          "controlCount": 5
+        },
+        {
+          "vkey": "1366x768",
+          "state": "compare-result",
+          "pageTitle": "历史对比",
+          "pageSub": "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:",
+          "hasTargetInput": true,
+          "hasCurrentRow": false,
+          "currentRowText": "",
+          "bodyScrollHeight": 768,
+          "innerHeight": 768,
+          "controlCount": 5
+        },
+        {
+          "vkey": "1440x900",
+          "state": "compare-empty",
+          "pageTitle": "历史对比",
+          "pageSub": "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:",
+          "hasTargetInput": true,
+          "hasCurrentRow": false,
+          "currentRowText": "",
+          "bodyScrollHeight": 900,
+          "innerHeight": 900,
+          "controlCount": 5
+        },
+        {
+          "vkey": "1440x900",
+          "state": "compare-result",
+          "pageTitle": "历史对比",
+          "pageSub": "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:",
+          "hasTargetInput": true,
+          "hasCurrentRow": false,
+          "currentRowText": "",
+          "bodyScrollHeight": 900,
+          "innerHeight": 900,
+          "controlCount": 5
+        },
+        {
+          "vkey": "1920x1080",
+          "state": "compare-empty",
+          "pageTitle": "历史对比",
+          "pageSub": "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:",
+          "hasTargetInput": true,
+          "hasCurrentRow": false,
+          "currentRowText": "",
+          "bodyScrollHeight": 1080,
+          "innerHeight": 1080,
+          "controlCount": 5
+        },
+        {
+          "vkey": "1920x1080",
+          "state": "compare-result",
+          "pageTitle": "历史对比",
+          "pageSub": "基线=最近一份快照 · 目标=同盘符最新快照 · 盘 D:",
+          "hasTargetInput": true,
+          "hasCurrentRow": false,
+          "currentRowText": "",
+          "bodyScrollHeight": 1080,
+          "innerHeight": 1080,
+          "controlCount": 5
+        }
+      ]
+    },
+    "postfix": {
+      "summary": {
+        "file": "docs/问题核查资料_20260908/p5/postfix/summary-postfix.json",
+        "totals": {
+          "rootsApiViolations": 0,
+          "onboardingViolations": 0,
+          "sampleViolations": 0,
+          "semanticsBadHits": 0,
+          "consoleErrors": 0,
+          "total": 0
+        },
+        "perState": [
+          {
+            "vkey": "1366x768",
+            "state": "onboarding",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1366x768",
+            "state": "compare-empty",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1366x768",
+            "state": "compare-result",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1366x768",
+            "state": "workspace",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1440x900",
+            "state": "onboarding",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1440x900",
+            "state": "compare-empty",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1440x900",
+            "state": "compare-result",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1440x900",
+            "state": "workspace",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1920x1080",
+            "state": "onboarding",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1920x1080",
+            "state": "compare-empty",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1920x1080",
+            "state": "compare-result",
+            "termHits": 0,
+            "nakedViolations": 0
+          },
+          {
+            "vkey": "1920x1080",
+            "state": "workspace",
+            "termHits": 0,
+            "nakedViolations": 0
+          }
+        ],
+        "violationCount": 0
+      },
+      "onboarding": [
+        {
+          "vkey": "1366x768",
+          "stepCount": 5,
+          "hasPicker": true,
+          "pickerRoots": [
+            "S:\\",
+            "D:\\"
+          ],
+          "skipButtons": [
+            "跳过选盘"
+          ],
+          "open": true
+        },
+        {
+          "vkey": "1440x900",
+          "stepCount": 5,
+          "hasPicker": true,
+          "pickerRoots": [
+            "S:\\",
+            "D:\\"
+          ],
+          "skipButtons": [
+            "跳过选盘"
+          ],
+          "open": true
+        },
+        {
+          "vkey": "1920x1080",
+          "stepCount": 5,
+          "hasPicker": true,
+          "pickerRoots": [
+            "S:\\",
+            "D:\\"
+          ],
+          "skipButtons": [
+            "跳过选盘"
+          ],
+          "open": true
+        }
+      ],
+      "roots": {
+        "magicScan": {
+          "scanned": 33,
+          "hits": []
+        },
+        "defaultRoot": [
+          {
+            "vkey": "1366x768",
+            "browseRootValue": "S:\\",
+            "datalistOptions": [
+              "S:\\",
+              "D:\\"
+            ],
+            "rootsApiCalls": 2
+          },
+          {
+            "vkey": "1440x900",
+            "browseRootValue": "S:\\",
+            "datalistOptions": [
+              "S:\\",
+              "D:\\"
+            ],
+            "rootsApiCalls": 2
+          },
+          {
+            "vkey": "1920x1080",
+            "browseRootValue": "S:\\",
+            "datalistOptions": [
+              "S:\\",
+              "D:\\"
+            ],
+            "rootsApiCalls": 2
+          }
+        ],
+        "apiRoots": [
+          {
+            "returned": [
+              "D:\\",
+              "S:\\"
+            ]
+          }
+        ]
+      },
+      "layout": [
+        {
+          "vkey": "1366x768",
+          "state": "compare-empty",
+          "pageTitle": "空间对比",
+          "pageSub": "对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D:",
+          "hasTargetInput": false,
+          "hasCurrentRow": true,
+          "currentRowText": "当前：D: · 数据时间 2026-09-08 17:00:00",
+          "bodyScrollHeight": 768,
+          "innerHeight": 768,
+          "controlCount": 4
+        },
+        {
+          "vkey": "1366x768",
+          "state": "compare-result",
+          "pageTitle": "空间对比",
+          "pageSub": "对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D:",
+          "hasTargetInput": false,
+          "hasCurrentRow": true,
+          "currentRowText": "当前：D: · 数据时间 2026-09-08 17:00:00",
+          "bodyScrollHeight": 768,
+          "innerHeight": 768,
+          "controlCount": 4
+        },
+        {
+          "vkey": "1440x900",
+          "state": "compare-empty",
+          "pageTitle": "空间对比",
+          "pageSub": "对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D:",
+          "hasTargetInput": false,
+          "hasCurrentRow": true,
+          "currentRowText": "当前：D: · 数据时间 2026-09-08 17:00:00",
+          "bodyScrollHeight": 900,
+          "innerHeight": 900,
+          "controlCount": 4
+        },
+        {
+          "vkey": "1440x900",
+          "state": "compare-result",
+          "pageTitle": "空间对比",
+          "pageSub": "对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D:",
+          "hasTargetInput": false,
+          "hasCurrentRow": true,
+          "currentRowText": "当前：D: · 数据时间 2026-09-08 17:00:00",
+          "bodyScrollHeight": 900,
+          "innerHeight": 900,
+          "controlCount": 4
+        },
+        {
+          "vkey": "1920x1080",
+          "state": "compare-empty",
+          "pageTitle": "空间对比",
+          "pageSub": "对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D:",
+          "hasTargetInput": false,
+          "hasCurrentRow": true,
+          "currentRowText": "当前：D: · 数据时间 2026-09-08 17:00:00",
+          "bodyScrollHeight": 1080,
+          "innerHeight": 1080,
+          "controlCount": 4
+        },
+        {
+          "vkey": "1920x1080",
+          "state": "compare-result",
+          "pageTitle": "空间对比",
+          "pageSub": "对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D:",
+          "hasTargetInput": false,
+          "hasCurrentRow": true,
+          "currentRowText": "当前：D: · 数据时间 2026-09-08 17:00:00",
+          "bodyScrollHeight": 1080,
+          "innerHeight": 1080,
+          "controlCount": 4
+        }
+      ]
+    }
+  },
+  "files": [
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\compare-empty-1366x768.png",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/compare-empty-1366x768.png",
+      "bytes": 123888,
+      "mtime": "2026-09-10T13:44:28.921Z",
+      "sha256": "8e5ffa7bbd4ecd598adff15d68bb95ae3adad53fe04a970ce2881a7cec9f85fc",
+      "width": 1366,
+      "height": 768,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\compare-empty-1440x900.png",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/compare-empty-1440x900.png",
+      "bytes": 129081,
+      "mtime": "2026-09-10T13:45:34.730Z",
+      "sha256": "cdd0f89b3242d6bd7e47fc058e59a8d93788353a2ffef27b70b3b25083c1cbbb",
+      "width": 1440,
+      "height": 900,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\compare-empty-1920x1080.png",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/compare-empty-1920x1080.png",
+      "bytes": 140563,
+      "mtime": "2026-09-10T13:46:40.633Z",
+      "sha256": "5299b945a612705020b6c24f99651305e10708fe6a235f254c7833d265c194da",
+      "width": 1920,
+      "height": 1080,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\compare-result-1366x768.png",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/compare-result-1366x768.png",
+      "bytes": 124275,
+      "mtime": "2026-09-10T13:45:30.164Z",
+      "sha256": "c7347ec96ac38f02792442dbc10306c089828b034ce77e431e9ca2221c187d76",
+      "width": 1366,
+      "height": 768,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\compare-result-1440x900.png",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/compare-result-1440x900.png",
+      "bytes": 129585,
+      "mtime": "2026-09-10T13:46:35.977Z",
+      "sha256": "5911c4c080a386b559d202ca2d4e867f790b98f500dd88729ce961266ec1a5a4",
+      "width": 1440,
+      "height": 900,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\compare-result-1920x1080.png",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/compare-result-1920x1080.png",
+      "bytes": 141257,
+      "mtime": "2026-09-10T13:47:41.920Z",
+      "sha256": "f44e8e31f6d609372c3e0d236982e15f99054e45c71dcb31660a4817ac82cc9a",
+      "width": 1920,
+      "height": 1080,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\harness-prefix.log",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/harness-prefix.log",
+      "bytes": 15142,
+      "mtime": "2026-09-10T13:47:42.074Z",
+      "sha256": "040c93ad448e204d355d1622db555c4c5726ad280cdc55796f887d22352ce097",
+      "role": "harness-log"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\layout-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/layout-prefix.json",
+      "bytes": 21600,
+      "mtime": "2026-09-10T13:47:43.268Z",
+      "sha256": "bca8c8fc52cc459138b72db14771e9216d87b996f9ac98ffa34c8f3d7f7f35a8",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\onboarding-1366x768.png",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/onboarding-1366x768.png",
+      "bytes": 133365,
+      "mtime": "2026-09-10T13:44:27.717Z",
+      "sha256": "29c23028af2137e0214311b01d3f1d6e6a51ce1dbf64365fa07465e0989ea065",
+      "width": 1366,
+      "height": 768,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\onboarding-1440x900.png",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/onboarding-1440x900.png",
+      "bytes": 149340,
+      "mtime": "2026-09-10T13:45:33.331Z",
+      "sha256": "a0ce80642bcb165dcb22e5d6012e75114d3abcc2ea306af4e794b1d366be1abf",
+      "width": 1440,
+      "height": 900,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\onboarding-1920x1080.png",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/onboarding-1920x1080.png",
+      "bytes": 169819,
+      "mtime": "2026-09-10T13:46:39.247Z",
+      "sha256": "1e60094e036d749cd279928448721b299359b45cf5ad13d89b13595a6be5ad3c",
+      "width": 1920,
+      "height": 1080,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\onboarding-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/onboarding-prefix.json",
+      "bytes": 12195,
+      "mtime": "2026-09-10T13:47:43.267Z",
+      "sha256": "f80a654e04d25c45a4d0b520a0843dfd4fb99f565fe4a28911564070a81bc937",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\roots-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/roots-prefix.json",
+      "bytes": 15668,
+      "mtime": "2026-09-10T13:47:43.267Z",
+      "sha256": "6b3322bc3155bdd1f388c602ab50d68cee5d8f8f455c551024de8296c4f7f2f2",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\semantics-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/semantics-prefix.json",
+      "bytes": 14349,
+      "mtime": "2026-09-10T13:47:43.266Z",
+      "sha256": "9ce406d66f79745e3c303256c01be3fc3cdd4088e2584de3289ea0232f618d27",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_baseline_prefix_cs1\\summary-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/summary-prefix.json",
+      "bytes": 12145,
+      "mtime": "2026-09-10T13:47:43.268Z",
+      "sha256": "774dbc46c3eb19b4ab987e0c2e3437ecdb5558d05ab047e7103d97d1da74f74b",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_datadir_baseline_prerun.json",
+      "rel": "docs/问题核查资料_20260908/p5/_datadir_baseline_prerun.json",
+      "bytes": 7768,
+      "mtime": "2026-09-10T15:07:17.770Z",
+      "sha256": "dbedceea16dbaaa4e06ce9d147384afa7dd7e339b04d009b21b207d6f73d8b0e",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_fixture_roots_server.py",
+      "rel": "docs/问题核查资料_20260908/p5/_fixture_roots_server.py",
+      "bytes": 13376,
+      "mtime": "2026-09-10T13:34:48.395Z",
+      "sha256": "f1e08805484d8ab23202369fbb86b6c8d75907285003c8777a942438eeee24ca",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_gen_manifest.mjs",
+      "rel": "docs/问题核查资料_20260908/p5/_gen_manifest.mjs",
+      "bytes": 8252,
+      "mtime": "2026-09-10T15:15:02.621Z",
+      "sha256": "5d947999b6ba249a52f57939be38042aaea34531eb5bac6f2c89ff4730a72966",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\_verify_datadir_redline.mjs",
+      "rel": "docs/问题核查资料_20260908/p5/_verify_datadir_redline.mjs",
+      "bytes": 6692,
+      "mtime": "2026-09-10T15:07:10.476Z",
+      "sha256": "ee5d59cd3ceee184ed013a0f2734ec6225f4e5d7a416e426d1fe4afd9736d081",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\compare-empty-1366x768.png",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/compare-empty-1366x768.png",
+      "bytes": 123888,
+      "mtime": "2026-09-10T14:50:21.193Z",
+      "sha256": "8e5ffa7bbd4ecd598adff15d68bb95ae3adad53fe04a970ce2881a7cec9f85fc",
+      "width": 1366,
+      "height": 768,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\compare-empty-1440x900.png",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/compare-empty-1440x900.png",
+      "bytes": 129079,
+      "mtime": "2026-09-10T14:51:29.022Z",
+      "sha256": "d30f40706cd9f0e8e203d8a43c6fc3fa5c467c66e3c86f1360326c6d8f0faa90",
+      "width": 1440,
+      "height": 900,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\compare-empty-1920x1080.png",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/compare-empty-1920x1080.png",
+      "bytes": 140563,
+      "mtime": "2026-09-10T14:52:36.454Z",
+      "sha256": "5299b945a612705020b6c24f99651305e10708fe6a235f254c7833d265c194da",
+      "width": 1920,
+      "height": 1080,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\compare-result-1366x768.png",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/compare-result-1366x768.png",
+      "bytes": 124275,
+      "mtime": "2026-09-10T14:51:22.656Z",
+      "sha256": "c7347ec96ac38f02792442dbc10306c089828b034ce77e431e9ca2221c187d76",
+      "width": 1366,
+      "height": 768,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\compare-result-1440x900.png",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/compare-result-1440x900.png",
+      "bytes": 129585,
+      "mtime": "2026-09-10T14:52:30.408Z",
+      "sha256": "5911c4c080a386b559d202ca2d4e867f790b98f500dd88729ce961266ec1a5a4",
+      "width": 1440,
+      "height": 900,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\compare-result-1920x1080.png",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/compare-result-1920x1080.png",
+      "bytes": 141257,
+      "mtime": "2026-09-10T14:53:38.299Z",
+      "sha256": "f44e8e31f6d609372c3e0d236982e15f99054e45c71dcb31660a4817ac82cc9a",
+      "width": 1920,
+      "height": 1080,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\harness-prefix.log",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/harness-prefix.log",
+      "bytes": 25360,
+      "mtime": "2026-09-10T14:53:38.624Z",
+      "sha256": "bf2fe5a1a4e99d7883cd5b12aa60faae609fab8c259212fac17976750e3c183b",
+      "role": "harness-log"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\layout-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/layout-prefix.json",
+      "bytes": 21631,
+      "mtime": "2026-09-10T14:53:40.509Z",
+      "sha256": "73d1013053121a77f5701b79ab622bd1765044494e53189efe9c7d3f0a5303d8",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\onboarding-1366x768.png",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/onboarding-1366x768.png",
+      "bytes": 133365,
+      "mtime": "2026-09-10T14:50:18.684Z",
+      "sha256": "29c23028af2137e0214311b01d3f1d6e6a51ce1dbf64365fa07465e0989ea065",
+      "width": 1366,
+      "height": 768,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\onboarding-1440x900.png",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/onboarding-1440x900.png",
+      "bytes": 149340,
+      "mtime": "2026-09-10T14:51:26.647Z",
+      "sha256": "a0ce80642bcb165dcb22e5d6012e75114d3abcc2ea306af4e794b1d366be1abf",
+      "width": 1440,
+      "height": 900,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\onboarding-1920x1080.png",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/onboarding-1920x1080.png",
+      "bytes": 169819,
+      "mtime": "2026-09-10T14:52:34.415Z",
+      "sha256": "1e60094e036d749cd279928448721b299359b45cf5ad13d89b13595a6be5ad3c",
+      "width": 1920,
+      "height": 1080,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\onboarding-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/onboarding-prefix.json",
+      "bytes": 14560,
+      "mtime": "2026-09-10T14:53:40.507Z",
+      "sha256": "5b9a786cd9a78cf894d116efb95161457b3f7f2077307c1dd0b802141bcfec7f",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\roots-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/roots-prefix.json",
+      "bytes": 18846,
+      "mtime": "2026-09-10T14:53:40.508Z",
+      "sha256": "5d57bc22ed877938c2081b661948dc7d657f3434f457109f2dbea9160dc3988b",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\semantics-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/semantics-prefix.json",
+      "bytes": 14380,
+      "mtime": "2026-09-10T14:53:40.506Z",
+      "sha256": "7f681891394c3867a7d37507b8d3ed4cc768b0e526fe804a24deefa77b319a57",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\baseline_prefix_final\\summary-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p5/baseline_prefix_final/summary-prefix.json",
+      "bytes": 14499,
+      "mtime": "2026-09-10T14:53:40.510Z",
+      "sha256": "1b53168791f78b5611f33a4a96dcb9266b3182f81c5b157502d81e43759e512c",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\manifest.json",
+      "rel": "docs/问题核查资料_20260908/p5/manifest.json",
+      "bytes": 43077,
+      "mtime": "2026-09-10T15:15:13.861Z",
+      "sha256": "6e4bec1ebaa61fff61ac190bedd0f81ea47f027907c9c7f10c1c1f15ffc2fde8",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\compare-empty-1366x768.png",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/compare-empty-1366x768.png",
+      "bytes": 100835,
+      "mtime": "2026-09-10T15:13:42.287Z",
+      "sha256": "b9b0282ff1b19db038a6516f0d041b8e51b8a9fc4b600675d165aaec86267b8c",
+      "width": 1366,
+      "height": 768,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\compare-empty-1440x900.png",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/compare-empty-1440x900.png",
+      "bytes": 104878,
+      "mtime": "2026-09-10T15:13:51.422Z",
+      "sha256": "7d0602bcab681732a7bf515f4de8ce361cf822ad2c189c5bfb488614817c821e",
+      "width": 1440,
+      "height": 900,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\compare-empty-1920x1080.png",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/compare-empty-1920x1080.png",
+      "bytes": 118644,
+      "mtime": "2026-09-10T15:14:01.464Z",
+      "sha256": "cbf9df70ea8800574122257297d5d67a1a188c46b803cb014d57793c8a8cabb2",
+      "width": 1920,
+      "height": 1080,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\compare-result-1366x768.png",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/compare-result-1366x768.png",
+      "bytes": 107496,
+      "mtime": "2026-09-10T15:13:43.609Z",
+      "sha256": "fbec76b6ca2fa3824e4a43bc56182aebfc8a204ccba073dc55998a35b9ba27c2",
+      "width": 1366,
+      "height": 768,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\compare-result-1440x900.png",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/compare-result-1440x900.png",
+      "bytes": 111853,
+      "mtime": "2026-09-10T15:13:53.184Z",
+      "sha256": "65091ddb8db3e7161dfc937d393f6f3926a612ecae7d9c3e69b12064a83a4b58",
+      "width": 1440,
+      "height": 900,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\compare-result-1920x1080.png",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/compare-result-1920x1080.png",
+      "bytes": 126076,
+      "mtime": "2026-09-10T15:14:02.870Z",
+      "sha256": "dc801573af3b4c8401bee7f41eac086d93605c3d1cbc1cef2279d8fdbc00e6da",
+      "width": 1920,
+      "height": 1080,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\harness-postfix.log",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/harness-postfix.log",
+      "bytes": 23797,
+      "mtime": "2026-09-10T15:14:03.179Z",
+      "sha256": "03bd4f5d91d1e02321afd3c4e9122d891772984632e31b5888a05979f93d221d",
+      "role": "harness-log"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\layout-postfix.json",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/layout-postfix.json",
+      "bytes": 20493,
+      "mtime": "2026-09-10T15:14:05.005Z",
+      "sha256": "62cd444a4cdf3a4315324878629ba33191a86fa155d02513250707f89f32a386",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\onboarding-1366x768.png",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/onboarding-1366x768.png",
+      "bytes": 149063,
+      "mtime": "2026-09-10T15:13:38.478Z",
+      "sha256": "0100572041ef59cf4d5c02c4e18b2997c10e612b20376092266011dacc53e011",
+      "width": 1366,
+      "height": 768,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\onboarding-1440x900.png",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/onboarding-1440x900.png",
+      "bytes": 167218,
+      "mtime": "2026-09-10T15:13:47.667Z",
+      "sha256": "7aadeba4a5f3d0f990e408da947b36c6fb81f9002b207e3563204fe589bdc673",
+      "width": 1440,
+      "height": 900,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\onboarding-1920x1080.png",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/onboarding-1920x1080.png",
+      "bytes": 190672,
+      "mtime": "2026-09-10T15:13:57.227Z",
+      "sha256": "95efab27067f32d621caf5a94da05fae942b79c2ac9743edc5e6fe5d6109e781",
+      "width": 1920,
+      "height": 1080,
+      "role": "screenshot"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\onboarding-postfix.json",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/onboarding-postfix.json",
+      "bytes": 21471,
+      "mtime": "2026-09-10T15:14:05.003Z",
+      "sha256": "69aa37bff88a8aefa468402c95cc542fb6f7451be81daf9b6d5067966f556253",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\roots-postfix.json",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/roots-postfix.json",
+      "bytes": 11290,
+      "mtime": "2026-09-10T15:14:05.004Z",
+      "sha256": "f86ddb1cf1a3698b19167fd11b606612ca6671b83515a32c95e65a587695a644",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\semantics-postfix.json",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/semantics-postfix.json",
+      "bytes": 3234,
+      "mtime": "2026-09-10T15:14:05.002Z",
+      "sha256": "5ed5ffdc7f65e4a1e9ba6e40ae0c5d7aea6fac24d23610b3142a946a9d4c3777",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\postfix\\summary-postfix.json",
+      "rel": "docs/问题核查资料_20260908/p5/postfix/summary-postfix.json",
+      "bytes": 3673,
+      "mtime": "2026-09-10T15:14:05.005Z",
+      "sha256": "6825c9fd33561289f5a08822cf0914fba5b18985b03421c0a00b3986c614b310",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p5\\redline_b_datadir.txt",
+      "rel": "docs/问题核查资料_20260908/p5/redline_b_datadir.txt",
+      "bytes": 516,
+      "mtime": "2026-09-10T15:10:10.776Z",
+      "sha256": "ddfc65c60b5b167f7364fd3107b3172508719b11a690df25acfb6b1158ba7638",
+      "role": "quantitative-json"
+    }
+  ],
+  "counts": {
+    "total": 51,
+    "screenshots": 27,
+    "distinctScreenshotPixels": 19,
+    "quantitativeJson": 21,
+    "logs": 3
+  },
+  "duplicatesByPixel": [
+    {
+      "sha256": "8e5ffa7bbd4ecd598adff15d68bb95ae3adad53fe04a970ce2881a7cec9f85fc",
+      "files": [
+        "docs/问题核查资料_20260908/p5/baseline_prefix_final/compare-empty-1366x768.png",
+        "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/compare-empty-1366x768.png"
+      ]
+    },
+    {
+      "sha256": "5299b945a612705020b6c24f99651305e10708fe6a235f254c7833d265c194da",
+      "files": [
+        "docs/问题核查资料_20260908/p5/baseline_prefix_final/compare-empty-1920x1080.png",
+        "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/compare-empty-1920x1080.png"
+      ]
+    },
+    {
+      "sha256": "c7347ec96ac38f02792442dbc10306c089828b034ce77e431e9ca2221c187d76",
+      "files": [
+        "docs/问题核查资料_20260908/p5/baseline_prefix_final/compare-result-1366x768.png",
+        "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/compare-result-1366x768.png"
+      ]
+    },
+    {
+      "sha256": "5911c4c080a386b559d202ca2d4e867f790b98f500dd88729ce961266ec1a5a4",
+      "files": [
+        "docs/问题核查资料_20260908/p5/baseline_prefix_final/compare-result-1440x900.png",
+        "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/compare-result-1440x900.png"
+      ]
+    },
+    {
+      "sha256": "f44e8e31f6d609372c3e0d236982e15f99054e45c71dcb31660a4817ac82cc9a",
+      "files": [
+        "docs/问题核查资料_20260908/p5/baseline_prefix_final/compare-result-1920x1080.png",
+        "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/compare-result-1920x1080.png"
+      ]
+    },
+    {
+      "sha256": "29c23028af2137e0214311b01d3f1d6e6a51ce1dbf64365fa07465e0989ea065",
+      "files": [
+        "docs/问题核查资料_20260908/p5/baseline_prefix_final/onboarding-1366x768.png",
+        "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/onboarding-1366x768.png"
+      ]
+    },
+    {
+      "sha256": "a0ce80642bcb165dcb22e5d6012e75114d3abcc2ea306af4e794b1d366be1abf",
+      "files": [
+        "docs/问题核查资料_20260908/p5/baseline_prefix_final/onboarding-1440x900.png",
+        "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/onboarding-1440x900.png"
+      ]
+    },
+    {
+      "sha256": "1e60094e036d749cd279928448721b299359b45cf5ad13d89b13595a6be5ad3c",
+      "files": [
+        "docs/问题核查资料_20260908/p5/baseline_prefix_final/onboarding-1920x1080.png",
+        "docs/问题核查资料_20260908/p5/_baseline_prefix_cs1/onboarding-1920x1080.png"
+      ]
+    }
+  ]
+}
