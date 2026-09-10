@@ -513,7 +513,14 @@ function renderStrip() {
 /* ---- U2.5 三视图切换（共用视口容器 + 120ms 交叉淡化；矩形图激活时表格隐藏、
    treemap 容器显示；L1-1 入场由 setTiles 播；从 treemap 切走时暂停 rAF 省电；
    合并阈值组仅矩形图显示；reduced 直切。两个容器为 view-area 的 absolute
-   子元素——交叉淡化期间同时可见（叠加），结束后旧容器 display:none） ---- */
+   子元素——交叉淡化期间同时可见（叠加），结束后旧容器 display:none） ----
+   P2（D2-1）：方向判定必须是「上一视图 vs 下一视图」，不是「矩形图 vs 表格」二元。
+   旧实现把 showTreemap=false 一律当作「矩形图退场」，于是在**非矩形图→非矩形图**
+   （排行→表格、表格→关系、关系→排行…）的切换里也走交叉淡化分支：矩形图被
+   removeAttribute("hidden") + opacity=1 抬到最上层，整幅重现并淡出 120ms
+   （P2 帧级基线实测 166/497 窗口内帧违规，首违规 opacity=1 且命中 treemap-canvas）。
+   现在仅在矩形图**参与**该次切换（prev 或 next 为 treemap）时做交叉淡化，
+   其余情况直接收束终态（零过渡、零残留）。 */
 function setBrowseView(mode) {
     const prev = APP_STATE.view.mode;
     APP_STATE.view.mode = mode; // U2.5：§3.2 对齐（切页不丢；跨路由保持）
@@ -528,22 +535,27 @@ function setBrowseView(mode) {
     const tableWrap = $("table-wrap");
     const showTreemap = mode === "treemap";
     const showRelateMode = mode === "relate";
+    /* P2（D2-1）：矩形图是否参与本次切换（prev 或 next 之一为 treemap） */
+    const treemapInvolved = prev === "treemap" || mode === "treemap";
+    /* P2（R4）：可见性驱动暂停——非矩形图视图一律真暂停；交叉淡化「切回矩形图」
+       的入向容器此刻已可见，故在 crossfadeView 之前恢复（恢复动作补画终帧，早于动画）。 */
+    setTreemapPaused(!showTreemap);
     if (wrap && tableWrap) {
-        if (prev !== mode) {
-            crossfadeView(seq, showTreemap);
+        if (prev !== mode && treemapInvolved) {
+            crossfadeView(seq, showTreemap); // 矩形图↔列表：保留 120ms 交叉淡化
         } else {
-            // 幂等：直接定态（bindWorkspace 首挂/重复点击当前视图）
+            // 幂等（重复点击当前视图）或非矩形图↔非矩形图（矩形图不参与）：
+            // 直接定态——矩形图绝不解除隐藏（P2 问题 2 根因）
             finishViewSwap(tableWrap, wrap, showTreemap);
-            if (prev === "treemap" && APP_STATE.lastBrowseData) renderTreemap(APP_STATE.lastBrowseData);
+            if (prev === mode && prev === "treemap" && APP_STATE.lastBrowseData) {
+                renderTreemap(APP_STATE.lastBrowseData);
+            }
         }
     } else if (wrap && showTreemap && APP_STATE.lastBrowseData) {
         renderTreemap(APP_STATE.lastBrowseData);
     }
-    if (wrap && showTreemap && prev !== mode) {
-        if (APP_STATE.lastBrowseData) renderTreemap(APP_STATE.lastBrowseData);
-    } else if (wrap && !showTreemap) {
-        const v = getTreemapView();
-        if (v) v.pause();
+    if (wrap && showTreemap && prev !== mode && APP_STATE.lastBrowseData) {
+        renderTreemap(APP_STATE.lastBrowseData);
     }
     /* 阶段C（C-7）：relate 视图互斥收口——树显示则表格隐藏、反之亦然
        （防 2-2 残留：两容器终态互斥由 showRelate/hideRelate 内联保证） */
@@ -559,18 +571,22 @@ function setBrowseView(mode) {
     renderStrip();
 }
 
-/* 120ms 交叉淡化（--dur-1；仅 opacity，WAAPI；reduced/token 缺失 → 直切） */
+/* 120ms 交叉淡化（--dur-1；仅 opacity，WAAPI；reduced/token 缺失 → 直切）。
+   P2（R1/R2/R3）：方向 = 入向/出向，而非「矩形图/表格」；层序与 pointer-events
+   由 style.css 的 `.v-crossfade` 语义类定义（JS 只负责按方向加类）。 */
 function crossfadeView(seq, showTreemap) {
     const wrap = $("treemap-wrap");
     const tableWrap = $("table-wrap");
     if (!wrap || !tableWrap) return;
     const outEl = showTreemap ? tableWrap : wrap;
     const inEl = showTreemap ? wrap : tableWrap;
-    // 双容器同时可见（绝对定位叠加）→ 交叉淡化
+    /* 双容器同时可见（绝对定位叠加）→ 交叉淡化；vis 与 z 由 CSS 决定：
+       入向 v-crossfade-in 在上层、出向 v-crossfade-out 在下层，二者期间
+       pointer-events:none（不得拦截命中测试，收束后由 finishViewSwap 还原）。 */
     tableWrap.classList.remove("hidden");
     wrap.removeAttribute("hidden");
-    tableWrap.classList.add("v-crossfade");
-    wrap.classList.add("v-crossfade");
+    tableWrap.classList.add("v-crossfade", showTreemap ? "v-crossfade-out" : "v-crossfade-in");
+    wrap.classList.add("v-crossfade", showTreemap ? "v-crossfade-in" : "v-crossfade-out");
     const dur = motionDur("--dur-1") || 0; // 120ms（--dur-1）；reduced 直切
     if (!dur || reducedMotion()) {
         finishViewSwap(tableWrap, wrap, showTreemap);
@@ -589,12 +605,12 @@ function crossfadeView(seq, showTreemap) {
     });
 }
 
-/* 交叉淡化终态：旧容器 display:none + 内联透明度清理 */
+/* 交叉淡化终态：旧容器 display:none + 内联透明度清理 + 层序/指针语义类清除 */
 function finishViewSwap(tableWrap, wrap, showTreemap) {
     tableWrap.classList.toggle("hidden", showTreemap);
     wrap.toggleAttribute("hidden", !showTreemap);
-    tableWrap.classList.remove("v-crossfade");
-    wrap.classList.remove("v-crossfade");
+    tableWrap.classList.remove("v-crossfade", "v-crossfade-in", "v-crossfade-out");
+    wrap.classList.remove("v-crossfade", "v-crossfade-in", "v-crossfade-out");
     tableWrap.style.opacity = "";
     wrap.style.opacity = "";
 }
@@ -700,6 +716,13 @@ function syncSweep() {
 
 export function getTreemapView() { return treemapView; }
 export function getTreemapTiles() { return APP_STATE.treemap.tiles; }
+
+/* P2（R4）：矩形图可见性 ↔ 渲染器暂停位。非矩形图视图一律真暂停（断重绘/断交互），
+   切回矩形图时恢复并补画终帧。渲染器未创建时 no-op（下次 setTiles 直接可见渲染）。 */
+function setTreemapPaused(on) {
+    const v = treemapView;
+    if (v && typeof v.setPaused === "function") v.setPaused(!!on);
+}
 
 /* L3-9 合并阈值：步长 10（min 1 / max 200），reflow lerp 300ms 重排。 */
 export function setMergeTop(n) {
@@ -1054,9 +1077,14 @@ export function bindWorkspace() {
         });
     }
     // L2-5 联动方向②（行 hover → tile 高亮；事件委托，避免千级行监听器）
+    /* P2（R4）：可见性守卫——矩形图隐藏（非矩形图视图）时行 hover 不得触发矩形图
+       重绘。基线实测：旧实现对 6 行 hover 产生 70 次 canvas 2D 绘制调用且全部发生在
+       矩形图隐藏期间（14 次/行 ≈ 整幅终帧重绘）。渲染器侧 highlightKey 亦有同口径守卫。 */
     $("dir-body").addEventListener("mouseover", (ev) => {
         const row = ev.target.closest(".ranking-row[data-path]");
         if (!row) return;
+        const wrapEl = $("treemap-wrap");
+        if (!wrapEl || wrapEl.hasAttribute("hidden")) return; // 隐藏态：联动方向②不生效
         APP_STATE.treemap.hoverKey = row.dataset.path;
         const v = getTreemapView();
         if (v && !v.isAnimating()) v.highlightKey(row.dataset.path);
