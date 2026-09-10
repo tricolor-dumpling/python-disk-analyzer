@@ -427,9 +427,22 @@ class ApiContractTests(unittest.TestCase):
                 _keys(report),
                 {"root", "total_baseline", "total_current", "delta_total",
                  "truncated", "legacy_count", "baseline_created_at",
-                 "current_completed_at", "rows"},  # W2.11 additive
+                 "current_completed_at",
+                 # P4（D4-5）additive：全量聚合行口径汇总 + depth 回显
+                 "rows_total", "zero_count", "zero_total",
+                 "max_growth", "max_release", "depth",
+                 "rows"},  # W2.11 additive
                 f"/api/compare report 键集合漂移: {_keys(report)}",
             )
+            # P4（D4-2）：不传新参 = 旧口径——叶子行集合与逐字段值与修复前一致，
+            # additive 汇总字段按「全量行集（叶子过滤后、零过滤与切片之前）」自洽
+            self.assertEqual(report["depth"], None, "不传 depth 时回显 None（叶子口径）")
+            self.assertEqual(report["rows_total"], 1, "leaf 口径行集：仅 D:\\\\T\\\\sub\\\\deep")
+            self.assertEqual(report["zero_count"], 0, "返回行中的零行数")
+            self.assertEqual(report["zero_total"], 0, "全量行集中的零行数")
+            self.assertEqual(report["max_growth"], 0, "本例无正增量")
+            self.assertEqual(report["max_release"], 1000, "deep 缩减 2500→1500")
+            self.assertEqual(len(report["rows"]), report["rows_total"])
             # 三卡（基线总大小/当前总大小/总变化量）与直调引擎全等（根行口径）
             engine = compare.diff_from_current(
                 {Path(row["p"]): int(row["s"]) for row in current_rows},

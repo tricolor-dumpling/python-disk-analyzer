@@ -883,18 +883,115 @@ COMPARE_JOBS = {}
 _COMPARE_JOBS_LOCK = threading.Lock()
 
 
-def _compare_job_key(root, baseline):
-    """对比任务键：root+baseline 归一化路径（同一对输入复用/去重）。"""
-    return (str(root).casefold(), str(baseline).casefold())
+def _compare_job_key(root, baseline, options):
+    """对比任务键：root + baseline + P4 新参数（归一化路径 / 缺省值）。
+
+    P4（D4-2/D4-3）：键里并入 depth / drop_zero / order_by——深度或过滤不同的
+    两次请求不得复用同一 job，否则后一次会拿到前一次口径的报告（异步路径静默
+    退化，P3 交接事实 8 的同类风险）。不传新参时键与修复前等价（追加的恒为
+    (None, False, "delta")）。
+    """
+    return (
+        str(root).casefold(),
+        str(baseline).casefold(),
+        options.get("depth"),
+        bool(options.get("drop_zero")),
+        str(options.get("order_by") or "delta"),
+    )
 
 
-def _run_compare_job(job_id, key, root, baseline_file, allow_other_machine):
+def _path_under(path, root):
+    """path == root 或位于 root 之下（normcase 归一，大小写不敏感）。"""
+    p = os.path.normcase(str(path)).rstrip("\\")
+    r = os.path.normcase(str(root)).rstrip("\\")
+    return p == r or p.startswith(r + "\\")
+
+
+def _scope_baseline_rows(rows, snapshot_root, request_root):
+    """P4（D4-6 页内下钻）：把基线快照行收窄到 request_root 子树。
+
+    仅当 request_root 是快照根的**严格子目录**时生效——此时「当前」侧数据来自
+    fullscan.result(request_root)（子目录子树，app.py 同步路径 :974 起），基线若
+    仍是整树会产生整片幻影「已删除」行（下钻结果失真）。
+    request_root 与快照根相同（旧契约的唯一覆盖面，含大小写差异）或不在其下时
+    **原样返回同一个列表对象**，保证不传新参数的既有响应逐字段不变。
+    """
+    if not request_root or not snapshot_root:
+        return rows
+    snap = os.path.normcase(str(snapshot_root)).rstrip("\\")
+    req = os.path.normcase(str(request_root)).rstrip("\\")
+    if req == snap or not req.startswith(snap + "\\"):
+        return rows
+    return [row for row in rows if _path_under(row.get("p"), req)]
+
+
+def _parse_compare_options(data):
+    """P4（D4-2/D4-3）解析 /api/compare 的新增可选参数，返回 (options, error)。
+
+    缺省语义 = v2.0.0 现状：depth=None（叶子口径）、drop_zero=False、
+    order_by="delta"——不传新参时响应与修复前逐字段一致（契约用例 + 直调引擎
+    逐字段比对证明）。非法入参一律 400（不静默降级）。
+    """
+    raw_depth = data.get("depth")
+    depth = None
+    if raw_depth is not None and raw_depth != "":
+        if isinstance(raw_depth, bool):
+            return None, "depth 必须是 ≥1 的整数（收到 %r）" % (raw_depth,)
+        try:
+            depth = int(raw_depth)
+        except (TypeError, ValueError):
+            return None, "depth 必须是 ≥1 的整数（收到 %r）" % (raw_depth,)
+        if depth < 1:
+            return None, "depth 必须 ≥1（收到 %d）" % depth
+    order_by = str(data.get("order_by") or "delta")
+    if order_by not in ("delta", "abs"):
+        return None, "order_by 仅支持 delta / abs（收到 %r）" % (data.get("order_by"),)
+    return {
+        "depth": depth,
+        "drop_zero": bool(data.get("drop_zero") or False),
+        "order_by": order_by,
+    }, None
+
+
+def _compare_report(report, rows, baseline_created_at, current_completed_at):
+    """组装 /api/compare 的 report（**两条返回路径共用**，防字段漂移）。
+
+    既有 9 键语义/取值零变化；P4 additive 6 键为 D4-5 汇总口径（全量聚合行，
+    未按 top_growth 的 100 条切片），并回显生效 depth（D4-2）。共用同一组装点
+    是刻意的：同步路径（:984 起）与异步任务路径（:910 起）若各自维护字段，
+    异步路径极易静默退化（P3 交接事实 8）。
+    """
+    return {
+        "root": report["root"],
+        "total_baseline": report["total_baseline"],
+        "total_current": report["total_current"],
+        "delta_total": report["delta_total"],
+        "truncated": report["truncated"],
+        "legacy_count": int(report.get("legacy_count") or 0),
+        "baseline_created_at": baseline_created_at,
+        "current_completed_at": current_completed_at,
+        # P4（D4-5）additive：全量聚合行口径汇总（消除摘要与 delta_total 自相矛盾）
+        "rows_total": int(report.get("rows_total") or 0),
+        "zero_count": int(report.get("zero_count") or 0),
+        "zero_total": int(report.get("zero_total") or 0),
+        "max_growth": int(report.get("max_growth") or 0),
+        "max_release": int(report.get("max_release") or 0),
+        "depth": report.get("depth"),
+        "rows": rows,
+    }
+
+
+def _run_compare_job(job_id, key, root, baseline_file, allow_other_machine, options=None):
     """后台对比任务：排队拿锁 → SDK 直扫 → diff → 记结果/错误（进程内 daemon 线程）。
 
     - 拿锁阻塞发生在后台线程（不阻塞 Web 请求线程）；锁被抢占时 phase=queued；
     - 持锁期间登记 lock_holder="compare"（B-18 健康 busy 区分持有者）；
-    - 任何异常收敛为 status:"error"（绝不抛穿线程）。
+    - 任何异常收敛为 status:"error"（绝不抛穿线程）；
+    - P4：options（depth / drop_zero / order_by）与同步路径同源同口径，基线行
+      同样按请求 root 收窄（下钻）。
     """
+    options = options or {}
+
     def _set(**kw):
         with _COMPARE_JOBS_LOCK:
             job = COMPARE_JOBS.get(job_id)
@@ -907,32 +1004,29 @@ def _run_compare_job(job_id, key, root, baseline_file, allow_other_machine):
             _set(phase="scanning", status="scanning", message="正在后台扫描当前盘…")
             current_sizes, _unused = scan.scan_via_everything_sdk(Path(root))
         baseline = snapshots.load_snapshot(baseline_file)
+        baseline_rows = _scope_baseline_rows(
+            baseline.get("rows") or [],
+            (baseline.get("header") or {}).get("root"),
+            root,
+        )
         report = compare.diff_from_current(
             current_sizes,
-            baseline.get("rows") or [],
+            baseline_rows,
             machine_guid=baseline.get("header", {}).get("machine_guid"),
             leaf_only=True,
+            depth=options.get("depth"),
+            drop_zero=bool(options.get("drop_zero")),
             local_machine_guid=snapshots.get_machine_guid(),
             allow_other_machine=bool(allow_other_machine or False),
         )
-        rows = compare.top_growth(report, 100)
+        rows = compare.top_growth(report, 100, order_by=options.get("order_by") or "delta")
         baseline_created_at = str((baseline.get("header") or {}).get("created_at") or "")
         current_completed_at = datetime.now().isoformat(timespec="seconds")
         _set(
             phase="done",
             status="done",
             message=None,
-            report={
-                "root": report["root"],
-                "total_baseline": report["total_baseline"],
-                "total_current": report["total_current"],
-                "delta_total": report["delta_total"],
-                "truncated": report["truncated"],
-                "legacy_count": int(report.get("legacy_count") or 0),
-                "baseline_created_at": baseline_created_at,
-                "current_completed_at": current_completed_at,
-                "rows": rows,
-            },
+            report=_compare_report(report, rows, baseline_created_at, current_completed_at),
             done=True,
         )
     except compare.CompareError as exc:
@@ -970,6 +1064,12 @@ def api_compare():
             status=409,
         )
 
+    # P4（D4-2/D4-3）：新增可选参数（depth / drop_zero / order_by）——缺省值与
+    # 修复前完全一致；非法入参 400（不静默降级）。两条返回路径共用同一份 options。
+    options, opt_error = _parse_compare_options(data)
+    if opt_error:
+        return _json_error(opt_error, status=400)
+
     # 阶段B（B-1 ①）：响应前先查 fullscan.result(root)——命中索引则同步秒级出报告。
     cached = fullscan.result(root=raw_root)
     if cached and cached.get("rows"):
@@ -980,12 +1080,20 @@ def api_compare():
         current_sizes = {
             Path(row["p"]): int(row["s"]) for row in cached["rows"]
         }
+        # P4（D4-6）：下钻换根时基线收窄到该子树（同根请求原样返回，逐字段不变）
+        baseline_rows = _scope_baseline_rows(
+            baseline.get("rows") or [],
+            (baseline.get("header") or {}).get("root"),
+            raw_root,
+        )
         try:
             report = compare.diff_from_current(
                 current_sizes,
-                baseline.get("rows") or [],
+                baseline_rows,
                 machine_guid=baseline.get("header", {}).get("machine_guid"),
                 leaf_only=True,
+                depth=options["depth"],
+                drop_zero=options["drop_zero"],
                 local_machine_guid=snapshots.get_machine_guid(),
                 allow_other_machine=bool(data.get("allow_other_machine") or False),
             )
@@ -993,34 +1101,24 @@ def api_compare():
             if getattr(exc, "kind", None) == "machine_mismatch":
                 return _json_error(f"对比失败: {exc}", status=409, code="machine_mismatch")
             return _json_error(f"对比失败: {exc}", status=400)
-        rows = compare.top_growth(report, 100)
+        rows = compare.top_growth(report, 100, order_by=options["order_by"])
         baseline_created_at = str((baseline.get("header") or {}).get("created_at") or "")
         last_fullscan = fullscan.result()
         current_completed_at = (last_fullscan or {}).get("completed_at")
         if not current_completed_at:
             current_completed_at = datetime.now().isoformat(timespec="seconds")
         return _json_ok(
-            report={
-                "root": report["root"],
-                "total_baseline": report["total_baseline"],
-                "total_current": report["total_current"],
-                "delta_total": report["delta_total"],
-                "truncated": report["truncated"],
-                "legacy_count": int(report.get("legacy_count") or 0),
-                "baseline_created_at": baseline_created_at,
-                "current_completed_at": current_completed_at,
-                "rows": rows,
-            },
+            report=_compare_report(report, rows, baseline_created_at, current_completed_at),
         )
 
     # 阶段B（B-1 ②）：无缓存不阻塞直扫——提交后台任务，202 + {job_id, status:"scanning"}。
     # 提交前保持 P12·W2.1（C-1）契约：SDK 锁被占用 → 立即 409（请求线程绝不排队挂死；
     # 异步排队只发生在后台任务线程）。同 key 任务去重：已有未完成任务 → 复用其 job_id。
-    key = _compare_job_key(raw_root, baseline_path)
+    key = _compare_job_key(raw_root, baseline_path, options)
     job_id = None
     with _COMPARE_JOBS_LOCK:
         for jid, job in list(COMPARE_JOBS.items()):
-            if job.get("root_case") == key[0] and job.get("baseline_case") == key[1]:
+            if job.get("opt_key") == key[2:]:
                 if not job.get("done"):
                     job_id = jid
                 break
@@ -1036,6 +1134,11 @@ def api_compare():
                 "baseline": str(baseline_path),
                 "root_case": key[0],
                 "baseline_case": key[1],
+                # P4：任务键并入新参数（去重必须按同口径），并回显给 /api/compare/status
+                "opt_key": key[2:],
+                "depth": options["depth"],
+                "drop_zero": options["drop_zero"],
+                "order_by": options["order_by"],
                 "status": "queued",
                 "phase": "queued",
                 "message": "等待扫描引擎空闲…",
@@ -1046,7 +1149,7 @@ def api_compare():
         threading.Thread(
             target=_run_compare_job,
             args=(job_id, key, raw_root, baseline_file,
-                  bool(data.get("allow_other_machine") or False)),
+                  bool(data.get("allow_other_machine") or False), options),
             daemon=True,
             name="compare-background",
         ).start()
@@ -1055,6 +1158,9 @@ def api_compare():
         status="scanning",
         phase="queued",
         message="后台对比任务已提交，可轮询 /api/compare/status",
+        depth=options["depth"],
+        drop_zero=options["drop_zero"],
+        order_by=options["order_by"],
     ), 202
 
 
@@ -1062,6 +1168,8 @@ def api_compare():
 def api_compare_status():
     """阶段B（B-1）：对比任务轮询接口（新接口，13 个既有接口零变更）。
     - 未知 job → 404；完成 → {status:"done", report}；扫描中 → {status:"scanning", phase}。
+    - P4（D4-2，additive）：三个分支均回显该任务的 depth / drop_zero / order_by，
+      调用方可据此确认异步任务与提交时的口径一致（报告内亦含 depth）。
     """
     job_id = (request.args.get("job_id") or "").strip()
     if not job_id:
@@ -1071,23 +1179,31 @@ def api_compare_status():
         if job is None:
             return _json_error("对比任务不存在或已过期", status=404)
         snapshot = dict(job)
+    echo = {
+        "depth": snapshot.get("depth"),
+        "drop_zero": snapshot.get("drop_zero"),
+        "order_by": snapshot.get("order_by"),
+    }
     # 完成/失败任务保留 60s 供前端消费后清理（防内存无限增长）
     if snapshot.get("done") or snapshot.get("status") == "error":
         with _COMPARE_JOBS_LOCK:
             if job.get("_expire_at") is None:
                 job["_expire_at"] = time.time() + 60
         if snapshot.get("done"):
-            return _json_ok(job_id=job_id, status="done", report=snapshot.get("report"))
+            return _json_ok(job_id=job_id, status="done",
+                            report=snapshot.get("report"), **echo)
         return _json_ok(
             job_id=job_id, status="error",
             error=snapshot.get("error"),
             code=snapshot.get("code"),
+            **echo
         )
     return _json_ok(
         job_id=job_id,
         status=snapshot.get("status") or "scanning",
         phase=snapshot.get("phase") or "scanning",
         message=snapshot.get("message"),
+        **echo
     )
 
 

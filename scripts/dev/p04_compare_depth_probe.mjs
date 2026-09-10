@@ -102,10 +102,21 @@ function levelOf(p, root) {
     return a.slice(b.length).replace(/^\\+/, "").split("\\").filter(Boolean).length;
 }
 function ancestorAtLevel(p, root, depth) {
-    const lv = levelOf(p, root);
-    if (lv < 0 || lv <= depth) return p;
-    const parts = norm(p).slice(norm(root).length).replace(/^\\+/, "").split("\\").filter(Boolean);
-    return norm(root) + "\\" + parts.slice(0, depth).join("\\");
+    /* 取第 depth 层祖先：按**原串**切片（保留原大小写，与后端 _ancestor_at_depth 同口径）。
+       norm() 仅供比较/计数，绝不用来拼装返回路径。 */
+    const s = String(p);
+    const normS = norm(s);
+    const normR = norm(root);
+    if (normR && normS !== normR && !normS.startsWith(normR + "\\")) return p;
+    const start = normR ? normR.length + 1 : 0;
+    const rest = normS.slice(start);
+    let idx = -1;
+    for (let i = 0; i < depth; i++) {
+        const nxt = rest.indexOf("\\", idx + 1);
+        if (nxt < 0) return p;
+        idx = nxt;
+    }
+    return s.slice(0, start + idx);
 }
 function directChild(p, child) {
     const a = p.toLowerCase(), b = child.toLowerCase();
@@ -140,16 +151,67 @@ function residueOf(baseMap, curMap, root, returnedPaths) {
     return { total, residue: total - covered, covered };
 }
 
-/* depth 聚合的期望行集合（独立参照）：相对 root 第 depth 层键 + 更浅且无后代者；
-   根行不计（D4：深度视图只呈现聚合层，根合计由摘要卡承载）。 */
-function expectedLevels(baseMap, curMap, root, depth) {
+/* 参照规约（独立参照实现，用于「行集 + 数值 + 汇总口径」双向比对）：
+   - depth=N：相对 root 第 N 层键 + 更浅且无后代者；根行不计（D4：深度视图只
+     呈现聚合层，根合计由摘要卡承载）；目标键在则取自身值（已含后代），否则取
+     组内顶层成员之和；被更深目标覆盖的更浅目标不入行集。
+   - depth=null + leafOnly：叶子键（非任何其他键祖先），取自身值（app.py 既有口径）。
+   ⚠️ 口径说明：本参照与后端 _rollup 同规约，作用是**钉住规约**；真正独立的
+   守恒量校验是 J2（Σ + 残差 == delta_total，仅用夹具原始行推导）。 */
+function referenceRows(baseMap, curMap, root, depth, leafOnly) {
     const keys = [...new Set([...baseMap.keys(), ...curMap.keys()])].filter((k) => isUnder(k, root));
-    const atLevel = keys.filter((k) => levelOf(k, root) === depth);
-    const shallowNoChild = keys.filter((k) => {
-        const lv = levelOf(k, root);
-        return lv >= 1 && lv < depth && !keys.some((o) => o !== k && isUnder(o, k));
+    const index = new Map(keys.map((k) => [norm(k), k]));
+    const value = (path) => ({
+        baseline: baseMap.get(path) || 0, current: curMap.get(path) || 0,
+        delta: (curMap.get(path) || 0) - (baseMap.get(path) || 0),
     });
-    return [...new Set([...atLevel, ...shallowNoChild])];
+    if (depth === null) {
+        let selected = keys;
+        if (leafOnly) {
+            const norms = keys.map(norm);
+            selected = keys.filter((k) => {
+                const n = norm(k);
+                return !norms.some((o) => o !== n && o.startsWith(n + "\\"));
+            });
+        }
+        return new Map(selected.map((k) => [k, value(k)]));
+    }
+    const groups = new Map();
+    for (const k of keys) {
+        const lv = levelOf(k, root);
+        if (lv <= 0) continue;
+        const target = lv <= depth ? k : ancestorAtLevel(k, root, depth);
+        if (!groups.has(target)) groups.set(target, []);
+        groups.get(target).push(k);
+    }
+    const targetNorms = [...groups.keys()].map(norm);
+    const isAncestorOfTarget = (t) => {
+        const a = norm(t);
+        return targetNorms.some((b) => b !== a && b.startsWith(a + "\\"));
+    };
+    const out = new Map();
+    for (const [target, members] of groups) {
+        if (isAncestorOfTarget(target)) continue;
+        const own = index.get(norm(target));
+        if (own !== undefined) {
+            out.set(target, value(own));
+            continue;
+        }
+        const memberNorms = new Set(members.map(norm));
+        let b = 0, c = 0;
+        for (const m of members) {
+            const parent = norm(m).replace(/\\[^\\]+$/, "");
+            if (memberNorms.has(parent)) continue;
+            b += baseMap.get(m) || 0;
+            c += curMap.get(m) || 0;
+        }
+        out.set(target, { baseline: b, current: c, delta: c - b });
+    }
+    return out;
+}
+
+function expectedLevels(baseMap, curMap, root, depth) {
+    return [...referenceRows(baseMap, curMap, root, depth, false).keys()];
 }
 
 function topLevelCount(baseMap, curMap, root) {
@@ -283,16 +345,59 @@ async function apiPhase(base) {
         rec.residue = res.residue;
         rec.coveredDirect = res.covered;
         rec.deltaTotalRaw = res.total;
-        rec.expectedDepthRows = depth === null ? null : expectedLevels(baseMap, curMap, root, depth).length;
         rec.topLevelCount = topLevelCount(baseMap, curMap, root);
+
+        /* 参照规约（depth 给定 → 聚合层；depth=null → app.py 既有 leaf_only 口径） */
+        const ref = referenceRows(baseMap, curMap, root, depth, depth === null);
+        {
+            const refPaths = [...ref.keys()].sort();
+            const refVisible = [...ref.entries()].filter(([, v]) => !payload.drop_zero || v.delta !== 0);
+            /* 返回行集应等于「参照全量集合经同一过滤（drop_zero）」后的可见集合 */
+            const cmpPaths = refVisible.map(([k]) => k).sort();
+            const cmpDeltas = Object.fromEntries(refVisible.map(([k, v]) => [k, v.delta]));
+            const refZeros = [...ref.values()].filter((v) => v.delta === 0).length;
+            rec.expectedDepthRows = refPaths.length;
+            rec.expectedVisibleRows = refVisible.length;
+            rec.expectedPaths = cmpPaths;
+            rec.expectedDeltas = cmpDeltas;
+            judge(rec.judges, "J1 行集与参照规约一致（路径集合）",
+                JSON.stringify([...returned].sort()) === JSON.stringify(cmpPaths),
+                "返回=" + JSON.stringify([...returned].sort()) + " 参照=" + JSON.stringify(cmpPaths));
+            const gotDeltas = Object.fromEntries(rows.map((r) => [r.path, r.delta]));
+            judge(rec.judges, "J1 逐行 delta 与参照规约一致",
+                JSON.stringify(Object.entries(gotDeltas).sort()) === JSON.stringify(Object.entries(cmpDeltas).sort()),
+                "返回=" + JSON.stringify(gotDeltas) + " 参照=" + JSON.stringify(cmpDeltas));
+            judge(rec.judges, "J1 返回行数==参照可见行数",
+                rows.length === Math.min(refVisible.length, 100),
+                "返回=" + rows.length + " 参照可见=" + refVisible.length);
+            if (depth === 1 && !payload.drop_zero) {
+                judge(rec.judges, "J1 (计划硬判据) depth=1 行数 == 顶层目录数",
+                    rows.length === topLevelCount(baseMap, curMap, root),
+                    "返回=" + rows.length + " 顶层条目=" + topLevelCount(baseMap, curMap, root));
+            }
+            if (report && "rows_total" in report) {
+                const refGrowth = Math.max(0, ...[...ref.values()].map((v) => v.delta));
+                const refRelease = Math.max(0, ...[...ref.values()].map((v) => -v.delta));
+                judge(rec.judges, "J5 汇总字段口径 == 参照全量口径",
+                    Number(report.rows_total) === refPaths.length &&
+                    Number(report.zero_total) === refZeros &&
+                    Number(report.max_growth) === refGrowth &&
+                    Number(report.max_release) === refRelease &&
+                    Number(report.zero_count) === rows.filter((r) => r.delta === 0).length,
+                    "后端=" + JSON.stringify([report.rows_total, report.zero_total, report.max_growth,
+                        report.max_release, report.zero_count]) +
+                    " 参照=" + JSON.stringify([refPaths.length, refZeros, refGrowth, refRelease,
+                        rows.filter((r) => r.delta === 0).length]));
+            }
+        }
 
         judge(rec.judges, "J2 Σ(行delta)+残差==delta_total",
             rec.sumDelta + rec.residue === rec.deltaTotalRaw,
             "Σ=" + rec.sumDelta + " 残差=" + rec.residue + " delta_total=" + rec.deltaTotalRaw);
         if (depth !== null) {
-            judge(rec.judges, "J1 depth=" + depth + " 行数==聚合层条目数",
-                rows.length === rec.expectedDepthRows,
-                "rows=" + rows.length + " expected=" + rec.expectedDepthRows);
+            judge(rec.judges, "J1 depth=" + depth + " 返回行数 > 0（无假空态）",
+                !payload.drop_zero || rows.length > 0 || rec.expectedVisibleRows === 0,
+                "rows=" + rows.length + " 参照可见=" + rec.expectedVisibleRows);
         }
         if (payload.drop_zero) {
             judge(rec.judges, "J3 开过滤时零行==0", rec.zeroRows === 0,
@@ -302,11 +407,6 @@ async function apiPhase(base) {
             report && ["rows_total", "zero_count", "zero_total", "max_growth", "max_release", "depth"].every((k) => k in report),
             "reportKeys=" + JSON.stringify(rec.reportKeys));
         if (report && "rows_total" in report) {
-            judge(rec.judges, "J5 汇总字段口径正确",
-                Number(report.rows_total) === (depth === null
-                    ? rows.length + (payload.drop_zero ? Number(report.zero_total) : 0)
-                    : Number(report.rows_total)) && Number(report.rows_total) >= rows.length,
-                "rows_total=" + report.rows_total + " 返回行=" + rows.length + " zero_total=" + report.zero_total);
             judge(rec.judges, "J5 depth 回显==入参",
                 (report.depth === null || report.depth === undefined) ? depth === null : Number(report.depth) === Number(depth),
                 "回显=" + JSON.stringify(report.depth) + " 入参=" + JSON.stringify(depth));
