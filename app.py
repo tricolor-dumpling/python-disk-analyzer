@@ -907,6 +907,39 @@ def _path_under(path, root):
     return p == r or p.startswith(r + "\\")
 
 
+def _cached_current_rows(root):
+    """取「当前侧」数据：先按 root 精确命中 fullscan 缓存，未命中则从**祖先根**派生。
+
+    P4 挂账清理（下钻/深度切换的秒级响应）：fullscan.result(root) 只做**精确根**匹配
+    （fullscan.py:688 `Path(key) == target`），而一次全量扫描的结果里每个目录各占一行
+    ——下钻到子目录时按子树裁剪祖先根的 rows，与「直接扫描该子目录」的行集合同构
+    （子树自身的根行也已包含在祖先结果中）。这样下钻/深度切换在已扫描过的盘上
+    **恒为同步快路径**，不再退化成 202 + `scan_via_everything_sdk(子目录)` 直扫。
+    派生不出任何行（无祖先根缓存 / 该根不在任何已扫根之下）时返回 None → 维持既有
+    202 异步提交路径，语义与 P4 之前一致。
+    """
+    cached = fullscan.result(root=root)
+    if cached and cached.get("rows"):
+        return cached
+    last = fullscan.result()
+    if not last:
+        return None
+    target = os.path.normcase(str(root)).rstrip("\\")
+    best_base, best_item = "", None
+    for key, item in (last.get("roots") or {}).items():
+        base = os.path.normcase(str(key)).rstrip("\\")
+        if not base or not (target == base or target.startswith(base + "\\")):
+            continue
+        if len(base) > len(best_base):  # 多根命中时取最贴近的祖先根
+            best_base, best_item = base, item
+    if best_item is None:
+        return None
+    rows = [row for row in (best_item.get("rows") or []) if _path_under(row.get("p"), root)]
+    if not rows:
+        return None
+    return {"root": str(root), "rows": rows}
+
+
 def _scope_baseline_rows(rows, snapshot_root, request_root):
     """P4（D4-6 页内下钻）：把基线快照行收窄到 request_root 子树。
 
@@ -1071,7 +1104,8 @@ def api_compare():
         return _json_error(opt_error, status=400)
 
     # 阶段B（B-1 ①）：响应前先查 fullscan.result(root)——命中索引则同步秒级出报告。
-    cached = fullscan.result(root=raw_root)
+    # P4 挂账清理：精确未命中时按祖先根派生子树（下钻子目录同样走同步快路径）。
+    cached = _cached_current_rows(raw_root)
     if cached and cached.get("rows"):
         try:
             baseline = snapshots.load_snapshot(baseline_file)

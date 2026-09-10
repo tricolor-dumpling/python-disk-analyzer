@@ -454,6 +454,71 @@ class ApiContractTests(unittest.TestCase):
             self.assertEqual(report["delta_total"], -1000)
             resp.close()
 
+    def test_compare_drill_subtree_reuses_ancestor_cache(self):
+        """P4 挂账清理：下钻子目录且**只有祖先根**缓存时按子树派生（同步 200）。
+
+        fullscan.result(root) 仅精确匹配根（fullscan.py:688）；下钻到 D:\\T\\sub 时
+        若退回 202 + `scan_via_everything_sdk(子目录)`，深度/下钻切换会各自触发一次
+        SDK 直扫。本用例锁定「祖先根存在即同步派生」：SDK 直扫被替换为 AssertionError
+        桩——一旦退回异步路径，响应码即非 200，用例立刻失败。
+        """
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        baseline_rows = [
+            {"p": "D:\\T", "s": 7050},
+            {"p": "D:\\T\\sub", "s": 4000},
+            {"p": "D:\\T\\sub\\deep", "s": 2500},
+            {"p": "D:\\T\\other", "s": 3050},
+        ]
+        current_rows = [
+            {"p": "D:\\T", "s": 6050},
+            {"p": "D:\\T\\sub", "s": 4000},
+            {"p": "D:\\T\\sub\\deep", "s": 1500},
+            {"p": "D:\\T\\other", "s": 3050},
+        ]
+        baseline_file = snapshots.save_snapshot(
+            "D:\\T",
+            baseline_rows,
+            dir_path=Path(tmp.name),
+            auto=False,
+            machine_guid=LOCAL_GUID,
+            fingerprint={"count": len(baseline_rows), "crc32": 0},
+        )
+        parent_result = {
+            "roots": {"D:\\T": {"root": "D:\\T", "rows": [
+                {"p": row["p"], "s": row["s"]} for row in current_rows]}},
+            "completed_at": "2026-09-10T12:00:00",
+        }
+
+        def fake_result(root=None):
+            if root is None:
+                return parent_result          # 无参 = 最近一次全量结果（含各根）
+            return None                        # 子目录无精确根缓存
+
+        with app.test_client() as client:
+            with mock.patch.object(fullscan, "is_running", return_value=False), \
+                    mock.patch.object(fullscan, "result", side_effect=fake_result), \
+                    mock.patch.object(scan, "scan_via_everything_sdk",
+                                      side_effect=AssertionError("不应触发 SDK 直扫")):
+                resp = client.post(
+                    "/api/compare",
+                    json={"root": "D:\\T\\sub", "baseline": str(baseline_file)},
+                )
+            self.assertEqual(resp.status_code, 200, "祖先根缓存应派生子树 → 同步 200")
+            report = resp.get_json()["report"]
+            self.assertEqual(report["root"], "D:\\T\\sub", "对比根应为下钻目录")
+            self.assertEqual(report["total_baseline"], 4000)
+            self.assertEqual(report["total_current"], 4000)
+            self.assertEqual(report["delta_total"], 0, "子树根行两侧一致")
+            for row in report["rows"]:
+                self.assertTrue(
+                    row["path"] == "D:\\T\\sub" or row["path"].startswith("D:\\T\\sub\\"),
+                    "派生行必须落在下钻子树内：%s" % row["path"],
+                )
+            self.assertNotIn("D:\\T\\other", [row["path"] for row in report["rows"]],
+                             "兄弟目录不得进入下钻结果")
+            resp.close()
+
 
 class FullscanStopContractTests(unittest.TestCase):
     """U3.2（D10）：POST /api/fullscan/stop 契约——200 形态与空闲幂等。
