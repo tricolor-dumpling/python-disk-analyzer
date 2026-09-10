@@ -1,0 +1,222 @@
+﻿{
+    "count":  43,
+    "root":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner",
+    "entries":  [
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\config.json",
+                        "Length":  96,
+                        "LastWriteTimeUtc":  "\/Date(1788749236552)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260907_104720_005413_56fbc221_000001.json",
+                        "Length":  820,
+                        "LastWriteTimeUtc":  "\/Date(1788749240885)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260907_105251_604699_56fbc221_000002.json",
+                        "Length":  1085,
+                        "LastWriteTimeUtc":  "\/Date(1788749572583)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260908_200846_598651_56fbc221_000001.json",
+                        "Length":  1100,
+                        "LastWriteTimeUtc":  "\/Date(1788869328496)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260908_224018_221751_56fbc221_000001.json",
+                        "Length":  908,
+                        "LastWriteTimeUtc":  "\/Date(1788878418755)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260908_224018_541804_56fbc221_000002.json",
+                        "Length":  740,
+                        "LastWriteTimeUtc":  "\/Date(1788878418805)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002557_670408_56fbc221_000001.json",
+                        "Length":  538,
+                        "LastWriteTimeUtc":  "\/Date(1788884757680)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002557_683478_56fbc221_000002.json",
+                        "Length":  538,
+                        "LastWriteTimeUtc":  "\/Date(1788884757692)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002557_717013_56fbc221_000003.json",
+                        "Length":  538,
+                        "LastWriteTimeUtc":  "\/Date(1788884757730)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002557_734458_56fbc221_000004.json",
+                        "Length":  538,
+                        "LastWriteTimeUtc":  "\/Date(1788884757751)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002557_754760_56fbc221_000005.json",
+                        "Length":  581,
+                        "LastWriteTimeUtc":  "\/Date(1788884757757)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002557_761888_56fbc221_000006.json",
+                        "Length":  538,
+                        "LastWriteTimeUtc":  "\/Date(1788884757776)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002609_413618_56fbc221_000001.json",
+                        "Length":  583,
+                        "LastWriteTimeUtc":  "\/Date(1788884769415)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002609_419656_56fbc221_000002.json",
+                        "Length":  584,
+                        "LastWriteTimeUtc":  "\/Date(1788884769422)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002609_445742_56fbc221_000003.json",
+                        "Length":  584,
+                        "LastWriteTimeUtc":  "\/Date(1788884769447)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002609_450629_56fbc221_000004.json",
+                        "Length":  581,
+                        "LastWriteTimeUtc":  "\/Date(1788884769451)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002609_454931_56fbc221_000005.json",
+                        "Length":  581,
+                        "LastWriteTimeUtc":  "\/Date(1788884769456)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002609_459532_56fbc221_000006.json",
+                        "Length":  584,
+                        "LastWriteTimeUtc":  "\/Date(1788884769461)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002703_968548_56fbc221_000001.json",
+                        "Length":  583,
+                        "LastWriteTimeUtc":  "\/Date(1788884823970)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002703_973317_56fbc221_000002.json",
+                        "Length":  584,
+                        "LastWriteTimeUtc":  "\/Date(1788884823975)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002704_000301_56fbc221_000003.json",
+                        "Length":  584,
+                        "LastWriteTimeUtc":  "\/Date(1788884824002)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002704_006487_56fbc221_000004.json",
+                        "Length":  581,
+                        "LastWriteTimeUtc":  "\/Date(1788884824008)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002704_012191_56fbc221_000005.json",
+                        "Length":  581,
+                        "LastWriteTimeUtc":  "\/Date(1788884824014)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002704_018606_56fbc221_000006.json",
+                        "Length":  584,
+                        "LastWriteTimeUtc":  "\/Date(1788884824032)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002825_589013_56fbc221_000001.json",
+                        "Length":  583,
+                        "LastWriteTimeUtc":  "\/Date(1788884905590)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002825_594409_56fbc221_000002.json",
+                        "Length":  584,
+                        "LastWriteTimeUtc":  "\/Date(1788884905595)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002825_620437_56fbc221_000003.json",
+                        "Length":  584,
+                        "LastWriteTimeUtc":  "\/Date(1788884905622)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002825_626554_56fbc221_000004.json",
+                        "Length":  581,
+                        "LastWriteTimeUtc":  "\/Date(1788884905628)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002825_632171_56fbc221_000005.json",
+                        "Length":  581,
+                        "LastWriteTimeUtc":  "\/Date(1788884905634)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\session_20260909_002825_638329_56fbc221_000006.json",
+                        "Length":  584,
+                        "LastWriteTimeUtc":  "\/Date(1788884905640)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\C_20260907_104720_explicit_56fbc221.snap.gz",
+                        "Length":  1530532,
+                        "LastWriteTimeUtc":  "\/Date(1788749240730)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\C_20260907_105251_auto_56fbc221.snap.gz",
+                        "Length":  1529637,
+                        "LastWriteTimeUtc":  "\/Date(1788749572415)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\C_20260908_200846_auto_56fbc221.snap.gz",
+                        "Length":  1531017,
+                        "LastWriteTimeUtc":  "\/Date(1788869328155)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\D_20260907_104720_explicit_56fbc221.snap.gz",
+                        "Length":  247669,
+                        "LastWriteTimeUtc":  "\/Date(1788749240880)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\D_20260907_105252_auto_56fbc221.snap.gz",
+                        "Length":  247655,
+                        "LastWriteTimeUtc":  "\/Date(1788749572575)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\D_20260908_200848_auto_56fbc221.snap.gz",
+                        "Length":  254777,
+                        "LastWriteTimeUtc":  "\/Date(1788869328486)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\day_writes.json",
+                        "Length":  37,
+                        "LastWriteTimeUtc":  "\/Date(1788884757774)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\ledger.json",
+                        "Length":  1062,
+                        "LastWriteTimeUtc":  "\/Date(1788884757772)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\SDK1_20260909_002557_auto_56fbc221.snap.gz",
+                        "Length":  219,
+                        "LastWriteTimeUtc":  "\/Date(1788884757675)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\SDK2_20260909_002557_auto_56fbc221.snap.gz",
+                        "Length":  219,
+                        "LastWriteTimeUtc":  "\/Date(1788884757743)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\SDK3_20260909_002557_auto_56fbc221.snap.gz",
+                        "Length":  218,
+                        "LastWriteTimeUtc":  "\/Date(1788884757686)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\SDK5_20260909_002557_auto_56fbc221.snap.gz",
+                        "Length":  219,
+                        "LastWriteTimeUtc":  "\/Date(1788884757768)\/"
+                    },
+                    {
+                        "FullName":  "C:\\Users\\Laptop\\AppData\\Local\\PythonDiskScanner\\snapshots\\SDK6_20260909_002557_auto_56fbc221.snap.gz",
+                        "Length":  218,
+                        "LastWriteTimeUtc":  "\/Date(1788884757722)\/"
+                    }
+                ],
+    "captured_at_utc":  "2026-09-10T04:55:04.6399453Z"
+}
