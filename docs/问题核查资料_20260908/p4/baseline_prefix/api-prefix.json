@@ -1,0 +1,565 @@
+{
+  "meta": {
+    "label": "prefix",
+    "out": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p4\\baseline_prefix",
+    "node": "v24.19.0",
+    "startedAt": "2026-09-10T11:41:02.006Z",
+    "fixtureRoot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner",
+    "snapshotDir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots",
+    "fixtureNow": "2026-09-08T20:00:00",
+    "viewports": [
+      "1366x768",
+      "1440x900",
+      "1920x1080"
+    ],
+    "fixtures": {
+      "generated": false,
+      "missing": []
+    },
+    "base": "http://127.0.0.1:5101/",
+    "harnessSpawned": true
+  },
+  "cases": [
+    {
+      "key": "growth-default(无 depth 旧调用)",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 10,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "legacy_count",
+        "root",
+        "rows",
+        "total_baseline",
+        "total_current",
+        "truncated"
+      ],
+      "deltaTotal": 50,
+      "rowCount": 4,
+      "rowDeltas": [
+        70,
+        10,
+        0,
+        -50
+      ],
+      "rowPaths": [
+        "D:\\apps\\framework\\core\\engine\\lib.dll",
+        "D:\\apps\\framework\\core\\engine\\conf.bin",
+        "D:\\data\\docs",
+        "D:\\docs\\old"
+      ],
+      "zeroRows": 1,
+      "judges": [
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=30 残差=20 delta_total=50"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": false,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"legacy_count\",\"root\",\"rows\",\"total_baseline\",\"total_current\",\"truncated\"]"
+        }
+      ],
+      "sumDelta": 30,
+      "residue": 20,
+      "coveredDirect": 30,
+      "deltaTotalRaw": 50,
+      "expectedDepthRows": null,
+      "topLevelCount": 3
+    },
+    {
+      "key": "growth-depth1",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+        "depth": 1
+      },
+      "httpStatus": 200,
+      "elapsedMs": 11,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "legacy_count",
+        "root",
+        "rows",
+        "total_baseline",
+        "total_current",
+        "truncated"
+      ],
+      "deltaTotal": 50,
+      "rowCount": 4,
+      "rowDeltas": [
+        70,
+        10,
+        0,
+        -50
+      ],
+      "rowPaths": [
+        "D:\\apps\\framework\\core\\engine\\lib.dll",
+        "D:\\apps\\framework\\core\\engine\\conf.bin",
+        "D:\\data\\docs",
+        "D:\\docs\\old"
+      ],
+      "zeroRows": 1,
+      "judges": [
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=30 残差=20 delta_total=50"
+        },
+        {
+          "name": "J1 depth=1 行数==聚合层条目数",
+          "pass": false,
+          "detail": "rows=4 expected=3"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": false,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"legacy_count\",\"root\",\"rows\",\"total_baseline\",\"total_current\",\"truncated\"]"
+        }
+      ],
+      "sumDelta": 30,
+      "residue": 20,
+      "coveredDirect": 30,
+      "deltaTotalRaw": 50,
+      "expectedDepthRows": 3,
+      "topLevelCount": 3
+    },
+    {
+      "key": "growth-depth2",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+        "depth": 2
+      },
+      "httpStatus": 200,
+      "elapsedMs": 9,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "legacy_count",
+        "root",
+        "rows",
+        "total_baseline",
+        "total_current",
+        "truncated"
+      ],
+      "deltaTotal": 50,
+      "rowCount": 4,
+      "rowDeltas": [
+        70,
+        10,
+        0,
+        -50
+      ],
+      "rowPaths": [
+        "D:\\apps\\framework\\core\\engine\\lib.dll",
+        "D:\\apps\\framework\\core\\engine\\conf.bin",
+        "D:\\data\\docs",
+        "D:\\docs\\old"
+      ],
+      "zeroRows": 1,
+      "judges": [
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=30 残差=20 delta_total=50"
+        },
+        {
+          "name": "J1 depth=2 行数==聚合层条目数",
+          "pass": false,
+          "detail": "rows=4 expected=3"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": false,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"legacy_count\",\"root\",\"rows\",\"total_baseline\",\"total_current\",\"truncated\"]"
+        }
+      ],
+      "sumDelta": 30,
+      "residue": 20,
+      "coveredDirect": 30,
+      "deltaTotalRaw": 50,
+      "expectedDepthRows": 3,
+      "topLevelCount": 3
+    },
+    {
+      "key": "growth-depth1+drop_zero+order_by=abs",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+        "depth": 1,
+        "drop_zero": true,
+        "order_by": "abs"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 9,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "legacy_count",
+        "root",
+        "rows",
+        "total_baseline",
+        "total_current",
+        "truncated"
+      ],
+      "deltaTotal": 50,
+      "rowCount": 4,
+      "rowDeltas": [
+        70,
+        10,
+        0,
+        -50
+      ],
+      "rowPaths": [
+        "D:\\apps\\framework\\core\\engine\\lib.dll",
+        "D:\\apps\\framework\\core\\engine\\conf.bin",
+        "D:\\data\\docs",
+        "D:\\docs\\old"
+      ],
+      "zeroRows": 1,
+      "judges": [
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=30 残差=20 delta_total=50"
+        },
+        {
+          "name": "J1 depth=1 行数==聚合层条目数",
+          "pass": false,
+          "detail": "rows=4 expected=3"
+        },
+        {
+          "name": "J3 开过滤时零行==0",
+          "pass": false,
+          "detail": "zeroRows=1 zero_count=undefined"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": false,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"legacy_count\",\"root\",\"rows\",\"total_baseline\",\"total_current\",\"truncated\"]"
+        }
+      ],
+      "sumDelta": 30,
+      "residue": 20,
+      "coveredDirect": 30,
+      "deltaTotalRaw": 50,
+      "expectedDepthRows": 3,
+      "topLevelCount": 3
+    },
+    {
+      "key": "growth-default+drop_zero+order_by=abs",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+        "drop_zero": true,
+        "order_by": "abs"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 10,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "legacy_count",
+        "root",
+        "rows",
+        "total_baseline",
+        "total_current",
+        "truncated"
+      ],
+      "deltaTotal": 50,
+      "rowCount": 4,
+      "rowDeltas": [
+        70,
+        10,
+        0,
+        -50
+      ],
+      "rowPaths": [
+        "D:\\apps\\framework\\core\\engine\\lib.dll",
+        "D:\\apps\\framework\\core\\engine\\conf.bin",
+        "D:\\data\\docs",
+        "D:\\docs\\old"
+      ],
+      "zeroRows": 1,
+      "judges": [
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=30 残差=20 delta_total=50"
+        },
+        {
+          "name": "J3 开过滤时零行==0",
+          "pass": false,
+          "detail": "zeroRows=1 zero_count=undefined"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": false,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"legacy_count\",\"root\",\"rows\",\"total_baseline\",\"total_current\",\"truncated\"]"
+        }
+      ],
+      "sumDelta": 30,
+      "residue": 20,
+      "coveredDirect": 30,
+      "deltaTotalRaw": 50,
+      "expectedDepthRows": null,
+      "topLevelCount": 3
+    },
+    {
+      "key": "flat-default(旧口径)",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_110000_explicit_3f2a1c9d.snap.gz"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 7,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "legacy_count",
+        "root",
+        "rows",
+        "total_baseline",
+        "total_current",
+        "truncated"
+      ],
+      "deltaTotal": 0,
+      "rowCount": 1,
+      "rowDeltas": [
+        0
+      ],
+      "rowPaths": [
+        "D:\\flat\\a\\b\\c\\file.dat"
+      ],
+      "zeroRows": 1,
+      "judges": [
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=0 残差=0 delta_total=0"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": false,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"legacy_count\",\"root\",\"rows\",\"total_baseline\",\"total_current\",\"truncated\"]"
+        }
+      ],
+      "sumDelta": 0,
+      "residue": 0,
+      "coveredDirect": 0,
+      "deltaTotalRaw": 0,
+      "expectedDepthRows": null,
+      "topLevelCount": 1
+    },
+    {
+      "key": "flat-depth1+drop_zero",
+      "request": {
+        "root": "D:\\",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_110000_explicit_3f2a1c9d.snap.gz",
+        "depth": 1,
+        "drop_zero": true,
+        "order_by": "abs"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 8,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "legacy_count",
+        "root",
+        "rows",
+        "total_baseline",
+        "total_current",
+        "truncated"
+      ],
+      "deltaTotal": 0,
+      "rowCount": 1,
+      "rowDeltas": [
+        0
+      ],
+      "rowPaths": [
+        "D:\\flat\\a\\b\\c\\file.dat"
+      ],
+      "zeroRows": 1,
+      "judges": [
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": true,
+          "detail": "Σ=0 残差=0 delta_total=0"
+        },
+        {
+          "name": "J1 depth=1 行数==聚合层条目数",
+          "pass": true,
+          "detail": "rows=1 expected=1"
+        },
+        {
+          "name": "J3 开过滤时零行==0",
+          "pass": false,
+          "detail": "zeroRows=1 zero_count=undefined"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": false,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"legacy_count\",\"root\",\"rows\",\"total_baseline\",\"total_current\",\"truncated\"]"
+        },
+        {
+          "name": "J6 flat 夹具返回 0 行",
+          "pass": false,
+          "detail": "rows=1"
+        }
+      ],
+      "sumDelta": 0,
+      "residue": 0,
+      "coveredDirect": 0,
+      "deltaTotalRaw": 0,
+      "expectedDepthRows": 1,
+      "topLevelCount": 1
+    },
+    {
+      "key": "drill D:\\apps depth1",
+      "request": {
+        "root": "D:\\apps",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+        "depth": 1,
+        "drop_zero": true,
+        "order_by": "abs"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 6,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "legacy_count",
+        "root",
+        "rows",
+        "total_baseline",
+        "total_current",
+        "truncated"
+      ],
+      "deltaTotal": -400,
+      "rowCount": 4,
+      "rowDeltas": [
+        70,
+        10,
+        -150,
+        -150
+      ],
+      "rowPaths": [
+        "D:\\apps\\framework\\core\\engine\\lib.dll",
+        "D:\\apps\\framework\\core\\engine\\conf.bin",
+        "D:\\data\\docs",
+        "D:\\docs\\old"
+      ],
+      "zeroRows": 0,
+      "judges": [
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": false,
+          "detail": "Σ=-220 残差=20 delta_total=100"
+        },
+        {
+          "name": "J1 depth=1 行数==聚合层条目数",
+          "pass": false,
+          "detail": "rows=4 expected=1"
+        },
+        {
+          "name": "J3 开过滤时零行==0",
+          "pass": true,
+          "detail": "zeroRows=0 zero_count=undefined"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": false,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"legacy_count\",\"root\",\"rows\",\"total_baseline\",\"total_current\",\"truncated\"]"
+        }
+      ],
+      "sumDelta": -220,
+      "residue": 20,
+      "coveredDirect": 80,
+      "deltaTotalRaw": 100,
+      "expectedDepthRows": 1,
+      "topLevelCount": 1
+    },
+    {
+      "key": "drill D:\\apps\\framework\\core depth1",
+      "request": {
+        "root": "D:\\apps\\framework\\core",
+        "baseline": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p4_iso\\home\\PythonDiskScanner\\snapshots\\D_20260907_170000_explicit_3f2a1c9d.snap.gz",
+        "depth": 1,
+        "drop_zero": true,
+        "order_by": "abs"
+      },
+      "httpStatus": 200,
+      "elapsedMs": 6,
+      "reportKeys": [
+        "baseline_created_at",
+        "current_completed_at",
+        "delta_total",
+        "legacy_count",
+        "root",
+        "rows",
+        "total_baseline",
+        "total_current",
+        "truncated"
+      ],
+      "deltaTotal": -720,
+      "rowCount": 4,
+      "rowDeltas": [
+        70,
+        10,
+        -150,
+        -150
+      ],
+      "rowPaths": [
+        "D:\\apps\\framework\\core\\engine\\lib.dll",
+        "D:\\apps\\framework\\core\\engine\\conf.bin",
+        "D:\\data\\docs",
+        "D:\\docs\\old"
+      ],
+      "zeroRows": 0,
+      "judges": [
+        {
+          "name": "J2 Σ(行delta)+残差==delta_total",
+          "pass": false,
+          "detail": "Σ=-220 残差=0 delta_total=80"
+        },
+        {
+          "name": "J1 depth=1 行数==聚合层条目数",
+          "pass": false,
+          "detail": "rows=4 expected=1"
+        },
+        {
+          "name": "J3 开过滤时零行==0",
+          "pass": true,
+          "detail": "zeroRows=0 zero_count=undefined"
+        },
+        {
+          "name": "J5 additive 汇总字段齐备",
+          "pass": false,
+          "detail": "reportKeys=[\"baseline_created_at\",\"current_completed_at\",\"delta_total\",\"legacy_count\",\"root\",\"rows\",\"total_baseline\",\"total_current\",\"truncated\"]"
+        }
+      ],
+      "sumDelta": -220,
+      "residue": 0,
+      "coveredDirect": 80,
+      "deltaTotalRaw": 80,
+      "expectedDepthRows": 1,
+      "topLevelCount": 1
+    }
+  ]
+}
