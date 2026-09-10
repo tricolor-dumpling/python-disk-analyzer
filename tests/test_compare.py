@@ -214,6 +214,80 @@ class DepthAggregationTests(unittest.TestCase):
         )
 
 
+class ZeroFilterAndOrderingTests(unittest.TestCase):
+    """P4（问题 6）：零增量过滤（排序/截断之前）+ top_growth 排序口径。
+
+    三个独立成因的对应护栏：
+      ① _merge 逐键产行（delta 可为 0）→ drop_zero 在排序前剔除；
+      ② top_growth 按有符号 delta 降序 → 负增量被挤出 Top-N → order_by="abs"；
+      ③ 摘要口径（见 DepthAggregationTests.test_additive_summary_fields）。
+    默认参数（不传新参）行为必须一字不改——cli.py:518 / tui.py:593 的同口径红线。
+    """
+
+    T0 = DepthAggregationTests.T0
+    T1 = DepthAggregationTests.T1
+
+    def _report(self, **kw):
+        return compare.compare_snapshots(
+            _snapshot_dict("D:\\", self.T0), _snapshot_dict("D:\\", self.T1), **kw
+        )
+
+    def test_drop_zero_removes_zero_rows_before_output(self):
+        """drop_zero=True：零行不入返回行集，汇总字段仍记录「全量零行数」。"""
+        report = self._report(depth=1, drop_zero=True)
+        self.assertEqual([r["path"] for r in report["rows"]], ["D:\\apps", "D:\\docs"])
+        self.assertEqual(report["zero_count"], 0, "返回行中的零行数（开过滤时恒 0）")
+        self.assertEqual(report["zero_total"], 1, "全量聚合行中的零行数（D:\\data）")
+        self.assertEqual(report["rows_total"], 3, "全量聚合行数（零过滤之前）")
+        self.assertEqual(report["max_growth"], 100, "汇总取全量口径，不受过滤影响")
+        self.assertEqual(report["max_release"], 50)
+
+    def test_drop_zero_default_off_keeps_zero_rows(self):
+        """不传 drop_zero：零行仍在返回行集（默认行为一字不改）。"""
+        report = self._report(depth=1)
+        self.assertEqual(len(report["rows"]), 3)
+        self.assertEqual(report["zero_count"], 1)
+
+    def test_leaf_only_default_unaffected_by_new_flags(self):
+        """leaf_only 默认路径（app.py 既有调用形态）在不开新参时不含零过滤。"""
+        report = self._report(leaf_only=True)
+        zero_rows = [r for r in report["rows"] if r["delta"] == 0]
+        self.assertEqual(len(zero_rows), 1, "既有 app 调用（leaf_only=True）仍含零行")
+        self.assertEqual(zero_rows[0]["path"], "D:\\data\\docs")
+
+    def test_top_growth_default_signed_order_unchanged(self):
+        """默认 order_by="delta"：有符号降序——正增量挤压负增量（缺陷原貌，锁现状）。"""
+        result = {"rows": [
+            {"path": "C:\\a", "delta": 10},
+            {"path": "C:\\b", "delta": -1000},
+            {"path": "C:\\c", "delta": 5},
+        ]}
+        self.assertEqual([r["path"] for r in compare.top_growth(result, 2)], ["C:\\a", "C:\\c"])
+        self.assertEqual([r["path"] for r in compare.top_growth(result, 3)],
+                         ["C:\\a", "C:\\c", "C:\\b"])
+
+    def test_top_growth_abs_order_keeps_both_signs(self):
+        """order_by="abs"：按 |delta| 降序（次键 path 升序）——正负增量同榜。"""
+        result = {"rows": [
+            {"path": "C:\\a", "delta": 10},
+            {"path": "C:\\b", "delta": -1000},
+            {"path": "C:\\c", "delta": 5},
+        ]}
+        self.assertEqual([r["path"] for r in compare.top_growth(result, 2, order_by="abs")],
+                         ["C:\\b", "C:\\a"])
+        tied = {"rows": [{"path": "C:\\z", "delta": -7}, {"path": "C:\\y", "delta": 7}]}
+        self.assertEqual([r["path"] for r in compare.top_growth(tied, 2, order_by="abs")],
+                         ["C:\\y", "C:\\z"], "|delta| 相同时按 path 升序")
+
+    def test_top_growth_abs_on_engine_result_keeps_negative(self):
+        """引擎结果 + order_by="abs"：缩减目录不再被零行/正增量挤出榜单。"""
+        report = self._report(depth=1, drop_zero=True)
+        rows = compare.top_growth(report, 1, order_by="abs")
+        self.assertEqual(rows[0]["path"], "D:\\apps")
+        rows2 = compare.top_growth(report, 2, order_by="abs")
+        self.assertIn("D:\\docs", [r["path"] for r in rows2], "负增量（-50）仍在榜")
+
+
 class ThresholdConstantsTests(unittest.TestCase):
     """P12·W1.1：scan/snapshots/compare 三处 legacy 阈值常量同值（防单方漂移）。"""
 

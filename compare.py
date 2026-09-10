@@ -19,11 +19,16 @@
   machine_guid 仅作合成头标注（行数据不携带机器信息，严格机器校验由调用方在
   load_snapshot 头部完成）。
 
-P4（问题 5，全部为 additive 可选参数，缺省行为一字不改）：
+P4（问题 5/6，全部为 additive 可选参数，缺省行为一字不改）：
 - depth=N（≥1）：键集合在产行前折叠到「相对对比根的第 N 层」（_rollup），用于
   先看某层目录的总增量再下钻；不给 depth 时仍是既有叶子/全量口径；
+- drop_zero=True：排序与截断**之前**剔除 delta == 0 的行（零行不再补位 Top-N、
+  不再把负增量挤出榜单）；
+- top_growth(order_by="abs")：按 |delta| 降序切片，正负增量同榜（默认 "delta"
+  与既有调用完全一致）；
 - 汇总字段 rows_total / zero_count / zero_total / max_growth / max_release /
-  depth：全量聚合行口径（Top-N 切片之前），消除摘要与 delta_total 的自相矛盾。
+  depth：全量聚合行口径（零过滤与 Top-N 切片之前），消除摘要与 delta_total
+  的自相矛盾。
 
 依赖：仅标准库 + snapshots（MAX_ROWS / SNAPSHOT_FORMAT_VERSION 单一来源）
 + utils（人类可读大小）。Python 3.9+ 兼容。
@@ -257,8 +262,14 @@ def _build_rows(b_map, c_map, leaf_only=False):
     return rows
 
 
-def _merge_from_rows(rows):
-    """排序（主键 |delta| 降序、次键 path 升序，确定性稳定次序）+ 截断。"""
+def _merge_from_rows(rows, drop_zero=False):
+    """排序（主键 |delta| 降序、次键 path 升序，确定性稳定次序）+ 截断。
+
+    P4·D4-3：drop_zero=True 时**在排序与截断之前**剔除 delta == 0 的行——
+    零行不再补位到 Top-N，也不会把负增量（可释放空间）整段挤出榜单。
+    """
+    if drop_zero:
+        rows = [r for r in rows if r["delta"] != 0]
     rows.sort(key=lambda r: (-abs(r["delta"]), r["path"]))
     truncated = len(rows) > MAX_ROWS
     if truncated:
@@ -300,7 +311,7 @@ def _normalize_depth(depth):
     return depth
 
 
-def _merge(b_map, c_map, leaf_only=False):
+def _merge(b_map, c_map, leaf_only=False, drop_zero=False):
     """并集合并 + 计算 delta/growth/removed/added + 排序 + 截断，返回 (rows, truncated)。
 
     P12·W1.2：leaf_only=True 时在排序截断前把行集合过滤为叶子路径——不存在
@@ -309,10 +320,12 @@ def _merge(b_map, c_map, leaf_only=False):
     把同一份增量在祖先与后代上重复呈现；合计（_total_from_root_rows）不受影响。
     阶段F（R6）回归修复：叶子判定由 O(n²) 前缀遍历改为 O(n) 祖先集合
     （_leaf_keys），大根（C:\\ 13 万行）对比不再退化到分钟级/卡死。
-    P4：深度聚合由 _rollup 在调用方先行完成，本函数不感知 depth——默认行集合
-    语义（参数、次序、截断）一字不改。
+    P4（additive）：新增 drop_zero 关键字（默认 False = 既有行为一字不改）；
+    深度聚合由 _rollup 在调用方先行完成，本函数不感知 depth。
     """
-    return _merge_from_rows(_build_rows(b_map, c_map, leaf_only=leaf_only))
+    return _merge_from_rows(
+        _build_rows(b_map, c_map, leaf_only=leaf_only), drop_zero=drop_zero
+    )
 
 
 
@@ -345,7 +358,7 @@ def _count_legacy_rows(*maps):
 
 
 def compare_snapshots(baseline, current, *, machine_guid=None, leaf_only=False,
-                      depth=None):
+                      depth=None, drop_zero=False):
     """对比两份快照，返回
     {'root', 'total_baseline', 'total_current', 'delta_total', 'rows',
      'truncated', 'legacy_count', 'rows_total', 'zero_count', 'zero_total',
@@ -365,8 +378,9 @@ def compare_snapshots(baseline, current, *, machine_guid=None, leaf_only=False,
     P4（additive，全部默认关闭、缺省行为一字不改）：
     - depth=N（≥1）：键集合先经 _rollup 折叠到相对根的第 N 层（不含根行）再产行，
       leaf_only 在该分支不参与（rollup 行集本身互不重叠）；合计口径仍取原始根行；
+    - drop_zero=True：排序/截断前剔除 delta == 0 的行；
     - 汇总字段 rows_total / zero_total / max_growth / max_release / depth 恒为
-      **全量聚合行**口径；zero_count 为**返回行**中的零行数。
+      **全量聚合行**口径；zero_count 为**返回行**中的零行数（开过滤时恒 0）。
     """
     b_root, b_mg = _validate_snapshot_header(baseline.get("header"), "baseline")
     c_root, c_mg = _validate_snapshot_header(current.get("header"), "current")
@@ -396,7 +410,7 @@ def compare_snapshots(baseline, current, *, machine_guid=None, leaf_only=False,
     else:
         b_rows_map, c_rows_map, leaf_effective = b_map, c_map, leaf_only
     all_rows = _build_rows(b_rows_map, c_rows_map, leaf_only=leaf_effective)
-    rows, truncated = _merge_from_rows(all_rows)
+    rows, truncated = _merge_from_rows(all_rows, drop_zero=drop_zero)
     report = {
         "root": b_root,
         "total_baseline": total_baseline,
@@ -412,15 +426,24 @@ def compare_snapshots(baseline, current, *, machine_guid=None, leaf_only=False,
     return report
 
 
-def top_growth(compare_result, n=10):
-    """按 delta 降序取前 n 行（增速次列 growth_pct 保留在行内）。"""
-    rows = sorted(compare_result["rows"], key=lambda r: r["delta"], reverse=True)
+def top_growth(compare_result, n=10, *, order_by="delta"):
+    """按 delta 降序取前 n 行（增速次列 growth_pct 保留在行内）。
+
+    P4（D4-3，additive）：order_by="abs" 时改按 |delta| 降序（次键 path 升序），
+    使正负增量同榜——修复「按有符号 delta 排序时负增量被整段挤出 Top-N」。
+    默认 order_by="delta" 与既有行为一字不改（cli.py:518 依赖该默认）。
+    """
+    if order_by == "abs":
+        rows = sorted(compare_result["rows"], key=lambda r: (-abs(r["delta"]), r["path"]))
+    else:
+        rows = sorted(compare_result["rows"], key=lambda r: r["delta"], reverse=True)
     return rows[:n]
 
 
 def diff_from_current(sizes, baseline_rows, machine_guid=None, *,
                       leaf_only=False,
                       depth=None,
+                      drop_zero=False,
                       local_machine_guid=None,
                       allow_other_machine=False):
     """把内存中当前扫描 sizes（{Path: int}）与 baseline 快照行对比，返回与
@@ -437,10 +460,10 @@ def diff_from_current(sizes, baseline_rows, machine_guid=None, *,
       的 machine_guid 不同、且未 allow_other_machine 时抛 CompareError，其
       ``kind`` 属性为 "machine_mismatch"（additive 属性，不破坏既有捕获）。
       不传新参的既有调用行为完全不变（fail-open 兼容红线），接线方默认 fail-closed。
-    - P4（additive）：depth 语义与 compare_snapshots 完全一致；下钻（以子目录为
-      新根）由调用方负责把 baseline_rows 收窄到该子树（app.py
-      _scope_baseline_rows），引擎只按传入行集合对比、root 由公共前缀推导，
-      不额外做范围裁剪。
+    - P4（additive）：depth / drop_zero 语义与 compare_snapshots 完全一致；
+      下钻（以子目录为新根）由调用方负责把 baseline_rows 收窄到该子树
+      （app.py _scope_baseline_rows），引擎只按传入行集合对比、root 由公共
+      前缀推导，不额外做范围裁剪。
     """
     # 强校验（W2.13）：异机基线默认拦截，逃生口由调用方显式放行
     if (
@@ -476,7 +499,7 @@ def diff_from_current(sizes, baseline_rows, machine_guid=None, *,
     else:
         b_rows_map, c_rows_map, leaf_effective = b_map, c_map, leaf_only
     all_rows = _build_rows(b_rows_map, c_rows_map, leaf_only=leaf_effective)
-    rows, truncated = _merge_from_rows(all_rows)
+    rows, truncated = _merge_from_rows(all_rows, drop_zero=drop_zero)
     report = {
         "root": root,
         "total_baseline": total_baseline,
