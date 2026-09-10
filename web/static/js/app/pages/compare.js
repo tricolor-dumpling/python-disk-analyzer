@@ -1,7 +1,8 @@
 /* ============================================================
    UI 2.0（SpaceLens Pro）· pages/compare.js = #/compare 对比工作台（U3.4 全量填充）
-   - 布局（§3.3/§3.5）：页头 64px（标题 + 基线 datalist + 目标只读 + 开始对比）→
-     摘要 3 卡 96px（总变化/最大增长/可释放，count-up L1-4）→ 红绿发散图 240px
+   - 布局（§3.3/§3.5）：页头 64px（标题 + 基线 datalist + 目标只读 + 深度选择器 +
+     隐藏零变化开关 + 开始对比）→ 面包屑（下钻时才显示）→ 摘要 3 卡 96px
+     （总变化/最大增长/可释放，count-up L1-4）→ 红绿发散图 240px
      （L3-6：中轴基线、增长条向左红 --up、缩减条向右绿 --down、中轴生长 500ms
      --dur-diverge、徽标 pop-in scale .8→1 ease-spring、▲/▼ 冗余）→ 表格 flex:1
      面板内滚（变化/增速/路径/操作 F19 定位+复制路径；行 stagger L1-2）；
@@ -12,9 +13,22 @@
      数据 = fullscan.result(root) 缓存 or SDK 直扫（非快照文件）——「目标=同盘符
      最新快照」为展示口径（标识性文案），对比目标实为当前磁盘状态；零后端改动，
      见执行记录偏差注记；
-   - 结果缓存：APP_STATE.compare.result（{root,baseline,report,at}）——路由往返
-     从缓存回灌不重发；快照页趋势卡已完成同基线计算时结果共享（snapshots.js
-     prefillAndGoCompare 写入），落地即渲染不回源；
+   - P4（问题 5：深度选择 + 聚合 + 下钻）：页头新增 #compare-depth
+     （叶子（默认，= 修复前口径，不发 depth）/ 1..5 层）——depth 由**后端**在
+     排序/截断之前聚合（D4-1，前端不做聚合：那只能处理已被 top-100 截断的叶子行，
+     上层目录增量会被严重低估）；结果行点击 = 页内下钻（以该目录为新根重新对比，
+     不发「跳工作台浏览」），面包屑 #compare-crumb 逐级返回（D4-6）；
+   - P4（问题 6：零增量）：页头新增 #compare-hide-zero（默认开）→ 请求带
+     drop_zero=true + order_by="abs"——**后端在切片前过滤**零行并按 |delta| 排序，
+     使负增量（可释放空间）不再被零行/正增量挤出榜单；空态判据改用过滤后的行集合，
+     文案区分「确实无变化」与「已隐藏 N 条零变化」（D4-4）；
+   - 摘要口径（D4-5）：三卡取后端 additive 字段（delta_total / max_growth /
+     max_release，全量聚合行口径，未按 100 条切片），旧后端/桩态无该字段时回退
+     为按 rows 现算（u34 桩态断言保持）；
+   - 结果缓存：APP_STATE.compare.result（{root,baseline,depth,hideZero,report,at}）
+     ——路由往返从缓存回灌不重发（缓存键含 depth + 隐藏零变化开关：口径不同必须重发）；
+     快照页趋势卡已完成同基线计算时结果共享（snapshots.js prefillAndGoCompare 写入），
+     落地即渲染不回源；
    - 旧工作台「历史对比」卡本项迁整页并移除（主页仅留「最近对比」迷你卡）；
      compareSnapshots 保持 DOM 无关（页面未挂载时仅记账/圆点，供 u31 等
      跨页触发路径）；
@@ -29,7 +43,7 @@ import { APP_STATE } from "../state.js";
 import { setStatus } from "../components/statusbar.js";
 import { toast } from "../components/toast.js";
 import { confirmDialog } from "../components/modals.js";
-import { browsePath, copyPath, openInExplorer, getCurrentRoot } from "./workspace.js";
+import { copyPath, openInExplorer, getCurrentRoot } from "./workspace.js";
 import { getSessionsCache, rebuildBaselineSuggest } from "./snapshots.js";
 import { pollFullscan } from "../components/scan.js";
 import { renderCompareMini } from "../components/snapshot-mini.js"; // U2.4：最近对比迷你卡
@@ -50,6 +64,87 @@ function arrowOf(v) {
 
 function sessionsOf() {
     return Array.isArray(getSessionsCache()) ? getSessionsCache() : [];
+}
+
+/* ================= P4：深度 / 零增量 / 下钻 状态（D4-2…D4-6） ================= */
+
+/* 深度选择器取值："" = 叶子（默认，现状口径，不发 depth）；"1".."5" = 聚合到第 N 层 */
+function depthValue() {
+    const sel = $("compare-depth");
+    if (sel) return String(sel.value || "");
+    return String(APP_STATE.compare.depth || "");
+}
+
+/* 隐藏零变化开关（默认开）：开 = 请求带 drop_zero=true（后端切片前过滤） */
+function hideZeroOn() {
+    const box = $("compare-hide-zero");
+    if (box) return !!box.checked;
+    return APP_STATE.compare.hideZero !== false;
+}
+
+/* 当前下钻根（"" = 未下钻，对比根 = 基线所属盘） */
+function drillRootOf() {
+    return String(APP_STATE.compare.drillRoot || "");
+}
+
+/* 路径相等（大小写不敏感 + 去尾部分隔符；Windows 盘符口径） */
+function samePath(a, b) {
+    return String(a || "").replace(/[\\/]+$/, "").toLowerCase() ===
+        String(b || "").replace(/[\\/]+$/, "").toLowerCase();
+}
+
+/* 面包屑链：baseRoot（对比根）→ … → drill（当前下钻根）；首项 path="" 表示回到未下钻 */
+function crumbsFor(baseRoot, drill) {
+    const out = [{ label: String(baseRoot || "根目录"), path: "" }];
+    const d = String(drill || "").replace(/[\\/]+$/, "");
+    if (!d) return out;
+    const base = String(baseRoot || "").replace(/[\\/]+$/, "");
+    if (base && !d.toLowerCase().startsWith(base.toLowerCase() + "\\")) return out;
+    const rest = base ? d.slice(base.length).replace(/^\\+/, "") : d;
+    let acc = base;
+    for (const part of rest.split("\\").filter(Boolean)) {
+        acc = acc ? acc + "\\" + part : part;
+        out.push({ label: acc, path: acc });
+    }
+    return out;
+}
+
+/* 空态（D4-4）：判据 = **过滤后**的行集合，文案区分「确实无变化」与「已隐藏 N 条」 */
+function emptyStateHtml(r) {
+    const hidden = Number(r && r.zero_total) || 0;
+    const tip = (hidden > 0 && hideZeroOn())
+        ? "<p>已按「隐藏零变化」过滤 " + esc(hidden) + " 条 0 增量条目；关闭该开关可查看完整列表。</p>"
+        : "<p>当前结果与基线快照一致，没有找到大小变化的目录。</p>";
+    return '<div class="empty-state">' + ICONS.success + "<b>无差异</b>" + tip + "</div>";
+}
+
+/* 面包屑渲染（未下钻时整条隐藏，不占高度） */
+function renderCrumb() {
+    const host = $("compare-crumb");
+    if (!host) return;
+    const st = APP_STATE.compare;
+    const base = ownerRootFor(String(st.baseline || ""), String(st.root || ""));
+    const drill = drillRootOf();
+    const items = crumbsFor(base, drill);
+    host.innerHTML = items
+        .map((it, i) => {
+            const last = i === items.length - 1;
+            return '<button type="button" class="crumb-item' + (last ? " is-current" : "") +
+                '" data-crumb-path="' + esc(it.path) + '"' +
+                ' title="' + esc(it.path || "未下钻（整个对比根）") + '"' +
+                (last ? ' aria-current="page"' : "") + ">" + esc(it.label) + "</button>";
+        })
+        .join('<span class="crumb-sep" aria-hidden="true">›</span>');
+    host.toggleAttribute("hidden", !drill);
+}
+
+/* 行点击下钻：以该目录为新根重新对比（后端按新根收窄基线两侧，D4-6） */
+function drillInto(path) {
+    const p = String(path || "").trim();
+    if (!p) return;
+    APP_STATE.compare.drillRoot = p;
+    renderCrumb();
+    compareSnapshots();
 }
 
 /* 该盘最新快照（会话时间倒序首个未跳过且带 snapshot_path） */
@@ -125,15 +220,22 @@ function syncForm(sel) {
         : "基线=最近一份快照 · 目标=同盘符最新快照";
 }
 
-/* 结果缓存命中判定（同根同基线 → 回灌渲染不重发） */
+/* 结果缓存命中判定（同根同基线 **同口径** → 回灌渲染不重发）
+   P4：缓存键并入 depth 与「隐藏零变化」——口径不同必须重发，否则切换深度会
+   渲染上一次深度的报告。
+   ⚠️ 跨页共享兼容：snapshots.js 趋势卡写入的缓存（prefillAndGoCompare）不带这两个
+   键（该文件不在 P4 授权面），此时沿用既有「落地渲染不重发」语义（u34 ⑧b /
+   smoke A17·A18 红线）：仅在缓存**带**该键且与当前控件不一致时才判为未命中。 */
 function resultCacheMatch(sel) {
     const c = APP_STATE.compare.result;
     if (!c || !c.report) return null;
-    return c && sel &&
-        String(c.root || "").replace(/\\+$/, "") === String(sel.root || "").replace(/\\+$/, "") &&
-        String(c.baseline || "").trim() === String(sel.baseline || "").trim()
-        ? c
-        : null;
+    if (!sel) return null;
+    const wantRoot = drillRootOf() || sel.root;
+    if (!samePath(c.root, wantRoot)) return null;
+    if (String(c.baseline || "").trim() !== String(sel.baseline || "").trim()) return null;
+    if (c.depth !== undefined && String(c.depth == null ? "" : c.depth) !== String(depthValue())) return null;
+    if (c.hideZero !== undefined && !!c.hideZero !== hideZeroOn()) return null;
+    return c;
 }
 
 /* ================= 页面三态（空态/骨架/结果） ================= */
@@ -305,7 +407,8 @@ export async function compareSnapshots(opts, allowOtherMachine) {
     const input = $("compare-baseline");
     const btn = $("btn-compare");
     const st = APP_STATE.compare;
-    let root = (opts && opts.root) || String(st.root || getCurrentRoot() || "");
+    const drill = drillRootOf();
+    let root = (opts && opts.root) || drill || String(st.root || getCurrentRoot() || "");
     let baseline = (opts && opts.baseline)
         ? String(opts.baseline).trim()
         : String((input ? input.value.trim() : "") || st.baseline || "").trim();
@@ -315,13 +418,17 @@ export async function compareSnapshots(opts, allowOtherMachine) {
         showEmpty();
         return;
     }
-    const owner = ownerRootFor(baseline, root);
-    if (owner) root = owner;
+    /* P4：下钻时对比根 = 下钻目录（不再回落基线所属盘）；未下钻时保持既有归属推导 */
+    if (!drill) {
+        const owner = ownerRootFor(baseline, root);
+        if (owner) root = owner;
+    }
     const target = latestForRoot(root) || String(st.target || "");
     st.baseline = baseline;
     st.root = root;
     st.target = target;
     syncForm({ root: root, baseline: baseline, target: target });
+    renderCrumb();
 
     if (btn) btn.disabled = true;
     setStatus("compare-status", "busy", "正在对比，请稍候…");
@@ -335,11 +442,18 @@ export async function compareSnapshots(opts, allowOtherMachine) {
         try { if (compareAbort) compareAbort.abort(); } catch (e) { /* ignore */ }
     }, COMPARE_TIMEOUT_MS);
     try {
-        const data = await postJson("/api/compare", {
+        /* P4：drop_zero / order_by 由本页固定下发（问题 6 的后端切片前过滤与
+           |delta| 排序），depth 仅在选了具体层数时下发（缺省 = 修复前逐字节口径） */
+        const depthText = depthValue();
+        const payload = {
             root: root,
             baseline: baseline,
             allow_other_machine: !!allowOtherMachine, // P12·W2.13 二次提交放行
-        }, { signal: compareAbort.signal });
+            drop_zero: hideZeroOn(),
+            order_by: "abs",
+        };
+        if (depthText) payload.depth = Number(depthText);
+        const data = await postJson("/api/compare", payload, { signal: compareAbort.signal });
         /* B-1：202 + {job_id, status:"scanning"} → 轮询 /api/compare/status */
         if (data && data.job_id && (data.status === "scanning" || data.status === "queued")) {
             compareJobId = data.job_id;
@@ -419,13 +533,25 @@ function renderSummary(r) {
     if (!box) return; // 页面未挂载（跨页触发只记账不回 UI）
     const delta = Number(r.delta_total) || 0;
     const rows = r.rows || [];
-    let maxGrowth = 0;
-    let release = 0;
-    rows.forEach((row) => {
-        const d = Number(row.delta) || 0;
-        if (d > 0) maxGrowth = Math.max(maxGrowth, d);
-        if (d < 0) release += -d;
-    });
+    /* D4-5：优先取后端 additive 字段（全量聚合行口径，未按 100 条切片）；
+       旧后端 / 桩态无该字段时回退为按 rows 现算（u34 桩态断言不变） */
+    const hasAdditive = r.max_growth !== undefined && r.max_growth !== null &&
+        r.max_release !== undefined && r.max_release !== null;
+    let maxGrowth = Number(r.max_growth) || 0;
+    let release = Number(r.max_release) || 0;
+    if (!hasAdditive) {
+        maxGrowth = 0;
+        release = 0;
+        rows.forEach((row) => {
+            const d = Number(row.delta) || 0;
+            if (d > 0) maxGrowth = Math.max(maxGrowth, d);
+            if (d < 0) release += -d;
+        });
+    }
+    const scope = hasAdditive ? (Number(r.rows_total) || rows.length) : rows.length;
+    const hiddenZeros = Number(r.zero_total) || 0;
+    const hiddenText = (hasAdditive && hiddenZeros > 0 && hideZeroOn())
+        ? "已隐藏 " + esc(hiddenZeros) + " 条零变化" : "相较基线";
     // P12·W1.2：基线含「已知异常大小」行时前置 warn 提示（additive 字段 legacy_count）
     const legacyNotice = Number(r.legacy_count) > 0
         ? '<div class="notice notice-warn compare-legacy" role="status">基线含 ' +
@@ -441,14 +567,14 @@ function renderSummary(r) {
         '<span class="compare-stat-num" data-v="0" data-target="' + delta + '" data-fmt="signed">' +
         esc(signedBytes(delta)) + "</span></strong>" +
         '<span class="compare-stat-sub">' + esc(humanBytes(r.total_baseline)) + " → " + esc(humanBytes(r.total_current)) + "</span></div>" +
-        '<div class="compare-stat" title="变化最大的 Top ' + rows.length + ' 条目中增长最多者">' +
+        '<div class="compare-stat" title="全量 ' + scope + ' 条聚合条目中增长最多者">' +
         '<span class="compare-stat-label">最大增长</span>' +
         '<strong class="compare-stat-value ' + (maxGrowth > 0 ? "grow" : "flat") + '">' +
         '<span class="compare-stat-arrow">' + (maxGrowth > 0 ? "▲" : "±") + "</span>" +
         '<span class="compare-stat-num" data-v="0" data-target="' + maxGrowth + '" data-fmt="signed">' +
         esc(signedBytes(maxGrowth)) + "</span></strong>" +
-        '<span class="compare-stat-sub">相较基线</span></div>' +
-        '<div class="compare-stat" title="变化最大的 Top ' + rows.length + ' 条目中缩减合计（可回收空间）">' +
+        '<span class="compare-stat-sub">全量 ' + esc(scope) + " 条 · " + hiddenText + "</span></div>" +
+        '<div class="compare-stat" title="全量 ' + scope + ' 条聚合条目中缩减合计（可回收空间）">' +
         '<span class="compare-stat-label">可释放</span>' +
         '<strong class="compare-stat-value ' + (release > 0 ? "shrink" : "flat") + '">' +
         '<span class="compare-stat-arrow">' + (release > 0 ? "▼" : "±") + "</span>" +
@@ -471,7 +597,7 @@ function renderDiverge(r) {
         .sort((a, b) => Math.abs(Number(b.delta)) - Math.abs(Number(a.delta)))
         .slice(0, 8); // 与旧「变化排行榜」同为 Top 8
     if (!rows.length) {
-        host.innerHTML = '<div class="diverge-empty">' + ICONS.success + "<b>无差异</b><p>当前结果与基线快照一致，没有找到大小变化的目录。</p></div>";
+        host.innerHTML = '<div class="diverge-empty">' + emptyStateHtml(r) + "</div>";
         return;
     }
     const maxAbs = Math.max(1, ...rows.map((row) => Math.abs(Number(row.delta) || 0)));
@@ -492,7 +618,8 @@ function renderDiverge(r) {
                     : '<span class="diverge-bar diverge-bar-flat" style="width:2px"></span>'; // 无变化：中轴中性标记
             return (
                 '<button class="diverge-row" type="button" data-path="' + esc(row.path || "") + '"' +
-                ' title="查看 ' + esc(row.path || "") + '" aria-label="' + esc(row.path || "") + " " +
+                ' data-drill-path="' + esc(row.path || "") + '"' +
+                ' title="下钻查看 ' + esc(row.path || "") + '" aria-label="' + esc(row.path || "") + " " +
                 esc((grow ? "增长" : d < 0 ? "缩减" : "无变化") + " " + signedBytes(d)) + '">' +
                 '<span class="diverge-name">' + esc(row.path || "") + "</span>" +
                 '<span class="diverge-track" aria-hidden="true">' +
@@ -538,9 +665,7 @@ function renderTable(r) {
     const rows = r.rows || [];
     if (!rows.length) {
         body.innerHTML =
-            '<tr><td colspan="4"><div class="empty-state">' +
-            ICONS.success +
-            "<b>无差异</b><p>当前结果与基线快照一致，没有找到大小变化的目录。</p></div></td></tr>";
+            '<tr><td colspan="4">' + emptyStateHtml(r) + "</td></tr>";
     } else {
         body.innerHTML = rows
             .map((row) => {
@@ -552,7 +677,9 @@ function renderTable(r) {
                 if (row.added) tags.push('<span class="tag tag-added">新增</span>');
                 if (row.removed) tags.push('<span class="tag tag-removed">已删除</span>');
                 return (
-                    "<tr>" +
+                    // P4（D4-6）：整行可点 = 页内下钻（以该目录为新根重新对比）
+                    '<tr class="compare-row" data-drill-path="' + esc(row.path) +
+                    '" title="点击下钻到该目录（以它为对比根）">' +
                     '<td class="delta-cell ' + deltaClass(d) + '">' + arrowOf(d) + " " + esc(signedBytes(d)) + "</td>" +
                     "<td>" + esc(growth) + "</td>" +
                     '<td><span class="cell-name"><span class="name" title="' + esc(row.path) + '">' + esc(row.path) + "</span>" +
@@ -576,7 +703,17 @@ function renderTable(r) {
 
 function renderReport(r, root, baseline, opts) {
     const fromCache = !!(opts && opts.fromCache);
-    APP_STATE.compare.result = { root: root, baseline: baseline, report: r, at: Date.now() };
+    const depthText = depthValue();
+    const hideZero = hideZeroOn();
+    const drill = drillRootOf();
+    /* P4：缓存键含口径（depth / 隐藏零变化），否则切深度会回灌上一次的报告 */
+    APP_STATE.compare.result = {
+        root: root, baseline: baseline, report: r, at: Date.now(),
+        depth: r && r.depth !== undefined ? r.depth : (depthText ? Number(depthText) : null),
+        hideZero: hideZero,
+    };
+    APP_STATE.compare.depth = depthText;
+    APP_STATE.compare.hideZero = hideZero;
     // U2.4：最近对比迷你卡数据源（主页右栏；本页填写，主页渲染）
     APP_STATE.compare.lastSummary = {
         baseline: baseline,
@@ -602,6 +739,13 @@ function renderReport(r, root, baseline, opts) {
     const extra = r.truncated
         ? "（注意：数据集超过快照 50 万行上限已截断，结果可能不完整；下表展示变化最大的 " + (r.rows || []).length + " 条）"
         : "（展示变化最大的 " + (r.rows || []).length + " 条差异）";
+    // P4：深度 / 下钻 / 零变化过滤如实透出（口径可见，不伪装）
+    const depthInfo = (r.depth !== undefined && r.depth !== null)
+        ? "；" + Number(r.depth) + " 层聚合（全量 " + (Number(r.rows_total) || (r.rows || []).length) + " 条聚合行）"
+        : "";
+    const drillInfo = drill ? "；已下钻 " + String(drill).replace(/\\+$/, "") : "";
+    const hiddenInfo = (hideZero && Number(r.zero_total) > 0)
+        ? "；已隐藏 " + Number(r.zero_total) + " 条零变化" : "";
     // P12·W2.11（B-3）：状态行透出当前数据时间，过期缓存不再伪装实时
     const dataTime = r.current_completed_at
         ? "；当前数据时间 " + String(r.current_completed_at).replace("T", " ")
@@ -610,7 +754,7 @@ function renderReport(r, root, baseline, opts) {
         "compare-status",
         "ok",
         "对比完成：" + humanBytes(r.total_baseline) + " → " + humanBytes(r.total_current) +
-        "，变化 " + signedBytes(delta) + extra + dataTime
+        "，变化 " + signedBytes(delta) + extra + depthInfo + drillInfo + hiddenInfo + dataTime
     );
 }
 
@@ -622,6 +766,38 @@ function bindComparePage() {
     $("compare-baseline").addEventListener("keydown", (ev) => {
         if (ev.key === "Enter") compareSnapshots();
     });
+    // P4（D4-2/D4-6）：深度切换 → 记状态并重发（口径变了不能吃缓存）；下钻中换深度
+    // 以「当前下钻根」为新根重新聚合，不回到整盘。
+    const depthSel = $("compare-depth");
+    if (depthSel) {
+        depthSel.addEventListener("change", () => {
+            APP_STATE.compare.depth = depthValue();
+            APP_STATE.compare.result = null; // 口径变更 → 弃用旧报告缓存
+            compareSnapshots();
+        });
+    }
+    // P4（D4-3/D4-4）：隐藏零变化开关（后端切片前过滤；关 = 请求 drop_zero=false）
+    const zeroBox = $("compare-hide-zero");
+    if (zeroBox) {
+        zeroBox.addEventListener("change", () => {
+            APP_STATE.compare.hideZero = !!zeroBox.checked;
+            APP_STATE.compare.result = null;
+            compareSnapshots();
+        });
+    }
+    // P4（D4-6）：面包屑逐级返回（首项 path="" = 回到未下钻的整盘口径）
+    const crumb = $("compare-crumb");
+    if (crumb) {
+        crumb.addEventListener("click", (ev) => {
+            const btn = ev.target.closest(".crumb-item[data-crumb-path]");
+            if (!btn) return;
+            const path = btn.getAttribute("data-crumb-path") || "";
+            APP_STATE.compare.drillRoot = path;
+            APP_STATE.compare.result = null;
+            renderCrumb();
+            compareSnapshots();
+        });
+    }
     // 阶段B（B-2）：loading 骨架屏取消按钮——中止在途对比并恢复按钮
     const cancelBtn = $("btn-compare-cancel");
     if (cancelBtn) cancelBtn.addEventListener("click", () => {
@@ -648,6 +824,11 @@ function bindComparePage() {
     $("compare-baseline").addEventListener("input", () => {
         const b = $("compare-baseline").value.trim();
         APP_STATE.compare.baseline = b;
+        /* P4：换基线 = 换对比对象 → 下钻根失效（避免把 A 盘的子目录当成 B 盘的新根） */
+        if (APP_STATE.compare.drillRoot) {
+            APP_STATE.compare.drillRoot = "";
+            renderCrumb();
+        }
         const root = ownerRootFor(b, APP_STATE.compare.root || getCurrentRoot()) || "";
         if (root) {
             APP_STATE.compare.root = root;
@@ -657,16 +838,19 @@ function bindComparePage() {
         syncForm();
     });
     // P12·W1.4：对比明细行尾操作（定位 F19 / 复制路径）——行为保留，委托渲染内容更新
+    // P4（D4-6）：整行点击 = 页内下钻（行尾操作按钮优先，命中则不下钻）
     $("compare-body").addEventListener("click", (ev) => {
         const openBtn = ev.target.closest(".act-open-cmp");
         if (openBtn) { openInExplorer(openBtn.getAttribute("data-act-path")); return; }
         const copyBtn = ev.target.closest(".act-copy-cmp");
-        if (copyBtn) copyPath(copyBtn.getAttribute("data-act-path"));
+        if (copyBtn) { copyPath(copyBtn.getAttribute("data-act-path")); return; }
+        const tr = ev.target.closest("tr[data-drill-path]");
+        if (tr) drillInto(tr.getAttribute("data-drill-path"));
     });
-    // 发散图行点击 → 浏览该路径（旧「变化排行榜」行为保留）
+    // P4（D4-6）：发散图行点击同口径 = 页内下钻（原「浏览该路径」由表格行尾「定位」保留）
     $("compare-diverge").addEventListener("click", (ev) => {
-        const row = ev.target.closest(".diverge-row[data-path]");
-        if (row) browsePath(row.getAttribute("data-path"));
+        const row = ev.target.closest(".diverge-row[data-drill-path]");
+        if (row) drillInto(row.getAttribute("data-drill-path"));
     });
     ensureScanListener();
 }
@@ -693,6 +877,21 @@ const COMPARE_PAGE_HTML =
     "目标" +
     '<input id="compare-target" type="text" readonly tabindex="-1" placeholder="同盘符最新快照" aria-label="目标（只读）=同盘符最新快照" title="同盘符最新快照（只读展示；对比目标实为当前磁盘状态）">' +
     "</label>" +
+    // P4（D4-2）：深度选择器——缺省「叶子（默认）」= 修复前口径（不发 depth）
+    '<label class="compare-ctl compare-ctl-depth" for="compare-depth" title="深度：按相对对比根的第 N 层聚合目录增量（后端在排序/截断之前聚合，不由前端近似）">' +
+    "深度" +
+    '<select id="compare-depth" aria-label="对比深度（叶子 / 第 N 层聚合）" title="深度聚合：叶子（默认，修复前口径）/ 第 1..5 层">' +
+    '<option value="">叶子（默认）</option>' +
+    '<option value="1">1 层</option>' +
+    '<option value="2">2 层</option>' +
+    '<option value="3">3 层</option>' +
+    '<option value="4">4 层</option>' +
+    '<option value="5">5 层</option>' +
+    "</select></label>" +
+    // P4（D4-3/D4-4）：隐藏零变化（默认开）——后端切片前过滤 delta==0
+    '<label class="compare-ctl compare-ctl-zero" for="compare-hide-zero" title="隐藏零变化：后端在排序与 Top-100 截断之前过滤 delta=0 的条目（避免零行补位、避免负增量被挤出榜单）">' +
+    '<input id="compare-hide-zero" type="checkbox" checked aria-label="隐藏零变化条目">' +
+    "隐藏零变化</label>" +
     '<button id="btn-compare" class="btn btn-primary">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v18"/><path d="M16 3v18"/><path d="M3 8h5"/><path d="M16 16h5"/></svg>' +
     "开始对比</button>" +
@@ -700,6 +899,8 @@ const COMPARE_PAGE_HTML =
     '<div class="page-body page-compare-body">' +
     '<div id="compare-status" class="status-line" role="status"><span class="dot"></span>' +
     '<span id="compare-status-text">选择一份基线快照，开始对比两个时间点的空间变化。</span></div>' +
+    // P4（D4-6）：下钻面包屑（未下钻时 hidden，不占高度）
+    '<nav id="compare-crumb" class="compare-crumb" aria-label="下钻路径（点击返回上级）" hidden></nav>' +
     '<div id="compare-empty" class="page-compare-empty">' +
     '<div class="empty-state">' +
     '<b>选择一份基线快照</b>' +
@@ -734,7 +935,13 @@ export function renderCompare() {
 export function mountCompare() {
     bindComparePage();
     rebuildBaselineSuggest(sessionsOf()); // datalist 全量快照路径（回灌填充）
+    /* P4：回灌口径控件（切页不丢：深度选择器 + 隐藏零变化开关），再渲面包屑 */
+    const depthSel = $("compare-depth");
+    if (depthSel) depthSel.value = String(APP_STATE.compare.depth || "");
+    const zeroBox = $("compare-hide-zero");
+    if (zeroBox) zeroBox.checked = APP_STATE.compare.hideZero !== false;
     const sel = ensurePrefill(); // 三入口预填（趋势卡/迷你卡/直达默认最近一份）
+    renderCrumb();
     syncForm(sel);
     if (!sel) {
         showEmpty();
@@ -742,7 +949,7 @@ export function mountCompare() {
     }
     const cached = resultCacheMatch(sel);
     if (cached) {
-        // 路由往返回灌：同根同基线 → 从缓存渲染不重发（含趋势卡共享结果；不挂圆点）
+        // 路由往返回灌：同根同基线**同口径** → 从缓存渲染不重发（含趋势卡共享结果；不挂圆点）
         renderReport(cached.report, cached.root, cached.baseline, { fromCache: true });
         return;
     }
@@ -753,13 +960,21 @@ export function mountCompare() {
 export function resetCompareData() {
     APP_STATE.compare.result = null;
     APP_STATE.compare.lastSummary = null;
+    APP_STATE.compare.drillRoot = "";   // P4：下钻根一并复位
+    APP_STATE.compare.depth = "";
+    APP_STATE.compare.hideZero = true;
     renderCompareMini();
     if (isPageMounted()) {
         const input = $("compare-baseline");
         if (input) input.value = "";
+        const depthSel = $("compare-depth");
+        if (depthSel) depthSel.value = "";
+        const zeroBox = $("compare-hide-zero");
+        if (zeroBox) zeroBox.checked = true;
         APP_STATE.compare.baseline = "";
         APP_STATE.compare.root = "";
         APP_STATE.compare.target = "";
+        renderCrumb();
         setStatus("compare-status", "", "选择一份基线快照，开始对比两个时间点的空间变化。");
         showEmpty();
     }

@@ -259,6 +259,29 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .compare-ctl input{width:220px;font-size:var(--fs-sm)}
 .compare-ctl-target input{color:var(--muted);background:var(--bg)}
 .compare-controls .btn{flex:none}
+/* P4（D4-2/D4-3）：深度选择器 + 隐藏零变化开关（页头控件；不动既有 .compare-ctl input 规则，
+   勾选框用更高一层的专用选择器收回 220px 宽度） */
+.compare-ctl select{
+  font:inherit;font-size:var(--fs-sm);color:var(--text);background:var(--card);
+  border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px 6px;
+}
+.compare-ctl-zero{gap:5px;cursor:pointer}
+.compare-ctl-zero input{width:13px;height:13px;margin:0;accent-color:var(--primary);cursor:pointer}
+/* P4（D4-6）：下钻面包屑（未下钻 hidden 不占高；每级可点返回） */
+.compare-crumb{
+  flex:none;display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-height:0;
+  overflow:hidden;font-size:var(--fs-xs);
+}
+.compare-crumb[hidden]{display:none!important}
+.compare-crumb .crumb-item{
+  flex:none;max-width:320px;padding:2px 8px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--card);color:var(--text-2);
+  font:inherit;font-size:var(--fs-xs);cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.compare-crumb .crumb-item:hover,.compare-crumb .crumb-item:focus-visible{background:var(--primary-soft)}
+.compare-crumb .crumb-item.is-current{color:var(--text);font-weight:600;border-color:var(--border-strong);cursor:default}
+.compare-crumb .crumb-sep{flex:none;color:var(--faint)}
 
 .page-compare-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
 /* 对比页空态（定稿 6.5「选择一份基线快照，开始对比两个时间点的空间变化。」） */
@@ -310,6 +333,10 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .compare-table .delta-cell{font-variant-numeric:var(--font-num);white-space:nowrap}
 .compare-table .cmp-ops{white-space:nowrap}
 .compare-table .cmp-ops .icon-btn{width:26px;height:26px}
+/* P4（D4-6）：明细行整行可点 = 页内下钻（行尾操作按钮仍是独立热区） */
+.compare-table .compare-row{cursor:pointer}
+.compare-table .compare-row:hover{background:var(--card-soft)}
+.compare-table .compare-row:focus-within{background:var(--card-soft)}
 
 /* ============================================================ */
 /* topbar：60px（品牌 + N13 导航标签位 + 右侧控件组）        */
