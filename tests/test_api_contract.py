@@ -133,6 +133,90 @@ class ApiContractTests(unittest.TestCase):
             self.assertIs(body["ok"], False)
             resp.close()
 
+    def test_roots_shape_and_enumerate_reuse(self):
+        """P5·D5-3/D5-4：GET /api/roots 键集合 + 每项形状 + 枚举来源复用。
+
+        键集合冻结为 {ok, roots, count, drives_source}（additive 新路由；
+        既有 11 条路由语义零改动）。
+        """
+        fake = [Path("Q:\\"), Path("R:\\")]
+        with app.test_client() as client:
+            with mock.patch.object(fullscan, "_enumerate_roots", return_value=fake) as spy:
+                resp = client.get("/api/roots")
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(
+                _keys(body), {"ok", "roots", "count", "drives_source"},
+                f"/api/roots 键集合漂移: {_keys(body)}",
+            )
+            self.assertIs(body["ok"], True)
+            self.assertEqual(body["count"], 2)
+            self.assertEqual([r["root"] for r in body["roots"]], ["Q:\\", "R:\\"])
+            self.assertTrue(spy.called, "/api/roots 必须复用 fullscan._enumerate_roots()")
+            for item in body["roots"]:
+                self.assertEqual(_keys(item), {"root", "label", "ready"},
+                                 f"/api/roots 项键集合漂移: {_keys(item)}")
+                self.assertIsInstance(item["root"], str)
+                self.assertIsInstance(item["label"], str)
+                self.assertIsInstance(item["ready"], bool)
+                self.assertIn("本地盘", item["label"], "label 必须自解释（不依赖悬停）")
+            resp.close()
+
+    def test_roots_not_ready_marks_label_and_keeps_entry(self):
+        """盘符不可用/未就绪：ready=False + label 带「未就绪」，且**不静默丢弃**。
+
+        Q:\\ 在本机不存在 → ready False（用真实 os.path.exists 判定，
+        不 mock 就绪探测：这正是要冻结的行为）。
+        """
+        fake = [Path("Q:\\")]
+        with app.test_client() as client:
+            with mock.patch.object(fullscan, "_enumerate_roots", return_value=fake):
+                resp = client.get("/api/roots")
+            body = resp.get_json()
+            self.assertEqual(len(body["roots"]), 1, "不可用盘符也必须出现在清单中")
+            item = body["roots"][0]
+            self.assertIs(item["ready"], False, "Q: 不应被判为就绪")
+            self.assertIn("未就绪", item["label"])
+            resp.close()
+
+    def test_roots_fallback_source_and_empty(self):
+        """枚举回退/空清单：drives_source 如实标注，且空清单不报错（前端回落「请选择盘符」）。"""
+        with app.test_client() as client:
+            with mock.patch.object(fullscan, "_enumerate_roots", return_value=[]):
+                resp = client.get("/api/roots")
+            body = resp.get_json()
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(body["roots"], [])
+            self.assertEqual(body["count"], 0)
+            self.assertIn(body["drives_source"], {"win32", "probe"})
+            resp.close()
+
+    def test_roots_enumerate_exception_degrades(self):
+        """枚举抛错 → 200 + 空清单 + drives_source=error（不 500：让前端走「请选择盘符」）。"""
+        with app.test_client() as client:
+            with mock.patch.object(fullscan, "_enumerate_roots",
+                                   side_effect=OSError("GetLogicalDrives 失败")):
+                resp = client.get("/api/roots")
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertIs(body["ok"], True)
+            self.assertEqual(body["roots"], [])
+            self.assertEqual(body["drives_source"], "error")
+            resp.close()
+
+    def test_roots_enumerate_impl_untouched_fallback_a_to_z(self):
+        """P5 授权边界：`fullscan._enumerate_roots` **实现体未被修改**。
+
+        无 mock 直调真实函数：返回值必须是「存在的盘符」集合，且每个形如 X:\\。
+        这条用例是「不得修改其实现体」的回归锚（回退语义 = A–Z 探测）。
+        """
+        real = fullscan._enumerate_roots()
+        self.assertIsInstance(real, list)
+        for root in real:
+            self.assertRegex(str(root), r"^[A-Za-z]:\\$")
+            self.assertTrue(Path(str(root)).exists(),
+                            f"枚举结果必须是真实存在的盘符: {root}")
+
     def test_settings_get_shape(self):
         """GET /api/settings：键集合恰为 {ok, settings, data_dir, snapshots_dir}。"""
         with app.test_client() as client:

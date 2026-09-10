@@ -227,6 +227,60 @@ def api_overview():
     return _json_ok(ready=True, roots=roots, completed_at=scan_result.get("completed_at"))
 
 
+# =================【1.5 本地盘符枚举（P5 additive）】=================
+
+
+def _root_label(root):
+    """盘符展示标签（自解释，不依赖任何悬停）："D:\\ 本地盘" / "D:\\ 本地盘（未就绪）"。"""
+    text = str(root).rstrip("\\") or str(root)
+    return f"{text} 本地盘"
+
+
+def _root_ready(root):
+    """盘符是否可用（就绪）。不可用（如空读卡器/未挂载卷/断开的映射盘）返回 False。
+
+    判据 = ``os.path.exists(root)``：Windows 对无介质驱动器返回错误而非阻塞
+    （不触发软驱式长时间等待），因此本接口保持秒回，不会拖住 /api/roots。
+    """
+    try:
+        return bool(os.path.exists(str(root)))
+    except OSError:
+        return False
+
+
+def _roots_payload():
+    """本地盘符清单（P5·D5-3/D5-4 的唯一数据源，替代前端硬编码 C/D/E/F）。
+
+    - 枚举复用 ``fullscan._enumerate_roots()``（**只读复用，实现体零改动**）：
+      Win32 ``GetLogicalDrives`` 优先，失败/非 Windows 回退 A–Z 探测；
+    - 每项 ``{root, label, ready}``：``ready=False`` 表达「不可用/未就绪」
+      ——选盘 UI 据此灰置但仍可表达（不静默丢弃盘符）；
+    - ``drives_source`` 如实标注枚举来源（win32 / probe），不伪装。
+    """
+    roots = fullscan._enumerate_roots()
+    items = []
+    for root in roots:
+        ready = _root_ready(root)
+        label = _root_label(root)
+        if not ready:
+            label += "（未就绪）"
+        items.append({"root": str(root), "label": label, "ready": ready})
+    source = "win32" if (os.name == "nt" and items) else "probe"
+    return {"ok": True, "roots": items, "count": len(items), "drives_source": source}
+
+
+@app.get("/api/roots")
+def api_roots():
+    """GET /api/roots：本地盘符清单（additive 新路由；不改任何既有路由语义）。"""
+    try:
+        return jsonify(_roots_payload())
+    except Exception as exc:  # 枚举意外异常兜底：返回空清单而非 500（前端回落「请选择盘符」）
+        return jsonify({
+            "ok": True, "roots": [], "count": 0, "drives_source": "error",
+            "message": f"盘符枚举异常：{exc}",
+        })
+
+
 # =================【2. 前台浏览】=================
 
 
