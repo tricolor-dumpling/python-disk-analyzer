@@ -2,6 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
+<!-- P4 挂账清理：冒烟页自身也声明图标，消除静态服务下 GET /favicon.ico → 404
+     （该条 console 噪声曾使 smoke 探针的 console 判据恒失败）。 -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3C/svg%3E">
 <title>P12 前端零依赖冒烟页 · tests/web/smoke.html</title>
 <!-- U2.3：引入 tokens.css（动效 token 权威值）——treemap 单击/双击防抖窗口、
      各种动画时长在烟测页按真实 token 运行（否则 token 缺失回落 0，防抖语义退化）。 -->
@@ -429,7 +432,10 @@ const ASSERTIONS_V2 = [
       __assert(localStorage.getItem("pds_theme_v1") === next, "localStorage pds_theme_v1 应写入 " + next);
       // 分支②：带事件坐标（支持 VT 时走圆形扩散；结束后终态一致）
       switchTheme(before, { clientX: 10, clientY: 10 });
-      await new Promise((r) => setTimeout(r, 80));
+      /* 挂账清理（P4）：VT 转场把 data-theme 写在**转场回调**内（theme.js applyThemeRaw
+         → document.startViewTransition(apply)），耗时随 --dur-* 变化 → 固定 80ms 采样是
+         时序 flake 的根因。改为轮询至终态（≤3s）：终态永不到达时断言依旧失败（保留查错力）。 */
+      await __waitUntil(() => root.getAttribute("data-theme") === before, 3000);
       __assert(root.getAttribute("data-theme") === before, "带坐标切换后 data-theme 应回到 " + before);
       __assert(localStorage.getItem("pds_theme_v1") === before, "localStorage 应同步回 " + before);
       // 分支③：非法值回退为翻转语义
@@ -1236,7 +1242,9 @@ const ASSERTIONS_V2 = [
         __assert($("setting-theme-system").checked === true, "system 偏好应回显「跟随系统」勾选");
         $("setting-theme-dark").checked = true;
         $("setting-theme-dark").dispatchEvent(new Event("change", { bubbles: true }));
-        await wait(150); // VT 圆形扩散路径下 data-theme 在转场回调内应用（A1 分支② 同口径）
+        /* 挂账清理（P4）：同 A1 分支②——VT 回调内应用 data-theme，固定 150ms 采样会 flake；
+           改为轮询至终态（≤3s）。 */
+        await __waitUntil(() => document.documentElement.getAttribute("data-theme") === "dark", 3000);
         __assert(document.documentElement.getAttribute("data-theme") === "dark", "选「暗」应即生效 data-theme=dark");
         __assert(localStorage.getItem("pds_theme_v1") === "dark", "选「暗」应持久化 dark");
         __assert($("setting-theme-dark").checked && !$("setting-theme-system").checked, "单选互斥回显");
@@ -1363,8 +1371,16 @@ const ASSERTIONS_V2 = [
         const scale = rect.width > 0 ? cnv.width / rect.width : 1;
         const d = cnv.getContext("2d").getImageData(
           Math.round((ft.x + 2) * scale), Math.round((ft.y + 2) * scale), 1, 1).data;
-        const dist = Math.max(Math.abs(d[0] - 0x25), Math.abs(d[1] - 0x63), Math.abs(d[2] - 0xeb));
-        __assert(dist < 24, "焦点块应有可见静态描边（像素≈primary #2563eb），实际 rgb(" + d[0] + "," + d[1] + "," + d[2] + ")");
+        /* 挂账清理（P4）：期望色不再硬编码 light 主题的 #2563eb——本套件前面的主题断言会
+           改变生效主题（dark 下 --primary=#4f8cff），硬编码值使 A20 随主题 flake。
+           改为**解析当前主题的 --primary 计算值**比对：断言语义（描边用 primary 色）
+           不变且更强（对主题与令牌调整都成立）。 */
+        const primRaw = getComputedStyle(document.documentElement).getPropertyValue("--primary").trim();
+        const primHex = /^#?([0-9a-fA-F]{6})$/.exec(primRaw);
+        __assert(!!primHex, "应能解析当前主题 --primary（实际「" + primRaw + "」）");
+        const pr = parseInt(primHex[1].slice(0, 2), 16), pg = parseInt(primHex[1].slice(2, 4), 16), pb = parseInt(primHex[1].slice(4, 6), 16);
+        const dist = Math.max(Math.abs(d[0] - pr), Math.abs(d[1] - pg), Math.abs(d[2] - pb));
+        __assert(dist < 24, "焦点块应有可见静态描边（像素≈当前主题 --primary #" + primHex[1] + "），实际 rgb(" + d[0] + "," + d[1] + "," + d[2] + ")");
 
         /* ---- ④ 方向键最近邻移动 + 边界守卫 ---- */
         document.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));

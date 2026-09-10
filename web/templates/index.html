@@ -3,6 +3,10 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- P4 挂账清理：内联 SVG 图标，消除 GET /favicon.ico → 404（P2/P3 已登记的
+         console 噪声，曾使 u22/u24/u34/u43/u52/u57/u60/u68a 的「console 0」断言计 1–2 条）。
+         内联 data URI：零额外请求、零新增静态文件、不依赖任何后端路由。 -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Ccircle cx='16' cy='16' r='7.5' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Cpath d='M16 2v6M16 24v6M2 16h6M24 16h6' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
     <title>Python 磁盘扫描 · 本地磁盘空间分析</title>
     <script>
       /* UI2·U1.1 防闪烁：样式表生效前定稿主题（localStorage → 系统偏好 → light）

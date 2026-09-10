@@ -22,7 +22,11 @@ export const APP_STATE = {
     scan: { running: false, startTs: 0, roots: [], done: [], current: null,
             stopAvailable: false, stopRequested: false, version: 0, finishedAt: null }, // U3.2 启用
     snapshots: { sessions: [] },                 // U3.3 启用
-    compare: { baseline: "", target: "", result: null, lastSummary: null },             // U3.4 启用
+    /* P4（问题 5/6）：depth=""（叶子口径，缺省）/ "1".."5"（聚合到第 N 层）；
+       hideZero=true（请求带 drop_zero）；drillRoot=""（未下钻）或下钻目录全路径。
+       三者由 pages/compare.js 维护（切页不丢），resetCompareData 复位。 */
+    compare: { baseline: "", target: "", result: null, lastSummary: null,
+               depth: "", hideZero: true, drillRoot: "" },             // U3.4 启用；P4 增 depth/hideZero/drillRoot
     treemap: { tiles: [], prev: new Map(), focusIdx: -1, hoverKey: null },              // U2.2 启用
     ui: { fullscreen: false, paletteOpen: false, onboardingSeen: true },                // U2.3 全屏/U3.1 面板启用
 
