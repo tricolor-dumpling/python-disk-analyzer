@@ -7,15 +7,17 @@
      8–12 违规 / 首违规 opacity=1 且命中 treemap-canvas）。本探针是 P0
      `_harness.frameRecorderSource()` 记录器的**正式化**（同一字段词典 + 更严判据）。
    - 判据（每帧，与 DoD 1/3/4 对齐）：
-       · 违规帧 = 帧所属序列目标视图 ≠ treemap，且该帧
-         (`#treemap-wrap` 无 hidden 属性 ∨ computed opacity > 0 ∨ 命中测试落在矩形图内)
-         —— 即「非矩形图视图下矩形图仍可见/仍拦截命中」；
-       · 连点变体（2ms 内同步派发 12 次点击，跨视图交错）= DoD 3「无闪烁式重现」；
-       · 隐藏态下 hover 列表行 → 矩形图 canvas 像素签名必须不变（DoD 4）；
+       · 违规帧 = 帧所属**目标视图**≠treemap 且该帧
+         (`#treemap-wrap` 无 hidden 属性 ∨ computed display≠none ∨ 命中测试落在矩形图内)
+         —— 即「非矩形图视图下矩形图仍在绘制 / 仍拦截命中」；
+         合法例外（D2-1 保留能力）：矩形图**参与**的切换其出向交叉淡化（`.v-crossfade-out`）
+         在 `--dur-1`(120ms) 内收束时不计违规，超过 250ms 仍在绘制即判违规（停滞）；
+       · 连点变体（30ms 间隔 12 次，页内定时器派发）= DoD 3「无闪烁式重现」；
+       · 隐藏态下 hover 列表行 → canvas 2D **绘制调用**增量必须为 0（DoD 4）；
        · 骨架屏层序/覆盖（DoD 5）；
        · 矩形图↔列表切换仍须发生 120ms 交叉淡化（DoD 2 的「保留」侧：动画存在 + 入向
          层在上 + 出向层在下 + `pointer-events` 收束）。
-   - 采样节奏：rAF ≈16.7ms/帧；每组序列「记录起点 → 60ms 后触发 → 触发后 400ms 停录」
+   - 采样节奏：rAF ≈16.7ms/帧；每组序列「记录起点 → 60ms → 触发 → 每步 421ms → 尾 400ms」
      （覆盖 120ms 动画 + 收尾），要求 ≥60 帧（不达标则记为窗口不足，不得当 PASS）。
    - 输出：`<out>/frames.json`（全帧）+ `<out>/summary.json`（逐序列量化 + 判据结论）。
    - 运行：node scripts/dev/p02_view_frame_probe.mjs --base http://127.0.0.1:5000/ --out <证据目录>
@@ -56,6 +58,8 @@ const SEQ_LIST = [
 const BURST = ["ranking", "table", "relate", "ranking", "table", "treemap", "ranking", "table",
     "relate", "treemap", "ranking", "table"];
 const BURST_GAP_MS = 30;
+/* 出向交叉淡化最长合法时长（--dur-1 = 120ms；留 ~2 帧抖动余量）。超过即判「停滞」违规。 */
+const EXIT_MAX_MS = 250;
 
 /* ---------------- 页内 2D 绘制调用拦截器（DoD 4 的可证伪口径） ----------------
    动机：`display:none` 的 canvas 其 GPU/位图后备存储在指针重新进入文档时会被浏览器
@@ -112,18 +116,48 @@ window.fetch = function (url, options) {
 `;
 
 /* ---------------- 页内帧记录器（P0 记录器正式化 + 更严判据字段） ----------------
-   帧字段：ts / twHidden / twOpacity / twZ / twClass / tbHidden / tbClass / hit / inTm /
-           activeView / mode / acts / tmCanvasHash（矩形图静态 canvas 像素签名）
-   API：window.__p2rec.start(maxMs) / .stop() / .frames() / .mark(label) / .canvasHash() */
+   帧字段：ts / twHidden / twOpacity / twDisplay / twVis / twZ / twClass / tbHidden / tbClass /
+           hit / inTm / activeView / mode / acts / crossfadeAt / crossfadeTarget
+   API：window.__p2rec.start(maxMs) / .stop() / .frames() / .marks() / .mark(label) /
+        .clickAt(id,label) / .recState() / window.__p2rec0() / window.__p2canvasHash()
+   ⚠️ 时间基：帧 ts 与 marks/clickAt 一律为「相对 rec.start 的 ms」——
+      performance.now() 是页面绝对时钟，两者混用会让点击时刻晚 10^4 ms（曾致目标视图错配）。 */
 const REC_SRC = `(() => {
-  const rec = { running: false, start: 0, maxMs: 120000, frames: [], marks: [] };
+  const rec = { running: false, start: 0, maxMs: 120000, frames: [], marks: [],
+                crossfadeAt: null, crossfadeTarget: null };
+  window.__p2rec0 = () => rec.start; // 统一时基出口（页内连点派发等换算用）
+  /* 出向淡化状态检测：在记录每帧**之前**调用，且与帧共用同一个 now（避免
+     crossfadeAt 比帧 ts 晚几 ms 而算出负的「淡化已进行时长」，把首帧误判为违规）。 */
+  function noteCrossfade(now) {
+    if (!rec.running) return;
+    const outEl = document.querySelector(".v-crossfade-out");
+    if (!outEl) { rec.crossfadeAt = null; rec.crossfadeTarget = null; return; }
+    const inEl = document.querySelector(".v-crossfade-in");
+    const target = inEl
+      ? (inEl.id === "treemap-wrap" ? "treemap" : (inEl.id === "table-wrap" ? "list" : inEl.id))
+      : "unknown";
+    if (rec.crossfadeTarget !== target) {
+      rec.crossfadeAt = Math.round(now - rec.start);
+      rec.crossfadeTarget = target;
+    }
+  }
   window.__p2rec = {
     start(maxMs) { rec.running = true; rec.start = performance.now(); rec.frames.length = 0; rec.marks.length = 0;
+                   rec.crossfadeAt = null; rec.crossfadeTarget = null;
                    if (maxMs) rec.maxMs = maxMs; requestAnimationFrame(tick); },
     stop() { rec.running = false; },
     frames() { return rec.frames; },
     marks() { return rec.marks; },
     mark(label) { rec.marks.push({ label: label, ts: Math.round(performance.now() - rec.start) }); },
+    /* 页内同步派发点击（避免 Node↔浏览器往返把点击时刻记晚数百 ms），返回相对 ts */
+    clickAt(id, label) {
+      const b = document.getElementById(id);
+      if (b) b.click();
+      const ts = Math.round(performance.now() - rec.start);
+      rec.marks.push({ label: label, ts: ts });
+      return ts;
+    },
+    recState() { return { crossfadeAt: rec.crossfadeAt, crossfadeTarget: rec.crossfadeTarget }; },
   };
   function locate(el) {
     let hit = "none";
@@ -163,10 +197,13 @@ const REC_SRC = `(() => {
     const el = document.elementFromPoint(Math.floor(innerWidth / 2), Math.floor(innerHeight / 2));
     const hit = locate(el);
     const cs = tw ? getComputedStyle(tw) : null;
+    noteCrossfade(now); // 与帧共用 now（见 noteCrossfade 注释）
     rec.frames.push({
       ts: Math.round(now - rec.start),
       twHidden: tw ? tw.hasAttribute("hidden") : null,
       twOpacity: cs ? cs.opacity : null,
+      twDisplay: cs ? cs.display : null,
+      twVis: cs ? cs.visibility : null,
       twZ: cs ? cs.zIndex : null,
       twClass: tw ? tw.className : null,
       tbHidden: tb ? tb.hasAttribute("hidden") : null,
@@ -176,6 +213,8 @@ const REC_SRC = `(() => {
       activeView: activeView(),
       mode: modeOf(),
       acts: document.getAnimations().length,
+      crossfadeAt: rec.crossfadeAt,
+      crossfadeTarget: rec.crossfadeTarget,
     });
     if (now - rec.start >= rec.maxMs) { rec.running = false; return; }
     requestAnimationFrame(tick);
@@ -184,15 +223,29 @@ const REC_SRC = `(() => {
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/* ---- 帧内违规判据（单一实现，逐帧复用） ---- */
+/* ---------------- 违规判据（单一实现，逐帧复用） ----------------
+   现象定义（用户可见的「闪过」）：**非矩形图视图**下矩形图本应不可见/不可命中，却被显示出来。
+   判据（以「是否真的在绘制 / 是否真的拦截命中」为准，不以内联 opacity 为准）：
+     ① tw-not-hidden：`#treemap-wrap` 未置 hidden 属性（脱离终态可见性语义）；
+     ② tw-displayed：computed display ≠ none（真正参与绘制）；
+     ③ hit-treemap：命中测试仍落回矩形图容器内（拦截用户操作）。
+   合法例外（D2-1 明确保留的能力）：矩形图**参与**的切换（treemap↔列表）其出向交叉淡化
+   （`.v-crossfade-out`，目标 opacity→0）期间矩形图必然在绘制 —— 这是设计行为，不计违规；
+   但该出向淡化必须在 `--dur-1`(120ms) 内收束，**超过 EXIT_MAX_MS 仍在绘制即判违规（停滞）**。
+   ⚠️ 不用 opacity 作判据：隐藏容器（display:none）上的 opacity 残值不产生任何可见像素，
+   也不影响命中测试；以 opacity 判会在连点序列产生假阳性（基线实测 15 帧全部 twHidden=true
+   且命中为列表/关系树）。 */
 function frameViolationReasons(f) {
-    const op = f.twOpacity === null ? null : parseFloat(f.twOpacity);
     const reasons = [];
-    if (f.targetMode !== "treemap") {
-        if (f.twHidden === false) reasons.push("tw-not-hidden");
-        if (op !== null && op > 0) reasons.push("tw-opacity>0");
-        if (f.inTm === true) reasons.push("hit-treemap");
-    }
+    if (f.targetMode === "treemap" || f.phase !== "in_window") return reasons; // 目标即矩形图 / 非计账窗
+    const exiting = typeof f.twClass === "string" && f.twClass.indexOf("v-crossfade-out") >= 0;
+    const exitAge = (exiting && f.crossfadeAt !== null && f.crossfadeAt !== undefined &&
+        f.crossfadeTarget !== "treemap") ? f.ts - f.crossfadeAt : null;
+    const exitLegit = exiting && exitAge !== null && exitAge >= 0 && exitAge <= EXIT_MAX_MS;
+    const displayed = f.twDisplay !== undefined ? f.twDisplay !== "none" : (f.twHidden === false);
+    if (f.twHidden === false && !exitLegit) reasons.push("tw-not-hidden");
+    if (displayed && !exitLegit) reasons.push("tw-displayed");
+    if (f.inTm === true) reasons.push("hit-treemap"); // 命中落回矩形图：无条件违规
     return reasons;
 }
 
@@ -284,7 +337,6 @@ async function run() {
             console.log("  ! baseReset 未收敛: " + JSON.stringify(last));
             return { ok: false, state: last };
         };
-
         for (const seq of SEQ_LIST) {
             await baseReset();
             /* 记录窗 = 触发前 60ms + 全序列（每步 settleMs）+ 尾部 tailMs + 1.2s 余量 */
@@ -294,22 +346,32 @@ async function run() {
             const t0 = await page.evaluate(() => performance.now());
             await page.evaluate(() => window.__p2rec.mark("trigger"));
             let targets;
+            let clickMarks = [];
             if (seq.burst) {
-                /* 30ms 连点（≥10 次）：页内定时器派发，避免 Node↔浏览器往返抖动 */
+                /* 30ms 连点（≥10 次）：页内定时器派发 + 页内记时（同一 rec.start 时基） */
                 await page.evaluate(({ modes, gap }) => {
                     window.__p2clicks = [];
-                    modes.forEach((m, i) => setTimeout(() => {
-                        const b = document.getElementById("btn-view-" + m);
-                        if (b) b.click();
-                        window.__p2clicks.push({ m: m, ts: Math.round(performance.now()) });
-                    }, i * gap));
+                    modes.forEach((m, i) => {
+                        setTimeout(() => {
+                            const b = document.getElementById("btn-view-" + m);
+                            if (b) b.click();
+                            window.__p2clicks.push({
+                                m: m,
+                                ts: Math.round(performance.now() - window.__p2rec0()),
+                            });
+                        }, i * gap);
+                    });
                 }, { modes: BURST, gap: BURST_GAP_MS });
                 targets = BURST;
                 await page.waitForTimeout(BURST.length * BURST_GAP_MS + seq.settleMs);
+                clickMarks = (await page.evaluate(() => window.__p2clicks || []))
+                    .map((c) => ({ m: c.m, ts: c.ts }));
             } else {
                 targets = seq.steps;
                 for (const m of seq.steps) {
-                    await page.click("#btn-view-" + m, { timeout: 5000 });
+                    /* 页内同步派发 + 页内记时：Node↔浏览器往返会把点击时刻记晚数百 ms */
+                    const ts = await page.evaluate((id) => window.__p2rec.clickAt(id, "click-" + id), "btn-view-" + m);
+                    clickMarks.push({ m: m, ts: ts });
                     await page.waitForTimeout(seq.settleMs);
                 }
             }
@@ -346,26 +408,27 @@ async function run() {
                 };
             });
 
-            /* 逐帧标注「本帧所属序列目标视图」：多步序列按 marks 分段（触发点为锚，
-               每步 span = (末帧时间 - 触发时间) / 步数；触发前帧 target = 首步） */
+            /* 逐帧标注目标视图：**按真实点击时刻**分段（不是按时间比例均分——各步耗时不等，
+               settleMs + 尾部 tailMs 会使比例分段严重错位）。
+               计账窗 = [首次点击时刻, 末次点击 + settleMs + 200ms]：此前的帧属于「上一视图
+               仍生效」的窗口外状态（矩形图可见是正确行为，例如连点变体的首帧 rAF 可能早于
+               首个 setTimeout(0) 点击落地），不计违规。 */
             const frames = [];
             const markMap = {};
             for (const mk of marks) markMap[mk.label] = mk.ts;
-            const stepCount = seq.burst ? BURST.length : seq.steps.length;
-            const spanEnd = raw.length ? raw[raw.length - 1].ts : 0;
             const triggerTs = markMap.trigger !== undefined ? markMap.trigger : (raw.length ? raw[0].ts : 0);
-            const span = Math.max(1, spanEnd - triggerTs);
-            const per = span / stepCount;
+            const firstClickTs = clickMarks.length ? clickMarks[0].ts : triggerTs;
+            const lastClickTs = clickMarks.length ? clickMarks[clickMarks.length - 1].ts : triggerTs;
+            const windowEnd = lastClickTs + seq.settleMs + 200;
             for (const f of raw) {
-                let idx = f.ts <= triggerTs ? 0
-                    : Math.min(stepCount - 1, Math.floor((f.ts - triggerTs) / per));
-                const target = seq.burst ? BURST[idx] : seq.steps[idx];
-                /* 违规计账窗：触发点 → 触发点 + 步数×settleMs + 200ms 收尾
-                   （触发前基线帧与窗口后残余帧不参与违规计账，但保留在 frames.json 供核对） */
-                const windowEnd = triggerTs + stepCount * seq.settleMs + 200;
+                let idx = 0;
+                for (let i = 0; i < clickMarks.length; i++) {
+                    if (f.ts >= clickMarks[i].ts) idx = i;
+                }
+                const target = seq.burst ? BURST[idx] : seq.steps[Math.min(idx, seq.steps.length - 1)];
                 frames.push({
                     ...f, stepIdx: idx, targetMode: target,
-                    phase: f.ts <= triggerTs ? "pre" : (f.ts <= windowEnd ? "in_window" : "post"),
+                    phase: f.ts < firstClickTs ? "pre" : (f.ts <= windowEnd ? "in_window" : "post"),
                 });
             }
             const judged = [];
@@ -373,8 +436,10 @@ async function run() {
             for (let i = 0; i < frames.length; i++) {
                 const f = frames[i];
                 const reasons = frameViolationReasons(f);
-                /* 「闪烁式重现」= 窗口内矩形图由不可见 → 可见的跃迁（DoD 3 的形态判据） */
-                if (f.phase === "in_window" && i > 0) {
+                /* 「闪烁式重现」= 窗口内矩形图由不可见 → 可见的跃迁（DoD 3 形态判据）。
+                   仅计目标**非** treemap 的跃迁：目标即 treemap 时该跃迁正是入向交叉淡化
+                  （`.v-crossfade-in`，opacity 0→1），属 DoD 2 要求保留的合法转场。 */
+                if (f.phase === "in_window" && f.targetMode !== "treemap" && i > 0) {
                     const prev = frames[i - 1];
                     if (prev.twHidden === true && f.twHidden === false) {
                         flashEvents.push({ ts: f.ts, targetMode: f.targetMode, twOpacity: f.twOpacity, hit: f.hit });
@@ -408,8 +473,10 @@ async function run() {
                 firstBad: bad.length ? bad[0] : null,
                 firstSix: judged.slice(0, 6),
                 triggerTs: triggerTs,
+                windowEnd: windowEnd,
+                clickMarks: clickMarks,
                 flashEvents: flashEvents,
-                flashEventsInWindow: flashEvents.filter((e) => e.ts > triggerTs && e.ts <= triggerTs + stepCount * seq.settleMs + 200).length,
+                flashEventsInWindow: flashEvents.filter((e) => e.ts > triggerTs && e.ts <= windowEnd).length,
                 clicks: clicks.length ? clicks : null,
                 clickCount: seq.burst ? clicks.length : seq.steps.length,
                 elapsedMs: Math.round(t1 - t0),
@@ -493,11 +560,13 @@ async function run() {
             const hiddenBeforeControl = window.__p2paint.whileHidden || 0;
             const control = await sample(1200);
             const controlPaint = window.__p2paint.total - paintBeforeControl;
+            const controlPaintHidden = (window.__p2paint.whileHidden || 0) - hiddenBeforeControl;
             const twBefore = { hidden: tw.hasAttribute("hidden"), op: getComputedStyle(tw).opacity, rect: proxy() };
             const rows = document.querySelectorAll("#dir-body tr");
             const evIdle = JSON.parse(JSON.stringify(window.__p2ev));
             return {
-                control, controlPaint, hiddenBeforeControl, centerHit, twBefore, rows: rows.length, evIdle,
+                control, controlPaint, controlPaintHidden, hiddenBeforeControl, centerHit, twBefore,
+                rows: rows.length, evIdle,
                 paintTotal: window.__p2paint.total,
             };
         });
@@ -531,23 +600,29 @@ async function run() {
                 twAfter: { hidden: tw.hasAttribute("hidden"), op: getComputedStyle(tw).opacity },
             };
         });
-        /* hover 相位（含其间的 tick）净增的隐藏态绘制调用 */
+        /* hover 相位（含其间的 tick）净增的绘制调用（总量 / 其中矩形图隐藏期） */
         const hoverPaintDelta = hoverAfter.paintTotal - hoverProbe.paintTotal;
+        const hoverPaintHiddenDelta = hoverAfter.paintWhileHidden - hoverProbe.hiddenBeforeControl;
         const lastStep = hoverSteps.length ? hoverSteps[hoverSteps.length - 1] : null;
         const hoverStepPaintDelta = lastStep ? lastStep.paintTotal - hoverProbe.paintTotal : 0;
+        const hoverStepHiddenDelta = lastStep ? lastStep.paintWhileHidden - hoverProbe.hiddenBeforeControl : 0;
         const hoverSig = {
             rows_hovered: hoverProbe.rows,
             center_hit: hoverProbe.centerHit,
-            criteria: "隐藏期间 canvas 2D 绘制调用增量 == 0",
+            criteria: "hover 相位内 canvas 2D 绘制调用增量 == 0（其中矩形图隐藏期增量 == 0）",
             control_idle_ms: 1200,
             control_proxy_changes: hoverProbe.control.proxyChanges,
             control_proxy_value: hoverProbe.control.proxy0,
             control_paint_delta: hoverProbe.controlPaint,
+            control_paint_while_hidden_delta: hoverProbe.controlPaintHidden,
+            paint_while_hidden_at_control_start: hoverProbe.hiddenBeforeControl,
             paint_total_at_control_start: hoverProbe.paintTotal,
             paint_total_after_hover: hoverAfter.paintTotal,
             paint_delta_during_hover: hoverPaintDelta,
             paint_delta_during_hover_steps: hoverStepPaintDelta,
-            paint_while_hidden_after: hoverAfter.paintWhileHidden,
+            paint_while_hidden_delta_during_hover: hoverPaintHiddenDelta,
+            paint_while_hidden_delta_during_hover_steps: hoverStepHiddenDelta,
+            paint_while_hidden_cumulative_after: hoverAfter.paintWhileHidden,
             paint_by_method: hoverAfter.paintByMethod,
             events_control: hoverProbe.evIdle,
             events_after_hover: hoverAfter.events,
@@ -555,16 +630,17 @@ async function run() {
             tw_before: hoverProbe.twBefore,
             tw_after: hoverAfter.twAfter,
             pass: hoverProbe.rows > 0 &&
-                hoverProbe.controlPaint === 0 && hoverPaintDelta === 0 &&
-                hoverAfter.paintWhileHidden === 0 &&
+                hoverProbe.controlPaint === 0 && hoverProbe.controlPaintHidden === 0 &&
+                hoverPaintDelta === 0 && hoverPaintHiddenDelta === 0 &&
                 hoverProbe.control.proxyChanges === 0 &&
                 hoverAfter.twAfter.hidden === true && parseFloat(hoverAfter.twAfter.op) === 0,
         };
         RESULT.hover = hoverSig;
         console.log("[hover] rows=" + hoverSig.rows_hovered + " centerHit=" + hoverSig.center_hit +
             " 代理节点=" + hoverSig.control_proxy_value + " 对照组代理变化=" + hoverSig.control_proxy_changes +
-            " 绘制调用 Δ 对照=" + hoverSig.control_paint_delta + " hover=" + hoverSig.paint_delta_during_hover +
-            " 隐藏期绘制=" + hoverSig.paint_while_hidden_after + " pass=" + hoverSig.pass);
+            " 绘制调用 Δ 对照=" + hoverSig.control_paint_delta + "/" + hoverSig.control_paint_while_hidden_delta +
+            " hover=" + hoverSig.paint_delta_during_hover + "/" + hoverSig.paint_while_hidden_delta_during_hover +
+            " pass=" + hoverSig.pass);
 
         /* ---- DoD 5：骨架屏覆盖视区（层序 + 覆盖几何；覆盖判据按边框容差 ≤2px） ---- */
         const skeleton = await page.evaluate(() => {
@@ -607,31 +683,38 @@ async function run() {
         const xfade = await page.evaluate(async () => {
             const tw = document.getElementById("treemap-wrap");
             const tb = document.getElementById("table-wrap");
-            const waitFrame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+            /* 单 rAF 采样（≈16.7ms/帧）；120ms 动画 → 7–8 个中间帧。
+               ⚠️ 不可用双 rAF（33ms/帧）：会漏掉大部分 120ms 窗口。 */
+            const waitFrame = () => new Promise((r) => requestAnimationFrame(r));
             const samples = [];
             const t0 = performance.now();
             document.getElementById("btn-view-treemap").click();
-            for (let i = 0; i < 30; i++) {
+            for (let i = 0; i < 40; i++) {
                 await waitFrame();
                 const csTw = getComputedStyle(tw);
                 const csTb = getComputedStyle(tb);
                 samples.push({
                     off: Math.round(performance.now() - t0),
                     twOpacity: csTw.opacity, twZ: csTw.zIndex, twHidden: tw.hasAttribute("hidden"),
-                    twClass: tw.className, twPE: csTw.pointerEvents,
-                    tbOpacity: csTb.opacity, tbZ: csTb.zIndex, tbHidden: tb.hasAttribute("hidden"),
-                    tbClass: tb.className, tbPE: csTb.pointerEvents,
+                    twClass: tw.className, twPE: csTw.pointerEvents, twDisplay: csTw.display,
+                    tbOpacity: csTb.opacity, tbZ: csTb.zIndex,
+                    /* ⚠️ #table-wrap 的可见性语义是 `.hidden` 类（不是 hidden 属性） */
+                    tbHiddenClass: tb.classList.contains("hidden"),
+                    tbClass: tb.className, tbPE: csTb.pointerEvents, tbDisplay: csTb.display,
                     acts: document.getAnimations().length,
                 });
             }
             const finalCs = {
                 twZ: getComputedStyle(tw).zIndex, twPE: getComputedStyle(tw).pointerEvents,
                 tbDisplay: getComputedStyle(tb).display, twHidden: tw.hasAttribute("hidden"),
-                tbHidden: tb.hasAttribute("hidden"),
+                tbHasHiddenClass: tb.classList.contains("hidden"),
             };
             return { samples, finalCs };
         });
-        const overlayFrames = xfade.samples.filter((s) => s.twHidden === false && s.tbHidden === false);
+        /* 叠加帧 = 两容器都**真正在显示**（表容器按 display 判，不按属性） */
+        const overlayFrames = xfade.samples.filter((s) => s.twHidden === false && s.tbDisplay !== "none");
+        /* 交叉淡化相位 = 两容器都带 `.v-crossfade` 语义类 */
+        const xfadePhase = overlayFrames.filter((s) => /v-crossfade/.test(s.twClass) && /v-crossfade/.test(s.tbClass));
         const mid = overlayFrames.filter((s) => {
             const o1 = parseFloat(s.twOpacity);
             const o2 = parseFloat(s.tbOpacity);
@@ -639,22 +722,25 @@ async function run() {
         });
         const xfadeOut = {
             overlayFrames: overlayFrames.length,
+            xfadePhaseFrames: xfadePhase.length,
             midOpacityFrames: mid.length,
             maxActs: Math.max(0, ...xfade.samples.map((s) => s.acts)),
             zIncoming: overlayFrames.length ? overlayFrames[0].twZ : null,
             zOutgoing: overlayFrames.length ? overlayFrames[0].tbZ : null,
             enteringOnTop: overlayFrames.length ? overlayFrames.every((s) => Number(s.twZ) > Number(s.tbZ)) : null,
-            peNoneDuring: overlayFrames.length ? overlayFrames.every((s) => s.twPE === "none" && s.tbPE === "none") : null,
+            /* pointer-events 只在交叉淡化相位要求为 none（收束后须还原为可交互） */
+            peNoneDuring: xfadePhase.length ? xfadePhase.every((s) => s.twPE === "none" && s.tbPE === "none") : null,
             finalZ: xfade.finalCs,
             samples: xfade.samples,
-            pass: overlayFrames.length > 0 && mid.length > 0 &&
+            pass: overlayFrames.length > 0 && mid.length > 0 && xfadePhase.length > 0 &&
                 overlayFrames.every((s) => Number(s.twZ) > Number(s.tbZ)) &&
-                overlayFrames.every((s) => s.twPE === "none" && s.tbPE === "none") &&
+                xfadePhase.every((s) => s.twPE === "none" && s.tbPE === "none") &&
                 xfade.finalCs.twPE === "auto" && xfade.finalCs.twHidden === false &&
-                xfade.finalCs.tbDisplay === "none",
+                xfade.finalCs.tbDisplay === "none" && xfade.finalCs.tbHasHiddenClass === true,
         };
         RESULT.crossfade = xfadeOut;
-        console.log("[crossfade] overlayFrames=" + xfadeOut.overlayFrames + " midOpacity=" + xfadeOut.midOpacityFrames +
+        console.log("[crossfade] overlayFrames=" + xfadeOut.overlayFrames + " xfadePhase=" + xfadeOut.xfadePhaseFrames +
+            " midOpacity=" + xfadeOut.midOpacityFrames +
             " zIncoming=" + xfadeOut.zIncoming + " zOutgoing=" + xfadeOut.zOutgoing +
             " enteringOnTop=" + xfadeOut.enteringOnTop + " peNone=" + xfadeOut.peNoneDuring + " pass=" + xfadeOut.pass);
 
@@ -675,8 +761,9 @@ async function run() {
               pass: !!burstSeq && burstSeq.summary.badFramesInWindow === 0 &&
                   burstSeq.summary.flashEventsInWindow === 0 && burstSeq.summary.clickCount >= 10 },
             { name: "DoD4 隐藏态 hover 列表行不触发矩形图重绘（" + hoverSig.rows_hovered + " 行；绘制调用 Δ 对照 " +
-              hoverSig.control_paint_delta + " / hover " + hoverSig.paint_delta_during_hover +
-              " / 隐藏期累计 " + hoverSig.paint_while_hidden_after + "）", pass: hoverSig.pass === true },
+              hoverSig.control_paint_delta + "/" + hoverSig.control_paint_while_hidden_delta +
+              "，hover " + hoverSig.paint_delta_during_hover + "/" + hoverSig.paint_while_hidden_delta_during_hover +
+              "（总量/隐藏期））", pass: hoverSig.pass === true },
             { name: "DoD5 骨架屏覆盖视区且层序在矩形图之上", pass: skeleton.pass === true },
             { name: "console/pageerror 0", pass: consoleErrors.length === 0, detail: consoleErrors.join(" | ") },
         ];

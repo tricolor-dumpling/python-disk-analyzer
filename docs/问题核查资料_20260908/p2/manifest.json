@@ -1,0 +1,1479 @@
+{
+  "stage": "P2",
+  "title": "工作台视图切换残留（问题 2）· 证据清单",
+  "generated_at": "2026-09-10T10:17:04.619Z",
+  "evidence_root": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2",
+  "branch": "stage-p2",
+  "probe": {
+    "A": {
+      "path": "D:\\deepseek\\python-disk-analyzer\\scripts\\dev\\p02_view_frame_probe.mjs",
+      "tool": "页内 rAF 逐帧 DOM 记录（P0 记录器正式化）"
+    },
+    "B": {
+      "path": "D:\\deepseek\\python-disk-analyzer\\scripts\\dev\\p02_b_screencast.mjs",
+      "tool": "CDP Page.startScreencast 像素帧序列 + 参照帧像素分类"
+    },
+    "C": {
+      "path": "D:\\deepseek\\python-disk-analyzer\\scripts\\dev\\p02_c_viewport_shots.mjs",
+      "tool": "三视口终态截图 + 画布像素统计"
+    }
+  },
+  "items": [
+    {
+      "id": "A-prefix",
+      "kind": "A",
+      "purpose": "修复前基线（红线 A 自证）：同一支探针在 p1-autosave@750176a 代码上仍能抓到违规帧",
+      "paths": [
+        "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\baseline_prefix\\frames.json",
+        "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\baseline_prefix\\summary.json"
+      ],
+      "exists": [
+        true,
+        true
+      ],
+      "sampling": "rAF ≈16.7ms/帧；窗口 = 首次点击 → 末次点击 + 421ms/步 + 200ms",
+      "window_summary": "6 组序列 / 触发前 60ms 起录 / 尾 400ms 收尾",
+      "quantitative": {
+        "criteria": "违规帧 = 目标视图≠treemap 且（twHidden=false ∨ opacity>0 ∨ 命中落在 treemap 内）",
+        "totals": {
+          "badFramesInWindow": 128,
+          "framesInWindow": 488,
+          "flashEvents": 7
+        },
+        "per_sequence": [
+          {
+            "id": "s1_tm2rank2table",
+            "frames_total": 85,
+            "frames_in_window": 66,
+            "frames_pre": 6,
+            "frames_post": 13,
+            "badFramesInWindow": 20,
+            "flashEventsInWindow": 1,
+            "badByTarget": {
+              "ranking": 10,
+              "table": 10
+            },
+            "firstBad": {
+              "ts": 105,
+              "twHidden": false,
+              "twOpacity": "1",
+              "twDisplay": "block",
+              "twVis": "visible",
+              "twZ": "auto",
+              "twClass": "treemap-wrap v-crossfade",
+              "tbHidden": false,
+              "tbClass": "table-wrap v-crossfade",
+              "hit": "treemap-canvas",
+              "inTm": true,
+              "activeView": "btn-view-ranking",
+              "mode": "ranking",
+              "acts": 8,
+              "crossfadeAt": null,
+              "crossfadeTarget": null,
+              "stepIdx": 0,
+              "targetMode": "ranking",
+              "phase": "in_window",
+              "violation": true,
+              "reasons": [
+                "tw-not-hidden",
+                "tw-displayed",
+                "hit-treemap"
+              ]
+            },
+            "window": {
+              "triggerTs": 85,
+              "windowEnd": 1175,
+              "clicks": [
+                {
+                  "m": "ranking",
+                  "ts": 105
+                },
+                {
+                  "m": "table",
+                  "ts": 554
+                }
+              ]
+            },
+            "finalState": {
+              "activeView": "btn-view-table",
+              "twHidden": true,
+              "twDisplay": "none",
+              "twZ": "auto",
+              "twClass": "treemap-wrap",
+              "tbHidden": false,
+              "tbDisplay": "block",
+              "tbZ": "auto",
+              "tbClass": "table-wrap",
+              "visibleCanvas": 0
+            }
+          },
+          {
+            "id": "s2_tm2relate2rank",
+            "frames_total": 83,
+            "frames_in_window": 64,
+            "frames_pre": 5,
+            "frames_post": 14,
+            "badFramesInWindow": 17,
+            "flashEventsInWindow": 1,
+            "badByTarget": {
+              "relate": 9,
+              "ranking": 8
+            },
+            "firstBad": {
+              "ts": 83,
+              "twHidden": false,
+              "twOpacity": "1",
+              "twDisplay": "block",
+              "twVis": "visible",
+              "twZ": "auto",
+              "twClass": "treemap-wrap v-crossfade",
+              "tbHidden": false,
+              "tbClass": "table-wrap v-crossfade",
+              "hit": "treemap-canvas",
+              "inTm": true,
+              "activeView": "btn-view-relate",
+              "mode": "relate",
+              "acts": 2,
+              "crossfadeAt": null,
+              "crossfadeTarget": null,
+              "stepIdx": 0,
+              "targetMode": "relate",
+              "phase": "in_window",
+              "violation": true,
+              "reasons": [
+                "tw-not-hidden",
+                "tw-displayed",
+                "hit-treemap"
+              ]
+            },
+            "window": {
+              "triggerTs": 77,
+              "windowEnd": 1146,
+              "clicks": [
+                {
+                  "m": "relate",
+                  "ts": 82
+                },
+                {
+                  "m": "ranking",
+                  "ts": 525
+                }
+              ]
+            },
+            "finalState": {
+              "activeView": "btn-view-ranking",
+              "twHidden": true,
+              "twDisplay": "none",
+              "twZ": "auto",
+              "twClass": "treemap-wrap",
+              "tbHidden": false,
+              "tbDisplay": "block",
+              "tbZ": "auto",
+              "tbClass": "table-wrap",
+              "visibleCanvas": 0
+            }
+          },
+          {
+            "id": "s3_rank2table2relate",
+            "frames_total": 82,
+            "frames_in_window": 64,
+            "frames_pre": 5,
+            "frames_post": 13,
+            "badFramesInWindow": 16,
+            "flashEventsInWindow": 1,
+            "badByTarget": {
+              "table": 8,
+              "relate": 8
+            },
+            "firstBad": {
+              "ts": 98,
+              "twHidden": false,
+              "twOpacity": "1",
+              "twDisplay": "block",
+              "twVis": "visible",
+              "twZ": "auto",
+              "twClass": "treemap-wrap v-crossfade",
+              "tbHidden": false,
+              "tbClass": "table-wrap v-crossfade",
+              "hit": "treemap-canvas",
+              "inTm": true,
+              "activeView": "btn-view-table",
+              "mode": "table",
+              "acts": 8,
+              "crossfadeAt": null,
+              "crossfadeTarget": null,
+              "stepIdx": 0,
+              "targetMode": "table",
+              "phase": "in_window",
+              "violation": true,
+              "reasons": [
+                "tw-not-hidden",
+                "tw-displayed",
+                "hit-treemap"
+              ]
+            },
+            "window": {
+              "triggerTs": 83,
+              "windowEnd": 1150,
+              "clicks": [
+                {
+                  "m": "table",
+                  "ts": 94
+                },
+                {
+                  "m": "relate",
+                  "ts": 529
+                }
+              ]
+            },
+            "finalState": {
+              "activeView": "btn-view-relate",
+              "twHidden": true,
+              "twDisplay": "none",
+              "twZ": "auto",
+              "twClass": "treemap-wrap",
+              "tbHidden": false,
+              "tbDisplay": "block",
+              "tbZ": "auto",
+              "tbClass": "table-wrap",
+              "visibleCanvas": 0
+            }
+          },
+          {
+            "id": "s4_relate2table2treemap",
+            "frames_total": 82,
+            "frames_in_window": 63,
+            "frames_pre": 5,
+            "frames_post": 14,
+            "badFramesInWindow": 9,
+            "flashEventsInWindow": 0,
+            "badByTarget": {
+              "table": 9
+            },
+            "firstBad": {
+              "ts": 89,
+              "twHidden": false,
+              "twOpacity": "1",
+              "twDisplay": "block",
+              "twVis": "visible",
+              "twZ": "auto",
+              "twClass": "treemap-wrap v-crossfade",
+              "tbHidden": false,
+              "tbClass": "table-wrap v-crossfade",
+              "hit": "treemap-canvas",
+              "inTm": true,
+              "activeView": "btn-view-table",
+              "mode": "table",
+              "acts": 8,
+              "crossfadeAt": null,
+              "crossfadeTarget": null,
+              "stepIdx": 0,
+              "targetMode": "table",
+              "phase": "in_window",
+              "violation": true,
+              "reasons": [
+                "tw-not-hidden",
+                "tw-displayed",
+                "hit-treemap"
+              ]
+            },
+            "window": {
+              "triggerTs": 79,
+              "windowEnd": 1137,
+              "clicks": [
+                {
+                  "m": "table",
+                  "ts": 85
+                },
+                {
+                  "m": "treemap",
+                  "ts": 516
+                }
+              ]
+            },
+            "finalState": {
+              "activeView": "btn-view-treemap",
+              "twHidden": false,
+              "twDisplay": "block",
+              "twZ": "auto",
+              "twClass": "treemap-wrap",
+              "tbHidden": false,
+              "tbDisplay": "none",
+              "tbZ": "auto",
+              "tbClass": "table-wrap hidden",
+              "visibleCanvas": 2
+            }
+          },
+          {
+            "id": "s5_tm2rank2table2relate2rank2table2treemap",
+            "frames_total": 189,
+            "frames_in_window": 169,
+            "frames_pre": 6,
+            "frames_post": 14,
+            "badFramesInWindow": 42,
+            "flashEventsInWindow": 4,
+            "badByTarget": {
+              "ranking": 17,
+              "table": 17,
+              "relate": 8
+            },
+            "firstBad": {
+              "ts": 97,
+              "twHidden": false,
+              "twOpacity": "1",
+              "twDisplay": "block",
+              "twVis": "visible",
+              "twZ": "auto",
+              "twClass": "treemap-wrap v-crossfade",
+              "tbHidden": false,
+              "tbClass": "table-wrap v-crossfade",
+              "hit": "treemap-canvas",
+              "inTm": true,
+              "activeView": "btn-view-ranking",
+              "mode": "ranking",
+              "acts": 8,
+              "crossfadeAt": null,
+              "crossfadeTarget": null,
+              "stepIdx": 0,
+              "targetMode": "ranking",
+              "phase": "in_window",
+              "violation": true,
+              "reasons": [
+                "tw-not-hidden",
+                "tw-displayed",
+                "hit-treemap"
+              ]
+            },
+            "window": {
+              "triggerTs": 82,
+              "windowEnd": 2907,
+              "clicks": [
+                {
+                  "m": "ranking",
+                  "ts": 93
+                },
+                {
+                  "m": "table",
+                  "ts": 529
+                },
+                {
+                  "m": "relate",
+                  "ts": 964
+                },
+                {
+                  "m": "ranking",
+                  "ts": 1407
+                },
+                {
+                  "m": "table",
+                  "ts": 1852
+                },
+                {
+                  "m": "treemap",
+                  "ts": 2286
+                }
+              ]
+            },
+            "finalState": {
+              "activeView": "btn-view-treemap",
+              "twHidden": false,
+              "twDisplay": "block",
+              "twZ": "auto",
+              "twClass": "treemap-wrap",
+              "tbHidden": false,
+              "tbDisplay": "none",
+              "tbZ": "auto",
+              "tbClass": "table-wrap hidden",
+              "visibleCanvas": 2
+            }
+          },
+          {
+            "id": "s6_burst30ms",
+            "frames_total": 90,
+            "frames_in_window": 62,
+            "frames_pre": 7,
+            "frames_post": 21,
+            "badFramesInWindow": 24,
+            "flashEventsInWindow": 0,
+            "badByTarget": {
+              "ranking": 8,
+              "table": 13,
+              "relate": 3
+            },
+            "firstBad": {
+              "ts": 104,
+              "twHidden": false,
+              "twOpacity": "1",
+              "twDisplay": "block",
+              "twVis": "visible",
+              "twZ": "auto",
+              "twClass": "treemap-wrap v-crossfade",
+              "tbHidden": false,
+              "tbClass": "table-wrap v-crossfade",
+              "hit": "treemap-canvas",
+              "inTm": true,
+              "activeView": "btn-view-ranking",
+              "mode": "ranking",
+              "acts": 8,
+              "crossfadeAt": null,
+              "crossfadeTarget": null,
+              "stepIdx": 0,
+              "targetMode": "ranking",
+              "phase": "in_window",
+              "violation": true,
+              "reasons": [
+                "tw-not-hidden",
+                "tw-displayed",
+                "hit-treemap"
+              ]
+            },
+            "window": {
+              "triggerTs": 82,
+              "windowEnd": 1124,
+              "clicks": [
+                {
+                  "m": "ranking",
+                  "ts": 101
+                },
+                {
+                  "m": "table",
+                  "ts": 125
+                },
+                {
+                  "m": "relate",
+                  "ts": 155
+                },
+                {
+                  "m": "ranking",
+                  "ts": 186
+                },
+                {
+                  "m": "table",
+                  "ts": 212
+                },
+                {
+                  "m": "treemap",
+                  "ts": 247
+                },
+                {
+                  "m": "ranking",
+                  "ts": 274
+                },
+                {
+                  "m": "table",
+                  "ts": 307
+                },
+                {
+                  "m": "relate",
+                  "ts": 340
+                },
+                {
+                  "m": "treemap",
+                  "ts": 371
+                },
+                {
+                  "m": "ranking",
+                  "ts": 402
+                },
+                {
+                  "m": "table",
+                  "ts": 424
+                }
+              ]
+            },
+            "finalState": {
+              "activeView": "btn-view-table",
+              "twHidden": true,
+              "twDisplay": "none",
+              "twZ": "auto",
+              "twClass": "treemap-wrap",
+              "tbHidden": false,
+              "tbDisplay": "block",
+              "tbZ": "auto",
+              "tbClass": "table-wrap",
+              "visibleCanvas": 0
+            }
+          }
+        ],
+        "crossfade": {
+          "overlayFrames": 8,
+          "zIncoming": "auto",
+          "zOutgoing": "auto",
+          "enteringOnTop": false,
+          "peNoneDuring": false,
+          "pass": false
+        },
+        "hover": {
+          "rows": 6,
+          "control_paint_delta": 0,
+          "hover_paint_delta": 70,
+          "hidden_paint_delta": 70,
+          "pass": false
+        },
+        "skeleton": {
+          "viewArea": {
+            "w": 1018,
+            "h": 391
+          },
+          "overlay": {
+            "w": 1016,
+            "h": 389
+          },
+          "tol": 2,
+          "overlay_z": "5",
+          "overlay_pos": "absolute",
+          "treemap_z": "auto",
+          "hitIsOverlay": true,
+          "coversViewArea": true,
+          "pass": true
+        },
+        "checks": [
+          {
+            "name": "探针有效窗口：每组序列 rAF ≥60 帧（最小 82）",
+            "pass": true
+          },
+          {
+            "name": "DoD1 全部序列窗口内 0 违规帧（实际 128 / 窗口内 488 帧）",
+            "pass": false
+          },
+          {
+            "name": "DoD2 矩形图↔列表 120ms 交叉淡化保留（入向在上 + pointer-events 收束）",
+            "pass": false
+          },
+          {
+            "name": "DoD3 30ms 连点 12 次无闪烁式重现（违规 24 / 重现事件 0）",
+            "pass": false
+          },
+          {
+            "name": "DoD4 隐藏态 hover 列表行不触发矩形图重绘（6 行；绘制调用 Δ 对照 0/0，hover 70/70（总量/隐藏期））",
+            "pass": false
+          },
+          {
+            "name": "DoD5 骨架屏覆盖视区且层序在矩形图之上",
+            "pass": true
+          },
+          {
+            "name": "console/pageerror 0",
+            "pass": true,
+            "detail": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "A-postfix",
+      "kind": "A",
+      "purpose": "修复后复测（同一支探针、同一判据）：窗口内 0 违规 / 0 闪烁",
+      "paths": [
+        "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\postfix\\frames.json",
+        "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\postfix\\summary.json"
+      ],
+      "exists": [
+        true,
+        true
+      ],
+      "sampling": "rAF ≈16.7ms/帧；窗口 = 首次点击 → 末次点击 + 421ms/步 + 200ms",
+      "window_summary": "6 组序列 / 触发前 60ms 起录 / 尾 400ms 收尾",
+      "quantitative": {
+        "criteria": "违规帧 = 目标视图≠treemap 且（twHidden=false ∨ opacity>0 ∨ 命中落在 treemap 内）",
+        "totals": {
+          "badFramesInWindow": 0,
+          "framesInWindow": 486,
+          "flashEvents": 0
+        },
+        "per_sequence": [
+          {
+            "id": "s1_tm2rank2table",
+            "frames_total": 83,
+            "frames_in_window": 64,
+            "frames_pre": 6,
+            "frames_post": 13,
+            "badFramesInWindow": 0,
+            "flashEventsInWindow": 0,
+            "badByTarget": {},
+            "firstBad": null,
+            "window": {
+              "triggerTs": 83,
+              "windowEnd": 1151,
+              "clicks": [
+                {
+                  "m": "ranking",
+                  "ts": 99
+                },
+                {
+                  "m": "table",
+                  "ts": 530
+                }
+              ]
+            },
+            "finalState": {
+              "activeView": "btn-view-table",
+              "twHidden": true,
+              "twDisplay": "none",
+              "twZ": "1",
+              "twClass": "treemap-wrap",
+              "tbHidden": false,
+              "tbDisplay": "block",
+              "tbZ": "1",
+              "tbClass": "table-wrap",
+              "visibleCanvas": 0
+            }
+          },
+          {
+            "id": "s2_tm2relate2rank",
+            "frames_total": 82,
+            "frames_in_window": 64,
+            "frames_pre": 5,
+            "frames_post": 13,
+            "badFramesInWindow": 0,
+            "flashEventsInWindow": 0,
+            "badByTarget": {},
+            "firstBad": null,
+            "window": {
+              "triggerTs": 87,
+              "windowEnd": 1163,
+              "clicks": [
+                {
+                  "m": "relate",
+                  "ts": 98
+                },
+                {
+                  "m": "ranking",
+                  "ts": 542
+                }
+              ]
+            },
+            "finalState": {
+              "activeView": "btn-view-ranking",
+              "twHidden": true,
+              "twDisplay": "none",
+              "twZ": "1",
+              "twClass": "treemap-wrap",
+              "tbHidden": false,
+              "tbDisplay": "block",
+              "tbZ": "1",
+              "tbClass": "table-wrap",
+              "visibleCanvas": 0
+            }
+          },
+          {
+            "id": "s3_rank2table2relate",
+            "frames_total": 82,
+            "frames_in_window": 64,
+            "frames_pre": 5,
+            "frames_post": 13,
+            "badFramesInWindow": 0,
+            "flashEventsInWindow": 0,
+            "badByTarget": {},
+            "firstBad": null,
+            "window": {
+              "triggerTs": 80,
+              "windowEnd": 1158,
+              "clicks": [
+                {
+                  "m": "table",
+                  "ts": 90
+                },
+                {
+                  "m": "relate",
+                  "ts": 537
+                }
+              ]
+            },
+            "finalState": {
+              "activeView": "btn-view-relate",
+              "twHidden": true,
+              "twDisplay": "none",
+              "twZ": "1",
+              "twClass": "treemap-wrap",
+              "tbHidden": false,
+              "tbDisplay": "block",
+              "tbZ": "1",
+              "tbClass": "table-wrap",
+              "visibleCanvas": 0
+            }
+          },
+          {
+            "id": "s4_relate2table2treemap",
+            "frames_total": 81,
+            "frames_in_window": 63,
+            "frames_pre": 5,
+            "frames_post": 13,
+            "badFramesInWindow": 0,
+            "flashEventsInWindow": 0,
+            "badByTarget": {},
+            "firstBad": null,
+            "window": {
+              "triggerTs": 79,
+              "windowEnd": 1141,
+              "clicks": [
+                {
+                  "m": "table",
+                  "ts": 85
+                },
+                {
+                  "m": "treemap",
+                  "ts": 520
+                }
+              ]
+            },
+            "finalState": {
+              "activeView": "btn-view-treemap",
+              "twHidden": false,
+              "twDisplay": "block",
+              "twZ": "1",
+              "twClass": "treemap-wrap",
+              "tbHidden": false,
+              "tbDisplay": "none",
+              "tbZ": "1",
+              "tbClass": "table-wrap hidden",
+              "visibleCanvas": 2
+            }
+          },
+          {
+            "id": "s5_tm2rank2table2relate2rank2table2treemap",
+            "frames_total": 187,
+            "frames_in_window": 169,
+            "frames_pre": 5,
+            "frames_post": 13,
+            "badFramesInWindow": 0,
+            "flashEventsInWindow": 0,
+            "badByTarget": {},
+            "firstBad": null,
+            "window": {
+              "triggerTs": 78,
+              "windowEnd": 2887,
+              "clicks": [
+                {
+                  "m": "ranking",
+                  "ts": 83
+                },
+                {
+                  "m": "table",
+                  "ts": 521
+                },
+                {
+                  "m": "relate",
+                  "ts": 961
+                },
+                {
+                  "m": "ranking",
+                  "ts": 1401
+                },
+                {
+                  "m": "table",
+                  "ts": 1830
+                },
+                {
+                  "m": "treemap",
+                  "ts": 2266
+                }
+              ]
+            },
+            "finalState": {
+              "activeView": "btn-view-treemap",
+              "twHidden": false,
+              "twDisplay": "block",
+              "twZ": "1",
+              "twClass": "treemap-wrap",
+              "tbHidden": false,
+              "tbDisplay": "none",
+              "tbZ": "1",
+              "tbClass": "table-wrap hidden",
+              "visibleCanvas": 2
+            }
+          },
+          {
+            "id": "s6_burst30ms",
+            "frames_total": 90,
+            "frames_in_window": 62,
+            "frames_pre": 7,
+            "frames_post": 21,
+            "badFramesInWindow": 0,
+            "flashEventsInWindow": 0,
+            "badByTarget": {},
+            "firstBad": null,
+            "window": {
+              "triggerTs": 85,
+              "windowEnd": 1124,
+              "clicks": [
+                {
+                  "m": "ranking",
+                  "ts": 100
+                },
+                {
+                  "m": "table",
+                  "ts": 125
+                },
+                {
+                  "m": "relate",
+                  "ts": 156
+                },
+                {
+                  "m": "ranking",
+                  "ts": 187
+                },
+                {
+                  "m": "table",
+                  "ts": 218
+                },
+                {
+                  "m": "treemap",
+                  "ts": 249
+                },
+                {
+                  "m": "ranking",
+                  "ts": 275
+                },
+                {
+                  "m": "table",
+                  "ts": 307
+                },
+                {
+                  "m": "relate",
+                  "ts": 341
+                },
+                {
+                  "m": "treemap",
+                  "ts": 375
+                },
+                {
+                  "m": "ranking",
+                  "ts": 395
+                },
+                {
+                  "m": "table",
+                  "ts": 424
+                }
+              ]
+            },
+            "finalState": {
+              "activeView": "btn-view-table",
+              "twHidden": true,
+              "twDisplay": "none",
+              "twZ": "1",
+              "twClass": "treemap-wrap",
+              "tbHidden": false,
+              "tbDisplay": "block",
+              "tbZ": "1",
+              "tbClass": "table-wrap",
+              "visibleCanvas": 0
+            }
+          }
+        ],
+        "crossfade": {
+          "overlayFrames": 9,
+          "xfadePhaseFrames": 9,
+          "midOpacityFrames": 7,
+          "zIncoming": "3",
+          "zOutgoing": "2",
+          "enteringOnTop": true,
+          "peNoneDuring": true,
+          "finalZ": {
+            "twZ": "1",
+            "twPE": "auto",
+            "tbDisplay": "none",
+            "twHidden": false,
+            "tbHasHiddenClass": true
+          },
+          "pass": true
+        },
+        "hover": {
+          "rows": 6,
+          "criteria": "hover 相位内 canvas 2D 绘制调用增量 == 0（其中矩形图隐藏期增量 == 0）",
+          "control_paint_delta": 0,
+          "hover_paint_delta": 0,
+          "hidden_paint_delta": 0,
+          "proxy": "0x0/none",
+          "pass": true
+        },
+        "skeleton": {
+          "viewArea": {
+            "w": 1018,
+            "h": 391
+          },
+          "overlay": {
+            "w": 1016,
+            "h": 389
+          },
+          "tol": 2,
+          "overlay_z": "5",
+          "overlay_pos": "absolute",
+          "treemap_z": "1",
+          "hitIsOverlay": true,
+          "coversViewArea": true,
+          "pass": true
+        },
+        "checks": [
+          {
+            "name": "探针有效窗口：每组序列 rAF ≥60 帧（最小 81）",
+            "pass": true
+          },
+          {
+            "name": "DoD1 全部序列窗口内 0 违规帧（实际 0 / 窗口内 486 帧）",
+            "pass": true
+          },
+          {
+            "name": "DoD2 矩形图↔列表 120ms 交叉淡化保留（入向在上 + pointer-events 收束）",
+            "pass": true
+          },
+          {
+            "name": "DoD3 30ms 连点 12 次无闪烁式重现（违规 0 / 重现事件 0）",
+            "pass": true
+          },
+          {
+            "name": "DoD4 隐藏态 hover 列表行不触发矩形图重绘（6 行；绘制调用 Δ 对照 0/0，hover 0/0（总量/隐藏期））",
+            "pass": true
+          },
+          {
+            "name": "DoD5 骨架屏覆盖视区且层序在矩形图之上",
+            "pass": true
+          },
+          {
+            "name": "console/pageerror 0",
+            "pass": true,
+            "detail": ""
+          }
+        ]
+      }
+    },
+    {
+      "id": "B-screencast",
+      "kind": "B",
+      "purpose": "CDP screencast 像素级帧序列：证明 120ms 交叉淡化确实发生且方向正确（混合进度单调上升）",
+      "paths": [
+        "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\frame_analysis.json",
+        "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\timeline.json",
+        "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\screencast-frames"
+      ],
+      "exists": [
+        true,
+        true,
+        true
+      ],
+      "sampling": "CDP Page.startScreencast（JPEG q=80，everyNthFrame=1）+ 1×1 像素心跳维持合成器损伤；实测均值 17.7ms/帧",
+      "window_summary": "总时长 2200ms；触发（切回矩形图）于 ts=382ms；ts 范围 [34,2178]",
+      "quantitative": {
+        "raw_frames": 122,
+        "unique_frames": 37,
+        "duplicates_dropped": 85,
+        "counts": {
+          "total": 37,
+          "blended": 10,
+          "listLike": 4,
+          "treemapLike": 21,
+          "other": 2,
+          "max_frac_like_treemap": 0.9705,
+          "last_frame_frac_like_list": 0.585
+        },
+        "calibration": {
+          "aLen": 139084,
+          "bLen": 157520,
+          "err": null,
+          "aSize": [
+            1366,
+            768
+          ],
+          "treemapRefAsJpeg": {
+            "frac_like_treemap": 0.9698,
+            "frac_like_list": 0.5858,
+            "kind": "treemapLike"
+          },
+          "listRefAsJpeg": {
+            "frac_like_treemap": 0.5861,
+            "frac_like_list": 0.9678,
+            "kind": "listLike"
+          }
+        },
+        "blend_progress": [
+          {
+            "seq": 28,
+            "ts": 509,
+            "frac_pixels_matching_treemap": 0.0169,
+            "frac_pixels_matching_list": 0.8843
+          },
+          {
+            "seq": 31,
+            "ts": 561,
+            "frac_pixels_matching_treemap": 0.2012,
+            "frac_pixels_matching_list": 0.7768
+          },
+          {
+            "seq": 32,
+            "ts": 581,
+            "frac_pixels_matching_treemap": 0.2367,
+            "frac_pixels_matching_list": 0.7487
+          },
+          {
+            "seq": 33,
+            "ts": 599,
+            "frac_pixels_matching_treemap": 0.2626,
+            "frac_pixels_matching_list": 0.7245
+          },
+          {
+            "seq": 34,
+            "ts": 616,
+            "frac_pixels_matching_treemap": 0.2859,
+            "frac_pixels_matching_list": 0.7026
+          },
+          {
+            "seq": 35,
+            "ts": 635,
+            "frac_pixels_matching_treemap": 0.3045,
+            "frac_pixels_matching_list": 0.6855
+          },
+          {
+            "seq": 36,
+            "ts": 651,
+            "frac_pixels_matching_treemap": 0.3207,
+            "frac_pixels_matching_list": 0.6706
+          },
+          {
+            "seq": 37,
+            "ts": 668,
+            "frac_pixels_matching_treemap": 0.3338,
+            "frac_pixels_matching_list": 0.656
+          },
+          {
+            "seq": 38,
+            "ts": 688,
+            "frac_pixels_matching_treemap": 0.3444,
+            "frac_pixels_matching_list": 0.6461
+          },
+          {
+            "seq": 39,
+            "ts": 706,
+            "frac_pixels_matching_treemap": 0.3526,
+            "frac_pixels_matching_list": 0.6377
+          }
+        ],
+        "endState": {
+          "twHidden": false,
+          "twOpacity": "1",
+          "tbDisplay": "none",
+          "activeView": "btn-view-treemap"
+        },
+        "heartbeat_ticks": 139,
+        "checks": [
+          {
+            "name": "screencast 原始帧数 ≥20（实际 122）",
+            "pass": true
+          },
+          {
+            "name": "波形帧率 ≤40ms/帧（实测均值 17.7ms）",
+            "pass": true
+          },
+          {
+            "name": "唯一像素帧 ≥12（去重后 37，丢弃重复 85）",
+            "pass": true
+          },
+          {
+            "name": "存在真实混合帧（≥3，实际 10）",
+            "pass": true
+          },
+          {
+            "name": "交叉淡化方向正确：混合进度非降",
+            "pass": true
+          },
+          {
+            "name": "阈值自证：矩形图参照 JPEG→treemapLike（frac_like_treemap=0.9698）",
+            "pass": true
+          },
+          {
+            "name": "阈值自证：列表参照 JPEG→listLike（frac_like_list=0.9678）",
+            "pass": true
+          },
+          {
+            "name": "触发前有列表态帧（4）且末帧达到矩形图态（末帧 frac_like_treemap=0.9665，峰值 0.9705）",
+            "pass": true
+          },
+          {
+            "name": "DOM 终态与末帧像素一致（activeView=btn-view-treemap，twHidden=false）",
+            "pass": true
+          },
+          {
+            "name": "console/pageerror 0",
+            "pass": true,
+            "detail": ""
+          }
+        ]
+      },
+      "note": "⚠️ 已证伪并作废的旧判据：隐藏态 canvas 的 getImageData 像素签名（display:none 的 canvas 位图后备存储会在指针重入文档时被浏览器丢弃/重建，与页面代码无关）。现口径 = 页内 canvas 2D 绘制调用拦截 + 隐藏容器代理几何。"
+    },
+    {
+      "id": "C-viewports",
+      "kind": "C",
+      "purpose": "三视口（1366×768 / 1440×900 / 1920×1080）矩形图终态截图 + 画布像素统计（防空白画布被当 PASS）",
+      "paths": [
+        "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\viewport_shots\\viewports.json",
+        "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\viewport_shots\\viewport-1366x768.png",
+        "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\viewport_shots\\viewport-1440x900.png",
+        "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\viewport_shots\\viewport-1920x1080.png"
+      ],
+      "exists": [
+        true,
+        true,
+        true,
+        true
+      ],
+      "sampling": "各视口 page.screenshot（终态静态，非动画中间态——中间态一律走 B 类 screencast）",
+      "window_summary": "加载后等待 1000ms 终态收敛再截图",
+      "quantitative": {
+        "viewports": [
+          {
+            "viewport": [
+              1366,
+              768
+            ],
+            "dpr": 1,
+            "viewArea": [
+              1018,
+              391
+            ],
+            "treemapWrap": [
+              1018,
+              391
+            ],
+            "canvasCss": [
+              1016,
+              389
+            ],
+            "canvasDevice": [
+              1016,
+              389
+            ],
+            "tw": {
+              "hidden": false,
+              "display": "block",
+              "opacity": "1",
+              "z": "1"
+            },
+            "tbDisplay": "none",
+            "pixelStats": {
+              "sampled": 120000,
+              "nonBgRatio": 1,
+              "lumStdDev": 8.161
+            },
+            "activeView": "btn-view-treemap",
+            "pass": true
+          },
+          {
+            "viewport": [
+              1440,
+              900
+            ],
+            "dpr": 1,
+            "viewArea": [
+              1076,
+              519
+            ],
+            "treemapWrap": [
+              1076,
+              519
+            ],
+            "canvasCss": [
+              1074,
+              517
+            ],
+            "canvasDevice": [
+              1074,
+              517
+            ],
+            "tw": {
+              "hidden": false,
+              "display": "block",
+              "opacity": "1",
+              "z": "1"
+            },
+            "tbDisplay": "none",
+            "pixelStats": {
+              "sampled": 120000,
+              "nonBgRatio": 1,
+              "lumStdDev": 8.161
+            },
+            "activeView": "btn-view-treemap",
+            "pass": true
+          },
+          {
+            "viewport": [
+              1920,
+              1080
+            ],
+            "dpr": 1,
+            "viewArea": [
+              1556,
+              699
+            ],
+            "treemapWrap": [
+              1556,
+              699
+            ],
+            "canvasCss": [
+              1554,
+              697
+            ],
+            "canvasDevice": [
+              1554,
+              697
+            ],
+            "tw": {
+              "hidden": false,
+              "display": "block",
+              "opacity": "1",
+              "z": "1"
+            },
+            "tbDisplay": "none",
+            "pixelStats": {
+              "sampled": 120000,
+              "nonBgRatio": 1,
+              "lumStdDev": 8.161
+            },
+            "activeView": "btn-view-treemap",
+            "pass": true
+          }
+        ],
+        "checks": [
+          {
+            "name": "视口 1366×768（DPR 1）：矩形图终态 + 表格隐藏 + 非空白画布（非背景像素 1，亮度 σ=8.161，tooltip 已隐藏=true）",
+            "pass": true,
+            "detail": "{\"tw\":[false,\"block\",\"1\"],\"tb\":\"none\",\"px\":{\"sampled\":120000,\"nonBgRatio\":1,\"lumStdDev\":8.161},\"hygiene\":{\"tooltipExists\":true,\"tooltipHidden\":true,\"tooltipText\":\"\"},\"errs\":[]}"
+          },
+          {
+            "name": "视口 1440×900（DPR 1）：矩形图终态 + 表格隐藏 + 非空白画布（非背景像素 1，亮度 σ=8.161，tooltip 已隐藏=true）",
+            "pass": true,
+            "detail": "{\"tw\":[false,\"block\",\"1\"],\"tb\":\"none\",\"px\":{\"sampled\":120000,\"nonBgRatio\":1,\"lumStdDev\":8.161},\"hygiene\":{\"tooltipExists\":true,\"tooltipHidden\":true,\"tooltipText\":\"\"},\"errs\":[]}"
+          },
+          {
+            "name": "视口 1920×1080（DPR 1）：矩形图终态 + 表格隐藏 + 非空白画布（非背景像素 1，亮度 σ=8.161，tooltip 已隐藏=true）",
+            "pass": true,
+            "detail": "{\"tw\":[false,\"block\",\"1\"],\"tb\":\"none\",\"px\":{\"sampled\":120000,\"nonBgRatio\":1,\"lumStdDev\":8.161},\"hygiene\":{\"tooltipExists\":true,\"tooltipHidden\":true,\"tooltipText\":\"\"},\"errs\":[]}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "redline-B-datadir",
+      "kind": "redline",
+      "purpose": "红线 B：跑测前后用户真实数据目录 %LOCALAPPDATA%\\PythonDiskScanner 文件清单 + mtime 零变化",
+      "paths": [
+        "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\_datadir_baseline_prerun.json"
+      ],
+      "exists": [
+        true
+      ],
+      "sampling": "跑测前一次全量清单（文件数 / 字节数 / LastWriteTimeUtc）",
+      "window_summary": "基线快照；收尾与收尾后清单逐项比对",
+      "quantitative": {
+        "baselineCount": 43,
+        "baselineBytes": 5361990
+      }
+    }
+  ],
+  "images": {
+    "count": 11,
+    "root": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2",
+    "items": [
+      {
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\viewport_shots\\viewport-1366x768.png",
+        "rel": "viewport_shots/viewport-1366x768.png",
+        "kind": "C",
+        "purpose": "三视口矩形图终态（1366×768，DPR 1）",
+        "bytes": 107970
+      },
+      {
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\viewport_shots\\viewport-1440x900.png",
+        "rel": "viewport_shots/viewport-1440x900.png",
+        "kind": "C",
+        "purpose": "三视口矩形图终态（1440×900，DPR 1）",
+        "bytes": 125464
+      },
+      {
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\viewport_shots\\viewport-1920x1080.png",
+        "rel": "viewport_shots/viewport-1920x1080.png",
+        "kind": "C",
+        "purpose": "三视口矩形图终态（1920×1080，DPR 1）",
+        "bytes": 153918
+      },
+      {
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\refs\\refTreemap.png",
+        "rel": "screencast/refs/refTreemap.png",
+        "kind": "B-ref",
+        "purpose": "像素分类参照：矩形图稳定态",
+        "bytes": 104313
+      },
+      {
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\refs\\refRanking.png",
+        "rel": "screencast/refs/refRanking.png",
+        "kind": "B-ref",
+        "purpose": "像素分类参照：列表稳定态",
+        "bytes": 118139
+      },
+      {
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\refs\\refListSelfCheck.png",
+        "rel": "screencast/refs/refListSelfCheck.png",
+        "kind": "B-ref",
+        "purpose": "阈值自证用第二张列表态参照",
+        "bytes": 115926
+      },
+      {
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\screencast-frames\\frame-0027-493ms.jpg",
+        "rel": "screencast/screencast-frames/frame-0027-493ms.jpg",
+        "kind": "B-key",
+        "purpose": "交叉淡化关键帧 list-before-trigger（ts=493ms，listLike）",
+        "bytes": 74926
+      },
+      {
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\screencast-frames\\frame-0028-509ms.jpg",
+        "rel": "screencast/screencast-frames/frame-0028-509ms.jpg",
+        "kind": "B-key",
+        "purpose": "交叉淡化关键帧 blend-first（ts=509ms，blended）",
+        "bytes": 75473
+      },
+      {
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\screencast-frames\\frame-0035-635ms.jpg",
+        "rel": "screencast/screencast-frames/frame-0035-635ms.jpg",
+        "kind": "B-key",
+        "purpose": "交叉淡化关键帧 blend-mid（ts=635ms，blended）",
+        "bytes": 79542
+      },
+      {
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\screencast-frames\\frame-0039-706ms.jpg",
+        "rel": "screencast/screencast-frames/frame-0039-706ms.jpg",
+        "kind": "B-key",
+        "purpose": "交叉淡化关键帧 blend-last（ts=706ms，blended）",
+        "bytes": 80034
+      },
+      {
+        "path": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\screencast-frames\\frame-0062-1114ms.jpg",
+        "rel": "screencast/screencast-frames/frame-0062-1114ms.jpg",
+        "kind": "B-key",
+        "purpose": "交叉淡化关键帧 treemap-final（ts=1114ms，treemapLike）",
+        "bytes": 79401
+      }
+    ],
+    "key_frames": [
+      {
+        "tag": "list-before-trigger",
+        "rel": "screencast/screencast-frames\\frame-0027-493ms.jpg",
+        "abs": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\screencast-frames\\frame-0027-493ms.jpg",
+        "ts": 493,
+        "kind": "listLike",
+        "frac_pixels_matching_treemap": 0.0169,
+        "frac_pixels_matching_list": 0.9205
+      },
+      {
+        "tag": "blend-first",
+        "rel": "screencast/screencast-frames\\frame-0028-509ms.jpg",
+        "abs": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\screencast-frames\\frame-0028-509ms.jpg",
+        "ts": 509,
+        "kind": "blended",
+        "frac_pixels_matching_treemap": 0.0169,
+        "frac_pixels_matching_list": 0.8843
+      },
+      {
+        "tag": "blend-mid",
+        "rel": "screencast/screencast-frames\\frame-0035-635ms.jpg",
+        "abs": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\screencast-frames\\frame-0035-635ms.jpg",
+        "ts": 635,
+        "kind": "blended",
+        "frac_pixels_matching_treemap": 0.3045,
+        "frac_pixels_matching_list": 0.6855
+      },
+      {
+        "tag": "blend-last",
+        "rel": "screencast/screencast-frames\\frame-0039-706ms.jpg",
+        "abs": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\screencast-frames\\frame-0039-706ms.jpg",
+        "ts": 706,
+        "kind": "blended",
+        "frac_pixels_matching_treemap": 0.3526,
+        "frac_pixels_matching_list": 0.6377
+      },
+      {
+        "tag": "treemap-final",
+        "rel": "screencast/screencast-frames\\frame-0062-1114ms.jpg",
+        "abs": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\screencast\\screencast-frames\\frame-0062-1114ms.jpg",
+        "ts": 1114,
+        "kind": "treemapLike",
+        "frac_pixels_matching_treemap": 0.3922,
+        "frac_pixels_matching_list": 0.601
+      }
+    ],
+    "readback": {
+      "opened": 11,
+      "method": "主代理本人 read_image 逐张打开像素判读（非文件名/非代码推断）",
+      "unique_hashes": 11,
+      "duplicates": 0,
+      "opened_list": [
+        "viewport_shots/viewport-1366x768.png",
+        "viewport_shots/viewport-1440x900.png",
+        "viewport_shots/viewport-1920x1080.png",
+        "screencast/refs/refTreemap.png",
+        "screencast/refs/refRanking.png",
+        "screencast/refs/refListSelfCheck.png",
+        "screencast/screencast-frames/frame-0027-493ms.jpg",
+        "screencast/screencast-frames/frame-0028-509ms.jpg",
+        "screencast/screencast-frames/frame-0035-635ms.jpg",
+        "screencast/screencast-frames/frame-0039-706ms.jpg",
+        "screencast/screencast-frames/frame-0062-1114ms.jpg"
+      ],
+      "verdicts": [
+        {
+          "rel": "viewport_shots/viewport-1366x768.png",
+          "verdict": "PASS",
+          "pixel_basis": "蓝色『矩形图』按钮为 primary（表格/排行/关系灰）；矩形图铺满视区，主导蓝色块 pagefile.sys 976.56 KB·95.8% 占 x≈13→760/y≈258→563，右缘窄条 archive/data/media/docs 与桩数据 4 目录 2 文件逐项吻合；矩形图边界内无白区/无残留；右栏空态『还没有空间索引』正确"
+        },
+        {
+          "rel": "viewport_shots/viewport-1440x900.png",
+          "verdict": "PASS",
+          "pixel_basis": "同终态；视区加宽至 ≈808px，archive/data 条移至 x≈735→750，media/docs 仍在右下；重排无残影、无空白画布"
+        },
+        {
+          "rel": "viewport_shots/viewport-1920x1080.png",
+          "verdict": "PASS",
+          "pixel_basis": "同终态；蓝色块 x≈22→835，右缘 archive(19.53 KB)/data(11.72 KB)/media(7.81 KB)/docs(3.91 KB) 标签齐全；侧栏与扫描卡随视口重排正常"
+        },
+        {
+          "rel": "screencast/refs/refRanking.png",
+          "verdict": "PASS(参照)",
+          "pixel_basis": "表格终态：『表格』按钮蓝、状态行『表格视图 · 共 4 个子目录 / 2 个文件』、行 pagefile.sys 976.56 KB 95.8% 文件 + archive\\/data\\/media\\/docs\\、页脚『共 6 项 已选 0 项』；视区内无任何矩形图画布（= 修复后应有的『无非矩形图视图残留』参照）"
+        },
+        {
+          "rel": "screencast/refs/refTreemap.png",
+          "verdict": "PASS(参照)",
+          "pixel_basis": "矩形图终态：蓝色块铺满，块边缘 x≈763/783/1005/1036 与底部 y≈563→633 可见；小 tiles 无标签；无表格"
+        },
+        {
+          "rel": "screencast/refs/refListSelfCheck.png",
+          "verdict": "PASS(自证参照)",
+          "pixel_basis": "独立时刻的排行态采样：『排行』按钮蓝、状态行『排行视图 · 共 4 个子目录 / 2 个文件』、右对齐尺寸 976.56/19.53/11.72/7.81/3.91 KB + 左侧占比条；与 refRanking.png 像素不同（哈希 1f45989c≠bbb3d667）→ 阈值自证样本确为独立采样"
+        },
+        {
+          "rel": "screencast/screencast-frames/frame-0027-493ms.jpg",
+          "verdict": "PASS(混合帧)",
+          "pixel_basis": "触发后早期混合帧：淡蓝块 x≈22→311/y≈266→381 叠在列表白底上（crossfade 起始）；表格列头不可辨、无文字透出，与 frac_pixels_matching_treemap=0.1959 一致"
+        },
+        {
+          "rel": "screencast/screencast-frames/frame-0028-509ms.jpg",
+          "verdict": "PASS(混合帧)",
+          "pixel_basis": "同画布蓝块更饱和且更大（x≈22→396，下缘 y≈421），右侧 x≈763/784 出现淡条、右下 y≈563→610 淡红条 → 进度严格推进（0.2323），无重启"
+        },
+        {
+          "rel": "screencast/screencast-frames/frame-0035-635ms.jpg",
+          "verdict": "PASS(混合帧)",
+          "pixel_basis": "蓝色块扩至 x≈22→685，右侧条带趋饱和，红条 y≈470→530、蓝灰帽 y≈540→565 仍略淡（frac=0.3189）；列表已被完全覆盖"
+        },
+        {
+          "rel": "screencast/screencast-frames/frame-0039-706ms.jpg",
+          "verdict": "PASS(混合帧)",
+          "pixel_basis": "接近全不透明：蓝块 x≈22→737，条带与 refTreemap 参照几乎一致；视区内无任何列表残留（frac=0.3431，与空白区占比上限一致）"
+        },
+        {
+          "rel": "screencast/screencast-frames/frame-0062-1114ms.jpg",
+          "verdict": "PASS(终帧)",
+          "pixel_basis": "终态：全不透明蓝色块含块内标签『pagefile.sys / 976.56 KB · 95.8%』(x≈20→220/y≈265→285)，右缘 arc…/data/media/docs 全饱和，与 refTreemap 参照同态；零列表残留"
+        }
+      ],
+      "methodology_note": "判读与量化互证：像素判据（B 类 frac_pixels_matching_treemap 单调 0.1959→0.3431 并最终 0.9665）与肉眼观察（蓝块由淡到饱和、由小到大）方向一致；C 类三视口的 DOM 量化（twHidden=false/opacity=1/tbDisplay=none）与截图逐项吻合。**主代理自纠**：首轮把 #treemap-wrap 的**块内标签**（paintTile 在块左上角绘制 name+size+pct）误判为『幽灵 tooltip』；经与 sha 对照（改前改后 sha 与字节数完全相同 = 像素未变）确认误读，探针的 tooltipHidden=true 断言为准，故未据此改动产品代码。"
+    }
+  }
+}

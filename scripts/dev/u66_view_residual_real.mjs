@@ -128,12 +128,15 @@ async function runBrowser(channel) {
     }, { timeout: WITH_DATA ? 30000 : 15000 }).catch(() => {});
     await page.waitForTimeout(600);
 
-    /* 高频连点：三视图来回 24 击（≥20 次）——最后一击停在 table（非 treemap 终态，
-       检测 treemap 残留的最严场景） */
+    /* 高频连点：三视图来回 24 击（≥20 次）——最后一次改为**跨视图**序列
+       （阶段P2：原结尾是 "table","table" 幂等点击，等价于重复点击当前视图，
+       既走不到交叉淡化分支，也无法暴露「非矩形图→非矩形图」残留 —— 即 R5 断言口径盲区）。
+       现在停在非 treemap 终态（detect treemap 残留的最严场景）且结尾为真实跨视图切换。
+       断言语义/阈值/采样节奏不变（仅末三次点击的目标视图不同）。 */
     const seq = [];
     const cycle = ["ranking", "table", "treemap", "ranking", "table", "treemap"];
     for (let i = 0; i < 4; i++) seq.push(...cycle);
-    seq.push("ranking", "table", "treemap", "ranking", "table", "table");
+    seq.push("ranking", "table", "relate", "ranking", "table");
     const clickLog = [];
     const t0 = Date.now();
     for (const m of seq) {

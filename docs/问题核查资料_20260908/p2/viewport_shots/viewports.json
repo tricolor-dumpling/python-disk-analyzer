@@ -1,0 +1,165 @@
+{
+  "meta": {
+    "base": "http://127.0.0.1:5000/",
+    "out": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\viewport_shots",
+    "startedAt": "2026-09-10T10:16:11.532Z"
+  },
+  "viewports": [
+    {
+      "viewport": [
+        1366,
+        768
+      ],
+      "dpr": 1,
+      "viewArea": [
+        1018,
+        391
+      ],
+      "treemapWrap": [
+        1018,
+        391
+      ],
+      "canvasCss": [
+        1016,
+        389
+      ],
+      "canvasDevice": [
+        1016,
+        389
+      ],
+      "twHidden": false,
+      "twDisplay": "block",
+      "twOpacity": "1",
+      "twZ": "1",
+      "tbDisplay": "none",
+      "fxCanvas": [
+        1016,
+        389
+      ],
+      "pixelStats": {
+        "sampled": 120000,
+        "nonBgRatio": 1,
+        "lumStdDev": 8.161
+      },
+      "activeView": "btn-view-treemap",
+      "hygiene": {
+        "tooltipExists": true,
+        "tooltipHidden": true,
+        "tooltipText": ""
+      },
+      "file": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\viewport_shots\\viewport-1366x768.png",
+      "consoleErrors": [],
+      "pass": true
+    },
+    {
+      "viewport": [
+        1440,
+        900
+      ],
+      "dpr": 1,
+      "viewArea": [
+        1076,
+        519
+      ],
+      "treemapWrap": [
+        1076,
+        519
+      ],
+      "canvasCss": [
+        1074,
+        517
+      ],
+      "canvasDevice": [
+        1074,
+        517
+      ],
+      "twHidden": false,
+      "twDisplay": "block",
+      "twOpacity": "1",
+      "twZ": "1",
+      "tbDisplay": "none",
+      "fxCanvas": [
+        1074,
+        517
+      ],
+      "pixelStats": {
+        "sampled": 120000,
+        "nonBgRatio": 1,
+        "lumStdDev": 8.161
+      },
+      "activeView": "btn-view-treemap",
+      "hygiene": {
+        "tooltipExists": true,
+        "tooltipHidden": true,
+        "tooltipText": ""
+      },
+      "file": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\viewport_shots\\viewport-1440x900.png",
+      "consoleErrors": [],
+      "pass": true
+    },
+    {
+      "viewport": [
+        1920,
+        1080
+      ],
+      "dpr": 1,
+      "viewArea": [
+        1556,
+        699
+      ],
+      "treemapWrap": [
+        1556,
+        699
+      ],
+      "canvasCss": [
+        1554,
+        697
+      ],
+      "canvasDevice": [
+        1554,
+        697
+      ],
+      "twHidden": false,
+      "twDisplay": "block",
+      "twOpacity": "1",
+      "twZ": "1",
+      "tbDisplay": "none",
+      "fxCanvas": [
+        1554,
+        697
+      ],
+      "pixelStats": {
+        "sampled": 120000,
+        "nonBgRatio": 1,
+        "lumStdDev": 8.161
+      },
+      "activeView": "btn-view-treemap",
+      "hygiene": {
+        "tooltipExists": true,
+        "tooltipHidden": true,
+        "tooltipText": ""
+      },
+      "file": "D:\\deepseek\\python-disk-analyzer\\docs\\问题核查资料_20260908\\p2\\viewport_shots\\viewport-1920x1080.png",
+      "consoleErrors": [],
+      "pass": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "视口 1366×768（DPR 1）：矩形图终态 + 表格隐藏 + 非空白画布（非背景像素 1，亮度 σ=8.161，tooltip 已隐藏=true）",
+      "pass": true,
+      "detail": "{\"tw\":[false,\"block\",\"1\"],\"tb\":\"none\",\"px\":{\"sampled\":120000,\"nonBgRatio\":1,\"lumStdDev\":8.161},\"hygiene\":{\"tooltipExists\":true,\"tooltipHidden\":true,\"tooltipText\":\"\"},\"errs\":[]}"
+    },
+    {
+      "name": "视口 1440×900（DPR 1）：矩形图终态 + 表格隐藏 + 非空白画布（非背景像素 1，亮度 σ=8.161，tooltip 已隐藏=true）",
+      "pass": true,
+      "detail": "{\"tw\":[false,\"block\",\"1\"],\"tb\":\"none\",\"px\":{\"sampled\":120000,\"nonBgRatio\":1,\"lumStdDev\":8.161},\"hygiene\":{\"tooltipExists\":true,\"tooltipHidden\":true,\"tooltipText\":\"\"},\"errs\":[]}"
+    },
+    {
+      "name": "视口 1920×1080（DPR 1）：矩形图终态 + 表格隐藏 + 非空白画布（非背景像素 1，亮度 σ=8.161，tooltip 已隐藏=true）",
+      "pass": true,
+      "detail": "{\"tw\":[false,\"block\",\"1\"],\"tb\":\"none\",\"px\":{\"sampled\":120000,\"nonBgRatio\":1,\"lumStdDev\":8.161},\"hygiene\":{\"tooltipExists\":true,\"tooltipHidden\":true,\"tooltipText\":\"\"},\"errs\":[]}"
+    }
+  ],
+  "finishedAt": "2026-09-10T10:16:18.153Z"
+}
