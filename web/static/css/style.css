@@ -4,19 +4,21 @@
    - 色值一律引用 tokens.css（本文件 hex 出现次数 = 基线 51 只减不增，
      U1.3 重构后目标为 0；rgba() 等函数色不受色值门禁约束）；
    - 旧规则逐条迁移或删除（删除清单见《开发执行手册》U1.3 执行记录）；
-   - 非色值度量变量（--fs-*/--radius-*/--space-*）暂留本文件 :root，
-     U4.3 文档收口时定归宿；
+   - 非色值度量变量（字号 fs / 圆角 radius / 间距 space）已于 P3 迁入
+     tokens.css 的 :root（见该文件「P3 迁入」段）；
    - 布局模型：App Shell 单屏（顶栏 60 + 工具栏行 48 + 内容 flex + 状态栏 32），
      body 零滚动；<900px 宽 / <640px 高恢复页面滚动（§3.4 声明例外）；
      右栏允许面板内滚（§3.4 面板内滚允许）。
    ============================================================ */
 
-/* ---------- 度量变量（非色值；U1.3 保留，U4.3 收口） ---------- */
-:root{
-  --fs-xs:12px; --fs-sm:13px; --fs-md:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px;
-  --radius-md:8px; --radius-sm:6px;
-  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-8:32px;
-}
+/* ⚠️ 历史缺陷登记 DEF-P3-01（P3 已修，勿回退）：本条注释原文写作
+   「非色值度量变量（--fs-* / --radius-* / --space-*）暂留本文件 :root」，
+   其中的 `*` + `/` 相邻写法会**提前闭合注释**，使紧随其后的
+   `:root{--fs-*;--radius-*;--space-*}` 被解析为「选择器非法」整条丢弃——
+   实测 document.styleSheets 中无 :root 规则、--fs-xs 计算值为空、
+   全站 87 处 var(--fs-*) 与 36 处 var(--radius-*) 全部失效
+   （字号回落 16px / 圆角回落 0）。P3 起度量变量已迁入 tokens.css，
+   本文件不再持有 :root，缺陷根因随之消除。 */
 
 /* ============================================================ */
 /* base：全局复位与基础控件                                  */
@@ -160,7 +162,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
    面板内滚允许 §3.4；横向仍 overflow-x:hidden，但 P3 起右栏内不得再有元素
    越过内容盒（见下方各文本截断策略） */
 .side-rail{
-  width:clamp(280px,22vw,380px);flex:none;min-height:0;display:flex;flex-direction:column;gap:12px;
+  width:clamp(280px,22vw,380px);flex:none;min-height:0;display:flex;flex-direction:column;gap:var(--space-3);
   overflow-y:auto;overflow-x:hidden;
 }
 
@@ -403,7 +405,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   padding:14px 16px;border:1px solid var(--primary-border);border-radius:var(--radius-card);
   background:var(--card-glass);box-shadow:var(--shadow-md);
 }
-.overview-head{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap}
+.overview-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2) var(--space-3);flex-wrap:wrap}
 /* P3/D3-5：标题列可收缩但不逐字断行（word-break:keep-all 让「存储概览」成为
    不可再分的最小单元 → flex 自动最小尺寸 = 整词宽，标题永不竖排成「存储概 / 览」）；
    动作组 flex:none（按钮文本 nowrap，见 .btn——绝不被压窄到裁字），
@@ -412,7 +414,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .overview-head h2{margin:0;font-size:var(--fs-xl);word-break:keep-all}
 .overview-head p{margin:2px 0 0;color:var(--muted);font-size:var(--fs-xs);overflow-wrap:anywhere}
 .overview-actions{display:flex;flex-wrap:wrap;gap:6px;flex:none;margin-left:auto}
-.overview-roots{display:block;margin-top:12px}
+.overview-roots{display:block;margin-top:var(--space-3)}
 .overview-roots-donut{min-height:180px}
 .overview-empty{
   display:flex;flex-direction:column;gap:4px;padding:20px;text-align:center;color:var(--muted);
@@ -666,7 +668,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 
 /* P3/D3-3/D3-4：状态行改 flex-wrap 分层——文本子项允许换行（禁止裸 nowrap 硬挤：
    基线实测扫描态被压成 30px 宽、每行 1–2 字竖排） */
-.status-line{display:flex;align-items:center;gap:4px 8px;flex-wrap:wrap;font-size:var(--fs-xs);color:var(--muted);margin:4px 0;min-height:18px}
+.status-line{display:flex;align-items:center;gap:var(--space-1) var(--space-2);flex-wrap:wrap;font-size:var(--fs-xs);color:var(--muted);margin:var(--space-1) 0;min-height:18px}
 .status-line > span:not(.dot){min-width:0;overflow-wrap:anywhere}
 .status-line .dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
 .status-line.ok{color:var(--success)}
@@ -1070,7 +1072,16 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   .shell{gap:10px;padding:10px 16px}
   .side-rail{gap:4px}
   .card,.overview-panel{padding:6px 12px}
-  .card-head h2{font-size:var(--fs-md)}
+  /* P3：把既有「紧凑档卡标题缩放」补全到概览卡标题——概览卡不是 .card 而是
+     .overview-panel，此前漏网：20px 标题 + 三动作按钮在 276px 内容宽里放不下，
+     逼出「动作组换行」（卡头 75px）。与 .card-head h2 同参数（--fs-md）后
+     标题与动作同行（卡头 36px），纵向省 39px。既有断言语义未变：
+     紧凑档环形 112px、卡 padding 6/12 均未触碰。 */
+  .card-head h2,.overview-head h2{font-size:var(--fs-md)}
+  /* P3：紧凑档小按钮纵向收紧（.btn 基准 min-height:36px 是常规档触控目标；
+     紧凑档右栏属高频低危次级动作，与既有 .side-rail .btn-sm{padding:3px 8px}
+     同段收口）。主 CTA（.btn-primary/.btn-success，非 btn-sm）保持 36px 不变。 */
+  .side-rail .btn-sm{min-height:28px}
   .card-sub{display:none} /* 定稿 3.3：紧凑档隐藏副标题 */
   /* -- U4.2 紧凑档收口（定稿 3.3「三卡总高 ≤520px · 768px 高屏右栏无内滚无溢出」）：
        折叠次级文案/状态行（主文案与动作保留，DOM 文本不变——探针 textContent 口径不受影响） */
@@ -1079,7 +1090,10 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   .snapshot-mini-card .status-line{display:none}    /* 迷你快照「已加载/已保存 N 会话」状态行 */
   .compare-mini-empty span{display:none}            /* 最近对比空态指引二行（主标题保留） */
   /* 卡内纵向收紧（仅右栏） */
-  .side-rail .row{margin:6px 0}
+  .side-rail .row{margin:4px 0}
+  /* P3：紧凑档通知块（扫描卡提示 #scan-progress-hint / 自动保存结果
+     #autosave-result / 保存提示 #save-prompt）纵向再收紧——文案与入口全保留 */
+  .side-rail .notice{margin:var(--space-1) 0;padding:6px var(--space-3);gap:var(--space-1)}
   .side-rail .progress-wrap{margin:4px 0 2px}
   .side-rail .status-line{margin:2px 0;font-size:11px}
   .side-rail .chips-row{margin:4px 0 2px}

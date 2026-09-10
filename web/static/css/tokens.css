@@ -51,6 +51,16 @@
   --ease-out:cubic-bezier(.16,1,.3,1); --ease-spring:cubic-bezier(.34,1.56,.64,1); --ease-inout:cubic-bezier(.65,0,.35,1);
   --radius-card:16px; --radius-ctl:10px; --radius-chip:999px;
   --font-num:tabular-nums;
+  /* ---- P3（D3-2/变更集5）：非色值度量 token 自 style.css 迁入 ----
+     迁移原因（同时是缺陷 DEF-P3-01 的修复）：style.css 文件头注释里
+     「（--fs-* / --radius-* / --space-*）」的 `*`+`/` 相邻写法提前闭合了注释，
+     使其后的 :root 规则被当作「非法选择器」整条丢弃 —— 全站 var(--fs-*)
+     与 var(--radius-*) 全部失效（字号回落 16px、圆角回落 0）。
+     现按 tokens.css「设计 token 单一来源」定位收口到本文件 :root 段。
+     ⚠️ 令牌值逐字照抄 style.css 原值，**未做任何调参**。 */
+  --fs-xs:12px; --fs-sm:13px; --fs-md:14px; --fs-lg:16px; --fs-xl:20px; --fs-2xl:24px;
+  --radius-md:8px; --radius-sm:6px;
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-8:32px;
 }
 :root[data-theme="light"]{
   --bg:#f4f6fa; --bg-aurora-1:rgba(59,130,246,.10); --bg-aurora-2:rgba(125,211,252,.10);
