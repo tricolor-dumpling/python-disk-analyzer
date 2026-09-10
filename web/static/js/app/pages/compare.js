@@ -735,11 +735,13 @@ function renderDiverge(r) {
                 ? ""
                 : (Number(row.growth_pct) >= 0 ? "+" : "") + Number(row.growth_pct).toFixed(2) + "%";
             const cls = deltaClass(d);
+            // P6（D6-1/变更集2）：条宽改由 CSS 变量承载（--diverge-w）——
+            // 数据驱动的百分比不再散落为内联 style，几何规则单点在 style.css
             const bar = grow
-                ? '<span class="diverge-bar diverge-bar-grow" data-w="' + w + '" style="width:' + w + '%"></span>'
+                ? '<span class="diverge-bar diverge-bar-grow" data-w="' + w + '" style="--diverge-w:' + w + '%"></span>'
                 : d < 0
-                    ? '<span class="diverge-bar diverge-bar-shrink" data-w="' + w + '" style="width:' + w + '%"></span>'
-                    : '<span class="diverge-bar diverge-bar-flat" style="width:2px"></span>'; // 无变化：中轴中性标记
+                    ? '<span class="diverge-bar diverge-bar-shrink" data-w="' + w + '" style="--diverge-w:' + w + '%"></span>'
+                    : '<span class="diverge-bar diverge-bar-flat"></span>'; // 无变化：中轴中性标记
             return (
                 '<button class="diverge-row" type="button" data-path="' + esc(row.path || "") + '"' +
                 ' data-drill-path="' + esc(row.path || "") + '"' +
@@ -1047,7 +1049,8 @@ const COMPARE_PAGE_HTML =
     '<div id="compare-diverge" class="compare-diverge" role="group" aria-label="红绿发散条形图（增长向左红/缩减向右绿）"></div>' +
     '<div class="table-wrap compare-table-wrap">' +
     '<table class="dir-table compare-table" aria-label="对比明细">' +
-    "<thead><tr><th style=\"width:120px\">变化</th><th style=\"width:90px\">增速</th><th>路径</th><th style=\"width:80px\">操作</th></tr></thead>" +
+    // P6（D6-1/变更集2）：原内联 style="width:120px/90px/80px" 收口为列类（.col-*）
+    '<thead><tr><th class="col-delta">变化</th><th class="col-growth">增速</th><th>路径</th><th class="col-ops">操作</th></tr></thead>' +
     '<tbody id="compare-body"></tbody></table></div></div>' +
     "</div></section>";
 

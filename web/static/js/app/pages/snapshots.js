@@ -454,6 +454,21 @@ function trendCardPending(slot, trend) {
     );
 }
 
+/* ================= P6（D6-1/变更集2）：sparkline 画布尺寸单一来源 =================
+   原先本文件 `const W = 120, H = 28` 与 style.css `.trend-spark*` 各写一遍
+   （同一几何两处真相）。P6 起两者同读 tokens.css 的 --spark-w/--spark-h：
+   CSS 经 var() 直接消费，本函数经 getComputedStyle 读取同一 token（:root 恒可达）。
+   ⚠️ 数字后缀兜底仅用于「token 解析失败」（如宿主样式表未加载），不是第二处默认值。 */
+function sparkCanvasSize() {
+    const cs = getComputedStyle(document.documentElement);
+    const w = parseFloat(cs.getPropertyValue("--spark-w"));
+    const h = parseFloat(cs.getPropertyValue("--spark-h"));
+    return {
+        w: Number.isFinite(w) && w > 0 ? w : 120,
+        h: Number.isFinite(h) && h > 0 ? h : 28,
+    };
+}
+
 /* 阶段G（G-2）：sparkline（L3-5）内联 SVG——该根 ≥2 个逐次总量点才画折线；
    与差值卡 total_current 同口径（collectDriveTotals 取自 total_by_root）。
    返回 {html, draw}：html 为 SVG 片段；draw(svgEl, pathEl) 触发 800ms 描线
@@ -461,7 +476,8 @@ function trendCardPending(slot, trend) {
 function trendSparkline(sessions, root) {
     const totals = collectDriveTotals(sessions, root);
     if (totals.length < 2) return null;
-    const W = 120, H = 28;
+    const size = sparkCanvasSize();
+    const W = size.w, H = size.h;
     const values = totals.map((t) => t.bytes);
     const d = sparklinePath(values, W, H);
     const last = sparklineLastPoint(values, W, H);
@@ -761,8 +777,11 @@ const SNAPSHOTS_PAGE_HTML =
     "撤销最近保存</button>" +
     "</div></header>" +
     '<div class="trend-row" id="trend-row" role="group" aria-label="变化趋势（较昨日/较上周）"></div>' +
-    '<div class="snapshots-list-wrap">' +
-    '<div class="snapshots-list-head"><span id="snapshots-list-count">共 0 个快照会话</span></div>' +
+    // P6（D6-1/变更集2）：会话列表区统一为卡片原语（.card：同一底色/边框/圆角/阴影），
+    // 卡头常驻「数量 + 排序口径」，避免列表与卡片两种视觉语言并存
+    '<div class="snapshots-list-wrap card">' +
+    '<div class="snapshots-list-head"><span id="snapshots-list-count">共 0 个快照会话</span>' +
+    '<span class="snapshots-list-hint">按时间倒序 · 每份快照可对比或删除</span></div>' +
     '<div class="snapshots-list-scroll"><ul id="snapshot-list" class="snapshot-list" aria-label="快照会话列表"></ul></div>' +
     "</div>" +
     "</section>";
