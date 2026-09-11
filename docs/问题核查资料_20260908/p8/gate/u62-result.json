@@ -1,0 +1,1484 @@
+{
+  "meta": {
+    "base": "http://127.0.0.1:5000/",
+    "out": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt",
+    "video": true,
+    "browsers": [
+      "chromium",
+      "msedge"
+    ],
+    "node": "v24.19.0",
+    "startedAt": "2026-09-11T10:59:23.736Z",
+    "finishedAt": "2026-09-11T11:00:53.446Z"
+  },
+  "checks": [
+    {
+      "name": "[chromium] 组 rapid-200：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[chromium] 组 rapid-300：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[chromium] 组 rapid-450：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[chromium] 组 corner-tl：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[chromium] 组 corner-tr：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[chromium] 组 corner-bl：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[chromium] 组 corner-br：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[chromium] 组 corner-center：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[chromium] 组 edge-top：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[chromium] 组 edge-bottom：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[chromium] 组 edge-left：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[chromium] 组 edge-right：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[chromium] 组 edge-center：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[chromium] 组 rapid-200b：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[chromium] 组 rapid-300b：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[chromium] 组 rapid-450b：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[chromium] 组 rapid-200c：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[chromium] 组 rapid-300c：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[chromium] 组 rapid-450c：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[chromium] 组 rapid-mix：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[chromium] reduced-motion：直切生效（主题切换成功且无 VT 过渡动画）",
+      "pass": true,
+      "detail": "{\"theme\":\"dark\",\"vts\":0}"
+    },
+    {
+      "name": "[chromium] reduced-motion：console 0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "[chromium] 全程 console/pageerror 0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "[msedge] 组 rapid-200：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[msedge] 组 rapid-300：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[msedge] 组 rapid-450：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[msedge] 组 corner-tl：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[msedge] 组 corner-tr：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[msedge] 组 corner-bl：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[msedge] 组 corner-br：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[msedge] 组 corner-center：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[msedge] 组 edge-top：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[msedge] 组 edge-bottom：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[msedge] 组 edge-left：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[msedge] 组 edge-right：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[msedge] 组 edge-center：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[msedge] 组 rapid-200b：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[msedge] 组 rapid-300b：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[msedge] 组 rapid-450b：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[msedge] 组 rapid-200c：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[msedge] 组 rapid-300c：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[msedge] 组 rapid-450c：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+    },
+    {
+      "name": "[msedge] 组 rapid-mix：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+      "pass": true,
+      "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+    },
+    {
+      "name": "[msedge] reduced-motion：直切生效（主题切换成功且无 VT 过渡动画）",
+      "pass": true,
+      "detail": "{\"theme\":\"dark\",\"vts\":0}"
+    },
+    {
+      "name": "[msedge] reduced-motion：console 0",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "[msedge] 全程 console/pageerror 0",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "browsers": {
+    "chromium": {
+      "groups": [
+        {
+          "id": "rapid-200",
+          "type": "rapid",
+          "pt": "center",
+          "gapMs": 200,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 2219,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-200-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-200-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-200-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-200-3.png"
+          ]
+        },
+        {
+          "id": "rapid-300",
+          "type": "rapid",
+          "pt": "center",
+          "gapMs": 300,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1848,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-300-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-300-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-300-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-300-3.png"
+          ]
+        },
+        {
+          "id": "rapid-450",
+          "type": "rapid",
+          "pt": "center",
+          "gapMs": 450,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1995,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-450-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-450-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-450-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-450-3.png"
+          ]
+        },
+        {
+          "id": "corner-tl",
+          "type": "single",
+          "pt": "corner-tl",
+          "gapMs": 0,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1630,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-tl-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-tl-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-tl-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-tl-3.png"
+          ]
+        },
+        {
+          "id": "corner-tr",
+          "type": "single",
+          "pt": "corner-tr",
+          "gapMs": 0,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1668,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-tr-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-tr-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-tr-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-tr-3.png"
+          ]
+        },
+        {
+          "id": "corner-bl",
+          "type": "single",
+          "pt": "corner-bl",
+          "gapMs": 0,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1585,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-bl-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-bl-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-bl-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-bl-3.png"
+          ]
+        },
+        {
+          "id": "corner-br",
+          "type": "single",
+          "pt": "corner-br",
+          "gapMs": 0,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1727,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-br-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-br-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-br-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-br-3.png"
+          ]
+        },
+        {
+          "id": "corner-center",
+          "type": "single",
+          "pt": "center",
+          "gapMs": 0,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1606,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-center-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-center-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-center-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-corner-center-3.png"
+          ]
+        },
+        {
+          "id": "edge-top",
+          "type": "single",
+          "pt": "edge-top",
+          "gapMs": 0,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1671,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-top-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-top-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-top-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-top-3.png"
+          ]
+        },
+        {
+          "id": "edge-bottom",
+          "type": "single",
+          "pt": "edge-bottom",
+          "gapMs": 0,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1644,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-bottom-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-bottom-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-bottom-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-bottom-3.png"
+          ]
+        },
+        {
+          "id": "edge-left",
+          "type": "single",
+          "pt": "edge-left",
+          "gapMs": 0,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1665,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-left-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-left-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-left-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-left-3.png"
+          ]
+        },
+        {
+          "id": "edge-right",
+          "type": "single",
+          "pt": "edge-right",
+          "gapMs": 0,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1614,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-right-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-right-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-right-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-right-3.png"
+          ]
+        },
+        {
+          "id": "edge-center",
+          "type": "single",
+          "pt": "center",
+          "gapMs": 0,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1606,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-center-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-center-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-center-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-edge-center-3.png"
+          ]
+        },
+        {
+          "id": "rapid-200b",
+          "type": "rapid",
+          "pt": "corner-br",
+          "gapMs": 200,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1792,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-200b-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-200b-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-200b-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-200b-3.png"
+          ]
+        },
+        {
+          "id": "rapid-300b",
+          "type": "rapid",
+          "pt": "edge-top",
+          "gapMs": 300,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1916,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-300b-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-300b-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-300b-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-300b-3.png"
+          ]
+        },
+        {
+          "id": "rapid-450b",
+          "type": "rapid",
+          "pt": "center",
+          "gapMs": 450,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 2011,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-450b-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-450b-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-450b-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-450b-3.png"
+          ]
+        },
+        {
+          "id": "rapid-200c",
+          "type": "rapid",
+          "pt": "corner-tl",
+          "gapMs": 200,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1888,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-200c-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-200c-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-200c-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-200c-3.png"
+          ]
+        },
+        {
+          "id": "rapid-300c",
+          "type": "rapid",
+          "pt": "edge-right",
+          "gapMs": 300,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1862,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-300c-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-300c-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-300c-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-300c-3.png"
+          ]
+        },
+        {
+          "id": "rapid-450c",
+          "type": "rapid",
+          "pt": "corner-bl",
+          "gapMs": 450,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 2008,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-450c-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-450c-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-450c-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-450c-3.png"
+          ]
+        },
+        {
+          "id": "rapid-mix",
+          "type": "rapid",
+          "pt": "center",
+          "gapMs": 200,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1825,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-mix-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-mix-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-mix-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\chromium-rapid-mix-3.png"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "[chromium] 组 rapid-200：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[chromium] 组 rapid-300：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[chromium] 组 rapid-450：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[chromium] 组 corner-tl：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[chromium] 组 corner-tr：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[chromium] 组 corner-bl：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[chromium] 组 corner-br：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[chromium] 组 corner-center：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[chromium] 组 edge-top：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[chromium] 组 edge-bottom：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[chromium] 组 edge-left：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[chromium] 组 edge-right：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[chromium] 组 edge-center：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[chromium] 组 rapid-200b：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[chromium] 组 rapid-300b：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[chromium] 组 rapid-450b：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[chromium] 组 rapid-200c：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[chromium] 组 rapid-300c：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[chromium] 组 rapid-450c：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[chromium] 组 rapid-mix：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[chromium] reduced-motion：直切生效（主题切换成功且无 VT 过渡动画）",
+          "pass": true,
+          "detail": "{\"theme\":\"dark\",\"vts\":0}"
+        },
+        {
+          "name": "[chromium] reduced-motion：console 0",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "[chromium] 全程 console/pageerror 0",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "consoleErrors": [],
+      "badHttp": [],
+      "btnBox": {
+        "x": 1006,
+        "y": 11.5,
+        "width": 66,
+        "height": 36
+      },
+      "reduced": {
+        "before": "light",
+        "target": "dark",
+        "state": {
+          "theme": "dark",
+          "vts": 0
+        },
+        "consoleErrors": []
+      }
+    },
+    "msedge": {
+      "groups": [
+        {
+          "id": "rapid-200",
+          "type": "rapid",
+          "pt": "center",
+          "gapMs": 200,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1885,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-200-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-200-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-200-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-200-3.png"
+          ]
+        },
+        {
+          "id": "rapid-300",
+          "type": "rapid",
+          "pt": "center",
+          "gapMs": 300,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1856,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-300-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-300-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-300-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-300-3.png"
+          ]
+        },
+        {
+          "id": "rapid-450",
+          "type": "rapid",
+          "pt": "center",
+          "gapMs": 450,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 2007,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-450-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-450-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-450-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-450-3.png"
+          ]
+        },
+        {
+          "id": "corner-tl",
+          "type": "single",
+          "pt": "corner-tl",
+          "gapMs": 0,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1685,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-tl-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-tl-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-tl-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-tl-3.png"
+          ]
+        },
+        {
+          "id": "corner-tr",
+          "type": "single",
+          "pt": "corner-tr",
+          "gapMs": 0,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1650,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-tr-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-tr-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-tr-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-tr-3.png"
+          ]
+        },
+        {
+          "id": "corner-bl",
+          "type": "single",
+          "pt": "corner-bl",
+          "gapMs": 0,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1676,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-bl-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-bl-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-bl-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-bl-3.png"
+          ]
+        },
+        {
+          "id": "corner-br",
+          "type": "single",
+          "pt": "corner-br",
+          "gapMs": 0,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1715,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-br-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-br-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-br-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-br-3.png"
+          ]
+        },
+        {
+          "id": "corner-center",
+          "type": "single",
+          "pt": "center",
+          "gapMs": 0,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1627,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-center-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-center-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-center-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-corner-center-3.png"
+          ]
+        },
+        {
+          "id": "edge-top",
+          "type": "single",
+          "pt": "edge-top",
+          "gapMs": 0,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1676,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-top-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-top-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-top-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-top-3.png"
+          ]
+        },
+        {
+          "id": "edge-bottom",
+          "type": "single",
+          "pt": "edge-bottom",
+          "gapMs": 0,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1678,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-bottom-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-bottom-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-bottom-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-bottom-3.png"
+          ]
+        },
+        {
+          "id": "edge-left",
+          "type": "single",
+          "pt": "edge-left",
+          "gapMs": 0,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1626,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-left-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-left-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-left-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-left-3.png"
+          ]
+        },
+        {
+          "id": "edge-right",
+          "type": "single",
+          "pt": "edge-right",
+          "gapMs": 0,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1633,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-right-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-right-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-right-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-right-3.png"
+          ]
+        },
+        {
+          "id": "edge-center",
+          "type": "single",
+          "pt": "center",
+          "gapMs": 0,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1682,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-center-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-center-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-center-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-edge-center-3.png"
+          ]
+        },
+        {
+          "id": "rapid-200b",
+          "type": "rapid",
+          "pt": "corner-br",
+          "gapMs": 200,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1849,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-200b-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-200b-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-200b-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-200b-3.png"
+          ]
+        },
+        {
+          "id": "rapid-300b",
+          "type": "rapid",
+          "pt": "edge-top",
+          "gapMs": 300,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1914,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-300b-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-300b-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-300b-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-300b-3.png"
+          ]
+        },
+        {
+          "id": "rapid-450b",
+          "type": "rapid",
+          "pt": "center",
+          "gapMs": 450,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 2062,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-450b-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-450b-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-450b-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-450b-3.png"
+          ]
+        },
+        {
+          "id": "rapid-200c",
+          "type": "rapid",
+          "pt": "corner-tl",
+          "gapMs": 200,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 1876,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-200c-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-200c-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-200c-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-200c-3.png"
+          ]
+        },
+        {
+          "id": "rapid-300c",
+          "type": "rapid",
+          "pt": "edge-right",
+          "gapMs": 300,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1924,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-300c-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-300c-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-300c-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-300c-3.png"
+          ]
+        },
+        {
+          "id": "rapid-450c",
+          "type": "rapid",
+          "pt": "corner-bl",
+          "gapMs": 450,
+          "startTheme": "light",
+          "target": "dark",
+          "themeReal": "dark",
+          "clickAtMs": 2095,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-450c-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-450c-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-450c-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-450c-3.png"
+          ]
+        },
+        {
+          "id": "rapid-mix",
+          "type": "rapid",
+          "pt": "center",
+          "gapMs": 200,
+          "startTheme": "dark",
+          "target": "light",
+          "themeReal": "light",
+          "clickAtMs": 1839,
+          "clean": {
+            "clipPath": "",
+            "pseudoClipPath": "",
+            "themeOk": true,
+            "vtAnimations": 0,
+            "vtAnimationsTotal": 0
+          },
+          "ok": true,
+          "frames": [
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-mix-pre.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-mix-1.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-mix-2.png",
+            "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u62_theme_vt\\keyframes\\msedge-rapid-mix-3.png"
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "name": "[msedge] 组 rapid-200：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[msedge] 组 rapid-300：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[msedge] 组 rapid-450：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[msedge] 组 corner-tl：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[msedge] 组 corner-tr：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[msedge] 组 corner-bl：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[msedge] 组 corner-br：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[msedge] 组 corner-center：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[msedge] 组 edge-top：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[msedge] 组 edge-bottom：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[msedge] 组 edge-left：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[msedge] 组 edge-right：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[msedge] 组 edge-center：VT 终态无 clip-path 残留 + 主题终值语义正确（单点=target） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[msedge] 组 rapid-200b：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[msedge] 组 rapid-300b：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[msedge] 组 rapid-450b：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[msedge] 组 rapid-200c：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[msedge] 组 rapid-300c：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[msedge] 组 rapid-450c：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"dark\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=dark"
+        },
+        {
+          "name": "[msedge] 组 rapid-mix：VT 终态无 clip-path 残留 + 主题终值语义正确（双toggle∈{target,startTheme}） + 无 VT 动画堆积",
+          "pass": true,
+          "detail": "{\"clipPath\":\"\",\"pseudoClipPath\":\"\",\"theme\":\"light\",\"vtAnimations\":0,\"vtAnimationsTotal\":0,\"themeOk\":true} themeReal=light"
+        },
+        {
+          "name": "[msedge] reduced-motion：直切生效（主题切换成功且无 VT 过渡动画）",
+          "pass": true,
+          "detail": "{\"theme\":\"dark\",\"vts\":0}"
+        },
+        {
+          "name": "[msedge] reduced-motion：console 0",
+          "pass": true,
+          "detail": ""
+        },
+        {
+          "name": "[msedge] 全程 console/pageerror 0",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "consoleErrors": [],
+      "badHttp": [],
+      "btnBox": {
+        "x": 1006,
+        "y": 11.5,
+        "width": 66,
+        "height": 36
+      },
+      "reduced": {
+        "before": "light",
+        "target": "dark",
+        "state": {
+          "theme": "dark",
+          "vts": 0
+        },
+        "consoleErrors": []
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "base": "http://127.0.0.1:5000/",
+    "out": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\stage_f_u67b",
+    "node": "v24.19.0",
+    "startedAt": "2026-09-11T10:58:39.142Z"
+  },
+  "checks": [
+    {
+      "name": "① 扫描中点击 → toast「扫描进行中」+ 扫描卡高亮",
+      "pass": true,
+      "detail": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\stage_f_u67b\\p18-scanning-toast.png toast=\"扫描进行中（1/2 盘）\" flash=true scanCard=\"全量扫描建立最新空间索引开始全量扫描停止保存快照？57%总进度 57% · 已完成 1/2 盘 · 当前 准备中… · 已用时 00:00:08 · 预计剩余 即将完成可浏览盘符：C:\\\\D:\\\\正在扫描中：已完成盘可点击即时浏览，进行中盘完成\" stateAfterSet=\"scanning\" stubDiag={\"ok\":true,\"fetchIsStub\":true}"
+    },
+    {
+      "name": "② 空闲点击 → 启动 POST 发出（提交态，B-19）",
+      "pass": true,
+      "detail": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\stage_f_u67b\\p18-idle-launching.png startHits=1 disabled=false badge=\"\" topText=\"开始扫描\"（提交成功由广播接管按钮态）"
+    },
+    {
+      "name": "③ 排队中 → 409 toast「已在运行中」",
+      "pass": true,
+      "detail": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\stage_f_u67b\\p18-queued-409.png txt=\"已就绪·可开始扫描 | 等待扫描引擎空闲…（扫描任务已提交，正在排队）\""
+    },
+    {
+      "name": "④ 完成态 → 按钮「重新扫描」（D-3a #btn-scan-top-text）",
+      "pass": true,
+      "detail": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\stage_f_u67b\\p18-done-rescan.png topText=\"重新扫描\""
+    },
+    {
+      "name": "console 无未处理错误",
+      "pass": true,
+      "detail": "[]"
+    }
+  ],
+  "consoleErrors": [],
+  "shots": [
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\stage_f_u67b\\p18-scanning-toast.png",
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\stage_f_u67b\\p18-idle-launching.png",
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\stage_f_u67b\\p18-queued-409.png",
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\stage_f_u67b\\p18-done-rescan.png"
+  ],
+  "stubDiag": {
+    "ok": true,
+    "fetchIsStub": true
+  }
+}

@@ -1,0 +1,3061 @@
+{
+  "label": "postfix",
+  "cases": [
+    {
+      "group": "topbar",
+      "name": "pt1",
+      "click": {
+        "x": 1010,
+        "y": 15.5
+      },
+      "frames": 33,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\topbar\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 33,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0.0179,
+          0.0624,
+          0.1347,
+          0.2298,
+          0.3254,
+          0.408,
+          0.4795,
+          0.5499,
+          0.6157,
+          0.6788,
+          0.7526,
+          0.8047,
+          0.8392,
+          0.8711,
+          0.9014,
+          0.9277,
+          0.938,
+          0.9443,
+          0.9496,
+          0.9543,
+          0.9583,
+          0.9616,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.0956,
+        "maxJumpAtFrame": 7,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 13,
+        "fits": [
+          {
+            "frame": 4,
+            "area": 0.0624,
+            "cx": 1007.61,
+            "cy": 15.29,
+            "r": 150.99,
+            "inliers": 118,
+            "boundaryPoints": 259,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.75,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 5,
+            "area": 0.1347,
+            "cx": 1007.93,
+            "cy": 13.39,
+            "r": 226.96,
+            "inliers": 170,
+            "boundaryPoints": 403,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.52,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.2298,
+            "cx": 1007.99,
+            "cy": 12.15,
+            "r": 299.94,
+            "inliers": 232,
+            "boundaryPoints": 605,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.94,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.3254,
+            "cx": 1007.92,
+            "cy": 12.95,
+            "r": 370.15,
+            "inliers": 187,
+            "boundaryPoints": 857,
+            "arcSpanDeg": 150,
+            "rmsPx": 1.64,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.408,
+            "cx": 1008.97,
+            "cy": 10.87,
+            "r": 440.71,
+            "inliers": 169,
+            "boundaryPoints": 943,
+            "arcSpanDeg": 120,
+            "rmsPx": 1.41,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 9,
+            "area": 0.4795,
+            "cx": 1008.47,
+            "cy": 12.29,
+            "r": 505.04,
+            "inliers": 170,
+            "boundaryPoints": 1099,
+            "arcSpanDeg": 100,
+            "rmsPx": 1.74,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 3,
+            "area": 0.018,
+            "span": 50,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [
+          {
+            "frame": 3,
+            "count": 714,
+            "cx": 1008.19,
+            "cy": 41.35
+          }
+        ],
+        "click": {
+          "x": 1010,
+          "y": 15.5
+        }
+      },
+      "checksFrom": 0,
+      "fit": {
+        "cx": 1007.99,
+        "cy": 12.95,
+        "errPx": 3.25,
+        "samples": 6,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 33,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "topbar",
+      "name": "pt2",
+      "click": {
+        "x": 1039,
+        "y": 15.5
+      },
+      "frames": 32,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\topbar\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 32,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0.0187,
+          0.0654,
+          0.1412,
+          0.2384,
+          0.3294,
+          0.4092,
+          0.482,
+          0.5517,
+          0.6176,
+          0.6826,
+          0.756,
+          0.7993,
+          0.8337,
+          0.8656,
+          0.8957,
+          0.9238,
+          0.9372,
+          0.9438,
+          0.9493,
+          0.9539,
+          0.9581,
+          0.9615,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.0972,
+        "maxJumpAtFrame": 6,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 14,
+        "fits": [
+          {
+            "frame": 4,
+            "area": 0.0654,
+            "cx": 1036.75,
+            "cy": 13.95,
+            "r": 155.64,
+            "inliers": 120,
+            "boundaryPoints": 279,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.65,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 5,
+            "area": 0.1412,
+            "cx": 1036.99,
+            "cy": 13.55,
+            "r": 232.9,
+            "inliers": 173,
+            "boundaryPoints": 422,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.51,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.2384,
+            "cx": 1037.06,
+            "cy": 12.95,
+            "r": 305.33,
+            "inliers": 225,
+            "boundaryPoints": 622,
+            "arcSpanDeg": 200,
+            "rmsPx": 2.05,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.3294,
+            "cx": 1036.9,
+            "cy": 14.64,
+            "r": 376.3,
+            "inliers": 171,
+            "boundaryPoints": 835,
+            "arcSpanDeg": 140,
+            "rmsPx": 1.54,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 9,
+            "area": 0.482,
+            "cx": 1037.46,
+            "cy": 12.26,
+            "r": 514.92,
+            "inliers": 166,
+            "boundaryPoints": 1093,
+            "arcSpanDeg": 100,
+            "rmsPx": 1.68,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 3,
+            "area": 0.019,
+            "span": 50,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 8,
+            "area": 0.409,
+            "span": 20,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [
+          {
+            "frame": 3,
+            "count": 744,
+            "cx": 1036.31,
+            "cy": 42.22
+          }
+        ],
+        "click": {
+          "x": 1039,
+          "y": 15.5
+        }
+      },
+      "checksFrom": 4,
+      "fit": {
+        "cx": 1036.99,
+        "cy": 13.55,
+        "errPx": 2.8,
+        "samples": 5,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 32,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "topbar",
+      "name": "pt3",
+      "click": {
+        "x": 1068,
+        "y": 15.5
+      },
+      "frames": 33,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\topbar\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 33,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0.0181,
+          0.0672,
+          0.1457,
+          0.244,
+          0.33,
+          0.4086,
+          0.4824,
+          0.5513,
+          0.6185,
+          0.6866,
+          0.7529,
+          0.7933,
+          0.8275,
+          0.8601,
+          0.8904,
+          0.9181,
+          0.9364,
+          0.9432,
+          0.9488,
+          0.9536,
+          0.9578,
+          0.9613,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.0983,
+        "maxJumpAtFrame": 6,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 14,
+        "fits": [
+          {
+            "frame": 4,
+            "area": 0.0672,
+            "cx": 1065.68,
+            "cy": 13.85,
+            "r": 157.89,
+            "inliers": 122,
+            "boundaryPoints": 282,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.56,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 5,
+            "area": 0.1457,
+            "cx": 1066.14,
+            "cy": 13.54,
+            "r": 236.72,
+            "inliers": 181,
+            "boundaryPoints": 442,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.58,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.244,
+            "cx": 1065.73,
+            "cy": 12.17,
+            "r": 312.18,
+            "inliers": 195,
+            "boundaryPoints": 646,
+            "arcSpanDeg": 180,
+            "rmsPx": 1.94,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.33,
+            "cx": 1066.3,
+            "cy": 12.48,
+            "r": 384.25,
+            "inliers": 168,
+            "boundaryPoints": 819,
+            "arcSpanDeg": 130,
+            "rmsPx": 1.51,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 9,
+            "area": 0.4824,
+            "cx": 1096.59,
+            "cy": 270.56,
+            "r": 268.28,
+            "inliers": 118,
+            "boundaryPoints": 1093,
+            "arcSpanDeg": 160,
+            "rmsPx": 2.95,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 3,
+            "area": 0.018,
+            "span": 30,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 8,
+            "area": 0.409,
+            "span": 20,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [
+          {
+            "frame": 3,
+            "count": 720,
+            "cx": 1062.93,
+            "cy": 41.71
+          }
+        ],
+        "click": {
+          "x": 1068,
+          "y": 15.5
+        }
+      },
+      "checksFrom": 8,
+      "fit": {
+        "cx": 1066.14,
+        "cy": 13.54,
+        "errPx": 2.7,
+        "samples": 5,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 33,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "topbar",
+      "name": "pt4",
+      "click": {
+        "x": 1010,
+        "y": 29.5
+      },
+      "frames": 32,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\topbar\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 32,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0.0212,
+          0.0692,
+          0.1442,
+          0.2414,
+          0.3347,
+          0.4157,
+          0.4868,
+          0.5548,
+          0.6196,
+          0.6834,
+          0.758,
+          0.8054,
+          0.8394,
+          0.8705,
+          0.8993,
+          0.9272,
+          0.9381,
+          0.9444,
+          0.9498,
+          0.9543,
+          0.9584,
+          0.9616,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.0971,
+        "maxJumpAtFrame": 6,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 15,
+        "fits": [
+          {
+            "frame": 4,
+            "area": 0.0692,
+            "cx": 1007.78,
+            "cy": 28.35,
+            "r": 151.92,
+            "inliers": 122,
+            "boundaryPoints": 265,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.42,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 5,
+            "area": 0.1442,
+            "cx": 1007.94,
+            "cy": 26.44,
+            "r": 227.29,
+            "inliers": 176,
+            "boundaryPoints": 414,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.46,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.2414,
+            "cx": 1008.42,
+            "cy": 25.92,
+            "r": 299.72,
+            "inliers": 221,
+            "boundaryPoints": 640,
+            "arcSpanDeg": 200,
+            "rmsPx": 2.12,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.3347,
+            "cx": 1007.93,
+            "cy": 27.96,
+            "r": 368.62,
+            "inliers": 183,
+            "boundaryPoints": 865,
+            "arcSpanDeg": 150,
+            "rmsPx": 1.41,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.4157,
+            "cx": 1008.86,
+            "cy": 25.97,
+            "r": 438.12,
+            "inliers": 169,
+            "boundaryPoints": 950,
+            "arcSpanDeg": 120,
+            "rmsPx": 1.54,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 3,
+            "area": 0.021,
+            "span": 50,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 9,
+            "area": 0.487,
+            "span": 30,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [
+          {
+            "frame": 3,
+            "count": 845,
+            "cx": 1008.17,
+            "cy": 47.84
+          }
+        ],
+        "click": {
+          "x": 1010,
+          "y": 29.5
+        }
+      },
+      "checksFrom": 12,
+      "fit": {
+        "cx": 1007.94,
+        "cy": 26.44,
+        "errPx": 3.69,
+        "samples": 5,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 32,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "topbar",
+      "name": "pt5",
+      "click": {
+        "x": 1039,
+        "y": 29.5
+      },
+      "frames": 34,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\topbar\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 34,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0,
+          0.021,
+          0.0705,
+          0.1476,
+          0.2456,
+          0.3362,
+          0.4156,
+          0.4881,
+          0.5559,
+          0.6216,
+          0.6869,
+          0.7573,
+          0.7986,
+          0.8328,
+          0.8641,
+          0.8936,
+          0.9212,
+          0.9371,
+          0.9438,
+          0.9494,
+          0.954,
+          0.958,
+          0.9615,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.098,
+        "maxJumpAtFrame": 7,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 15,
+        "fits": [
+          {
+            "frame": 5,
+            "area": 0.0705,
+            "cx": 1037.31,
+            "cy": 27.35,
+            "r": 154,
+            "inliers": 125,
+            "boundaryPoints": 282,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.4,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.1476,
+            "cx": 1037.27,
+            "cy": 27.37,
+            "r": 229.78,
+            "inliers": 181,
+            "boundaryPoints": 430,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.45,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.2456,
+            "cx": 1037.13,
+            "cy": 26.25,
+            "r": 303.16,
+            "inliers": 209,
+            "boundaryPoints": 648,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.93,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.3362,
+            "cx": 1037.58,
+            "cy": 28.01,
+            "r": 373.48,
+            "inliers": 176,
+            "boundaryPoints": 840,
+            "arcSpanDeg": 140,
+            "rmsPx": 1.94,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 10,
+            "area": 0.4881,
+            "cx": 1031.55,
+            "cy": 44.22,
+            "r": 496.88,
+            "inliers": 136,
+            "boundaryPoints": 1104,
+            "arcSpanDeg": 110,
+            "rmsPx": 2.43,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 4,
+            "area": 0.021,
+            "span": 50,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 9,
+            "area": 0.416,
+            "span": 20,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [
+          {
+            "frame": 4,
+            "count": 836,
+            "cx": 1036.3,
+            "cy": 47.25
+          }
+        ],
+        "click": {
+          "x": 1039,
+          "y": 29.5
+        }
+      },
+      "checksFrom": 16,
+      "fit": {
+        "cx": 1037.27,
+        "cy": 27.37,
+        "errPx": 2.74,
+        "samples": 5,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 34,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "topbar",
+      "name": "pt6",
+      "click": {
+        "x": 1068,
+        "y": 29.5
+      },
+      "frames": 33,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\topbar\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 33,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0.0212,
+          0.0731,
+          0.1527,
+          0.252,
+          0.3379,
+          0.4159,
+          0.4887,
+          0.5567,
+          0.6237,
+          0.691,
+          0.7542,
+          0.7922,
+          0.8262,
+          0.8584,
+          0.8885,
+          0.9165,
+          0.9362,
+          0.9432,
+          0.9489,
+          0.9538,
+          0.9579,
+          0.9614,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.0993,
+        "maxJumpAtFrame": 6,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 15,
+        "fits": [
+          {
+            "frame": 4,
+            "area": 0.0731,
+            "cx": 1066.02,
+            "cy": 26.66,
+            "r": 157.68,
+            "inliers": 130,
+            "boundaryPoints": 297,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.53,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 5,
+            "area": 0.1527,
+            "cx": 1066.24,
+            "cy": 27.73,
+            "r": 233.86,
+            "inliers": 186,
+            "boundaryPoints": 446,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.5,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.252,
+            "cx": 1065.39,
+            "cy": 27.5,
+            "r": 308.51,
+            "inliers": 194,
+            "boundaryPoints": 675,
+            "arcSpanDeg": 180,
+            "rmsPx": 1.82,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.3379,
+            "cx": 1065.69,
+            "cy": 27.61,
+            "r": 381.04,
+            "inliers": 171,
+            "boundaryPoints": 830,
+            "arcSpanDeg": 140,
+            "rmsPx": 1.76,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.4159,
+            "cx": 1064.8,
+            "cy": 28.31,
+            "r": 451.15,
+            "inliers": 167,
+            "boundaryPoints": 970,
+            "arcSpanDeg": 110,
+            "rmsPx": 1.68,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 3,
+            "area": 0.021,
+            "span": 50,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 9,
+            "area": 0.489,
+            "span": 20,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [
+          {
+            "frame": 3,
+            "count": 844,
+            "cx": 1063.12,
+            "cy": 48.97
+          }
+        ],
+        "click": {
+          "x": 1068,
+          "y": 29.5
+        }
+      },
+      "checksFrom": 20,
+      "fit": {
+        "cx": 1065.69,
+        "cy": 27.61,
+        "errPx": 2.98,
+        "samples": 5,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 33,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "topbar",
+      "name": "pt7",
+      "click": {
+        "x": 1010,
+        "y": 43.5
+      },
+      "frames": 33,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\topbar\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 33,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0.0747,
+          0.1512,
+          0.2457,
+          0.3393,
+          0.4192,
+          0.4911,
+          0.5595,
+          0.624,
+          0.6869,
+          0.7601,
+          0.8051,
+          0.8379,
+          0.8683,
+          0.8976,
+          0.9244,
+          0.938,
+          0.9444,
+          0.9497,
+          0.9543,
+          0.9583,
+          0.9616,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.0945,
+        "maxJumpAtFrame": 5,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 14,
+        "fits": [
+          {
+            "frame": 3,
+            "area": 0.0747,
+            "cx": 1007.79,
+            "cy": 41.72,
+            "r": 150.88,
+            "inliers": 130,
+            "boundaryPoints": 269,
+            "arcSpanDeg": 220,
+            "rmsPx": 1.72,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 4,
+            "area": 0.1512,
+            "cx": 1007.93,
+            "cy": 41.37,
+            "r": 224.4,
+            "inliers": 180,
+            "boundaryPoints": 418,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.36,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 5,
+            "area": 0.2457,
+            "cx": 1008.38,
+            "cy": 40.11,
+            "r": 295.77,
+            "inliers": 204,
+            "boundaryPoints": 646,
+            "arcSpanDeg": 190,
+            "rmsPx": 1.98,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.3393,
+            "cx": 1007.43,
+            "cy": 43.07,
+            "r": 363.41,
+            "inliers": 189,
+            "boundaryPoints": 870,
+            "arcSpanDeg": 140,
+            "rmsPx": 1.58,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 7,
+            "area": 0.419,
+            "span": 30,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 8,
+            "area": 0.491,
+            "span": 30,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [],
+        "click": {
+          "x": 1010,
+          "y": 43.5
+        }
+      },
+      "checksFrom": 24,
+      "fit": {
+        "cx": 1007.93,
+        "cy": 41.72,
+        "errPx": 2.73,
+        "samples": 4,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 17,
+        "frames": 33,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "topbar",
+      "name": "pt8",
+      "click": {
+        "x": 1039,
+        "y": 43.5
+      },
+      "frames": 33,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\topbar\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 33,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0.0241,
+          0.077,
+          0.1562,
+          0.2544,
+          0.3438,
+          0.4218,
+          0.493,
+          0.5614,
+          0.6276,
+          0.6935,
+          0.7596,
+          0.7983,
+          0.8314,
+          0.8627,
+          0.8923,
+          0.9192,
+          0.9371,
+          0.9438,
+          0.9494,
+          0.954,
+          0.9581,
+          0.9615,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.0982,
+        "maxJumpAtFrame": 6,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 15,
+        "fits": [
+          {
+            "frame": 4,
+            "area": 0.077,
+            "cx": 1037.17,
+            "cy": 41.55,
+            "r": 153.6,
+            "inliers": 134,
+            "boundaryPoints": 289,
+            "arcSpanDeg": 220,
+            "rmsPx": 1.55,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 5,
+            "area": 0.1562,
+            "cx": 1036.9,
+            "cy": 41.37,
+            "r": 228.74,
+            "inliers": 185,
+            "boundaryPoints": 435,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.66,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.2544,
+            "cx": 1037.32,
+            "cy": 40.8,
+            "r": 301.8,
+            "inliers": 211,
+            "boundaryPoints": 692,
+            "arcSpanDeg": 190,
+            "rmsPx": 1.68,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.3438,
+            "cx": 1036.89,
+            "cy": 41.56,
+            "r": 371.73,
+            "inliers": 169,
+            "boundaryPoints": 847,
+            "arcSpanDeg": 140,
+            "rmsPx": 1.73,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.4218,
+            "cx": 1037.71,
+            "cy": 39.44,
+            "r": 442.09,
+            "inliers": 172,
+            "boundaryPoints": 975,
+            "arcSpanDeg": 110,
+            "rmsPx": 1.63,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 9,
+            "area": 0.493,
+            "cx": 1035.13,
+            "cy": 41.72,
+            "r": 506.08,
+            "inliers": 164,
+            "boundaryPoints": 1112,
+            "arcSpanDeg": 110,
+            "rmsPx": 2.18,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 3,
+            "area": 0.024,
+            "span": 50,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [
+          {
+            "frame": 3,
+            "count": 962,
+            "cx": 1036.13,
+            "cy": 54.92
+          }
+        ],
+        "click": {
+          "x": 1039,
+          "y": 43.5
+        }
+      },
+      "checksFrom": 28,
+      "fit": {
+        "cx": 1037.17,
+        "cy": 41.55,
+        "errPx": 2.67,
+        "samples": 6,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 33,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "topbar",
+      "name": "pt9",
+      "click": {
+        "x": 1068,
+        "y": 43.5
+      },
+      "frames": 34,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\topbar\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 34,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0,
+          0.024,
+          0.0793,
+          0.1611,
+          0.2612,
+          0.3454,
+          0.4211,
+          0.4926,
+          0.5616,
+          0.6275,
+          0.6973,
+          0.7547,
+          0.7919,
+          0.8252,
+          0.8575,
+          0.8868,
+          0.9146,
+          0.9361,
+          0.9432,
+          0.9489,
+          0.9537,
+          0.9579,
+          0.9614,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.1,
+        "maxJumpAtFrame": 7,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 15,
+        "fits": [
+          {
+            "frame": 5,
+            "area": 0.0793,
+            "cx": 1065.72,
+            "cy": 41.22,
+            "r": 156.75,
+            "inliers": 140,
+            "boundaryPoints": 310,
+            "arcSpanDeg": 220,
+            "rmsPx": 1.78,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.1611,
+            "cx": 1065.91,
+            "cy": 41.05,
+            "r": 232.84,
+            "inliers": 190,
+            "boundaryPoints": 450,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.6,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.2612,
+            "cx": 1065.66,
+            "cy": 41.39,
+            "r": 307.02,
+            "inliers": 191,
+            "boundaryPoints": 699,
+            "arcSpanDeg": 170,
+            "rmsPx": 1.72,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.3454,
+            "cx": 1065.39,
+            "cy": 42,
+            "r": 378.69,
+            "inliers": 165,
+            "boundaryPoints": 837,
+            "arcSpanDeg": 130,
+            "rmsPx": 1.47,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 9,
+            "area": 0.4211,
+            "cx": 990.05,
+            "cy": 70.61,
+            "r": 369.05,
+            "inliers": 115,
+            "boundaryPoints": 975,
+            "arcSpanDeg": 120,
+            "rmsPx": 2.68,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 10,
+            "area": 0.4926,
+            "cx": 1066.91,
+            "cy": 38.84,
+            "r": 518.3,
+            "inliers": 164,
+            "boundaryPoints": 1126,
+            "arcSpanDeg": 100,
+            "rmsPx": 1.58,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 4,
+            "area": 0.024,
+            "span": 50,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [
+          {
+            "frame": 4,
+            "count": 955,
+            "cx": 1063.82,
+            "cy": 56
+          }
+        ],
+        "click": {
+          "x": 1068,
+          "y": 43.5
+        }
+      },
+      "checksFrom": 32,
+      "fit": {
+        "cx": 1065.72,
+        "cy": 41.39,
+        "errPx": 3.11,
+        "samples": 6,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 34,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "settings",
+      "name": "opt-center-fast",
+      "click": {
+        "x": 682.9921875,
+        "y": 218.96005249023438
+      },
+      "frames": 32,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\settings\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 32,
+        "blockSize": 2,
+        "changedBlocks": 50939,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0.0116,
+          0.0455,
+          0.0969,
+          0.167,
+          0.2431,
+          0.3214,
+          0.3937,
+          0.4646,
+          0.5336,
+          0.5984,
+          0.6529,
+          0.7161,
+          0.7738,
+          0.83,
+          0.8821,
+          0.9148,
+          0.9324,
+          0.9452,
+          0.9546,
+          0.9611,
+          0.9655,
+          0.9675,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677
+        ],
+        "maxJump": 0.0783,
+        "maxJumpAtFrame": 8,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03229,
+        "progressFrames": 14,
+        "fits": [
+          {
+            "frame": 4,
+            "area": 0.0455,
+            "cx": 680.96,
+            "cy": 216.73,
+            "r": 106.78,
+            "inliers": 153,
+            "boundaryPoints": 154,
+            "arcSpanDeg": 360,
+            "rmsPx": 1.31,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 5,
+            "area": 0.0969,
+            "cx": 681.24,
+            "cy": 216.91,
+            "r": 158.65,
+            "inliers": 226,
+            "boundaryPoints": 304,
+            "arcSpanDeg": 360,
+            "rmsPx": 1.43,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.167,
+            "cx": 681.33,
+            "cy": 217.28,
+            "r": 209.14,
+            "inliers": 291,
+            "boundaryPoints": 467,
+            "arcSpanDeg": 360,
+            "rmsPx": 1.44,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.2431,
+            "cx": 681.05,
+            "cy": 217.41,
+            "r": 258.31,
+            "inliers": 308,
+            "boundaryPoints": 683,
+            "arcSpanDeg": 300,
+            "rmsPx": 1.74,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.3214,
+            "cx": 680.95,
+            "cy": 217.39,
+            "r": 306.04,
+            "inliers": 310,
+            "boundaryPoints": 803,
+            "arcSpanDeg": 270,
+            "rmsPx": 1.67,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 9,
+            "area": 0.3937,
+            "cx": 680.97,
+            "cy": 217.06,
+            "r": 352.59,
+            "inliers": 304,
+            "boundaryPoints": 937,
+            "arcSpanDeg": 220,
+            "rmsPx": 1.71,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 10,
+            "area": 0.4646,
+            "cx": 680.77,
+            "cy": 217.21,
+            "r": 397.68,
+            "inliers": 317,
+            "boundaryPoints": 1085,
+            "arcSpanDeg": 230,
+            "rmsPx": 1.54,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [],
+        "originCentroid": [
+          {
+            "frame": 3,
+            "count": 589,
+            "cx": 681.64,
+            "cy": 217.56
+          }
+        ],
+        "click": {
+          "x": 682.9921875,
+          "y": 218.96005249023438
+        }
+      },
+      "checksFrom": 36,
+      "fit": {
+        "cx": 680.97,
+        "cy": 217.21,
+        "errPx": 2.67,
+        "samples": 7,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 32,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "settings",
+      "name": "opt-center+12-fast",
+      "click": {
+        "x": 694.9921875,
+        "y": 218.796875
+      },
+      "frames": 34,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\settings\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 34,
+        "blockSize": 2,
+        "changedBlocks": 50939,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0.0118,
+          0.0464,
+          0.0989,
+          0.171,
+          0.2475,
+          0.3266,
+          0.3995,
+          0.4724,
+          0.5429,
+          0.6075,
+          0.6665,
+          0.7307,
+          0.79,
+          0.8461,
+          0.8943,
+          0.9224,
+          0.9382,
+          0.9495,
+          0.9575,
+          0.9629,
+          0.9664,
+          0.9675,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677
+        ],
+        "maxJump": 0.0791,
+        "maxJumpAtFrame": 10,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03229,
+        "progressFrames": 14,
+        "fits": [
+          {
+            "frame": 6,
+            "area": 0.0464,
+            "cx": 692.93,
+            "cy": 216.38,
+            "r": 107.94,
+            "inliers": 155,
+            "boundaryPoints": 156,
+            "arcSpanDeg": 360,
+            "rmsPx": 1.17,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.0989,
+            "cx": 692.87,
+            "cy": 216.66,
+            "r": 160.08,
+            "inliers": 231,
+            "boundaryPoints": 305,
+            "arcSpanDeg": 360,
+            "rmsPx": 1.44,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.171,
+            "cx": 692.82,
+            "cy": 216.83,
+            "r": 211.32,
+            "inliers": 300,
+            "boundaryPoints": 476,
+            "arcSpanDeg": 360,
+            "rmsPx": 1.65,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 9,
+            "area": 0.2475,
+            "cx": 693.73,
+            "cy": 217.81,
+            "r": 260.63,
+            "inliers": 314,
+            "boundaryPoints": 674,
+            "arcSpanDeg": 300,
+            "rmsPx": 2.13,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 10,
+            "area": 0.3266,
+            "cx": 693.35,
+            "cy": 217.03,
+            "r": 309.5,
+            "inliers": 314,
+            "boundaryPoints": 813,
+            "arcSpanDeg": 270,
+            "rmsPx": 1.78,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 11,
+            "area": 0.3995,
+            "cx": 692.98,
+            "cy": 217.02,
+            "r": 356.54,
+            "inliers": 304,
+            "boundaryPoints": 954,
+            "arcSpanDeg": 230,
+            "rmsPx": 1.53,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 12,
+            "area": 0.4724,
+            "cx": 692.55,
+            "cy": 217.12,
+            "r": 401.82,
+            "inliers": 326,
+            "boundaryPoints": 1124,
+            "arcSpanDeg": 230,
+            "rmsPx": 1.85,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [],
+        "originCentroid": [
+          {
+            "frame": 5,
+            "count": 602,
+            "cx": 693.91,
+            "cy": 217.74
+          }
+        ],
+        "click": {
+          "x": 694.9921875,
+          "y": 218.796875
+        }
+      },
+      "checksFrom": 40,
+      "fit": {
+        "cx": 692.93,
+        "cy": 217.02,
+        "errPx": 2.72,
+        "samples": 7,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 34,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "settings",
+      "name": "opt-center+12-slow",
+      "click": {
+        "x": 694.9921875,
+        "y": 218.796875
+      },
+      "frames": 31,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\settings\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 31,
+        "blockSize": 2,
+        "changedBlocks": 50939,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0,
+          0.0118,
+          0.0464,
+          0.171,
+          0.2477,
+          0.3273,
+          0.4001,
+          0.4727,
+          0.5434,
+          0.6076,
+          0.6667,
+          0.731,
+          0.7902,
+          0.847,
+          0.8948,
+          0.9226,
+          0.9384,
+          0.9496,
+          0.9576,
+          0.963,
+          0.9664,
+          0.9675,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677
+        ],
+        "maxJump": 0.1246,
+        "maxJumpAtFrame": 6,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03229,
+        "progressFrames": 13,
+        "fits": [
+          {
+            "frame": 5,
+            "area": 0.0464,
+            "cx": 692.93,
+            "cy": 216.38,
+            "r": 107.94,
+            "inliers": 155,
+            "boundaryPoints": 156,
+            "arcSpanDeg": 360,
+            "rmsPx": 1.17,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.171,
+            "cx": 692.82,
+            "cy": 216.83,
+            "r": 211.32,
+            "inliers": 300,
+            "boundaryPoints": 476,
+            "arcSpanDeg": 360,
+            "rmsPx": 1.65,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.2477,
+            "cx": 693.51,
+            "cy": 217.39,
+            "r": 261.06,
+            "inliers": 312,
+            "boundaryPoints": 674,
+            "arcSpanDeg": 300,
+            "rmsPx": 1.83,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.3273,
+            "cx": 693.25,
+            "cy": 216.92,
+            "r": 310.04,
+            "inliers": 312,
+            "boundaryPoints": 815,
+            "arcSpanDeg": 270,
+            "rmsPx": 1.62,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 9,
+            "area": 0.4001,
+            "cx": 692.94,
+            "cy": 216.95,
+            "r": 356.89,
+            "inliers": 305,
+            "boundaryPoints": 954,
+            "arcSpanDeg": 230,
+            "rmsPx": 1.64,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 10,
+            "area": 0.4727,
+            "cx": 692.57,
+            "cy": 217.09,
+            "r": 402.02,
+            "inliers": 327,
+            "boundaryPoints": 1127,
+            "arcSpanDeg": 230,
+            "rmsPx": 1.78,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [],
+        "originCentroid": [
+          {
+            "frame": 4,
+            "count": 602,
+            "cx": 693.91,
+            "cy": 217.74
+          }
+        ],
+        "click": {
+          "x": 694.9921875,
+          "y": 218.796875
+        }
+      },
+      "checksFrom": 44,
+      "fit": {
+        "cx": 692.94,
+        "cy": 216.95,
+        "errPx": 2.76,
+        "samples": 6,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 31,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "keyboard",
+      "name": "topbar-enter",
+      "click": {
+        "x": 1039,
+        "y": 29.5
+      },
+      "frames": 32,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\keyboard\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 32,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0.0211,
+          0.0719,
+          0.149,
+          0.2478,
+          0.3382,
+          0.4166,
+          0.489,
+          0.5571,
+          0.6229,
+          0.6878,
+          0.7583,
+          0.7992,
+          0.8322,
+          0.8641,
+          0.8937,
+          0.9212,
+          0.9371,
+          0.9438,
+          0.9493,
+          0.954,
+          0.9581,
+          0.9615,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.0987,
+        "maxJumpAtFrame": 6,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 15,
+        "fits": [
+          {
+            "frame": 4,
+            "area": 0.0719,
+            "cx": 1036.72,
+            "cy": 27.89,
+            "r": 155.31,
+            "inliers": 126,
+            "boundaryPoints": 284,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.39,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 5,
+            "area": 0.149,
+            "cx": 1036.82,
+            "cy": 27.87,
+            "r": 230.72,
+            "inliers": 181,
+            "boundaryPoints": 431,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.52,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.2478,
+            "cx": 1037,
+            "cy": 25.34,
+            "r": 304.88,
+            "inliers": 222,
+            "boundaryPoints": 658,
+            "arcSpanDeg": 200,
+            "rmsPx": 2.48,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.3382,
+            "cx": 1036.77,
+            "cy": 28.17,
+            "r": 375.3,
+            "inliers": 166,
+            "boundaryPoints": 845,
+            "arcSpanDeg": 140,
+            "rmsPx": 1.46,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.4166,
+            "cx": 1136.27,
+            "cy": 225.42,
+            "r": 224.69,
+            "inliers": 116,
+            "boundaryPoints": 952,
+            "arcSpanDeg": 160,
+            "rmsPx": 3.08,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 3,
+            "area": 0.021,
+            "span": 50,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 9,
+            "area": 0.489,
+            "span": 30,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [
+          {
+            "frame": 3,
+            "count": 843,
+            "cx": 1036.38,
+            "cy": 47.65
+          }
+        ],
+        "click": {
+          "x": 1039,
+          "y": 29.5
+        }
+      },
+      "checksFrom": 48,
+      "fit": {
+        "cx": 1036.82,
+        "cy": 27.89,
+        "errPx": 2.71,
+        "samples": 5,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 32,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "keyboard",
+      "name": "radio-space",
+      "click": {
+        "x": 682.9921875,
+        "y": 218.95753479003906
+      },
+      "frames": 33,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\keyboard\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 33,
+        "blockSize": 2,
+        "changedBlocks": 50940,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0.0117,
+          0.0455,
+          0.0969,
+          0.1687,
+          0.2431,
+          0.3223,
+          0.3944,
+          0.465,
+          0.5342,
+          0.5987,
+          0.6534,
+          0.7167,
+          0.7744,
+          0.8309,
+          0.8828,
+          0.9151,
+          0.9326,
+          0.9454,
+          0.9546,
+          0.9612,
+          0.9655,
+          0.9675,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677,
+          0.9677
+        ],
+        "maxJump": 0.0792,
+        "maxJumpAtFrame": 10,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03227,
+        "progressFrames": 14,
+        "fits": [
+          {
+            "frame": 6,
+            "area": 0.0455,
+            "cx": 681.04,
+            "cy": 216.48,
+            "r": 106.87,
+            "inliers": 153,
+            "boundaryPoints": 154,
+            "arcSpanDeg": 360,
+            "rmsPx": 1.27,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.0969,
+            "cx": 681.2,
+            "cy": 216.76,
+            "r": 158.64,
+            "inliers": 225,
+            "boundaryPoints": 303,
+            "arcSpanDeg": 360,
+            "rmsPx": 1.44,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.1687,
+            "cx": 681.28,
+            "cy": 216.95,
+            "r": 210.16,
+            "inliers": 295,
+            "boundaryPoints": 472,
+            "arcSpanDeg": 360,
+            "rmsPx": 1.53,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 9,
+            "area": 0.2431,
+            "cx": 681.11,
+            "cy": 217.28,
+            "r": 258.29,
+            "inliers": 308,
+            "boundaryPoints": 683,
+            "arcSpanDeg": 300,
+            "rmsPx": 1.76,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 10,
+            "area": 0.3223,
+            "cx": 680.78,
+            "cy": 217.13,
+            "r": 306.67,
+            "inliers": 309,
+            "boundaryPoints": 804,
+            "arcSpanDeg": 260,
+            "rmsPx": 1.6,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 11,
+            "area": 0.3944,
+            "cx": 680.81,
+            "cy": 217.37,
+            "r": 352.9,
+            "inliers": 303,
+            "boundaryPoints": 937,
+            "arcSpanDeg": 220,
+            "rmsPx": 1.83,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 12,
+            "area": 0.465,
+            "cx": 680.83,
+            "cy": 216.99,
+            "r": 398.09,
+            "inliers": 316,
+            "boundaryPoints": 1086,
+            "arcSpanDeg": 230,
+            "rmsPx": 1.5,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [],
+        "originCentroid": [
+          {
+            "frame": 5,
+            "count": 594,
+            "cx": 681.73,
+            "cy": 217.31
+          }
+        ],
+        "click": {
+          "x": 682.9921875,
+          "y": 218.95753479003906
+        }
+      },
+      "checksFrom": 52,
+      "fit": {
+        "cx": 681.04,
+        "cy": 216.99,
+        "errPx": 2.77,
+        "samples": 7,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 33,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "palette",
+      "name": "palette-theme-item",
+      "click": {
+        "x": 683,
+        "y": 549.46875
+      },
+      "frames": 33,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\palette\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 33,
+        "blockSize": 2,
+        "changedBlocks": 65153,
+        "areaCurve": [
+          0,
+          0,
+          0.4044,
+          0.4044,
+          0.4044,
+          0.4044,
+          0.4044,
+          0.4097,
+          0.4226,
+          0.444,
+          0.4725,
+          0.5182,
+          0.5715,
+          0.6263,
+          0.6858,
+          0.7452,
+          0.797,
+          0.8426,
+          0.8858,
+          0.9204,
+          0.941,
+          0.9562,
+          0.9664,
+          0.9729,
+          0.9759,
+          0.9774,
+          0.9776,
+          0.9776,
+          0.9776,
+          0.9776,
+          0.9776,
+          0.9776,
+          0.9776
+        ],
+        "maxJump": 0.4044,
+        "maxJumpAtFrame": 2,
+        "floodFrame": -1,
+        "finalOldFraction": 0.02236,
+        "progressFrames": 17,
+        "fits": [
+          {
+            "frame": 10,
+            "area": 0.4725,
+            "cx": 681.03,
+            "cy": 547.15,
+            "r": 352.74,
+            "inliers": 212,
+            "boundaryPoints": 1141,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.64,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 2,
+            "area": 0.404,
+            "span": 20,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 3,
+            "area": 0.404,
+            "span": 20,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 4,
+            "area": 0.404,
+            "span": 20,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 5,
+            "area": 0.404,
+            "span": 20,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 6,
+            "area": 0.404,
+            "span": 20,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 7,
+            "area": 0.41,
+            "span": 20,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [],
+        "click": {
+          "x": 683,
+          "y": 549.46875
+        }
+      },
+      "checksFrom": 56,
+      "fit": {
+        "cx": 681.03,
+        "cy": 547.15,
+        "errPx": 3.04,
+        "samples": 1,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 17,
+        "frames": 33,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "scroll",
+      "name": "scrollY0",
+      "click": {
+        "x": 1039,
+        "y": 29.5
+      },
+      "frames": 31,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\scroll\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 31,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0.021,
+          0.0717,
+          0.1486,
+          0.2466,
+          0.3373,
+          0.4159,
+          0.4881,
+          0.5565,
+          0.6224,
+          0.6875,
+          0.758,
+          0.7991,
+          0.8327,
+          0.8644,
+          0.894,
+          0.9214,
+          0.9372,
+          0.9438,
+          0.9493,
+          0.954,
+          0.9581,
+          0.9615,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.098,
+        "maxJumpAtFrame": 6,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 15,
+        "fits": [
+          {
+            "frame": 4,
+            "area": 0.0717,
+            "cx": 1036.67,
+            "cy": 27.57,
+            "r": 155.3,
+            "inliers": 126,
+            "boundaryPoints": 284,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.41,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 5,
+            "area": 0.1486,
+            "cx": 1036.92,
+            "cy": 27.21,
+            "r": 230.73,
+            "inliers": 181,
+            "boundaryPoints": 431,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.56,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.2466,
+            "cx": 1036.98,
+            "cy": 25.47,
+            "r": 304.15,
+            "inliers": 213,
+            "boundaryPoints": 651,
+            "arcSpanDeg": 200,
+            "rmsPx": 2.21,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.3373,
+            "cx": 1037.18,
+            "cy": 28.43,
+            "r": 374.16,
+            "inliers": 175,
+            "boundaryPoints": 842,
+            "arcSpanDeg": 140,
+            "rmsPx": 1.95,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.4159,
+            "cx": 903.56,
+            "cy": 68.6,
+            "r": 307.23,
+            "inliers": 103,
+            "boundaryPoints": 952,
+            "arcSpanDeg": 130,
+            "rmsPx": 3.02,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 9,
+            "area": 0.4881,
+            "cx": 1031.19,
+            "cy": 44.54,
+            "r": 496.79,
+            "inliers": 139,
+            "boundaryPoints": 1104,
+            "arcSpanDeg": 100,
+            "rmsPx": 2.44,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 3,
+            "area": 0.021,
+            "span": 50,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [
+          {
+            "frame": 3,
+            "count": 836,
+            "cx": 1036.3,
+            "cy": 47.25
+          }
+        ],
+        "click": {
+          "x": 1039,
+          "y": 29.5
+        }
+      },
+      "checksFrom": 60,
+      "fit": {
+        "cx": 1036.92,
+        "cy": 28.43,
+        "errPx": 2.34,
+        "samples": 6,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 31,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "scroll",
+      "name": "scrollY300-noscroll",
+      "click": {
+        "x": 1039,
+        "y": 29.5
+      },
+      "frames": 31,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\scroll\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 31,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0.021,
+          0.0717,
+          0.1486,
+          0.2466,
+          0.3373,
+          0.4159,
+          0.4882,
+          0.5565,
+          0.6225,
+          0.6875,
+          0.758,
+          0.7991,
+          0.8327,
+          0.8644,
+          0.894,
+          0.9214,
+          0.9372,
+          0.9438,
+          0.9493,
+          0.954,
+          0.9581,
+          0.9615,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.098,
+        "maxJumpAtFrame": 6,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 15,
+        "fits": [
+          {
+            "frame": 4,
+            "area": 0.0717,
+            "cx": 1036.67,
+            "cy": 27.57,
+            "r": 155.3,
+            "inliers": 126,
+            "boundaryPoints": 284,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.41,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 5,
+            "area": 0.1486,
+            "cx": 1036.92,
+            "cy": 27.21,
+            "r": 230.73,
+            "inliers": 181,
+            "boundaryPoints": 431,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.56,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.2466,
+            "cx": 1036.98,
+            "cy": 25.47,
+            "r": 304.15,
+            "inliers": 213,
+            "boundaryPoints": 651,
+            "arcSpanDeg": 200,
+            "rmsPx": 2.21,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.3373,
+            "cx": 1037.18,
+            "cy": 28.43,
+            "r": 374.16,
+            "inliers": 175,
+            "boundaryPoints": 842,
+            "arcSpanDeg": 140,
+            "rmsPx": 1.95,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 8,
+            "area": 0.4159,
+            "cx": 903.56,
+            "cy": 68.6,
+            "r": 307.23,
+            "inliers": 103,
+            "boundaryPoints": 952,
+            "arcSpanDeg": 130,
+            "rmsPx": 3.02,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 9,
+            "area": 0.4882,
+            "cx": 1031.18,
+            "cy": 44.55,
+            "r": 496.82,
+            "inliers": 139,
+            "boundaryPoints": 1104,
+            "arcSpanDeg": 100,
+            "rmsPx": 2.47,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 3,
+            "area": 0.021,
+            "span": 50,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [
+          {
+            "frame": 3,
+            "count": 836,
+            "cx": 1036.3,
+            "cy": 47.25
+          }
+        ],
+        "click": {
+          "x": 1039,
+          "y": 29.5
+        }
+      },
+      "checksFrom": 64,
+      "fit": {
+        "cx": 1036.92,
+        "cy": 28.43,
+        "errPx": 2.34,
+        "samples": 6,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 31,
+        "conclusive": true
+      },
+      "attempt": 1
+    },
+    {
+      "group": "scroll",
+      "name": "scrollY600-noscroll",
+      "click": {
+        "x": 1039,
+        "y": 29.5
+      },
+      "frames": 30,
+      "dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p07_gate\\postfix\\frames\\scroll\\screencast-frames",
+      "metrics": {
+        "width": 683,
+        "height": 384,
+        "frames": 30,
+        "blockSize": 2,
+        "changedBlocks": 39862,
+        "areaCurve": [
+          0,
+          0,
+          0,
+          0.021,
+          0.0717,
+          0.2481,
+          0.3384,
+          0.4167,
+          0.4891,
+          0.5572,
+          0.6231,
+          0.6881,
+          0.7585,
+          0.7989,
+          0.8327,
+          0.8644,
+          0.8938,
+          0.9214,
+          0.9372,
+          0.9438,
+          0.9494,
+          0.954,
+          0.9581,
+          0.9615,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625,
+          0.9625
+        ],
+        "maxJump": 0.1764,
+        "maxJumpAtFrame": 5,
+        "floodFrame": -1,
+        "finalOldFraction": 0.03748,
+        "progressFrames": 14,
+        "fits": [
+          {
+            "frame": 4,
+            "area": 0.0717,
+            "cx": 1036.67,
+            "cy": 27.57,
+            "r": 155.3,
+            "inliers": 126,
+            "boundaryPoints": 284,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.41,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 5,
+            "area": 0.2481,
+            "cx": 1037.46,
+            "cy": 27,
+            "r": 304.65,
+            "inliers": 208,
+            "boundaryPoints": 658,
+            "arcSpanDeg": 200,
+            "rmsPx": 1.92,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 6,
+            "area": 0.3384,
+            "cx": 1036.74,
+            "cy": 28.02,
+            "r": 375.55,
+            "inliers": 167,
+            "boundaryPoints": 846,
+            "arcSpanDeg": 140,
+            "rmsPx": 1.48,
+            "pass": "strict",
+            "margin": "strict"
+          },
+          {
+            "frame": 7,
+            "area": 0.4167,
+            "cx": 1136.27,
+            "cy": 225.42,
+            "r": 224.69,
+            "inliers": 116,
+            "boundaryPoints": 953,
+            "arcSpanDeg": 160,
+            "rmsPx": 3.08,
+            "pass": "strict",
+            "margin": "strict"
+          }
+        ],
+        "fitDebug": [
+          {
+            "frame": 3,
+            "area": 0.021,
+            "span": 50,
+            "why": "arcSpan<60"
+          },
+          {
+            "frame": 8,
+            "area": 0.489,
+            "span": 30,
+            "why": "arcSpan<60"
+          }
+        ],
+        "originCentroid": [
+          {
+            "frame": 3,
+            "count": 836,
+            "cx": 1036.3,
+            "cy": 47.25
+          }
+        ],
+        "click": {
+          "x": 1039,
+          "y": 29.5
+        }
+      },
+      "checksFrom": 68,
+      "fit": {
+        "cx": 1037.46,
+        "cy": 28.02,
+        "errPx": 2.14,
+        "samples": 4,
+        "method": "ransac"
+      },
+      "postTransition": {
+        "clip": "none",
+        "vtAnims": 0,
+        "vtAnimsRunning": 0,
+        "theme": "dark"
+      },
+      "sampling": {
+        "medianIntervalMs": 16,
+        "frames": 30,
+        "conclusive": true
+      },
+      "attempt": 1
+    }
+  ]
+}

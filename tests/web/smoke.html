@@ -1510,12 +1510,17 @@ window.addEventListener("load", function () {
      连锁空引用（11 项同时红，页面里连 #route-view 内容都没有）。
      判据一字未改，只把「开跑时刻」改成**轮询首屏就绪**（路由页已渲染）。 */
   (async function () {
-    const deadline = Date.now() + 20000;
+    /* P8 加固：机器负载高时（如 u43 在自己浏览器上下文里并行跑 smoke）首屏渲染可能
+       >20s，此时断言会在「壳未就绪」的页面上连锁空引用（实测 u43 内嵌跑 smoke
+       出现 11 项同时红）。deadline 提到 45s，并把是否就绪写入 window.__bootReady。 */
+    const deadline = Date.now() + 45000;
+    let ready = false;
     while (Date.now() < deadline) {
       const view = document.getElementById("route-view");
-      if (view && view.querySelector("[data-page-title], [data-page]")) break;
+      if (view && view.querySelector("[data-page-title], [data-page]")) { ready = true; break; }
       await new Promise((r) => setTimeout(r, 60));
     }
+    window.__bootReady = ready;
     __runAssertions(registry);
   })();
 });

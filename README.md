@@ -561,6 +561,29 @@ CLI / TUI 调用方**零改动**：`top_growth` 默认仍按有符号 delta 降�
     表格区 ≈79px（三件同屏、面板内滚，页面零滚动）；仅选 1 份时趋势卡收成单行原因条，
     表格区 ≈127px。
 
+### 主题圆形扩散（P7，问题 10 / D7-1…D7-5）
+
+主题切换的 View Transitions 圆形扩散在 P7 逐条收口（均有像素级证据）：
+
+- **坐标空间对齐**（D7-1）：clip 作用在 `::view-transition-new(root)`，其参考盒是
+  `documentElement` 的盒子，而 `clientX/clientY` 是视口坐标——改用
+  `root.getBoundingClientRect()` 换算，半径
+  `hypot(max(x,W-x), max(y,H-y)) * 1.02 + 16`；
+- **消除「一帧铺满」**（D7-2）：WAAPI 动画补 `fill:"forwards"`（否则 450ms 结束时
+  clip-path 回到 `none`，未被圆覆盖的像素在一帧内全部变新主题），并在转场结束后
+  `cancel()` 该动画，避免填充态动画堆积；
+- **伪坐标兜底**（D7-3）：键盘 Enter/Space 或 `el.click()` 触发的 click 事件
+  `clientX=clientY=0` 且 `detail===0` 视为「无坐标」→ 取触发元素（顶栏按钮 /
+  命令面板项 / 设置选项）矩形中心；命令面板「切换主题」原先直接传 `null`
+  （走直切、完全没有扩散），现传「刚刚的指针坐标」；
+- **设置弹窗坐标**（D7-4）：去掉 300ms 时间 TTL，改为「下一次 `change` 消费 /
+  组外 `pointerdown` 清空」——慢点击与点在外边距不再退回控件中心；
+- **验收口径**（D7-5）：`scripts/dev/p07_theme_pixel_probe.mjs` 用 CDP screencast
+  （0.5× 采幅，帧间隔中位 16ms）采帧、页内 canvas 解码、2×2 块均值掩膜 +
+  RANSAC 圆拟合 + 覆盖曲线，覆盖 5 组 18 例：顶栏 9 点、设置选项中心/+12px/慢点击、
+  键盘 Enter、命令面板、滚动变体。实测圆心误差 1.4–4px、无铺满帧、末帧旧主题像素
+  ≤4%（跨编码噪声底）。
+
 ## 项目结构
 
 代码按职责拆分为多个模块（由最初的单文件 `main.py` 演进而来，`main.py`
