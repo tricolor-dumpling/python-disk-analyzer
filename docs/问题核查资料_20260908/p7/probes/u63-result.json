@@ -1,0 +1,174 @@
+{
+  "meta": {
+    "base": "http://127.0.0.1:5000/",
+    "out": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u63_theme_coord",
+    "video": false,
+    "browsers": [
+      "chromium"
+    ],
+    "node": "v24.19.0",
+    "startedAt": "2026-09-11T10:40:55.735Z",
+    "finishedAt": "2026-09-11T10:41:06.549Z"
+  },
+  "checks": [
+    {
+      "name": "[chromium] btn-center：扩散起点=点击坐标（±6px）",
+      "pass": true,
+      "detail": "{\"click\":{\"x\":1039,\"y\":30},\"start\":{\"x\":1039,\"y\":29},\"themeMoved\":true}"
+    },
+    {
+      "name": "[chromium] btn-edge：扩散起点=点击坐标（±6px）",
+      "pass": true,
+      "detail": "{\"click\":{\"x\":1068,\"y\":30},\"start\":{\"x\":1068,\"y\":29},\"themeMoved\":true}"
+    },
+    {
+      "name": "[chromium] opt-center（设置弹窗）：扩散起点=点击坐标（±6px）",
+      "pass": true,
+      "detail": "{\"click\":{\"x\":683,\"y\":208},\"start\":{\"x\":682.9921875,\"y\":208.390625},\"themeMoved\":true}"
+    },
+    {
+      "name": "[chromium] opt-edge+12（设置弹窗）：扩散起点=点击坐标（±6px）",
+      "pass": true,
+      "detail": "{\"click\":{\"x\":532,\"y\":208},\"start\":{\"x\":532.328125,\"y\":208.390625},\"themeMoved\":true}"
+    },
+    {
+      "name": "[chromium] 键盘/程序化 change（无坐标）→ 回退控件中心（±6px）",
+      "pass": true,
+      "detail": "{\"start\":{\"x\":682.9921875,\"y\":208.390625},\"center\":{\"x\":682.9921875,\"y\":208.390625},\"themeMoved\":true}"
+    },
+    {
+      "name": "[chromium] P7 像素层圆心（早期帧变化掩膜质心 vs 点击坐标 ≤30px，且不得锚在视口左上角）",
+      "pass": true,
+      "detail": "{\"errPx\":20.2,\"width\":683,\"height\":384,\"frames\":30,\"scale\":2,\"first\":{\"frame\":3,\"count\":4140,\"cx\":1037.5,\"cy\":49.6,\"frac\":0.0158},\"click\":{\"x\":1039,\"y\":30}}"
+    },
+    {
+      "name": "[chromium] 全程 console/pageerror 0",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "browsers": {
+    "chromium": {
+      "cases": [
+        {
+          "zone": "topbar",
+          "name": "btn-center",
+          "click": {
+            "x": 1039,
+            "y": 30
+          },
+          "start": {
+            "x": 1039,
+            "y": 29
+          },
+          "themeMoved": true,
+          "ok": true,
+          "shot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u63_theme_coord\\keyframes\\chromium-btn-center.png"
+        },
+        {
+          "zone": "topbar",
+          "name": "btn-edge",
+          "click": {
+            "x": 1068,
+            "y": 30
+          },
+          "start": {
+            "x": 1068,
+            "y": 29
+          },
+          "themeMoved": true,
+          "ok": true,
+          "shot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u63_theme_coord\\keyframes\\chromium-btn-edge.png"
+        },
+        {
+          "zone": "settings",
+          "name": "opt-center",
+          "click": {
+            "x": 683,
+            "y": 208
+          },
+          "start": {
+            "x": 682.9921875,
+            "y": 208.390625
+          },
+          "themeMoved": true,
+          "ok": true,
+          "shot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u63_theme_coord\\keyframes\\chromium-opt-center.png"
+        },
+        {
+          "zone": "settings",
+          "name": "opt-edge+12",
+          "click": {
+            "x": 532,
+            "y": 208
+          },
+          "start": {
+            "x": 532.328125,
+            "y": 208.390625
+          },
+          "themeMoved": true,
+          "ok": true,
+          "shot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u63_theme_coord\\keyframes\\chromium-opt-edge+12.png"
+        }
+      ],
+      "checks": [
+        {
+          "name": "[chromium] btn-center：扩散起点=点击坐标（±6px）",
+          "pass": true,
+          "detail": "{\"click\":{\"x\":1039,\"y\":30},\"start\":{\"x\":1039,\"y\":29},\"themeMoved\":true}"
+        },
+        {
+          "name": "[chromium] btn-edge：扩散起点=点击坐标（±6px）",
+          "pass": true,
+          "detail": "{\"click\":{\"x\":1068,\"y\":30},\"start\":{\"x\":1068,\"y\":29},\"themeMoved\":true}"
+        },
+        {
+          "name": "[chromium] opt-center（设置弹窗）：扩散起点=点击坐标（±6px）",
+          "pass": true,
+          "detail": "{\"click\":{\"x\":683,\"y\":208},\"start\":{\"x\":682.9921875,\"y\":208.390625},\"themeMoved\":true}"
+        },
+        {
+          "name": "[chromium] opt-edge+12（设置弹窗）：扩散起点=点击坐标（±6px）",
+          "pass": true,
+          "detail": "{\"click\":{\"x\":532,\"y\":208},\"start\":{\"x\":532.328125,\"y\":208.390625},\"themeMoved\":true}"
+        },
+        {
+          "name": "[chromium] 键盘/程序化 change（无坐标）→ 回退控件中心（±6px）",
+          "pass": true,
+          "detail": "{\"start\":{\"x\":682.9921875,\"y\":208.390625},\"center\":{\"x\":682.9921875,\"y\":208.390625},\"themeMoved\":true}"
+        },
+        {
+          "name": "[chromium] P7 像素层圆心（早期帧变化掩膜质心 vs 点击坐标 ≤30px，且不得锚在视口左上角）",
+          "pass": true,
+          "detail": "{\"errPx\":20.2,\"width\":683,\"height\":384,\"frames\":30,\"scale\":2,\"first\":{\"frame\":3,\"count\":4140,\"cx\":1037.5,\"cy\":49.6,\"frac\":0.0158},\"click\":{\"x\":1039,\"y\":30}}"
+        },
+        {
+          "name": "[chromium] 全程 console/pageerror 0",
+          "pass": true,
+          "detail": ""
+        }
+      ],
+      "consoleErrors": [],
+      "badHttp": [],
+      "pixelCenter": {
+        "errPx": 20.2,
+        "width": 683,
+        "height": 384,
+        "frames": 30,
+        "scale": 2,
+        "first": {
+          "frame": 3,
+          "count": 4140,
+          "cx": 1037.5,
+          "cy": 49.6,
+          "frac": 0.0158
+        },
+        "click": {
+          "x": 1039,
+          "y": 30
+        }
+      }
+    }
+  },
+  "pixelRetry": 1
+}

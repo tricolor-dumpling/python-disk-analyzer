@@ -137,7 +137,7 @@ export function frameRecorderSource() {
    帧含页面自身时间戳 metadata.timestamp（秒），换算为相对 ms。
    调用方负责在结束后自行关闭 browser。 */
 export async function screencast(page, opts) {
-    const { outDir, durationMs = 2000, quality = 60, onFrame } = opts || {};
+    const { outDir, durationMs = 2000, quality = 60, onFrame, maxWidth, maxHeight } = opts || {};
     const framesDir = path.join(outDir, "screencast-frames");
     fs.mkdirSync(framesDir, { recursive: true });
     const client = await page.context().newCDPSession(page);
@@ -156,7 +156,13 @@ export async function screencast(page, opts) {
         try { await client.send("Page.screencastFrameAck", { sessionId }); }
         catch (e) { /* ack 失败不致命 */ }
     });
-    await client.send("Page.startScreencast", { format: "jpeg", quality, everyNthFrame: 1 });
+    /* P7（问题 10）additive：maxWidth/maxHeight 缩小采幅 → JPEG 编码更快 →
+       帧间隔显著变小（主题扩散 450ms 动画需要 ≥数十帧才能测「相邻帧面积跳变」）。
+       不传时行为与既有使用方完全一致（全尺寸）。 */
+    const startOpts = { format: "jpeg", quality, everyNthFrame: 1 };
+    if (maxWidth) startOpts.maxWidth = maxWidth;
+    if (maxHeight) startOpts.maxHeight = maxHeight;
+    await client.send("Page.startScreencast", startOpts);
     await wait(durationMs);
     try { await client.send("Page.stopScreencast"); } catch (e) { /* ignore */ }
     try { await client.detach(); } catch (e) { /* ignore */ }
@@ -173,7 +179,8 @@ export async function screencast(page, opts) {
         prev = f.ts;
     }
     fs.writeFileSync(path.join(outDir, "timeline.json"), JSON.stringify({
-        meta: { durationMs, quality, startedAt: new Date(t0).toISOString(), t0, frames: timeline.length,
+        meta: { durationMs, quality, maxWidth: maxWidth || null, maxHeight: maxHeight || null,
+                startedAt: new Date(t0).toISOString(), t0, frames: timeline.length,
                 ts_policy: "ts 单调不减（按 seq 稳定序 + 单调夹取）；rawTs=CDP metadata 原始推算值保留核对", ts_clamped: clamped },
         frames: timeline,
     }, null, 2), "utf-8");
