@@ -104,17 +104,33 @@ async function buttonPoints(page) {
     return { map, box };
 }
 
-/* 终态断言：无内联 clip-path 残留 + 主题终值正确 + 无 VT 伪元素动画堆积 */
+/* 终态断言：无 clip 残留 + 主题终值正确 + 无 VT 伪元素动画堆积。
+   P7（问题 10：修探针盲区）——原实现有两条**恒真/死分支**，等于没测：
+     · `root.style.clipPath` 从未被 theme.js 写入（只有清理时置空）→ 断言恒真；
+     · `if (!clean.clipPath === "")` 是 `boolean === ""`，恒为 false → 终态帧永不截图（死分支）。
+   现补两条**可假**观测：
+     ① 伪元素计算样式 `getComputedStyle(root, "::view-transition-new(root)").clipPath`
+        —— 若 fill:forwards 泄漏把 clip 留在伪元素上，这里会是非 none 的圆；
+     ② 只统计**仍在运行**的 VT 动画（playState==="running"）——已结束的填充态动画
+        在伪元素销毁后仍可能留在 getAnimations() 里，不构成堆积；
+     ③ 死分支修正为 `clean.clipPath !== ""`（有残留才截终态帧）。 */
 async function assertCleanState(page, expectedTheme) {
     return page.evaluate((exp) => {
         const root = document.documentElement;
+        const anims = document.getAnimations().filter((a) => {
+            const p = a.effect && a.effect.pseudoElement;
+            return typeof p === "string" && p.indexOf("view-transition") !== -1;
+        });
+        let pseudoClip = "";
+        try {
+            pseudoClip = getComputedStyle(root, "::view-transition-new(root)").clipPath || "";
+        } catch (e) { pseudoClip = "(unreadable)"; }
         return {
             clipPath: root.style.clipPath || "",
+            pseudoClipPath: pseudoClip === "none" ? "" : pseudoClip,
             theme: root.getAttribute("data-theme"),
-            vtAnimations: document.getAnimations().filter((a) => {
-                const p = a.effect && a.effect.pseudoElement;
-                return typeof p === "string" && p.indexOf("view-transition") !== -1;
-            }).length,
+            vtAnimations: anims.filter((a) => a.playState === "running").length,
+            vtAnimationsTotal: anims.length,
             themeOk: root.getAttribute("data-theme") === exp,
         };
     }, expectedTheme);
@@ -246,12 +262,12 @@ async function runBrowser(channel) {
         const clean = await assertCleanState(page, target);
         const themeReal = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
         const themeSemOk = finalOkTheme(themeReal);
-        const ok = clean.clipPath === "" && themeSemOk && clean.vtAnimations === 0;
-        if (!clean.clipPath === "") frames.push(await (async () => { const f = path.join(OUT, "keyframes", `${channel}-${g.id}-end.png`); await page.screenshot({ path: f }).catch(() => {}); return f; })());
+        const ok = clean.clipPath === "" && clean.pseudoClipPath === "" && themeSemOk && clean.vtAnimations === 0;
+        if (clean.clipPath !== "" || clean.pseudoClipPath !== "") frames.push(await (async () => { const f = path.join(OUT, "keyframes", `${channel}-${g.id}-end.png`); await page.screenshot({ path: f }).catch(() => {}); return f; })());
         b.groups.push({
             id: g.id, type: g.type, pt: g.pt, gapMs: g.gapMs || 0,
             startTheme, target, themeReal, clickAtMs: Date.now() - t0,
-            clean: { clipPath: clean.clipPath, themeOk: themeSemOk, vtAnimations: clean.vtAnimations },
+            clean: { clipPath: clean.clipPath, pseudoClipPath: clean.pseudoClipPath, themeOk: themeSemOk, vtAnimations: clean.vtAnimations, vtAnimationsTotal: clean.vtAnimationsTotal },
             ok,
             frames,
         });

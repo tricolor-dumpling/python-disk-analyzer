@@ -217,6 +217,77 @@ async function runBrowser(channel) {
     const fk = path.join(OUT, "keyframes", `${channel}-keyboard-center.png`);
     await page.screenshot({ path: fk }).catch(() => {});
 
+    /* ---- D. P7 新增：**像素层**圆心断言（不再只看 keyframe 字符串）----
+       做法：CDP screencast（0.5× 采幅提高帧率）采一段帧 → 页内 canvas 解码 →
+       对「已变化像素」掩膜取**早期帧质心**（小圆刚落定处）→ 与点击坐标比较。
+       容差 30px（早期帧质心受内容覆盖偏置），但**独立于 keyframe**：keyframe
+       字符串正确而实际渲染圆心跑偏（坐标空间/伪坐标缺陷）时这条会红。 */
+    try {
+        const boxP = await page.locator("#btn-theme").boundingBox();
+        const clickP = { x: boxP.x + boxP.width / 2, y: boxP.y + boxP.height / 2 };
+        const { screencast } = await import("./_harness.mjs");
+        let pixel = null;
+        /* 重试 ≤3 次：screencast 帧率随负载波动，采样过粗时抓不到「小圆」帧
+           （实测偶发只出 3 帧）——重试并把尝试次数记入证据。 */
+        for (let attempt = 1; attempt <= 3 && !pixel; attempt++) {
+            await page.evaluate(async () => {
+                const m = await import("/static/js/app/main.js");
+                m.switchTheme("light", null);
+            });
+            await wait(700);
+            const castDir = path.join(OUT, "pixel", channel + "-a" + attempt);
+            fs.mkdirSync(castDir, { recursive: true });
+            const castPromise = screencast(page, { outDir: castDir, durationMs: 1200, quality: 70, maxWidth: 683, maxHeight: 384 });
+            await wait(220);
+            await page.mouse.click(clickP.x, clickP.y);
+            const cast = await castPromise;
+            const frameList = cast.frames.map((f) => fs.readFileSync(path.join(cast.framesDir, path.basename(f.file))).toString("base64"));
+            pixel = await page.evaluate(async (arg) => {
+                const { list, click } = arg;
+                const cv = document.createElement("canvas");
+                const ctx = cv.getContext("2d", { willReadFrequently: true });
+                const load = async (b64) => { const i = new Image(); i.src = "data:image/jpeg;base64," + b64; await i.decode(); return i; };
+                const imgs = [];
+                for (const b of list) imgs.push(await load(b));
+                const W = imgs[0].naturalWidth, H = imgs[0].naturalHeight;
+                cv.width = W; cv.height = H;
+                const grab = (img) => { ctx.clearRect(0, 0, W, H); ctx.drawImage(img, 0, 0, W, H); return ctx.getImageData(0, 0, W, H).data; };
+                const oldD = grab(imgs[0]);
+                const newD = grab(imgs[imgs.length - 1]);
+                const scale = 1366 / W;
+                let first = null;
+                for (let f = 1; f < imgs.length; f++) {
+                    const d = grab(imgs[f]);
+                    let count = 0, sx = 0, sy = 0;
+                    for (let i = 0, p = 0; i < d.length; i++, p += 4) {
+                        const dOld = (d[p] - oldD[p]) ** 2 + (d[p + 1] - oldD[p + 1]) ** 2 + (d[p + 2] - oldD[p + 2]) ** 2;
+                        const dNew = (d[p] - newD[p]) ** 2 + (d[p + 1] - newD[p + 1]) ** 2 + (d[p + 2] - newD[p + 2]) ** 2;
+                        if (dNew + 400 < dOld) { count++; sx += i % W; sy += Math.floor(i / W); }
+                    }
+                    const frac = count / (W * H);
+                    if (frac >= 0.0008 && frac <= 0.15) {
+                        first = { frame: f, count: count, cx: Number((sx / count * scale).toFixed(1)), cy: Number((sy / count * scale).toFixed(1)), frac: Number(frac.toFixed(4)) };
+                        break;
+                    }
+                }
+                return first ? { width: W, height: H, frames: imgs.length, scale: scale, first: first, click: { x: Math.round(click.x), y: Math.round(click.y) } } : null;
+            }, { list: frameList, click: clickP });
+            if (!pixel) RESULT.pixelRetry = (RESULT.pixelRetry || 0) + 1;
+        }
+        const errPx = pixel && pixel.first ? Math.hypot(pixel.first.cx - clickP.x, pixel.first.cy - clickP.y) : null;
+        const okPix = !!pixel && !!pixel.first && errPx <= 30 &&
+            /* 反向判据：圆心不得锚在视口左上角（伪坐标缺陷的特征） */
+            Math.hypot(pixel.first.cx, pixel.first.cy) > 200;
+        b.pixelCenter = pixel ? { errPx: errPx === null ? null : Number(errPx.toFixed(1)), ...pixel } : null;
+        b.checks.push({
+            name: "[" + tag + "] P7 像素层圆心（早期帧变化掩膜质心 vs 点击坐标 ≤30px，且不得锚在视口左上角）",
+            pass: okPix,
+            detail: JSON.stringify(b.pixelCenter),
+        });
+    } catch (e) {
+        b.checks.push({ name: "[" + tag + "] P7 像素层圆心", pass: false, detail: "探针异常: " + String(e && e.message || e) });
+    }
+
     b.consoleErrors = errs;
     b.checks.push({ name: "[" + tag + "] 全程 console/pageerror 0", pass: errs.length === 0, detail: errs.join(" | ") + (b.badHttp.length ? " HTTP: " + b.badHttp.join(" ; ") : "") });
 
