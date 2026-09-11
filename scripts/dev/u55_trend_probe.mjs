@@ -76,6 +76,19 @@ window.fetch = function (url, options) {
   if (key === "POST /api/compare") {
     return json({ ok: true, report: { root: "D:\\", total_baseline: 16000, total_current: 15990, delta_total: -10, truncated: false, legacy_count: 0, rows: [ { path: "D:\\data", baseline: 12000, current: 11990, delta: -10, growth_pct: -0.08, removed: false, added: false } ] } });
   }
+  /* P6（D6-3）：多快照序列桩——按请求里真实带上的 snapshots[] 回点，
+     使「数据点数 == 所选快照数」在桩态下同样可判（不是写死几条）。 */
+  if (key === "GET /api/series") {
+    let picked = [];
+    try { picked = new URL(String(url), location.origin).searchParams.getAll("snapshots"); } catch (e) { picked = []; }
+    const points = picked.map((p, i) => ({
+      snapshot: p, name: String(p).split("\\\\").pop(), created_at: "2026-09-0" + (i + 1) + "T10:00:00",
+      auto: false, machine_guid: "3f2a1c9d", bytes: 16000 - i * 500, present: true, rows: 4, cached: false,
+    }));
+    return json({ ok: true, root: "D:\\\\", path: "", depth: null, limit: 12, count: points.length,
+      truncated: false, dropped: 0, rows_total: points.length * 4, elapsed_ms: 1.5, reason: points.length ? "" : "no_snapshots",
+      points: points, skipped: [] });
+  }
   if (key === "GET /api/compare/status") return json({ ok: true, status: "done", report: { root: "D:\\", total_baseline: 16000, total_current: 15990, delta_total: -10, truncated: false, legacy_count: 0, rows: [] } });
   if (key === "GET /api/overview") return json({ ok: true, ready: false, scanning: false, empty_reason: "no_scan", roots: [] });
   return json({ ok: true });
@@ -208,6 +221,74 @@ async function openScenario(browser, mode, scan) {
         check("对比页摘要含 对比基准→当前 数值（15.63 KB → 15.62 KB）", compareState.deltaText.indexOf("15.63 KB → 15.62 KB") !== -1, compareState.deltaText);
         await shot(page, "trend-consistency-compare.png");
         RESULT.shots.push("trend-consistency-compare.png");
+
+        /* ---- ⑥（P6·D6-4/D6-5/D6-6）：多快照趋势折线（additive，原 ①–⑤ 判据不动） ----
+           对比基准多选 ≥2 份 → 趋势卡成图（/api/series 桩按所选的快照数回点）+
+           悬浮读数出现；退回 1 份 → 空闲态给出原因（禁止永久空白）。 */
+        const oneSel = await page.evaluate(() => {
+            const sel = document.getElementById("compare-baseline");
+            if (!sel) return { ok: false };
+            Array.from(sel.options).forEach((o, i) => { o.selected = i === 0; });
+            sel.dispatchEvent(new Event("change", { bubbles: true }));
+            return { ok: true, multiple: !!sel.multiple, options: sel.options.length, selected: sel.selectedOptions.length };
+        });
+        await page.waitForTimeout(700);
+        const idleTrend = await page.evaluate(() => {
+            const card = document.getElementById("compare-trend");
+            const host = document.getElementById("compare-trend-host");
+            return {
+                present: !!card,
+                state: card ? card.dataset.state : null,
+                empty: host && host.querySelector(".line-empty") ? host.querySelector(".line-empty").textContent : "",
+            };
+        });
+        check("⑥a 对比基准已多选化（select multiple，id 不变）", oneSel.ok && oneSel.multiple === true && oneSel.options >= 2,
+            JSON.stringify(oneSel));
+        check("⑥b 选 1 份 → 趋势卡空闲态且给出原因（非空白）",
+            idleTrend.present && idleTrend.state === "idle" && idleTrend.empty.length > 6, JSON.stringify(idleTrend));
+
+        const twoSel = await page.evaluate(() => {
+            const sel = document.getElementById("compare-baseline");
+            if (!sel) return { ok: false };
+            Array.from(sel.options).forEach((o, i) => { o.selected = i < 2; });
+            sel.dispatchEvent(new Event("change", { bubbles: true }));
+            return { ok: true, selected: sel.selectedOptions.length, values: Array.from(sel.selectedOptions).map((o) => o.value) };
+        });
+        await page.waitForFunction(() => {
+            const h = document.getElementById("compare-trend-host");
+            return h && h.dataset.state === "ok" && h.querySelector(".line-path");
+        }, null, { timeout: 15000 }).catch(() => {});
+        const pt = await page.evaluate(() => {
+            const dot = document.querySelectorAll("#compare-trend-host .line-dot")[1];
+            if (!dot) return null;
+            const r = dot.getBoundingClientRect();
+            return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        });
+        if (pt) await page.mouse.move(pt.x, pt.y);
+        await page.waitForTimeout(260);
+        const lineState = await page.evaluate(() => {
+            const host = document.getElementById("compare-trend-host");
+            const pathEl = host ? host.querySelector(".line-path") : null;
+            const ro = host ? host.querySelector(".line-readout") : null;
+            return {
+                state: (document.getElementById("compare-trend").dataset || {}).state,
+                dots: host ? host.querySelectorAll(".line-dot").length : 0,
+                pathLen: pathEl ? String(pathEl.getAttribute("d") || "").length : 0,
+                axisY: host ? host.querySelectorAll(".line-axis-y").length : 0,
+                axisX: host ? host.querySelectorAll(".line-axis-x").length : 0,
+                readout: ro && !ro.hasAttribute("hidden") ? ro.textContent : "",
+                aria: host ? (host.getAttribute("aria-label") || "") : "",
+            };
+        });
+        check("⑥c 选 2 份 → 折线成图（state=ok + path + 点数=所选份数 + X/Y 轴）",
+            twoSel.ok && twoSel.selected === 2 && lineState.state === "ok" && lineState.pathLen > 20 &&
+            lineState.dots === twoSel.selected && lineState.axisY >= 1 && lineState.axisX >= 2,
+            JSON.stringify({ pick: twoSel, line: lineState }));
+        check("⑥d 悬浮读数出现且含时间 + 数值", /\d{2}-\d{2} \d{2}:\d{2}/.test(lineState.readout) && /(KB|MB|GB|B)/.test(lineState.readout),
+            JSON.stringify(lineState.readout));
+        check("⑥e 折线无障碍概述（aria-label 含点数与首末值）", lineState.aria.indexOf("多快照趋势折线") !== -1, lineState.aria);
+        await shot(page, "trend-multi-line-compare.png");
+        RESULT.shots.push("trend-multi-line-compare.png");
         await page.close();
     }
 

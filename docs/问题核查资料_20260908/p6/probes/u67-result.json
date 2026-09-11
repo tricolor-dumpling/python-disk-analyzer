@@ -1,0 +1,146 @@
+{
+  "meta": {
+    "base": "http://127.0.0.1:5107/",
+    "out": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u67_fixture",
+    "node": "v24.19.0",
+    "startedAt": "2026-09-11T00:38:09.709Z",
+    "fixture": true,
+    "fixtureState": {
+      "data_dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_u67_iso\\PythonDiskScanner",
+      "machine_guid": "3f2a1c9d-0000-4000-8000-00000000f1x7",
+      "root": "D:\\",
+      "roots_injected": [],
+      "roots_mode": "real",
+      "rows": 5,
+      "snapshot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_u67_iso\\PythonDiskScanner\\snapshots\\D_20260908_150000_explicit_3f2a1c9d.snap.gz",
+      "snapshot_dir": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_u67_iso\\PythonDiskScanner\\snapshots"
+    },
+    "fixtureLog": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u67_fixture\\u67-fixture-harness.log"
+  },
+  "checks": [
+    {
+      "name": "前置：全量扫描 result_ready",
+      "pass": true,
+      "detail": "{\"phase\":\"idle\",\"pct\":100,\"roots_done\":1,\"roots_total\":1}"
+    },
+    {
+      "name": "基线快照可用",
+      "pass": true,
+      "detail": "snapshot_path=C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_u67_iso\\PythonDiskScanner\\snapshots\\D_20260908_190000_explicit_3f2a1c9d.snap.gz root=D:\\ sessions=6"
+    },
+    {
+      "name": "compare 缓存命中收敛 同步秒级",
+      "pass": {
+        "baseline_created_at": "2026-09-08T19:00:00",
+        "current_completed_at": "2026-09-08T17:00:00",
+        "delta_total": -250,
+        "depth": null,
+        "legacy_count": 0,
+        "max_growth": 0,
+        "max_release": 25,
+        "root": "D:\\",
+        "rows": [
+          {
+            "added": false,
+            "baseline": 225,
+            "current": 200,
+            "delta": -25,
+            "growth_pct": null,
+            "path": "D:\\series\\one\\two\\file.bin",
+            "removed": false
+          }
+        ],
+        "rows_total": 1,
+        "total_baseline": 2250,
+        "total_current": 2000,
+        "truncated": false,
+        "zero_count": 0,
+        "zero_total": 0
+      },
+      "detail": "status=200 elapsed=0.01s delta=-250 rows=1"
+    },
+    {
+      "name": "前端对比页收敛（报告/错误态可见，非无限 loading）",
+      "pass": true,
+      "detail": "{\"ok\":false,\"options\":0} | C:\\Users\\Laptop\\AppData\\Local\\Temp\\u67_fixture\\u67-compare-page.png | Python 磁盘扫描 空间分析工作台 工作台 对比 快照 已就绪·可开始扫描 搜索或跳转… Ctrl K 主题 重新扫描 使用指引 设置 空间对比 对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D: 对比基准（历史快照） 已选 0 份 · Ctrl/⌘ 可多选 最近一份 · 2026-0"
+    },
+    {
+      "name": "④ P4：深度选择器生效（depth=1 后端聚合回显 + 表格行==返回行 + 零行已过滤）",
+      "pass": true,
+      "detail": "post.depth=1 report.depth=1 叶子行=1 depth1行=1 depth1零行=0 | C:\\Users\\Laptop\\AppData\\Local\\Temp\\u67_fixture\\u67-depth1.png"
+    },
+    {
+      "name": "⑤ P4：行点击页内下钻（请求 root=该目录 + 面包屑含该路径）",
+      "pass": true,
+      "detail": "drill=D:\\series post.root=\"D:\\\\series\" crumb=\"D:\\\\›D:\\\\series\" 行=1 报告行=1 | C:\\Users\\Laptop\\AppData\\Local\\Temp\\u67_fixture\\u67-drill.png"
+    },
+    {
+      "name": "⑥ P6：多快照趋势折线（选 1 份给原因 / 选 3 份成图 + 悬浮读数，数据源=夹具快照真实解析）",
+      "pass": true,
+      "detail": "多选=true 选项=6 空闲态={\"present\":true,\"state\":\"idle\",\"dots\":0,\"pathLen\":0,\"axisY\":0,\"axisX\":0,\"empty\":\"再选 1 份对比基准即可成线（按住 Ctrl/⌘ 在多选列表里追加一份）\"} 成图={\"present\":true,\"state\":\"ok\",\"dots\":3,\"pathLen\":39,\"axisY\":3,\"axisX\":3,\"empty\":\"\"} 读数=\"09-08 15:001.95 KB\" | C:\\Users\\Laptop\\AppData\\Local\\Temp\\u67_fixture\\u67-trend-line.png"
+    },
+    {
+      "name": "console 无未处理错误（favicon 404 单列为既存环境差异）",
+      "pass": true,
+      "detail": "运行时错误=[] 原始console=[]"
+    }
+  ],
+  "consoleErrors": [],
+  "shots": [
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u67_fixture\\u67-compare-page.png",
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u67_fixture\\u67-depth1.png",
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u67_fixture\\u67-drill.png",
+    "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u67_fixture\\u67-trend-line.png"
+  ],
+  "apiStatus": {
+    "autosave_outcome": null,
+    "current_root": null,
+    "error": null,
+    "lock_holder": null,
+    "lock_since": null,
+    "phase": "idle",
+    "progress_pct": 100,
+    "result_ready": true,
+    "roots": [
+      "D:\\"
+    ],
+    "roots_done": 1,
+    "roots_total": 1,
+    "row_done": 5,
+    "row_total": 5,
+    "running": false,
+    "save_ready": false,
+    "scan_version": 1,
+    "stop_ack_at": null,
+    "stop_reason": null,
+    "stop_requested": false
+  },
+  "compare": {
+    "httpStatus": 200,
+    "elapsedSec": 0.013,
+    "reportKeys": [
+      "baseline_created_at",
+      "current_completed_at",
+      "delta_total",
+      "depth",
+      "legacy_count",
+      "max_growth",
+      "max_release",
+      "root",
+      "rows",
+      "rows_total",
+      "total_baseline",
+      "total_current",
+      "truncated",
+      "zero_count",
+      "zero_total"
+    ],
+    "async": false
+  },
+  "baselinePick": {
+    "ok": false,
+    "options": 0
+  },
+  "consoleErrorsRaw": [],
+  "consoleErrorsFaviconOnly": []
+}

@@ -1,0 +1,1346 @@
+{
+  "phase": "P6（对比页/快照页重设计与多快照趋势 · 问题 8/9）",
+  "generatedAt": "2026-09-11T04:37:46.837Z",
+  "branch": "stage-p6p8",
+  "startPoint": "stage-p5 @ 300b527（tag p5-compare-semantics + 本批提示词入库）",
+  "evidenceRoot": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6",
+  "probe": "scripts/dev/p06_pages_visual_probe.mjs（同判据 probe；红线 A 对照面 = baseline_prefix）",
+  "fixtureHarness": "docs/问题核查资料_20260908/p5/_fixture_roots_server.py（复用 P5 夹具口径：只替换 fullscan 数据源，其余全走生产代码）",
+  "fixtureFamily": {
+    "generator": "scripts/dev/fixture_snapshots.mjs",
+    "sel": "series,tree,growth",
+    "nowIso": "2026-09-08T20:00:00",
+    "isolateHome": "%TEMP%/pds_p6_iso（红线 B：绝不触碰用户真实数据目录）",
+    "emptyInstance": "%TEMP%/pds_p6_empty_iso（「无快照」场景的独立实例）"
+  },
+  "sampling": {
+    "viewports": [
+      "1366x768",
+      "1440x900",
+      "1920x1080"
+    ],
+    "scenarios": [
+      "compare-result（1 份对比基准：摘要/发散图/表格 + 趋势卡空闲态）",
+      "trend-line（3 份对比基准：多快照折线 + 悬浮读数）",
+      "compare-empty（无快照实例：定稿 6.5 空态）",
+      "snapshots-empty（无快照实例：快照页空态）",
+      "snapshots（10 会话：趋势卡 sparkline + 会话列表卡片）"
+    ],
+    "shotsPerRun": 15,
+    "settle": "等网络/渲染收敛（趋势卡 sparkline 描线 800ms）后 700ms 采样；fullPage:false（视口内）"
+  },
+  "timeWindow": {
+    "fixtureNow": "2026-09-08T20:00:00",
+    "fixtureSnapshots": "series 6 份（09-07 23:00 → 09-08 19:00）+ tree 2 份 + growth 2 份 = 10 份",
+    "probeRuns": [
+      {
+        "label": "prefix",
+        "code": "web/ @ 300b527（P5 起点，git worktree %TEMP%/p6_prefix）"
+      },
+      {
+        "label": "postfix",
+        "code": "web/ @ HEAD（P6 变更集 1-5）"
+      }
+    ]
+  },
+  "purpose": {
+    "baseline_prefix": "红线 A 对照面：**同一探针、同一夹具口径、同一判据**跑修复前代码 —— 原始文件名外露 / 卡片语言不统一 / 内联 magic px / 无多快照折线（8 项违规）。",
+    "postfix": "修复后（HEAD）：0 违规 + 量化布局（页头/趋势卡/分区图/表格实测高度）+ 折线读数。",
+    "perf": "D6-6 性能实测：5 份 × 13 万行（65 万行）级 /api/series 冷启动与缓存命中耗时、与 /api/snapshots 共享缓存的对照。",
+    "_series_perf": "性能实测脚本（证据侧，非生产代码）：生成夹具快照并进程内计时。"
+  },
+  "quantitative": {
+    "prefix": {
+      "verdict": "FAIL",
+      "violations": [
+        "① 两页可见文本无原始文件名（*.snap.gz / session_<ts> / *.json）",
+        "② 卡片语言一致（.compare-stat/.compare-diverge/.trend-card/.session-item/.snapshots-list-wrap 计算样式全等）",
+        "④ 两页 DOM 无内联 magic px 宽高",
+        "⑤ 趋势折线成图（state=ok + path + 点数≥2 + X/Y 轴刻度）",
+        "⑤b 悬浮读数出现且非空（时间 + 数值）",
+        "⑤c #compare-baseline 为可多选 select（D6-5，id/SELECT 语义保持）",
+        "⑥ 趋势卡空态给原因（非空白）",
+        "⑧ 快照页列表渲染（会话 ≥1 + 盘行 + 详情展开区 + 大小列）"
+      ],
+      "checks": [
+        {
+          "name": "① 两页可见文本无原始文件名（*.snap.gz / session_<ts> / *.json）",
+          "ok": false
+        },
+        {
+          "name": "② 卡片语言一致（.compare-stat/.compare-diverge/.trend-card/.session-item/.snapshots-list-wrap 计算样式全等）",
+          "ok": false
+        },
+        {
+          "name": "③ 字号全部落在令牌刻度（11/12/13/14/16/20/24）",
+          "ok": true
+        },
+        {
+          "name": "③b gap 全部落在间距刻度（4..32）",
+          "ok": true
+        },
+        {
+          "name": "④ 两页 DOM 无内联 magic px 宽高",
+          "ok": false
+        },
+        {
+          "name": "⑤ 趋势折线成图（state=ok + path + 点数≥2 + X/Y 轴刻度）",
+          "ok": false
+        },
+        {
+          "name": "⑤b 悬浮读数出现且非空（时间 + 数值）",
+          "ok": false
+        },
+        {
+          "name": "⑤c #compare-baseline 为可多选 select（D6-5，id/SELECT 语义保持）",
+          "ok": false
+        },
+        {
+          "name": "⑥ 趋势卡空态给原因（非空白）",
+          "ok": false
+        },
+        {
+          "name": "⑥b 对比页空态仍显示（P6 未破坏定稿 6.5 空态）",
+          "ok": true
+        },
+        {
+          "name": "⑦ 三视口零页面滚动（P4/P5 红线不回退）",
+          "ok": true
+        },
+        {
+          "name": "⑧ 快照页列表渲染（会话 ≥1 + 盘行 + 详情展开区 + 大小列）",
+          "ok": false
+        },
+        {
+          "name": "⑨ console/pageerror = 0",
+          "ok": true
+        }
+      ],
+      "trend": {
+        "compare-result@1366x768": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": false
+        },
+        "trend-line@1366x768": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": false
+        },
+        "compare-empty@1366x768": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": false
+        },
+        "snapshots-empty@1366x768": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": null
+        },
+        "snapshots@1366x768": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": null
+        },
+        "compare-result@1440x900": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": false
+        },
+        "trend-line@1440x900": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": false
+        },
+        "compare-empty@1440x900": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": false
+        },
+        "snapshots-empty@1440x900": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": null
+        },
+        "snapshots@1440x900": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": null
+        },
+        "compare-result@1920x1080": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": false
+        },
+        "trend-line@1920x1080": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": false
+        },
+        "compare-empty@1920x1080": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": false
+        },
+        "snapshots-empty@1920x1080": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": null
+        },
+        "snapshots@1920x1080": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": null
+        }
+      },
+      "layout": {
+        "compare-result@1366x768": {
+          "scenario": "compare-result",
+          "viewport": "1366x768",
+          "bodyScroll": 768,
+          "bodyClient": 768,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": 1
+        },
+        "trend-line@1366x768": {
+          "scenario": "trend-line",
+          "viewport": "1366x768",
+          "bodyScroll": 768,
+          "bodyClient": 768,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": 1
+        },
+        "compare-empty@1366x768": {
+          "scenario": "compare-empty",
+          "viewport": "1366x768",
+          "bodyScroll": 768,
+          "bodyClient": 768,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": 0
+        },
+        "snapshots-empty@1366x768": {
+          "scenario": "snapshots-empty",
+          "viewport": "1366x768",
+          "bodyScroll": 768,
+          "bodyClient": 768,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": null
+        },
+        "snapshots@1366x768": {
+          "scenario": "snapshots",
+          "viewport": "1366x768",
+          "bodyScroll": 768,
+          "bodyClient": 768,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": null
+        },
+        "compare-result@1440x900": {
+          "scenario": "compare-result",
+          "viewport": "1440x900",
+          "bodyScroll": 900,
+          "bodyClient": 900,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": 1
+        },
+        "trend-line@1440x900": {
+          "scenario": "trend-line",
+          "viewport": "1440x900",
+          "bodyScroll": 900,
+          "bodyClient": 900,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": 1
+        },
+        "compare-empty@1440x900": {
+          "scenario": "compare-empty",
+          "viewport": "1440x900",
+          "bodyScroll": 900,
+          "bodyClient": 900,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": 0
+        },
+        "snapshots-empty@1440x900": {
+          "scenario": "snapshots-empty",
+          "viewport": "1440x900",
+          "bodyScroll": 900,
+          "bodyClient": 900,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": null
+        },
+        "snapshots@1440x900": {
+          "scenario": "snapshots",
+          "viewport": "1440x900",
+          "bodyScroll": 900,
+          "bodyClient": 900,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": null
+        },
+        "compare-result@1920x1080": {
+          "scenario": "compare-result",
+          "viewport": "1920x1080",
+          "bodyScroll": 1080,
+          "bodyClient": 1080,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": 1
+        },
+        "trend-line@1920x1080": {
+          "scenario": "trend-line",
+          "viewport": "1920x1080",
+          "bodyScroll": 1080,
+          "bodyClient": 1080,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": 1
+        },
+        "compare-empty@1920x1080": {
+          "scenario": "compare-empty",
+          "viewport": "1920x1080",
+          "bodyScroll": 1080,
+          "bodyClient": 1080,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": 0
+        },
+        "snapshots-empty@1920x1080": {
+          "scenario": "snapshots-empty",
+          "viewport": "1920x1080",
+          "bodyScroll": 1080,
+          "bodyClient": 1080,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": null
+        },
+        "snapshots@1920x1080": {
+          "scenario": "snapshots",
+          "viewport": "1920x1080",
+          "bodyScroll": 1080,
+          "bodyClient": 1080,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": null
+        }
+      }
+    },
+    "postfix": {
+      "verdict": "PASS",
+      "violations": 0,
+      "checks": [
+        {
+          "name": "① 两页可见文本无原始文件名（*.snap.gz / session_<ts> / *.json）",
+          "ok": true
+        },
+        {
+          "name": "② 卡片语言一致（.compare-stat/.compare-diverge/.trend-card/.session-item/.snapshots-list-wrap 计算样式全等）",
+          "ok": true
+        },
+        {
+          "name": "③ 字号全部落在令牌刻度（11/12/13/14/16/20/24）",
+          "ok": true
+        },
+        {
+          "name": "③b gap 全部落在间距刻度（4..32）",
+          "ok": true
+        },
+        {
+          "name": "④ 两页 DOM 无内联 magic px 宽高",
+          "ok": true
+        },
+        {
+          "name": "⑤ 趋势折线成图（state=ok + path + 点数≥2 + X/Y 轴刻度）",
+          "ok": true
+        },
+        {
+          "name": "⑤b 悬浮读数出现且非空（时间 + 数值）",
+          "ok": true
+        },
+        {
+          "name": "⑤c #compare-baseline 为可多选 select（D6-5，id/SELECT 语义保持）",
+          "ok": true
+        },
+        {
+          "name": "⑥ 趋势卡空态给原因（非空白）",
+          "ok": true
+        },
+        {
+          "name": "⑥b 对比页空态仍显示（P6 未破坏定稿 6.5 空态）",
+          "ok": true
+        },
+        {
+          "name": "⑦ 三视口零页面滚动（P4/P5 红线不回退）",
+          "ok": true
+        },
+        {
+          "name": "⑧ 快照页列表渲染（会话 ≥1 + 盘行 + 详情展开区 + 大小列）",
+          "ok": true
+        },
+        {
+          "name": "⑨ console/pageerror = 0",
+          "ok": true
+        }
+      ],
+      "trend": {
+        "compare-result@1366x768": {
+          "state": "idle",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "再选 1 份对比基准即可成线（按住 Ctrl/⌘ 在多选列表里追加一份）",
+          "baselineMultiple": true
+        },
+        "trend-line@1366x768": {
+          "state": "ok",
+          "dots": 3,
+          "pathLen": 39,
+          "axisY": 3,
+          "axisX": 3,
+          "readout": "09-08 17:001.03 KB",
+          "empty": "",
+          "baselineMultiple": true
+        },
+        "compare-empty@1366x768": {
+          "state": "idle",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "还没有可用快照：全量扫描并保存后，这里会显示逐次变化折线",
+          "baselineMultiple": true
+        },
+        "snapshots-empty@1366x768": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": null
+        },
+        "snapshots@1366x768": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": null
+        },
+        "compare-result@1440x900": {
+          "state": "idle",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "再选 1 份对比基准即可成线（按住 Ctrl/⌘ 在多选列表里追加一份）",
+          "baselineMultiple": true
+        },
+        "trend-line@1440x900": {
+          "state": "ok",
+          "dots": 3,
+          "pathLen": 39,
+          "axisY": 3,
+          "axisX": 3,
+          "readout": "09-08 17:001.03 KB",
+          "empty": "",
+          "baselineMultiple": true
+        },
+        "compare-empty@1440x900": {
+          "state": "idle",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "还没有可用快照：全量扫描并保存后，这里会显示逐次变化折线",
+          "baselineMultiple": true
+        },
+        "snapshots-empty@1440x900": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": null
+        },
+        "snapshots@1440x900": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": null
+        },
+        "compare-result@1920x1080": {
+          "state": "idle",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "再选 1 份对比基准即可成线（按住 Ctrl/⌘ 在多选列表里追加一份）",
+          "baselineMultiple": true
+        },
+        "trend-line@1920x1080": {
+          "state": "ok",
+          "dots": 3,
+          "pathLen": 39,
+          "axisY": 3,
+          "axisX": 3,
+          "readout": "09-08 17:001.03 KB",
+          "empty": "",
+          "baselineMultiple": true
+        },
+        "compare-empty@1920x1080": {
+          "state": "idle",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "还没有可用快照：全量扫描并保存后，这里会显示逐次变化折线",
+          "baselineMultiple": true
+        },
+        "snapshots-empty@1920x1080": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": null
+        },
+        "snapshots@1920x1080": {
+          "state": null,
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "readout": "",
+          "empty": "",
+          "baselineMultiple": null
+        }
+      },
+      "layout": {
+        "compare-result@1366x768": {
+          "scenario": "compare-result",
+          "viewport": "1366x768",
+          "bodyScroll": 768,
+          "bodyClient": 768,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "trendState": "idle",
+          "trendDots": 0,
+          "baselineSelected": 1
+        },
+        "trend-line@1366x768": {
+          "scenario": "trend-line",
+          "viewport": "1366x768",
+          "bodyScroll": 768,
+          "bodyClient": 768,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "trendState": "ok",
+          "trendDots": 3,
+          "baselineSelected": 3
+        },
+        "compare-empty@1366x768": {
+          "scenario": "compare-empty",
+          "viewport": "1366x768",
+          "bodyScroll": 768,
+          "bodyClient": 768,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": "idle",
+          "trendDots": 0,
+          "baselineSelected": 0
+        },
+        "snapshots-empty@1366x768": {
+          "scenario": "snapshots-empty",
+          "viewport": "1366x768",
+          "bodyScroll": 768,
+          "bodyClient": 768,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": null
+        },
+        "snapshots@1366x768": {
+          "scenario": "snapshots",
+          "viewport": "1366x768",
+          "bodyScroll": 768,
+          "bodyClient": 768,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": null
+        },
+        "compare-result@1440x900": {
+          "scenario": "compare-result",
+          "viewport": "1440x900",
+          "bodyScroll": 900,
+          "bodyClient": 900,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "trendState": "idle",
+          "trendDots": 0,
+          "baselineSelected": 1
+        },
+        "trend-line@1440x900": {
+          "scenario": "trend-line",
+          "viewport": "1440x900",
+          "bodyScroll": 900,
+          "bodyClient": 900,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "trendState": "ok",
+          "trendDots": 3,
+          "baselineSelected": 3
+        },
+        "compare-empty@1440x900": {
+          "scenario": "compare-empty",
+          "viewport": "1440x900",
+          "bodyScroll": 900,
+          "bodyClient": 900,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": "idle",
+          "trendDots": 0,
+          "baselineSelected": 0
+        },
+        "snapshots-empty@1440x900": {
+          "scenario": "snapshots-empty",
+          "viewport": "1440x900",
+          "bodyScroll": 900,
+          "bodyClient": 900,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": null
+        },
+        "snapshots@1440x900": {
+          "scenario": "snapshots",
+          "viewport": "1440x900",
+          "bodyScroll": 900,
+          "bodyClient": 900,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": null
+        },
+        "compare-result@1920x1080": {
+          "scenario": "compare-result",
+          "viewport": "1920x1080",
+          "bodyScroll": 1080,
+          "bodyClient": 1080,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "trendState": "idle",
+          "trendDots": 0,
+          "baselineSelected": 1
+        },
+        "trend-line@1920x1080": {
+          "scenario": "trend-line",
+          "viewport": "1920x1080",
+          "bodyScroll": 1080,
+          "bodyClient": 1080,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "trendState": "ok",
+          "trendDots": 3,
+          "baselineSelected": 3
+        },
+        "compare-empty@1920x1080": {
+          "scenario": "compare-empty",
+          "viewport": "1920x1080",
+          "bodyScroll": 1080,
+          "bodyClient": 1080,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": "idle",
+          "trendDots": 0,
+          "baselineSelected": 0
+        },
+        "snapshots-empty@1920x1080": {
+          "scenario": "snapshots-empty",
+          "viewport": "1920x1080",
+          "bodyScroll": 1080,
+          "bodyClient": 1080,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": null
+        },
+        "snapshots@1920x1080": {
+          "scenario": "snapshots",
+          "viewport": "1920x1080",
+          "bodyScroll": 1080,
+          "bodyClient": 1080,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "trendState": null,
+          "trendDots": 0,
+          "baselineSelected": null
+        }
+      }
+    },
+    "perf": {
+      "snapshots": 5,
+      "rowsPerSnapshot": 130000,
+      "rowsTotalIfAllParsed": 650000,
+      "seriesColdFirstMs": 4152.47,
+      "seriesColdMedianMs": 2.09,
+      "seriesWarmMedianMs": 1.68,
+      "pathColdFirstMs": 4093.79,
+      "depth2ColdFirstMs": 6885.54,
+      "snapshotsColdMs": 853.09,
+      "snapshotsWarmMs": 0.9,
+      "sharedRootCacheFlags": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "note": "耗时 = Flask test_client 进程内往返（无网络/无浏览器），单位 ms"
+    }
+  },
+  "counts": {
+    "total": 51,
+    "screenshots": 33,
+    "screenshotsByLabel": {
+      "postfix": 15,
+      "baseline_prefix": 15
+    },
+    "quantitativeJson": 12,
+    "scripts": 2,
+    "logs": 1
+  },
+  "files": [
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/_gen_manifest.mjs",
+      "rel": "docs/问题核查资料_20260908/p6/_gen_manifest.mjs",
+      "bytes": 9616,
+      "mtime": "2026-09-11T04:34:28.306Z",
+      "sha256": "a74fffbca8169bb8ce3938196ad31aa2c3b8e588a36a7bc4f6f82d83546d9f07",
+      "role": "generator-script"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/_series_perf.py",
+      "rel": "docs/问题核查资料_20260908/p6/_series_perf.py",
+      "bytes": 11395,
+      "mtime": "2026-09-10T23:49:47.509Z",
+      "sha256": "00bf3f7866810cb1e8b25246f140fa2ead5a0f63d30e3966b5a9cf23427730b6",
+      "role": "harness-script"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/layout-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/layout-prefix.json",
+      "bytes": 4116,
+      "mtime": "2026-09-11T00:32:55.429Z",
+      "sha256": "fdda617b2512bafb2a5ce62bfef91a4c405c27ff475c903a9ef486ec34096a8b",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/pages-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/pages-prefix.json",
+      "bytes": 54960,
+      "mtime": "2026-09-11T00:32:55.429Z",
+      "sha256": "c9c77b03232b036f0c2a9d6fbc3675f29a951e32f712c3e5d3d9468bfb4f081a",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/compare-empty-1366x768-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/compare-empty-1366x768-prefix.png",
+      "bytes": 88246,
+      "mtime": "2026-09-11T00:31:06.435Z",
+      "sha256": "8f2d9568b1394805e85a612b2c89c62a24b9c16e09bb2084464aee0673aa34cb",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/compare-empty-1440x900-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/compare-empty-1440x900-prefix.png",
+      "bytes": 93556,
+      "mtime": "2026-09-11T00:31:54.434Z",
+      "sha256": "38924401f70bfa98d0e490466fc4be39dbf1443f8525bc04cdb69ae897690b91",
+      "role": "screenshot",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/compare-empty-1920x1080-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/compare-empty-1920x1080-prefix.png",
+      "bytes": 112188,
+      "mtime": "2026-09-11T00:32:43.062Z",
+      "sha256": "c914b69319be41d8a8ba4b84176b64206d1768634dffd0f7c39dfaff6400921b",
+      "role": "screenshot",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/compare-result-1366x768-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/compare-result-1366x768-prefix.png",
+      "bytes": 114684,
+      "mtime": "2026-09-11T00:30:30.732Z",
+      "sha256": "3c8d85f0f663d44acb6165c5dc000ee277ff7f47b5b48c878dfed7e3f638eaab",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/compare-result-1440x900-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/compare-result-1440x900-prefix.png",
+      "bytes": 126372,
+      "mtime": "2026-09-11T00:31:19.643Z",
+      "sha256": "d99e28f62962e450660a8d2d4d023042b7ef9010c1434f6dee690add22b1e2af",
+      "role": "screenshot",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/compare-result-1920x1080-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/compare-result-1920x1080-prefix.png",
+      "bytes": 140634,
+      "mtime": "2026-09-11T00:32:08.068Z",
+      "sha256": "2410d00290c197bc3de6fffa692f5b32f1ec762341a86bfb747661a2ba7a4c27",
+      "role": "screenshot",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/snapshots-1366x768-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/snapshots-1366x768-prefix.png",
+      "bytes": 110112,
+      "mtime": "2026-09-11T00:31:17.945Z",
+      "sha256": "74aabd79d0295b4046a2f9b7236ff69cd23e821837deab0c21a385fd2062a186",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/snapshots-1440x900-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/snapshots-1440x900-prefix.png",
+      "bytes": 126754,
+      "mtime": "2026-09-11T00:32:06.257Z",
+      "sha256": "a31734b9f9ba6c28387bbc504f12ac106d8df7001482f5c95a675d143d41f742",
+      "role": "screenshot",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/snapshots-1920x1080-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/snapshots-1920x1080-prefix.png",
+      "bytes": 158327,
+      "mtime": "2026-09-11T00:32:55.162Z",
+      "sha256": "87da67abd5f25db7fd754c502fdb05b72e111befe9acf9be5be526df92584d78",
+      "role": "screenshot",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/snapshots-empty-1366x768-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/snapshots-empty-1366x768-prefix.png",
+      "bytes": 79645,
+      "mtime": "2026-09-11T00:31:09.226Z",
+      "sha256": "ff583bbadb5b956cd87181050ad0ea6b3f2de8532a1f8c83f9ba6564f8856fe4",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/snapshots-empty-1440x900-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/snapshots-empty-1440x900-prefix.png",
+      "bytes": 87268,
+      "mtime": "2026-09-11T00:31:57.504Z",
+      "sha256": "fb0f96cd5d868bcfba9dc9651d87a2882f6abeb691d189945edd661c0ceecdad",
+      "role": "screenshot",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/snapshots-empty-1920x1080-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/snapshots-empty-1920x1080-prefix.png",
+      "bytes": 116046,
+      "mtime": "2026-09-11T00:32:45.908Z",
+      "sha256": "70337ce8d05b983cd0e6547d86c559e6b0c0b96750ff39a0a02cbd5f7bf41a76",
+      "role": "screenshot",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/trend-line-1366x768-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/trend-line-1366x768-prefix.png",
+      "bytes": 114575,
+      "mtime": "2026-09-11T00:31:02.871Z",
+      "sha256": "9a226943e8b83eb357f9f2e08780e57cf634092d512ec3b8df23c827ad435742",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/trend-line-1440x900-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/trend-line-1440x900-prefix.png",
+      "bytes": 125700,
+      "mtime": "2026-09-11T00:31:51.815Z",
+      "sha256": "22231e07bb4b627690ca326d3b104effd1d8612e4d9dda8bd33ea166dc9fe3f4",
+      "role": "screenshot",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/shots/trend-line-1920x1080-prefix.png",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/shots/trend-line-1920x1080-prefix.png",
+      "bytes": 139872,
+      "mtime": "2026-09-11T00:32:40.319Z",
+      "sha256": "dc54841ac8cd5a02c7cee9bfb5602b00c639d44d214102073a81c873a2910592",
+      "role": "screenshot",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/summary-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/summary-prefix.json",
+      "bytes": 67181,
+      "mtime": "2026-09-11T00:32:55.432Z",
+      "sha256": "5789709e3ed8365c665d751a0a111aab59eda8bd54026136d0d27c2e49c6f54d",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/baseline_prefix/trend-prefix.json",
+      "rel": "docs/问题核查资料_20260908/p6/baseline_prefix/trend-prefix.json",
+      "bytes": 5271,
+      "mtime": "2026-09-11T00:32:55.430Z",
+      "sha256": "9c1a632efc18f96634255e28d374626ec9b5504d97595f2986b796efda78dda0",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/perf/series_perf.json",
+      "rel": "docs/问题核查资料_20260908/p6/perf/series_perf.json",
+      "bytes": 3458,
+      "mtime": "2026-09-10T23:50:17.643Z",
+      "sha256": "33d1f019ba14d0611d987ed573da7b41d4087f3136b0a067088b05933dda4ff6",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/harness-postfix.log",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/harness-postfix.log",
+      "bytes": 310663,
+      "mtime": "2026-09-11T00:22:39.403Z",
+      "sha256": "8333d33f236bff84de650804996da917386de9a633816606dcf2cf74e3e5c5a5",
+      "role": "probe-log"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/layout-postfix.json",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/layout-postfix.json",
+      "bytes": 4129,
+      "mtime": "2026-09-11T00:22:41.677Z",
+      "sha256": "96beb329f405e4bdb7fa87be18ffd7853a0470964fd6da4aa06816c9adec8059",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/pages-postfix.json",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/pages-postfix.json",
+      "bytes": 60210,
+      "mtime": "2026-09-11T00:22:41.678Z",
+      "sha256": "0c55a4931434cd2ab7a5a19ecb9269c8f60fc9c16dd82d3270b393dcb3724f2c",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/compare-empty-1366x768-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/compare-empty-1366x768-postfix.png",
+      "bytes": 97806,
+      "mtime": "2026-09-11T00:21:51.747Z",
+      "sha256": "7ddbe6d10d57fa458395a931d0c30e07a53de606dbf0c5c0671e668fc06fbb2d",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/compare-empty-1440x900-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/compare-empty-1440x900-postfix.png",
+      "bytes": 102926,
+      "mtime": "2026-09-11T00:22:10.920Z",
+      "sha256": "261697fb88cb748a4b3e51dfedba623c02e98cabeb1df3130eff2f068ef0ace0",
+      "role": "screenshot",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/compare-empty-1920x1080-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/compare-empty-1920x1080-postfix.png",
+      "bytes": 124303,
+      "mtime": "2026-09-11T00:22:29.558Z",
+      "sha256": "facd6e81a632e171479f51fa2aa7e9b1eafb724f1964de108c4f7bd044e32048",
+      "role": "screenshot",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/compare-result-1366x768-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/compare-result-1366x768-postfix.png",
+      "bytes": 127345,
+      "mtime": "2026-09-11T00:21:46.502Z",
+      "sha256": "cd32d27a182220c1621df7f5c4428ec0e67995895ab1ed7994ec41f10ff1bd28",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/compare-result-1440x900-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/compare-result-1440x900-postfix.png",
+      "bytes": 143589,
+      "mtime": "2026-09-11T00:22:05.189Z",
+      "sha256": "acad6872a2f872b260d362e8dc693257d2c94faffa9fe88863de919c7830d5f1",
+      "role": "screenshot",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/compare-result-1920x1080-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/compare-result-1920x1080-postfix.png",
+      "bytes": 161206,
+      "mtime": "2026-09-11T00:22:24.416Z",
+      "sha256": "2aa630b36aeae784f8b60800a7f2192f1f028ce1831886d38fd81c8e3c517526",
+      "role": "screenshot",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/snapshots-1366x768-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/snapshots-1366x768-postfix.png",
+      "bytes": 103769,
+      "mtime": "2026-09-11T00:22:03.379Z",
+      "sha256": "80f14f100f600bc0d54a24a4189c3ea854608178379a9d2a98796df3938ebeb2",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/snapshots-1440x900-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/snapshots-1440x900-postfix.png",
+      "bytes": 113860,
+      "mtime": "2026-09-11T00:22:22.396Z",
+      "sha256": "149e41a22ab589f23feed32d2b421d709cb2c35acad07f540d041b6b9a7e9f9c",
+      "role": "screenshot",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/snapshots-1920x1080-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/snapshots-1920x1080-postfix.png",
+      "bytes": 138222,
+      "mtime": "2026-09-11T00:22:41.438Z",
+      "sha256": "e0bdf56a06774b346b488f02b44af3a8387e2c78c68908c3328bf1f022bf2ee0",
+      "role": "screenshot",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/snapshots-empty-1366x768-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/snapshots-empty-1366x768-postfix.png",
+      "bytes": 76500,
+      "mtime": "2026-09-11T00:21:54.746Z",
+      "sha256": "1913a7bea28524469d01a2bb8e85450ebd7782be98fb2a58074e6acf96dff854",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/snapshots-empty-1440x900-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/snapshots-empty-1440x900-postfix.png",
+      "bytes": 81180,
+      "mtime": "2026-09-11T00:22:13.776Z",
+      "sha256": "7b56906f312646c14ed37d8555a6bae791e5b08ff3d9d3e12175fe7978b0ad05",
+      "role": "screenshot",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/snapshots-empty-1920x1080-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/snapshots-empty-1920x1080-postfix.png",
+      "bytes": 93267,
+      "mtime": "2026-09-11T00:22:32.723Z",
+      "sha256": "24cc393a88c7a5f99ba1e623ed4ff81d71d416444b62ed144efe27cbd4e2f42f",
+      "role": "screenshot",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/trend-line-1366x768-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/trend-line-1366x768-postfix.png",
+      "bytes": 132300,
+      "mtime": "2026-09-11T00:21:49.062Z",
+      "sha256": "ed4367169e23a4a29ea3049f3ba5251e4c9b3d46120ac87f3601d7b09b30dbe5",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/trend-line-1440x900-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/trend-line-1440x900-postfix.png",
+      "bytes": 146024,
+      "mtime": "2026-09-11T00:22:07.800Z",
+      "sha256": "137d6fc21fbe49ea9717a35511da503e1ce08b5455f7ca15d062ced6c8731e75",
+      "role": "screenshot",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/shots/trend-line-1920x1080-postfix.png",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/shots/trend-line-1920x1080-postfix.png",
+      "bytes": 169874,
+      "mtime": "2026-09-11T00:22:26.879Z",
+      "sha256": "20d3ffcc70b4dddaf60ac7cc02b2113f8ccbffaad25c5d396db234063f291a9d",
+      "role": "screenshot",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/summary-postfix.json",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/summary-postfix.json",
+      "bytes": 66038,
+      "mtime": "2026-09-11T00:22:41.680Z",
+      "sha256": "331070adf3ac5bf46bec3e4d9266b98b0d813cbdd0cdacbd52117f1c8e6093d9",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/postfix/trend-postfix.json",
+      "rel": "docs/问题核查资料_20260908/p6/postfix/trend-postfix.json",
+      "bytes": 8305,
+      "mtime": "2026-09-11T00:22:41.679Z",
+      "sha256": "09d84f5ac70f2483363c070d6c57dfd4592977e0305c2fd162cdadafa2bab2f7",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/probes/smoke-reruns.txt",
+      "rel": "docs/问题核查资料_20260908/p6/probes/smoke-reruns.txt",
+      "bytes": 3280,
+      "mtime": "2026-09-11T04:37:26.157Z",
+      "sha256": "0b27c9de77266b661095ff43d3261c52e039b7af1c92b00adfa389b62715447c",
+      "role": "other"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/probes/u33-output.txt",
+      "rel": "docs/问题核查资料_20260908/p6/probes/u33-output.txt",
+      "bytes": 2306,
+      "mtime": "2026-09-11T04:37:43.545Z",
+      "sha256": "4d5c7a2e993041095c00fc8dc80f6f9b1bde953ac8f98d11d29f38d66503865e",
+      "role": "other"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/probes/u55-result.json",
+      "rel": "docs/问题核查资料_20260908/p6/probes/u55-result.json",
+      "bytes": 4831,
+      "mtime": "2026-09-11T00:46:29.494Z",
+      "sha256": "ca3fd146d23fc54bc3b7e913ca7d5a42b8e37f45defc41cf038eaeedb8325042",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/probes/u55-trend-multi-line-compare.png",
+      "rel": "docs/问题核查资料_20260908/p6/probes/u55-trend-multi-line-compare.png",
+      "bytes": 113977,
+      "mtime": "2026-09-11T00:45:56.465Z",
+      "sha256": "a4e1cf1d309e80b39bb0bc442c842dec1acd4c6fc0a61d6a994551b977400baa",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/probes/u67-result.json",
+      "rel": "docs/问题核查资料_20260908/p6/probes/u67-result.json",
+      "bytes": 5584,
+      "mtime": "2026-09-11T00:38:42.023Z",
+      "sha256": "666b951dd33ebef11975239037be5eb84cad381bb90bd169aa95e761f09f3d95",
+      "role": "quantitative-json"
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/probes/u67-trend-line.png",
+      "rel": "docs/问题核查资料_20260908/p6/probes/u67-trend-line.png",
+      "bytes": 117811,
+      "mtime": "2026-09-11T00:38:42.022Z",
+      "sha256": "2b42e570b993f1cf99af91ad5585c851e8e151e5861f6298514f4f9c5867c7ca",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/probes/u68b-compare-multi-line.png",
+      "rel": "docs/问题核查资料_20260908/p6/probes/u68b-compare-multi-line.png",
+      "bytes": 136013,
+      "mtime": "2026-09-11T00:47:30.413Z",
+      "sha256": "15bcb6f700f32517b758f1a3ebb954402dc17d850f61357fa72b49d71b3b266c",
+      "role": "screenshot",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "D:/deepseek/python-disk-analyzer/docs/问题核查资料_20260908/p6/probes/u68b-result.json",
+      "rel": "docs/问题核查资料_20260908/p6/probes/u68b-result.json",
+      "bytes": 2089,
+      "mtime": "2026-09-11T00:47:45.483Z",
+      "sha256": "94e81f9c5dcc9feaa6c7822bdb7061e6e37a7735c068b1dfc3b9bb8e2e4312db",
+      "role": "quantitative-json"
+    }
+  ]
+}

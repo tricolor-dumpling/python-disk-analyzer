@@ -1,0 +1,24 @@
+﻿run 1 : [v2] summary=21/21 通过 ✔ :: 
+run 2 : [v2] summary=21/21 通过 ✔ :: 
+run 3 : [v2] summary=21/21 通过 ✔ :: 
+run 4 : [v2] summary=21/21 通过 ✔ :: 
+run 5 : [v2] summary=21/21 通过 ✔ :: 
+run 6 : [v2] summary=21/21 通过 ✔ :: 
+run 1 : [v2] summary=21/21 通过 ✔ :: 
+run 2 : [v2] summary=21/21 通过 ✔ :: 
+run 3 : [v2] summary=21/21 通过 ✔ :: 
+run 4 : [v2] summary=21/21 通过 ✔ :: 
+run 5 : [v2] summary=21/21 通过 ✔ :: 
+run 6 :  :: 
+run 7 :  :: 
+run 8 :  :: 
+run 9 :  :: 
+run 10 :  :: 
+run 1 : [v2] summary=11 项失败；10/21 通过 :: [v2] title=[suite=v2][FAIL 10/21] D:\ · Python 磁盘扫描 [v2] FAIL A3 U2.1：路由（未知路由回落 #/；切页后 state.route 正确、页面切换渲染、往返状态保持） :: 切页后 route 应为 /compare，实际 / [v2] FAIL A6 U2.0 移植（W2.5·红线#12）：筛选空态与一键清除（U2.5：排行视图语义） :: Cannot set properties of null (setting 'value') [v2] FAIL A8 U2.0 移植（W2.1·红线#10）：busy health 徽章不降级、整页不进引导态 :: Cannot read properties of null (reading 'classList') [v2] FAIL A9 U2.0 移植（W2.8·红线#1）：浏览竞态——迟到旧响应不得覆盖新状态 :: Cannot set properties of null (setting 'innerHTML') [v2] FAIL A10 U2.0 移植（W2.8·红线#1）：浏览竞态——旧失败不得打断新成功 :: Cannot read properties of null (reading 'classList') [v2] FAIL A12 U2.2：treemap 命中（目录 tile 恰 1 次 browse 且 path 正确；文件 tile 0 请求） :: Cannot read properties of null (reading 'click') [v2] FAIL A13 U2.3：双击回根防抖（双击恰 1 次 browse 且 path=本级根，不产生下钻的第三次请求） :: Cannot read properties of null (reading 'click') [v2] FAIL A14 U2.4：存储 chips 语义——chips 点击只切环形数据不触发 /api/browse（D15）；「浏览此盘」恰 1 次 browse 且 path=所选盘 :: 存储卡应渲染至少 2 个盘符 chips [v2] FAIL A15 U2.5：多选语义——表格视图 checkbox 首列 + Shift 范围选 + 表头全选/半选 + 页脚计数；排行视图同样可用（N08） :: Cannot read properties of null (reading 'click') [v2] FAIL A16 U3.2：扫描控制卡与停止接口——404 特性检测隐藏停止按钮；扫描中态（停止按钮/计时/chips 三态）；停止→中止态（toast 文案/保存可用/无 K7 重复提示） :: Cannot read properties of null (reading 'click') [v2] FAIL A20 U4.1：无障碍与键盘矩阵——treemap 容器聚焦后方向键最近邻移动焦点块（静态描边像素可见）· Enter 下钻=单击语义恰 1 次 browse 且 path 正确（双击窗互斥不产生第三次）· / 聚焦筛选框（输入框守卫/其他路由空守卫）· g c/g s 连按跳页（输入框守卫/isComposing 忽略/超时重置/弹窗栈守卫）· keys.js 共享守卫（Backspace 打字态） :: 样本接管后应 3 块布局（data/docs/readme）
+run 2 : [v2] summary=21/21 通过 ✔ :: 
+run 3 : [v2] summary=21/21 通过 ✔ :: 
+run 4 : [v2] summary=21/21 通过 ✔ :: 
+run 5 : [v2] summary=21/21 通过 ✔ :: 
+run 6 : [v2] summary=21/21 通过 ✔ :: 
+run 7 : [v2] summary=21/21 通过 ✔ :: 
+run 8 : [v2] summary=21/21 通过 ✔ :: 

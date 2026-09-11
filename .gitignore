@@ -2,6 +2,15 @@
 __pycache__/
 *.py[cod]
 
+# P6（挂账 §六#5）：证据目录下同样可能出现 __pycache__（夹具服务/证据脚本被 import
+# 时生成）——根规则 `__pycache__/` 本就匹配任意层级，此处显式登记口径，避免后续误判
+# 「docs 下要单独加规则」。实测 `git ls-files | grep __pycache__` = 0。
+docs/**/__pycache__/
+
+# P6（同批挂账）：阶段检查点文件按纪律不提交（_p2.._p5 历史留痕 + 本批 _p6p8_progress.md）
+# ——加忽略规则防止 `git add -A` 误入库（本批实测踩过一次，已在变更集 1 重做提交清除）。
+docs/exec/_p*_progress.md
+
 # Local verification and packaging helpers（仅限仓库根散置脚本；
 # tests/ 正式用例与 scripts/dev/ 验收脚本不受影响 —— P12 起）
 /test_*.py

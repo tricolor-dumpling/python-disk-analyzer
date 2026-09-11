@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "base": "http://127.0.0.1:5000/",
+    "out": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\u68b_sparkline",
+    "node": "v24.19.0"
+  },
+  "checks": [
+    {
+      "name": "①a 较昨日卡 sparkline SVG 存在（≥2 点画折线）",
+      "ok": true,
+      "detail": "daySpark=true"
+    },
+    {
+      "name": "①b sparkline path d 非空且为 M/L 折线",
+      "ok": true,
+      "detail": "M0.00 0.00 L60.00 14.00 L120.00 28.00"
+    },
+    {
+      "name": "①c 终点脉冲点存在",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "①d 较上周卡同样有 sparkline（同一根多会话序列）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "①e 差值卡 ▲/▼ 与百分比保留（降级形态与 sparkline 并存）",
+      "ok": true,
+      "detail": "{\"d\":\"▼ -10.00 B\",\"p\":\"-0.06%\"}"
+    },
+    {
+      "name": "①f 副行显示 基线→最新 时间",
+      "ok": true,
+      "detail": "对比基准 2026-08-31 10:00:00 → 最新 2026-09-01 10:00:00"
+    },
+    {
+      "name": "②a 对比页多快照折线成图（select multiple + state=ok + 点数=所选份数）",
+      "ok": true,
+      "detail": "{\"pick\":{\"ok\":true,\"multiple\":true,\"selected\":2,\"options\":3},\"line\":{\"state\":\"ok\",\"dots\":2,\"pathLen\":25}}"
+    },
+    {
+      "name": "②b 回快照页 sparkline 三节点仍在（.trend-spark-svg/-line/-dot 未被 P6 删除）",
+      "ok": true,
+      "detail": "{\"svg\":2,\"line\":2,\"dot\":2}"
+    },
+    {
+      "name": "③ 旧会话无 total_by_root → 0 sparkline（additive 兼容不破坏）",
+      "ok": true,
+      "detail": "sparkCount=0"
+    },
+    {
+      "name": "④ 第二浏览器同结论（2 卡均有折线）",
+      "ok": true,
+      "detail": "sparkCount=2"
+    },
+    {
+      "name": "⑤ console 0",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "shots": [
+    "u68b-sparkline-light-1366.png",
+    "u68b-sparkline-dark-1366-mid.png",
+    "u68b-sparkline-dark-1366-final.png",
+    "u68b-compare-multi-line-1366.png"
+  ],
+  "consoleErrors": []
+}

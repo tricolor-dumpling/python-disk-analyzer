@@ -70,6 +70,18 @@ window.fetch = function (url, options) {
     return json({ ok: true, report: { root: "D:\\", total_baseline: 16000, total_current: 15990, delta_total: -10, truncated: false, legacy_count: 0, rows: [ { path: "D:\\data", baseline: 12000, current: 11990, delta: -10, growth_pct: -0.08, removed: false, added: false } ] } });
   }
   if (key === "GET /api/compare/status") return json({ ok: true, status: "done", report: { root: "D:\\", total_baseline: 16000, total_current: 15990, delta_total: -10, truncated: false, legacy_count: 0, rows: [] } });
+  /* P6（D6-3/D6-4）：多快照序列桩——按请求带的 snapshots[] 回点（点数=所选份数） */
+  if (key === "GET /api/series") {
+    let picked = [];
+    try { picked = new URL(String(url), location.origin).searchParams.getAll("snapshots"); } catch (e) { picked = []; }
+    const points = picked.map((p, i) => ({
+      snapshot: p, name: String(p).split("\\\\").pop(), created_at: "2026-09-0" + (i + 1) + "T10:00:00",
+      auto: false, machine_guid: "3f2a1c9d", bytes: 100 - i * 5, present: true, rows: 3, cached: false,
+    }));
+    return json({ ok: true, root: "D:\\\\", path: "", depth: null, limit: 12, count: points.length,
+      truncated: false, dropped: 0, rows_total: points.length * 3, elapsed_ms: 1.1, reason: points.length ? "" : "no_snapshots",
+      points: points, skipped: [] });
+  }
   if (key === "GET /api/overview") return json({ ok: true, ready: true, scanning: false, roots: [], completed_at: "2026-09-04T10:00:00" });
   return json({ ok: true });
 };
@@ -131,8 +143,49 @@ async function newPage(browser, mode) {
         await shot(page, "u68b-sparkline-dark-1366-final");
         RESULT.shots.push("u68b-sparkline-dark-1366-final.png");
 
-        /* ---- ③ 旧数据无 total_by_root → 无折线（兼容） ---- */
-        const { page: p2, errs: errs2 } = await newPage(browser, "no-total");
+        /* ---- ② P6（D6-4/D6-5）：对比页多快照折线 —— 与快照页 sparkline 并存不回退 ---- */
+        await page.evaluate(() => { location.hash = "#/compare"; });
+        await page.waitForFunction(() => {
+            const s = document.getElementById("compare-baseline");
+            return s && s.options.length >= 2;
+        }, null, { timeout: 20000 }).catch(() => {});
+        const p6pick = await page.evaluate(() => {
+            const s = document.getElementById("compare-baseline");
+            if (!s) return { ok: false };
+            Array.from(s.options).forEach((o, i) => { o.selected = i < 2; });
+            s.dispatchEvent(new Event("change", { bubbles: true }));
+            return { ok: true, multiple: !!s.multiple, selected: s.selectedOptions.length, options: s.options.length };
+        });
+        await page.waitForFunction(() => {
+            const h = document.getElementById("compare-trend-host");
+            return h && h.dataset.state === "ok" && h.querySelector(".line-path");
+        }, null, { timeout: 15000 }).catch(() => {});
+        const p6line = await page.evaluate(() => {
+            const host = document.getElementById("compare-trend-host");
+            const pathEl = host ? host.querySelector(".line-path") : null;
+            return {
+                state: document.getElementById("compare-trend") ? document.getElementById("compare-trend").dataset.state : null,
+                dots: host ? host.querySelectorAll(".line-dot").length : 0,
+                pathLen: pathEl ? String(pathEl.getAttribute("d") || "").length : 0,
+            };
+        });
+        check("②a 对比页多快照折线成图（select multiple + state=ok + 点数=所选份数）",
+            p6pick.ok && p6pick.multiple === true && p6line.state === "ok" && p6line.pathLen > 20 && p6line.dots === p6pick.selected,
+            JSON.stringify({ pick: p6pick, line: p6line }));
+        await shot(page, "u68b-compare-multi-line-1366");
+        RESULT.shots.push("u68b-compare-multi-line-1366.png");
+        /* 回快照页：sparkline 三节点（u68b:119-122 判据）必须仍在（P6 未删） */
+        await page.evaluate(() => { location.hash = "#/snapshots"; });
+        await page.waitForFunction(() => document.querySelector(".trend-card[data-slot='day'] .trend-spark-svg"), null, { timeout: 15000 }).catch(() => {});
+        const p6spark = await page.evaluate(() => ({
+            svg: document.querySelectorAll(".trend-card .trend-spark-svg").length,
+            line: document.querySelectorAll(".trend-card .trend-spark-line").length,
+            dot: document.querySelectorAll(".trend-card .trend-spark-dot").length,
+        }));
+        check("②b 回快照页 sparkline 三节点仍在（.trend-spark-svg/-line/-dot 未被 P6 删除）",
+            p6spark.svg === 2 && p6spark.line === 2 && p6spark.dot === 2, JSON.stringify(p6spark));
+
+        /* ---- ③ 旧数据无 total_by_root → 无折线（兼容） ---- */        const { page: p2, errs: errs2 } = await newPage(browser, "no-total");
         await p2.evaluate(() => { location.hash = "#/snapshots"; });
         await p2.waitForFunction(() => document.querySelector(".trend-card[data-slot='day'] .trend-delta") !== null, null, { timeout: 15000 }).catch(() => {});
         await wait(800);

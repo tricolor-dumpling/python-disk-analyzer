@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    UI 2.0（SpaceLens Pro）· U3.3 快照管理页验收探针
    - 验收口径（手册 §U3.3 + N07/F15/F16/F17 + 红线#7）：
      ①页头装配（创建快照 F15 复用保存流程 + 撤销最近保存 F16=-确认弹窗流）；
@@ -174,20 +174,36 @@ async function metricViewport(page, w, h) {
         const m = await import("/static/js/app/main.js");
         window.__stub.snapMode = "trend";
         window.__stub.fetchLog.length = 0;
+        /* P6 探针修复（本探针自 阶段C 起恒红，fixture/排查实测定位）：
+           趋势卡的 Δ 计算前有 C-5 守卫——`lastScanStatusForTrend.result_ready`
+           为假时**不发** /api/compare，直接渲染「对比不可用：请先完成全量扫描」。
+           该状态只由 pds:scan 事件写入；原实现桩态 phase 恒为 idle（默认值），
+           于是 .trend-delta 永不出现 → 原断言在查询处抛 TypeError 中断整个套件。
+           此处把桩态切到 done 并补发一次 pds:scan（与真实「首拍轮询到达」同路径），
+           使断言测的是趋势卡本身，而不是事件时序。 */
+        window.__stub.phase = "done";
+        try {
+            window.dispatchEvent(new CustomEvent("pds:scan", { detail: {
+                running: false, result_ready: true, save_ready: true,
+                roots: ["C:\\\\", "D:\\\\"], roots_done: 2, roots_total: 2, error: null,
+            } }));
+        } catch (e) { /* ignore */ }
         await m.refreshSnapshots();
         await window.__wait(() => document.querySelector(".trend-card[data-slot='day'] .trend-delta") &&
                                    document.querySelector(".trend-card[data-slot='week'] .trend-delta"), 8000);
         const day = document.querySelector(".trend-card[data-slot='day']");
         const week = document.querySelector(".trend-card[data-slot='week']");
+        const q = (el, sel) => (el && el.querySelector(sel)) || {};
         return {
-            dayBaseline: day.getAttribute("data-baseline"),
-            weekBaseline: week.getAttribute("data-baseline"),
-            dayRoot: day.getAttribute("data-root"),
-            dayTarget: day.getAttribute("data-target"),
-            dayDelta: day.querySelector(".trend-delta").textContent,
-            dayPct: day.querySelector(".trend-pct").textContent,
-            dayCls: day.querySelector(".trend-delta").className,
-            daySub: day.querySelector(".trend-sub").textContent,
+            dayBaseline: day ? day.getAttribute("data-baseline") : null,
+            weekBaseline: week ? week.getAttribute("data-baseline") : null,
+            dayRoot: day ? day.getAttribute("data-root") : null,
+            dayTarget: day ? day.getAttribute("data-target") : null,
+            dayDelta: q(day, ".trend-delta").textContent || "",
+            dayPct: q(day, ".trend-pct").textContent || "",
+            dayCls: q(day, ".trend-delta").className || "",
+            daySub: q(day, ".trend-sub").textContent || "",
+            dayErr: q(day, ".trend-err").textContent || "",
             svgCount: document.querySelectorAll(".trend-card svg").length,
             cmpCount: window.__stub.fetchLog.filter((k) => k === "POST /api/compare").length,
             items: document.querySelectorAll("#snapshot-list .session-item").length,
@@ -248,10 +264,15 @@ async function metricViewport(page, w, h) {
     ok("⑤a 撤销弹确认弹窗（红线确认流程）", r.modalShown === true);
     ok("⑤b 确认后 POST /api/save/undo + 列表刷新", r.undoCount >= 1 && r.items === 3, JSON.stringify(r));
 
-    /* ---- ⑥ 「创建快照」随扫描状态置灰/启用 + 复用保存流程 ---- */
+    /* ---- ⑥ 「创建快照」随扫描状态置灰/启用 + 复用保存流程 ----
+       P6 修复配套：② 已把桩态切到 done，此处先显式回到 idle（无结果）再取
+       「启用前」状态，保持原判据（idle 置灰 → done 启用）语义不变。 */
     r = await page.evaluate(async () => {
         const scan = await import("/static/js/app/components/scan.js");
         const m = await import("/static/js/app/main.js");
+        window.__stub.phase = "idle";
+        await scan.pollFullscan();
+        await window.__wait(() => document.getElementById("btn-create-snapshot").disabled === true, 5000);
         const before = document.getElementById("btn-create-snapshot").disabled;
         window.__stub.phase = "done";
         await scan.pollFullscan();

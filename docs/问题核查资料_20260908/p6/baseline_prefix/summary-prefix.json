@@ -1,0 +1,1651 @@
+{
+  "meta": {
+    "label": "prefix",
+    "out": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\p06_gate",
+    "base": "http://127.0.0.1:5105/",
+    "fixtureRoot": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_iso\\PythonDiskScanner",
+    "fixtureNow": "2026-09-08T20:00:00",
+    "fixtureSel": "series,tree,growth",
+    "viewports": [
+      "1366x768",
+      "1440x900",
+      "1920x1080"
+    ],
+    "node": "v24.19.0",
+    "startedAt": "2026-09-11T00:30:28.293Z",
+    "fixtureGen": {
+      "exit": 0
+    },
+    "harness": {
+      "spawned": false,
+      "base": "http://127.0.0.1:5105/",
+      "state": null
+    },
+    "harnessEmpty": {
+      "spawned": false,
+      "base": "http://127.0.0.1:5106/",
+      "state": null
+    }
+  },
+  "samples": [
+    {
+      "scenario": "compare-result",
+      "viewport": "1366x768",
+      "at": "2026-09-11T00:30:29.576Z",
+      "measure": {
+        "rawHits": [],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 空间对比 | 对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D: | 对比基准（历史快照） | 当前：D: · 数据时间 2026-09-08 19:00:00 | 深度 | 隐藏零变化 | 开始对比 | 对比完成：2.20 KB → 1.03 KB，变化 -1.17 KB（展示变化最大的 5 条差异）；当前数据时间 2026-09-08 17:00:00 | 总变化 | ▼ | -1.17 KB | 2.20 KB → 1.03 KB | 最大增长 | ▲ | +170.00 B | 全量 5 条 · 相较基线 | 可释放 | ▼ | 225.00 B | 缩减合计 | D:\\series\\one\\two\\file.bin | ▼ | -225.00 B | - | D:\\apps\\framework\\core\\engine\\lib.dll | ▲ | +170.00 B | - | D:\\data\\docs | ▲ | +150.00 B | - | D:\\docs\\old | ▲ | +100.00 B | - | D:\\apps\\framework\\core\\engine\\conf.bin | ▲ | +30.00 B | - | 变化 | 增速 | 路径 | 操作 | ▼ -225.00 B | - | D:\\series\\one\\two\\file.bin | 已删除 | ▲ +170.00 B | - | D:\\apps\\framework\\core\\engine\\lib.dll | 新增 | ▲ +150.00 B | - | D:\\data\\docs | 新增 | ▲ +100.00 B | - | D:\\docs\\old | 新增 | ▲ +30.00 B | - | D:\\apps\\framework\\core\\engine\\conf.bin | 新增 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": true,
+            "radius": "16px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": true,
+            "radius": "8px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".trend-card",
+            "present": false
+          },
+          {
+            "sel": ".session-item",
+            "present": false
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": false
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:120px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:90px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:80px"
+          }
+        ],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": {
+          "tag": "SELECT",
+          "multiple": false,
+          "options": 10,
+          "selected": [
+            "最近一份 · 2026-09-08 19:00:00 · D: · 手动"
+          ],
+          "value": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_iso\\PythonDiskScanner\\snapshots\\D_20260908_190000_explicit_3f2a1c9d.snap.gz"
+        },
+        "list": {
+          "sessions": 0,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 0,
+          "sparks": 0,
+          "reasons": []
+        },
+        "state": {
+          "route": "#/compare",
+          "emptyVisible": false,
+          "resultVisible": true,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "heights": {
+            "head": 64,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 96,
+            "diverge": 240,
+            "table": 187
+          },
+          "bodyScroll": 768,
+          "bodyClient": 768
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "trend-line",
+      "viewport": "1366x768",
+      "at": "2026-09-11T00:30:31.425Z",
+      "measure": {
+        "rawHits": [],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 空间对比 | 对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D: | 对比基准（历史快照） | 当前：D: · 数据时间 2026-09-08 19:00:00 | 深度 | 隐藏零变化 | 开始对比 | 对比完成：1.95 KB → 1.03 KB，变化 -950.00 B（展示变化最大的 5 条差异）；当前数据时间 2026-09-08 17:00:00 | 总变化 | ▼ | -950.00 B | 1.95 KB → 1.03 KB | 最大增长 | ▲ | +170.00 B | 全量 5 条 · 相较基线 | 可释放 | ▼ | 200.00 B | 缩减合计 | D:\\series\\one\\two\\file.bin | ▼ | -200.00 B | - | D:\\apps\\framework\\core\\engine\\lib.dll | ▲ | +170.00 B | - | D:\\data\\docs | ▲ | +150.00 B | - | D:\\docs\\old | ▲ | +100.00 B | - | D:\\apps\\framework\\core\\engine\\conf.bin | ▲ | +30.00 B | - | 变化 | 增速 | 路径 | 操作 | ▼ -200.00 B | - | D:\\series\\one\\two\\file.bin | 已删除 | ▲ +170.00 B | - | D:\\apps\\framework\\core\\engine\\lib.dll | 新增 | ▲ +150.00 B | - | D:\\data\\docs | 新增 | ▲ +100.00 B | - | D:\\docs\\old | 新增 | ▲ +30.00 B | - | D:\\apps\\framework\\core\\engine\\conf.bin | 新增 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": true,
+            "radius": "16px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": true,
+            "radius": "8px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".trend-card",
+            "present": false
+          },
+          {
+            "sel": ".session-item",
+            "present": false
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": false
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:120px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:90px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:80px"
+          }
+        ],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": {
+          "tag": "SELECT",
+          "multiple": false,
+          "options": 10,
+          "selected": [
+            "2026-09-08 15:00:00 · D: · 手动"
+          ],
+          "value": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_iso\\PythonDiskScanner\\snapshots\\D_20260908_150000_explicit_3f2a1c9d.snap.gz"
+        },
+        "list": {
+          "sessions": 0,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 0,
+          "sparks": 0,
+          "reasons": []
+        },
+        "state": {
+          "route": "#/compare",
+          "emptyVisible": false,
+          "resultVisible": true,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "heights": {
+            "head": 64,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 96,
+            "diverge": 240,
+            "table": 187
+          },
+          "bodyScroll": 768,
+          "bodyClient": 768
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "compare-empty",
+      "viewport": "1366x768",
+      "at": "2026-09-11T00:31:04.477Z",
+      "measure": {
+        "rawHits": [],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 空间对比 | 对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 C: | 对比基准（历史快照） | 当前：C: · 尚未扫描（无快照） | 深度 | 隐藏零变化 | 开始对比 | 选择一份对比基准（历史快照），开始对比它的采集时刻与本机当前磁盘状态的差异。 | 选择一份对比基准（历史快照） | 开始对比两个时间点的空间变化。 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": false
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": true,
+            "radius": "8px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".trend-card",
+            "present": false
+          },
+          {
+            "sel": ".session-item",
+            "present": false
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": false
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:120px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:90px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:80px"
+          }
+        ],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": {
+          "tag": "SELECT",
+          "multiple": false,
+          "options": 0,
+          "selected": [],
+          "value": ""
+        },
+        "list": {
+          "sessions": 0,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 0,
+          "sparks": 0,
+          "reasons": []
+        },
+        "state": {
+          "route": "#/compare",
+          "emptyVisible": true,
+          "resultVisible": false,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "heights": {
+            "head": 64,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 0,
+            "diverge": 0,
+            "table": 0
+          },
+          "bodyScroll": 768,
+          "bodyClient": 768
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "snapshots-empty",
+      "viewport": "1366x768",
+      "at": "2026-09-11T00:31:07.023Z",
+      "measure": {
+        "rawHits": [],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 快照管理 | 创建快照 · 撤销最近保存 · 较昨日/较上周变化趋势与全部会话 | 创建快照 | 撤销最近保存 | 较昨日 | 暂无可用的对比基准 | 还没有快照，先做全量扫描并保存 | 较上周 | 暂无可用的对比基准 | 还没有快照，先做全量扫描并保存 | 共 0 个快照会话 | 还没有快照 | 全量扫描后保存一份，变化趋势从这里开始记录。 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": false
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": false
+          },
+          {
+            "sel": ".trend-card",
+            "present": true,
+            "radius": "16px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".session-item",
+            "present": false
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": true,
+            "radius": "0px",
+            "bg": "rgba(0, 0, 0, 0)",
+            "border": "rgb(15, 23, 42) 0px",
+            "shadow": "none"
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": null,
+        "list": {
+          "sessions": 0,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 2,
+          "sparks": 0,
+          "reasons": [
+            "还没有快照，先做全量扫描并保存",
+            "还没有快照，先做全量扫描并保存"
+          ]
+        },
+        "state": {
+          "route": "#/snapshots",
+          "emptyVisible": false,
+          "resultVisible": false,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "heights": {
+            "head": 0,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 0,
+            "diverge": 0,
+            "table": 0
+          },
+          "bodyScroll": 768,
+          "bodyClient": 768
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "snapshots",
+      "viewport": "1366x768",
+      "at": "2026-09-11T00:31:09.885Z",
+      "measure": {
+        "rawHits": [
+          "snap.gz",
+          "session_file",
+          "json_file"
+        ],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 快照管理 | 创建快照 · 撤销最近保存 · 较昨日/较上周变化趋势与全部会话 | 创建快照 | 撤销最近保存 | 较昨日 | D: | ± 0.00 B | 0.00% | 对比基准 2026-09-08 17:00:00 → 最新 2026-09-08 19:00:00 | 较上周 | D: | ▲ +50.00 B | +5.00% | 对比基准 2026-09-07 17:00:00 → 最新 2026-09-08 19:00:00 | 共 10 个快照会话 | 2026-09-08 19:00:00 | 手动 | 删除整会话 | session_20260908_190000_3f2a1c9d_000008.json | D:\\ → | D_20260908_190000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 17:00:00 | 手动 | 删除整会话 | session_20260908_170000_3f2a1c9d_000002.json | D:\\ → | D_20260908_170000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 15:00:00 | 手动 | 删除整会话 | session_20260908_150000_3f2a1c9d_000007.json | D:\\ → | D_20260908_150000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 13:00:00 | 手动 | 删除整会话 | session_20260908_130000_3f2a1c9d_000006.json | D:\\ → | D_20260908_130000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 07:00:00 | 手动 | 删除整会话 | session_20260908_070000_3f2a1c9d_000005.json | D:\\ → | D_20260908_070000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 05:00:00 | 手动 | 删除整会话 | session_20260908_050000_3f2a1c9d_000010.json | D:\\ → | D_20260908_050000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 03:00:00 | 手动 | 删除整会话 | session_20260908_030000_3f2a1c9d_000004.json | D:\\ → | D_20260908_030000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-07 23:00:00 | 手动 | 删除整会话 | session_20260907_230000_3f2a1c9d_000003.json | D:\\ → | D_20260907_230000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-07 17:00:00 | 手动 | 删除整会话 | session_20260907_170000_3f2a1c9d_000001.json | D:\\ → | D_20260907_170000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-07 05:00:00 | 手动 | 删除整会话 | session_20260907_050000_3f2a1c9d_000009.json | D:\\ → | D_20260907_050000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": false
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": false
+          },
+          {
+            "sel": ".trend-card",
+            "present": true,
+            "radius": "16px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".session-item",
+            "present": true,
+            "radius": "8px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": true,
+            "radius": "0px",
+            "bg": "rgba(0, 0, 0, 0)",
+            "border": "rgb(15, 23, 42) 0px",
+            "shadow": "none"
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": null,
+        "list": {
+          "sessions": 10,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 2,
+          "sparks": 2,
+          "reasons": []
+        },
+        "state": {
+          "route": "#/snapshots",
+          "emptyVisible": false,
+          "resultVisible": false,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "heights": {
+            "head": 0,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 0,
+            "diverge": 0,
+            "table": 0
+          },
+          "bodyScroll": 768,
+          "bodyClient": 768
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "compare-result",
+      "viewport": "1440x900",
+      "at": "2026-09-11T00:31:18.538Z",
+      "measure": {
+        "rawHits": [],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 空间对比 | 对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D: | 对比基准（历史快照） | 当前：D: · 数据时间 2026-09-08 19:00:00 | 深度 | 隐藏零变化 | 开始对比 | 对比完成：2.20 KB → 1.03 KB，变化 -1.17 KB（展示变化最大的 5 条差异）；当前数据时间 2026-09-08 17:00:00 | 总变化 | ▼ | -1.17 KB | 2.20 KB → 1.03 KB | 最大增长 | ▲ | +170.00 B | 全量 5 条 · 相较基线 | 可释放 | ▼ | 225.00 B | 缩减合计 | D:\\series\\one\\two\\file.bin | ▼ | -225.00 B | - | D:\\apps\\framework\\core\\engine\\lib.dll | ▲ | +170.00 B | - | D:\\data\\docs | ▲ | +150.00 B | - | D:\\docs\\old | ▲ | +100.00 B | - | D:\\apps\\framework\\core\\engine\\conf.bin | ▲ | +30.00 B | - | 变化 | 增速 | 路径 | 操作 | ▼ -225.00 B | - | D:\\series\\one\\two\\file.bin | 已删除 | ▲ +170.00 B | - | D:\\apps\\framework\\core\\engine\\lib.dll | 新增 | ▲ +150.00 B | - | D:\\data\\docs | 新增 | ▲ +100.00 B | - | D:\\docs\\old | 新增 | ▲ +30.00 B | - | D:\\apps\\framework\\core\\engine\\conf.bin | 新增 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": true,
+            "radius": "16px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": true,
+            "radius": "8px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".trend-card",
+            "present": false
+          },
+          {
+            "sel": ".session-item",
+            "present": false
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": false
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:120px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:90px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:80px"
+          }
+        ],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": {
+          "tag": "SELECT",
+          "multiple": false,
+          "options": 10,
+          "selected": [
+            "最近一份 · 2026-09-08 19:00:00 · D: · 手动"
+          ],
+          "value": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_iso\\PythonDiskScanner\\snapshots\\D_20260908_190000_explicit_3f2a1c9d.snap.gz"
+        },
+        "list": {
+          "sessions": 0,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 0,
+          "sparks": 0,
+          "reasons": []
+        },
+        "state": {
+          "route": "#/compare",
+          "emptyVisible": false,
+          "resultVisible": true,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "heights": {
+            "head": 64,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 96,
+            "diverge": 240,
+            "table": 315
+          },
+          "bodyScroll": 900,
+          "bodyClient": 900
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "trend-line",
+      "viewport": "1440x900",
+      "at": "2026-09-11T00:31:20.295Z",
+      "measure": {
+        "rawHits": [],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 空间对比 | 对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D: | 对比基准（历史快照） | 当前：D: · 数据时间 2026-09-08 19:00:00 | 深度 | 隐藏零变化 | 开始对比 | 对比完成：1.95 KB → 1.03 KB，变化 -950.00 B（展示变化最大的 5 条差异）；当前数据时间 2026-09-08 17:00:00 | 总变化 | ▼ | -950.00 B | 1.95 KB → 1.03 KB | 最大增长 | ▲ | +170.00 B | 全量 5 条 · 相较基线 | 可释放 | ▼ | 200.00 B | 缩减合计 | D:\\series\\one\\two\\file.bin | ▼ | -200.00 B | - | D:\\apps\\framework\\core\\engine\\lib.dll | ▲ | +170.00 B | - | D:\\data\\docs | ▲ | +150.00 B | - | D:\\docs\\old | ▲ | +100.00 B | - | D:\\apps\\framework\\core\\engine\\conf.bin | ▲ | +30.00 B | - | 变化 | 增速 | 路径 | 操作 | ▼ -200.00 B | - | D:\\series\\one\\two\\file.bin | 已删除 | ▲ +170.00 B | - | D:\\apps\\framework\\core\\engine\\lib.dll | 新增 | ▲ +150.00 B | - | D:\\data\\docs | 新增 | ▲ +100.00 B | - | D:\\docs\\old | 新增 | ▲ +30.00 B | - | D:\\apps\\framework\\core\\engine\\conf.bin | 新增 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": true,
+            "radius": "16px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": true,
+            "radius": "8px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".trend-card",
+            "present": false
+          },
+          {
+            "sel": ".session-item",
+            "present": false
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": false
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:120px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:90px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:80px"
+          }
+        ],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": {
+          "tag": "SELECT",
+          "multiple": false,
+          "options": 10,
+          "selected": [
+            "2026-09-08 15:00:00 · D: · 手动"
+          ],
+          "value": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_iso\\PythonDiskScanner\\snapshots\\D_20260908_150000_explicit_3f2a1c9d.snap.gz"
+        },
+        "list": {
+          "sessions": 0,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 0,
+          "sparks": 0,
+          "reasons": []
+        },
+        "state": {
+          "route": "#/compare",
+          "emptyVisible": false,
+          "resultVisible": true,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "heights": {
+            "head": 64,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 96,
+            "diverge": 240,
+            "table": 315
+          },
+          "bodyScroll": 900,
+          "bodyClient": 900
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "compare-empty",
+      "viewport": "1440x900",
+      "at": "2026-09-11T00:31:52.495Z",
+      "measure": {
+        "rawHits": [],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 空间对比 | 对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 C: | 对比基准（历史快照） | 当前：C: · 尚未扫描（无快照） | 深度 | 隐藏零变化 | 开始对比 | 选择一份对比基准（历史快照），开始对比它的采集时刻与本机当前磁盘状态的差异。 | 选择一份对比基准（历史快照） | 开始对比两个时间点的空间变化。 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": false
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": true,
+            "radius": "8px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".trend-card",
+            "present": false
+          },
+          {
+            "sel": ".session-item",
+            "present": false
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": false
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:120px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:90px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:80px"
+          }
+        ],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": {
+          "tag": "SELECT",
+          "multiple": false,
+          "options": 0,
+          "selected": [],
+          "value": ""
+        },
+        "list": {
+          "sessions": 0,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 0,
+          "sparks": 0,
+          "reasons": []
+        },
+        "state": {
+          "route": "#/compare",
+          "emptyVisible": true,
+          "resultVisible": false,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "heights": {
+            "head": 64,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 0,
+            "diverge": 0,
+            "table": 0
+          },
+          "bodyScroll": 900,
+          "bodyClient": 900
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "snapshots-empty",
+      "viewport": "1440x900",
+      "at": "2026-09-11T00:31:55.036Z",
+      "measure": {
+        "rawHits": [],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 快照管理 | 创建快照 · 撤销最近保存 · 较昨日/较上周变化趋势与全部会话 | 创建快照 | 撤销最近保存 | 较昨日 | 暂无可用的对比基准 | 还没有快照，先做全量扫描并保存 | 较上周 | 暂无可用的对比基准 | 还没有快照，先做全量扫描并保存 | 共 0 个快照会话 | 还没有快照 | 全量扫描后保存一份，变化趋势从这里开始记录。 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": false
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": false
+          },
+          {
+            "sel": ".trend-card",
+            "present": true,
+            "radius": "16px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".session-item",
+            "present": false
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": true,
+            "radius": "0px",
+            "bg": "rgba(0, 0, 0, 0)",
+            "border": "rgb(15, 23, 42) 0px",
+            "shadow": "none"
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": null,
+        "list": {
+          "sessions": 0,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 2,
+          "sparks": 0,
+          "reasons": [
+            "还没有快照，先做全量扫描并保存",
+            "还没有快照，先做全量扫描并保存"
+          ]
+        },
+        "state": {
+          "route": "#/snapshots",
+          "emptyVisible": false,
+          "resultVisible": false,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "heights": {
+            "head": 0,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 0,
+            "diverge": 0,
+            "table": 0
+          },
+          "bodyScroll": 900,
+          "bodyClient": 900
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "snapshots",
+      "viewport": "1440x900",
+      "at": "2026-09-11T00:31:58.160Z",
+      "measure": {
+        "rawHits": [
+          "snap.gz",
+          "session_file",
+          "json_file"
+        ],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 快照管理 | 创建快照 · 撤销最近保存 · 较昨日/较上周变化趋势与全部会话 | 创建快照 | 撤销最近保存 | 较昨日 | D: | ± 0.00 B | 0.00% | 对比基准 2026-09-08 17:00:00 → 最新 2026-09-08 19:00:00 | 较上周 | D: | ▲ +50.00 B | +5.00% | 对比基准 2026-09-07 17:00:00 → 最新 2026-09-08 19:00:00 | 共 10 个快照会话 | 2026-09-08 19:00:00 | 手动 | 删除整会话 | session_20260908_190000_3f2a1c9d_000008.json | D:\\ → | D_20260908_190000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 17:00:00 | 手动 | 删除整会话 | session_20260908_170000_3f2a1c9d_000002.json | D:\\ → | D_20260908_170000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 15:00:00 | 手动 | 删除整会话 | session_20260908_150000_3f2a1c9d_000007.json | D:\\ → | D_20260908_150000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 13:00:00 | 手动 | 删除整会话 | session_20260908_130000_3f2a1c9d_000006.json | D:\\ → | D_20260908_130000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 07:00:00 | 手动 | 删除整会话 | session_20260908_070000_3f2a1c9d_000005.json | D:\\ → | D_20260908_070000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 05:00:00 | 手动 | 删除整会话 | session_20260908_050000_3f2a1c9d_000010.json | D:\\ → | D_20260908_050000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 03:00:00 | 手动 | 删除整会话 | session_20260908_030000_3f2a1c9d_000004.json | D:\\ → | D_20260908_030000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-07 23:00:00 | 手动 | 删除整会话 | session_20260907_230000_3f2a1c9d_000003.json | D:\\ → | D_20260907_230000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-07 17:00:00 | 手动 | 删除整会话 | session_20260907_170000_3f2a1c9d_000001.json | D:\\ → | D_20260907_170000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-07 05:00:00 | 手动 | 删除整会话 | session_20260907_050000_3f2a1c9d_000009.json | D:\\ → | D_20260907_050000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": false
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": false
+          },
+          {
+            "sel": ".trend-card",
+            "present": true,
+            "radius": "16px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".session-item",
+            "present": true,
+            "radius": "8px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": true,
+            "radius": "0px",
+            "bg": "rgba(0, 0, 0, 0)",
+            "border": "rgb(15, 23, 42) 0px",
+            "shadow": "none"
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": null,
+        "list": {
+          "sessions": 10,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 2,
+          "sparks": 2,
+          "reasons": []
+        },
+        "state": {
+          "route": "#/snapshots",
+          "emptyVisible": false,
+          "resultVisible": false,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "heights": {
+            "head": 0,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 0,
+            "diverge": 0,
+            "table": 0
+          },
+          "bodyScroll": 900,
+          "bodyClient": 900
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "compare-result",
+      "viewport": "1920x1080",
+      "at": "2026-09-11T00:32:06.868Z",
+      "measure": {
+        "rawHits": [],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 空间对比 | 对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D: | 对比基准（历史快照） | 当前：D: · 数据时间 2026-09-08 19:00:00 | 深度 | 隐藏零变化 | 开始对比 | 对比完成：2.20 KB → 1.03 KB，变化 -1.17 KB（展示变化最大的 5 条差异）；当前数据时间 2026-09-08 17:00:00 | 总变化 | ▼ | -1.17 KB | 2.20 KB → 1.03 KB | 最大增长 | ▲ | +170.00 B | 全量 5 条 · 相较基线 | 可释放 | ▼ | 225.00 B | 缩减合计 | D:\\series\\one\\two\\file.bin | ▼ | -225.00 B | - | D:\\apps\\framework\\core\\engine\\lib.dll | ▲ | +170.00 B | - | D:\\data\\docs | ▲ | +150.00 B | - | D:\\docs\\old | ▲ | +100.00 B | - | D:\\apps\\framework\\core\\engine\\conf.bin | ▲ | +30.00 B | - | 变化 | 增速 | 路径 | 操作 | ▼ -225.00 B | - | D:\\series\\one\\two\\file.bin | 已删除 | ▲ +170.00 B | - | D:\\apps\\framework\\core\\engine\\lib.dll | 新增 | ▲ +150.00 B | - | D:\\data\\docs | 新增 | ▲ +100.00 B | - | D:\\docs\\old | 新增 | ▲ +30.00 B | - | D:\\apps\\framework\\core\\engine\\conf.bin | 新增 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": true,
+            "radius": "16px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": true,
+            "radius": "8px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".trend-card",
+            "present": false
+          },
+          {
+            "sel": ".session-item",
+            "present": false
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": false
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:120px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:90px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:80px"
+          }
+        ],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": {
+          "tag": "SELECT",
+          "multiple": false,
+          "options": 10,
+          "selected": [
+            "最近一份 · 2026-09-08 19:00:00 · D: · 手动"
+          ],
+          "value": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_iso\\PythonDiskScanner\\snapshots\\D_20260908_190000_explicit_3f2a1c9d.snap.gz"
+        },
+        "list": {
+          "sessions": 0,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 0,
+          "sparks": 0,
+          "reasons": []
+        },
+        "state": {
+          "route": "#/compare",
+          "emptyVisible": false,
+          "resultVisible": true,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "heights": {
+            "head": 64,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 96,
+            "diverge": 240,
+            "table": 495
+          },
+          "bodyScroll": 1080,
+          "bodyClient": 1080
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "trend-line",
+      "viewport": "1920x1080",
+      "at": "2026-09-11T00:32:08.661Z",
+      "measure": {
+        "rawHits": [],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 空间对比 | 对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 D: | 对比基准（历史快照） | 当前：D: · 数据时间 2026-09-08 19:00:00 | 深度 | 隐藏零变化 | 开始对比 | 对比完成：1.95 KB → 1.03 KB，变化 -950.00 B（展示变化最大的 5 条差异）；当前数据时间 2026-09-08 17:00:00 | 总变化 | ▼ | -950.00 B | 1.95 KB → 1.03 KB | 最大增长 | ▲ | +170.00 B | 全量 5 条 · 相较基线 | 可释放 | ▼ | 200.00 B | 缩减合计 | D:\\series\\one\\two\\file.bin | ▼ | -200.00 B | - | D:\\apps\\framework\\core\\engine\\lib.dll | ▲ | +170.00 B | - | D:\\data\\docs | ▲ | +150.00 B | - | D:\\docs\\old | ▲ | +100.00 B | - | D:\\apps\\framework\\core\\engine\\conf.bin | ▲ | +30.00 B | - | 变化 | 增速 | 路径 | 操作 | ▼ -200.00 B | - | D:\\series\\one\\two\\file.bin | 已删除 | ▲ +170.00 B | - | D:\\apps\\framework\\core\\engine\\lib.dll | 新增 | ▲ +150.00 B | - | D:\\data\\docs | 新增 | ▲ +100.00 B | - | D:\\docs\\old | 新增 | ▲ +30.00 B | - | D:\\apps\\framework\\core\\engine\\conf.bin | 新增 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": true,
+            "radius": "16px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": true,
+            "radius": "8px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".trend-card",
+            "present": false
+          },
+          {
+            "sel": ".session-item",
+            "present": false
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": false
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:120px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:90px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:80px"
+          }
+        ],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": {
+          "tag": "SELECT",
+          "multiple": false,
+          "options": 10,
+          "selected": [
+            "2026-09-08 15:00:00 · D: · 手动"
+          ],
+          "value": "C:\\Users\\Laptop\\AppData\\Local\\Temp\\pds_p6_iso\\PythonDiskScanner\\snapshots\\D_20260908_150000_explicit_3f2a1c9d.snap.gz"
+        },
+        "list": {
+          "sessions": 0,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 0,
+          "sparks": 0,
+          "reasons": []
+        },
+        "state": {
+          "route": "#/compare",
+          "emptyVisible": false,
+          "resultVisible": true,
+          "stats": 3,
+          "divergeRows": 5,
+          "tableRows": 5,
+          "heights": {
+            "head": 64,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 96,
+            "diverge": 240,
+            "table": 495
+          },
+          "bodyScroll": 1080,
+          "bodyClient": 1080
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "compare-empty",
+      "viewport": "1920x1080",
+      "at": "2026-09-11T00:32:41.040Z",
+      "measure": {
+        "rawHits": [],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 空间对比 | 对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时） · 盘 C: | 对比基准（历史快照） | 当前：C: · 尚未扫描（无快照） | 深度 | 隐藏零变化 | 开始对比 | 选择一份对比基准（历史快照），开始对比它的采集时刻与本机当前磁盘状态的差异。 | 选择一份对比基准（历史快照） | 开始对比两个时间点的空间变化。 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": false
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": true,
+            "radius": "8px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".trend-card",
+            "present": false
+          },
+          {
+            "sel": ".session-item",
+            "present": false
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": false
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:120px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:90px"
+          },
+          {
+            "tag": "TH",
+            "cls": "",
+            "style": "width:80px"
+          }
+        ],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": {
+          "tag": "SELECT",
+          "multiple": false,
+          "options": 0,
+          "selected": [],
+          "value": ""
+        },
+        "list": {
+          "sessions": 0,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 0,
+          "sparks": 0,
+          "reasons": []
+        },
+        "state": {
+          "route": "#/compare",
+          "emptyVisible": true,
+          "resultVisible": false,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "heights": {
+            "head": 64,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 0,
+            "diverge": 0,
+            "table": 0
+          },
+          "bodyScroll": 1080,
+          "bodyClient": 1080
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "snapshots-empty",
+      "viewport": "1920x1080",
+      "at": "2026-09-11T00:32:43.720Z",
+      "measure": {
+        "rawHits": [],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 快照管理 | 创建快照 · 撤销最近保存 · 较昨日/较上周变化趋势与全部会话 | 创建快照 | 撤销最近保存 | 较昨日 | 暂无可用的对比基准 | 还没有快照，先做全量扫描并保存 | 较上周 | 暂无可用的对比基准 | 还没有快照，先做全量扫描并保存 | 共 0 个快照会话 | 还没有快照 | 全量扫描后保存一份，变化趋势从这里开始记录。 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": false
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": false
+          },
+          {
+            "sel": ".trend-card",
+            "present": true,
+            "radius": "16px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".session-item",
+            "present": false
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": true,
+            "radius": "0px",
+            "bg": "rgba(0, 0, 0, 0)",
+            "border": "rgb(15, 23, 42) 0px",
+            "shadow": "none"
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": null,
+        "list": {
+          "sessions": 0,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 2,
+          "sparks": 0,
+          "reasons": [
+            "还没有快照，先做全量扫描并保存",
+            "还没有快照，先做全量扫描并保存"
+          ]
+        },
+        "state": {
+          "route": "#/snapshots",
+          "emptyVisible": false,
+          "resultVisible": false,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "heights": {
+            "head": 0,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 0,
+            "diverge": 0,
+            "table": 0
+          },
+          "bodyScroll": 1080,
+          "bodyClient": 1080
+        }
+      },
+      "consoleErrors": []
+    },
+    {
+      "scenario": "snapshots",
+      "viewport": "1920x1080",
+      "at": "2026-09-11T00:32:46.994Z",
+      "measure": {
+        "rawHits": [
+          "snap.gz",
+          "session_file",
+          "json_file"
+        ],
+        "pageText": "Python 磁盘扫描 | 空间分析工作台 | 工作台 | 对比 | 快照 | 已就绪·可开始扫描 | 搜索或跳转… | Ctrl K | 主题 | 重新扫描 | 使用指引 | 设置 | 快照管理 | 创建快照 · 撤销最近保存 · 较昨日/较上周变化趋势与全部会话 | 创建快照 | 撤销最近保存 | 较昨日 | D: | ± 0.00 B | 0.00% | 对比基准 2026-09-08 17:00:00 → 最新 2026-09-08 19:00:00 | 较上周 | D: | ▲ +50.00 B | +5.00% | 对比基准 2026-09-07 17:00:00 → 最新 2026-09-08 19:00:00 | 共 10 个快照会话 | 2026-09-08 19:00:00 | 手动 | 删除整会话 | session_20260908_190000_3f2a1c9d_000008.json | D:\\ → | D_20260908_190000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 17:00:00 | 手动 | 删除整会话 | session_20260908_170000_3f2a1c9d_000002.json | D:\\ → | D_20260908_170000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 15:00:00 | 手动 | 删除整会话 | session_20260908_150000_3f2a1c9d_000007.json | D:\\ → | D_20260908_150000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 13:00:00 | 手动 | 删除整会话 | session_20260908_130000_3f2a1c9d_000006.json | D:\\ → | D_20260908_130000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 07:00:00 | 手动 | 删除整会话 | session_20260908_070000_3f2a1c9d_000005.json | D:\\ → | D_20260908_070000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 05:00:00 | 手动 | 删除整会话 | session_20260908_050000_3f2a1c9d_000010.json | D:\\ → | D_20260908_050000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-08 03:00:00 | 手动 | 删除整会话 | session_20260908_030000_3f2a1c9d_000004.json | D:\\ → | D_20260908_030000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-07 23:00:00 | 手动 | 删除整会话 | session_20260907_230000_3f2a1c9d_000003.json | D:\\ → | D_20260907_230000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-07 17:00:00 | 手动 | 删除整会话 | session_20260907_170000_3f2a1c9d_000001.json | D:\\ → | D_20260907_170000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | 2026-09-07 05:00:00 | 手动 | 删除整会话 | session_20260907_050000_3f2a1c9d_000009.json | D:\\ → | D_20260907_050000_explicit_3f2a1c9d.snap.gz | 对比此快照 | 删除 | v2.0.0",
+        "cards": [
+          {
+            "sel": ".compare-stat",
+            "present": false
+          },
+          {
+            "sel": ".compare-diverge",
+            "present": false
+          },
+          {
+            "sel": ".trend-card",
+            "present": true,
+            "radius": "16px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".session-item",
+            "present": true,
+            "radius": "8px",
+            "bg": "rgb(255, 255, 255)",
+            "border": "rgb(226, 232, 240) 1px",
+            "shadow": "none"
+          },
+          {
+            "sel": ".snapshots-list-wrap",
+            "present": true,
+            "radius": "0px",
+            "bg": "rgba(0, 0, 0, 0)",
+            "border": "rgb(15, 23, 42) 0px",
+            "shadow": "none"
+          }
+        ],
+        "fsOffenders": [],
+        "spaceOffenders": [],
+        "inlinePx": [],
+        "trend": {
+          "present": false,
+          "state": null,
+          "sub": "",
+          "dots": 0,
+          "pathLen": 0,
+          "axisY": 0,
+          "axisX": 0,
+          "emptyText": "",
+          "readout": "",
+          "ariaLabel": "",
+          "seriesKey": ""
+        },
+        "baseline": null,
+        "list": {
+          "sessions": 10,
+          "rows": 0,
+          "meta": [],
+          "details": 0,
+          "trendCards": 2,
+          "sparks": 2,
+          "reasons": []
+        },
+        "state": {
+          "route": "#/snapshots",
+          "emptyVisible": false,
+          "resultVisible": false,
+          "stats": 0,
+          "divergeRows": 0,
+          "tableRows": 0,
+          "heights": {
+            "head": 0,
+            "trend": 0,
+            "trendHost": 0,
+            "summary": 0,
+            "diverge": 0,
+            "table": 0
+          },
+          "bodyScroll": 1080,
+          "bodyClient": 1080
+        }
+      },
+      "consoleErrors": []
+    }
+  ],
+  "shots": [
+    "shots\\compare-result-1366x768-prefix.png",
+    "shots\\trend-line-1366x768-prefix.png",
+    "shots\\compare-empty-1366x768-prefix.png",
+    "shots\\snapshots-empty-1366x768-prefix.png",
+    "shots\\snapshots-1366x768-prefix.png",
+    "shots\\compare-result-1440x900-prefix.png",
+    "shots\\trend-line-1440x900-prefix.png",
+    "shots\\compare-empty-1440x900-prefix.png",
+    "shots\\snapshots-empty-1440x900-prefix.png",
+    "shots\\snapshots-1440x900-prefix.png",
+    "shots\\compare-result-1920x1080-prefix.png",
+    "shots\\trend-line-1920x1080-prefix.png",
+    "shots\\compare-empty-1920x1080-prefix.png",
+    "shots\\snapshots-empty-1920x1080-prefix.png",
+    "shots\\snapshots-1920x1080-prefix.png"
+  ],
+  "consoleErrors": [],
+  "violations": [
+    {
+      "scope": "check",
+      "kind": "① 两页可见文本无原始文件名（*.snap.gz / session_<ts> / *.json）",
+      "detail": "snapshots@1366x768:snap.gz+session_file+json_file , snapshots@1440x900:snap.gz+session_file+json_file , snapshots@1920x1080:snap.gz+session_file+json_file"
+    },
+    {
+      "scope": "check",
+      "kind": "② 卡片语言一致（.compare-stat/.compare-diverge/.trend-card/.session-item/.snapshots-list-wrap 计算样式全等）",
+      "detail": "compare-result@1366x768 .compare-diverge → 8px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none ≠ .compare-stat → 16px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none | trend-line@1366x768 .compare-diverge → 8px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none ≠ .compare-stat → 16px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none | snapshots-empty@1366x768 .snapshots-list-wrap → 0px¦rgba(0, 0, 0, 0)¦rgb(15, 23, 42) 0px¦none ≠ .trend-card → 16px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none | snapshots@1366x768 .session-item → 8px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none ≠ .trend-card → 16px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none"
+    },
+    {
+      "scope": "check",
+      "kind": "④ 两页 DOM 无内联 magic px 宽高",
+      "detail": "compare-result@1366x768 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | trend-line@1366x768 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | compare-empty@1366x768 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | compare-result@1440x900 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | trend-line@1440x900 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | compare-empty@1440x900 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | compare-result@1920x1080 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | trend-line@1920x1080 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | compare-empty@1920x1080 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}]"
+    },
+    {
+      "scope": "check",
+      "kind": "⑤ 趋势折线成图（state=ok + path + 点数≥2 + X/Y 轴刻度）",
+      "detail": "1366x768:{\"present\":false,\"state\":null,\"sub\":\"\",\"dots\":0,\"pathLen\":0,\"axisY\":0,\"axisX\":0,\"emptyText\":\"\",\"readout\":\"\",\"ariaLabel\":\"\",\"seriesKey\":\"\"} | 1440x900:{\"present\":false,\"state\":null,\"sub\":\"\",\"dots\":0,\"pathLen\":0,\"axisY\":0,\"axisX\":0,\"emptyText\":\"\",\"readout\":\"\",\"ariaLabel\":\"\",\"seriesKey\":\"\"} | 1920x1080:{\"present\":false,\"state\":null,\"sub\":\"\",\"dots\":0,\"pathLen\":0,\"axisY\":0,\"axisX\":0,\"emptyText\":\"\",\"readout\":\"\",\"ariaLabel\":\"\",\"seriesKey\":\"\"}"
+    },
+    {
+      "scope": "check",
+      "kind": "⑤b 悬浮读数出现且非空（时间 + 数值）",
+      "detail": "1366x768 readout=\"\" | 1440x900 readout=\"\" | 1920x1080 readout=\"\""
+    },
+    {
+      "scope": "check",
+      "kind": "⑤c #compare-baseline 为可多选 select（D6-5，id/SELECT 语义保持）",
+      "detail": "compare-result@1366x768 , trend-line@1366x768 , compare-empty@1366x768 , compare-result@1440x900 , trend-line@1440x900 , compare-empty@1440x900 , compare-result@1920x1080 , trend-line@1920x1080 , compare-empty@1920x1080"
+    },
+    {
+      "scope": "check",
+      "kind": "⑥ 趋势卡空态给原因（非空白）",
+      "detail": ""
+    },
+    {
+      "scope": "check",
+      "kind": "⑧ 快照页列表渲染（会话 ≥1 + 盘行 + 详情展开区 + 大小列）",
+      "detail": "1366x768:{\"sess\":10,\"rows\":0,\"det\":0} | 1440x900:{\"sess\":10,\"rows\":0,\"det\":0} | 1920x1080:{\"sess\":10,\"rows\":0,\"det\":0}"
+    }
+  ],
+  "checks": [
+    {
+      "name": "① 两页可见文本无原始文件名（*.snap.gz / session_<ts> / *.json）",
+      "ok": false,
+      "detail": "snapshots@1366x768:snap.gz+session_file+json_file , snapshots@1440x900:snap.gz+session_file+json_file , snapshots@1920x1080:snap.gz+session_file+json_file"
+    },
+    {
+      "name": "② 卡片语言一致（.compare-stat/.compare-diverge/.trend-card/.session-item/.snapshots-list-wrap 计算样式全等）",
+      "ok": false,
+      "detail": "compare-result@1366x768 .compare-diverge → 8px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none ≠ .compare-stat → 16px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none | trend-line@1366x768 .compare-diverge → 8px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none ≠ .compare-stat → 16px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none | snapshots-empty@1366x768 .snapshots-list-wrap → 0px¦rgba(0, 0, 0, 0)¦rgb(15, 23, 42) 0px¦none ≠ .trend-card → 16px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none | snapshots@1366x768 .session-item → 8px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none ≠ .trend-card → 16px¦rgb(255, 255, 255)¦rgb(226, 232, 240) 1px¦none"
+    },
+    {
+      "name": "③ 字号全部落在令牌刻度（11/12/13/14/16/20/24）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "③b gap 全部落在间距刻度（4..32）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "④ 两页 DOM 无内联 magic px 宽高",
+      "ok": false,
+      "detail": "compare-result@1366x768 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | trend-line@1366x768 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | compare-empty@1366x768 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | compare-result@1440x900 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | trend-line@1440x900 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | compare-empty@1440x900 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | compare-result@1920x1080 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | trend-line@1920x1080 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}] | compare-empty@1920x1080 [{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:120px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:90px\"},{\"tag\":\"TH\",\"cls\":\"\",\"style\":\"width:80px\"}]"
+    },
+    {
+      "name": "⑤ 趋势折线成图（state=ok + path + 点数≥2 + X/Y 轴刻度）",
+      "ok": false,
+      "detail": "1366x768:{\"present\":false,\"state\":null,\"sub\":\"\",\"dots\":0,\"pathLen\":0,\"axisY\":0,\"axisX\":0,\"emptyText\":\"\",\"readout\":\"\",\"ariaLabel\":\"\",\"seriesKey\":\"\"} | 1440x900:{\"present\":false,\"state\":null,\"sub\":\"\",\"dots\":0,\"pathLen\":0,\"axisY\":0,\"axisX\":0,\"emptyText\":\"\",\"readout\":\"\",\"ariaLabel\":\"\",\"seriesKey\":\"\"} | 1920x1080:{\"present\":false,\"state\":null,\"sub\":\"\",\"dots\":0,\"pathLen\":0,\"axisY\":0,\"axisX\":0,\"emptyText\":\"\",\"readout\":\"\",\"ariaLabel\":\"\",\"seriesKey\":\"\"}"
+    },
+    {
+      "name": "⑤b 悬浮读数出现且非空（时间 + 数值）",
+      "ok": false,
+      "detail": "1366x768 readout=\"\" | 1440x900 readout=\"\" | 1920x1080 readout=\"\""
+    },
+    {
+      "name": "⑤c #compare-baseline 为可多选 select（D6-5，id/SELECT 语义保持）",
+      "ok": false,
+      "detail": "compare-result@1366x768 , trend-line@1366x768 , compare-empty@1366x768 , compare-result@1440x900 , trend-line@1440x900 , compare-empty@1440x900 , compare-result@1920x1080 , trend-line@1920x1080 , compare-empty@1920x1080"
+    },
+    {
+      "name": "⑥ 趋势卡空态给原因（非空白）",
+      "ok": false,
+      "detail": ""
+    },
+    {
+      "name": "⑥b 对比页空态仍显示（P6 未破坏定稿 6.5 空态）",
+      "ok": true,
+      "detail": "1366x768:true , 1440x900:true , 1920x1080:true"
+    },
+    {
+      "name": "⑦ 三视口零页面滚动（P4/P5 红线不回退）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "⑧ 快照页列表渲染（会话 ≥1 + 盘行 + 详情展开区 + 大小列）",
+      "ok": false,
+      "detail": "1366x768:{\"sess\":10,\"rows\":0,\"det\":0} | 1440x900:{\"sess\":10,\"rows\":0,\"det\":0} | 1920x1080:{\"sess\":10,\"rows\":0,\"det\":0}"
+    },
+    {
+      "name": "⑨ console/pageerror = 0",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "verdict": "FAIL"
+}

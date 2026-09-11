@@ -697,14 +697,19 @@ const ASSERTIONS_V2 = [
         __assert(el.dataset.v === "3722", "countUp 调用瞬间 dataset.v 应记账为目标值，实际 " + el.dataset.v);
         __assert(el.textContent === "0", "首帧应同步写 fmt(from=0)，不得空白，实际 " + JSON.stringify(el.textContent));
         // 等待动画结束：终值精确 + dataset.v 保持记账
-        await new Promise((r) => setTimeout(r, 120));
-        __assert(el.textContent === "3722", "动画结束后 textContent 应为精确终值 3722，实际 " + el.textContent);
+        // P6 断言加固（flake 归因）：原为固定 `setTimeout(120)`——countUp 依赖 rAF，
+        // 在套件其它异步任务占满主线程时（v2 全量 30s+），120ms 内可能一帧未跑，
+        // 实测本机 6 次全量运行出现 1 次「textContent 仍为 0」假红（P8 台账有复现率）。
+        // 判据不变（终值必须精确等于目标值），仅把固定等待改为**轮询收敛**——
+        // 与 P4 挂账清理 1（A1/A19/A20 改轮询）同一口径。
+        __assert(await __waitUntil(() => el.textContent === "3722", 3000),
+                 "动画结束后 textContent 应为精确终值 3722，实际 " + el.textContent);
         __assert(el.dataset.v === "3722", "dataset.v 应记录终值 3722，实际 " + el.dataset.v);
         // 分支②：连续二次（from=上次终值）首帧仍不空白
         countUp(el, 100, { dur: 50, fmt: fmtInt });
         __assert(el.textContent !== "", "二次 countUp 首帧即写 fmt(from)，不得空白");
-        await new Promise((r) => setTimeout(r, 120));
-        __assert(el.textContent === "100", "二次 countUp 终值应为 100，实际 " + el.textContent);
+        __assert(await __waitUntil(() => el.textContent === "100", 3000),
+                 "二次 countUp 终值应为 100，实际 " + el.textContent);
         // 分支③：reduced-motion 直显终值（临时桩 matchMedia）
         const realMM = window.matchMedia;
         window.matchMedia = (q) => ({ matches: true, media: q });
@@ -1500,7 +1505,19 @@ window.addEventListener("load", function () {
   if (h1) h1.textContent = h1.textContent + " — suite: " + __currentSuite;
   // 等 init() 的异步链跑完再执行断言；按 suite 选择注册表（未知回落 v2）
   const registry = __SUITE_REGISTRIES[__currentSuite] || ASSERTIONS_V2;
-  setTimeout(function () { __runAssertions(registry); }, 80);
+  /* P6 加固（flake 归因，实测证据见 P8 台账）：原为固定 `setTimeout(80)`。
+     8 次全量复跑出现 1 次「应用壳尚未 boot 完就开跑」→ A3/A6/A8–A10/A12–A16/A20
+     连锁空引用（11 项同时红，页面里连 #route-view 内容都没有）。
+     判据一字未改，只把「开跑时刻」改成**轮询首屏就绪**（路由页已渲染）。 */
+  (async function () {
+    const deadline = Date.now() + 20000;
+    while (Date.now() < deadline) {
+      const view = document.getElementById("route-view");
+      if (view && view.querySelector("[data-page-title], [data-page]")) break;
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    __runAssertions(registry);
+  })();
 });
 
 </script>

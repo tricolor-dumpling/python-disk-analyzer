@@ -41,6 +41,7 @@ const OUT = path.resolve(arg("out", path.join(os.tmpdir(), "p06_pages")));
 const SHOTS = path.join(OUT, "shots");
 const PORT = Number(arg("port", "5103"));
 const EXTERNAL_BASE = arg("base", null);
+const EXTERNAL_BASE_EMPTY = arg("base-empty", null);
 const FIXTURE_ROOT = path.resolve(arg("fixture-root", path.join(os.tmpdir(), "pds_p6_iso", "PythonDiskScanner")));
 const SNAP_DIR = path.join(FIXTURE_ROOT, "snapshots");
 const FIXTURE_NOW = "2026-09-08T20:00:00";
@@ -93,7 +94,12 @@ function ensureFixtures() {
 
 async function startHarness(opts) {
     const o = opts || {};
-    if (EXTERNAL_BASE) return { base: EXTERNAL_BASE, spawned: false };
+    /* 外部 base（红线 A：旧代码 worktree 起的 harness）——`-empty` 组用 --base-empty，
+       使「无快照」场景在旧代码下同样只依赖空数据目录的实例。 */
+    if (EXTERNAL_BASE) {
+        const isExtra = !!(o.tag && String(o.tag).indexOf("empty") !== -1);
+        return { base: isExtra && EXTERNAL_BASE_EMPTY ? EXTERNAL_BASE_EMPTY : EXTERNAL_BASE, spawned: false };
+    }
     const dataHome = o.dataHome || path.dirname(FIXTURE_ROOT);
     const snapDir = o.snapshotDir || SNAP_DIR;
     const port = o.port || PORT;
