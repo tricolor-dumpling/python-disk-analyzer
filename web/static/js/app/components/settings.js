@@ -189,13 +189,21 @@ async function wipeData() {
    永远在控件中心。现改为：
    ① pointerdown 记录 ev.clientX/clientY（label 捕获，input 为 opacity:0 +
       pointer-events:none 的隐藏单选——点击实际落在 label 上，冒泡到 group）；
-   ② change（由点击或键盘/无障碍触发）优先用 300ms 内匹配的最近指针坐标 →
+   ② change（由点击或键盘/无障碍触发）优先用**上一次未消费的**指针坐标 →
       setThemePref(pref, {clientX, clientY})；
    ③ 无坐标（键盘/触摸屏无指针事件/屏幕阅读器/程序化 change）→ 回退控件中心
       （pointFrom，与旧语义一致，A19 断言面兼容）；
-   ④ 切换后清 lastPointer（防旧坐标被后续键盘 change 复用）。 */
-const POINTER_TTL_MS = 300;
-let lastThemePointer = null; // {clientX, clientY, at, value}
+   ④ 消费即清 + **组外 pointerdown 清空**（D7-4）。
+
+   P7（问题 10：D7-4）——原实现的 `POINTER_TTL_MS = 300` 时间闸门有两个实测问题：
+     · 慢点击（按下与抬起相隔 >300ms，如长按/系统卡顿/触控板轻点）→ 坐标被判过期 →
+       圆心退回**控件中心**（用户看到「不从鼠标位置扩散」）；
+     · 点在外边距（label 内 padding/相邻空白）时 change 与 pointerdown 的 value 不匹配
+       → 同样退回中心。
+   现口径：坐标**不再按时间过期**，只按「下一次 change 消费」清空；任何发生在
+   `#setting-theme` 组之外的 pointerdown 视为「用户已改点别处」→ 立即清空，
+   防止陈旧坐标被后续键盘/程序化 change 复用（安全性不降级）。 */
+let lastThemePointer = null; // {clientX, clientY, value}（无时间 TTL：仅由 change 消费或组外 pointerdown 清空）
 
 function bindThemeGroup() {
     const group = $("setting-theme");
@@ -214,17 +222,24 @@ function bindThemeGroup() {
         lastThemePointer = {
             clientX: typeof ev.clientX === "number" ? ev.clientX : null,
             clientY: typeof ev.clientY === "number" ? ev.clientY : null,
-            at: Date.now(),
             value: input.value,
         };
     });
-    // ② change：优先真实坐标；无坐标（键盘/程序化）→ 控件中心兜底
+    // ④ 组外按下 → 清空（防陈旧坐标复用；捕获阶段，先于其它处理器）
+    if (!bindThemeGroup.outsideBound) {
+        bindThemeGroup.outsideBound = true;
+        document.addEventListener("pointerdown", (ev) => {
+            const t = ev.target;
+            if (t && t.closest && t.closest("#setting-theme")) return;
+            lastThemePointer = null;
+        }, true);
+    }
+    // ② change：优先未消费的真实坐标；无坐标（键盘/程序化）→ 控件中心兜底
     group.addEventListener("change", (ev) => {
         const input = ev.target;
         if (!input || !input.matches('input[name="setting-theme"]')) return;
         let pt = null;
         if (lastThemePointer &&
-            Date.now() - lastThemePointer.at <= POINTER_TTL_MS &&
             lastThemePointer.value === input.value &&
             typeof lastThemePointer.clientX === "number") {
             pt = { clientX: lastThemePointer.clientX, clientY: lastThemePointer.clientY };
