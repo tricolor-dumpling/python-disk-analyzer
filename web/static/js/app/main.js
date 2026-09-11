@@ -39,9 +39,37 @@ import {
 } from "./components/palette-cmd.js";
 import { bindKeyboard } from "./keyboard.js"; // U4.1：键盘矩阵（/ 聚焦筛选、g c/g s 连按跳页、treemap 方向键/Enter）
 
+/* P7（D7-3）：命令面板项的「扩散原点」——命令面板在 exec 之前会 closePalette()，
+   因此 exec 时面板项 DOM 已隐藏、取不到矩形（实测：修好后仍走直切）。改为：
+   ① 优先用「刚刚的指针位置」（pointerdown 记录，1.5s 内有效）——用户点面板项时
+      必然先 pointerdown，该坐标就是真实触发点；
+   ② 无指针（键盘激活面板项）→ 退化为面板容器/激活项中心。 */
+let lastPointerPoint = null;
+if (typeof document !== "undefined") {
+    document.addEventListener("pointerdown", (ev) => {
+        if (typeof ev.clientX === "number" && typeof ev.clientY === "number") {
+            lastPointerPoint = { clientX: ev.clientX, clientY: ev.clientY, at: Date.now() };
+        }
+    }, true);
+}
+
+function paletteThemePoint() {
+    if (lastPointerPoint && Date.now() - lastPointerPoint.at <= 1500) {
+        return { clientX: lastPointerPoint.clientX, clientY: lastPointerPoint.clientY };
+    }
+    const el = document.querySelector(".palette-item.is-active") ||
+        document.querySelector(".palette-item") ||
+        document.getElementById("palette");
+    if (!el || !el.getBoundingClientRect) return null;
+    const r = el.getBoundingClientRect();
+    if (!r.width && !r.height) return null;
+    return { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+}
+
 /* 主题按钮（U1.1 临时入口：U3.1 顶栏改版时移正——现按壳级接线保留在 start()，已归位）
    U3.5：顶栏=亮/暗显式翻转（N03 太阳/月亮语义），与设置弹窗三态同源（theme.js 单一来源）；
-   翻转写入显式偏好（退出「跟随系统」），设置弹窗单选同步反映。 */
+   翻转写入显式偏好（退出「跟随系统」），设置弹窗单选同步反映。
+   P7：键盘 Enter/Space 触发 click 时 clientX/Y=0（伪坐标）→ theme.js 取按钮中心扩散。 */
 function bindTheme() {
     const themeBtn = $("btn-theme");
     if (themeBtn) themeBtn.addEventListener("click", (ev) => switchTheme(undefined, ev));
@@ -244,7 +272,10 @@ function buildPaletteItems() {
         } });
     items.push({ group: "命令", label: "导出 CSV", hint: "当前目录导出为 CSV", keywords: ["export", "csv", "dc"], exec: () => exportRaw("csv") });
     items.push({ group: "命令", label: "导出 JSON", hint: "当前目录导出为 JSON", keywords: ["export", "json", "dc"], exec: () => exportRaw("json") });
-    items.push({ group: "命令", label: "切换主题", hint: "亮 / 暗主题", keywords: ["theme", "dark", "light", "qhzt"], exec: () => switchTheme(undefined, null) });
+    /* P7（D7-3）：命令面板路径原先传 null → applyThemeRaw 走直切分支（完全没有扩散）。
+       改为传「面板项中心的伪事件」：theme.js 的 resolveOrigin 收到带坐标的对象即按
+       该坐标扩散；取不到项时退化为面板容器中心。 */
+    items.push({ group: "命令", label: "切换主题", hint: "亮 / 暗主题", keywords: ["theme", "dark", "light", "qhzt"], exec: () => switchTheme(undefined, paletteThemePoint()) });
     items.push({ group: "命令", label: "打开设置", hint: "自动保存、数据目录与危险区", keywords: ["settings", "config", "dksz"], exec: () => openSettings() });
     items.push({ group: "命令", label: "使用指引", hint: "重新打开首启引导", keywords: ["guide", "help", "syzy"], exec: () => showGuide() });
     return items;
