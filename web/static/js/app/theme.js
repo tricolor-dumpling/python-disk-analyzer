@@ -84,14 +84,43 @@ export function syncThemeControls() {
      收敛终态，杜绝「旧 VT 被浏览器清理 → 整页瞬间切换」的一次性铺满帧）；
    ②clip-path 圆半径 maxR +16px 冗余（防滚动条/缩放抖动下圆未覆盖最远角），
      动画结束后移除内联 clip-path（终态不残留）；
-   ③时长读 token --dur-theme-expand（tokens.css，禁 style.css/JS 魔法数）。 */
+   ③时长读 token --dur-theme-expand（tokens.css，禁 style.css/JS 魔法数）。
+   P7（问题 10：D7-1/D7-2/D7-3）：
+   ④**坐标空间对齐**：clip 作用在 `::view-transition-new(root)` 上，其参考盒是
+     documentElement 的盒子，而 clientX/clientY 是**视口**坐标 —— 两者在滚动
+     （scrollY≠0）或 html 有位移时不重合。改用 getBoundingClientRect() 换算：
+     x = clientX - b.left、y = clientY - b.top、W/H = b.width/height，半径 ×1.02 + 16px；
+   ⑤**消除一帧铺满**：WAAPI options 补 `fill:"forwards"` —— 否则动画结束时
+     clip-path 计算值回到 `none`，未被圆覆盖的像素在**一帧内**全部变新主题
+     （用户实测「底部触底后两端瞬间完成」）。伪元素随转场销毁，不残留终态；
+   ⑥**伪坐标兜底**：键盘 Enter/Space 或 el.click() 产生的 click 事件
+     `clientX=clientY=0` 且 `detail===0` —— 它不是「左上角」，而是「无坐标」；
+     此时取触发元素（按钮/面板项/选项）矩形中心，取不到才直切。 */
 let activeVT = null; // 全局 only-one-VT：当前激活转场引用（连点防护核心）
 let vtTone = 0;      // 转场代次：异步回调只认最新代次（竞态兜底）
+
+/* 事件 → 扩散原点（视口坐标）；null = 无可用坐标（直切）。
+   P7（D7-3）：`detail===0 && clientX===0 && clientY===0` 视为伪坐标。 */
+function resolveOrigin(ev) {
+    if (!ev) return null;
+    const hasNums = typeof ev.clientX === "number" && typeof ev.clientY === "number";
+    const pseudo = ev.detail === 0 && ev.clientX === 0 && ev.clientY === 0;
+    if (hasNums && !pseudo) return { clientX: ev.clientX, clientY: ev.clientY };
+    const el = ev.currentTarget || ev.target;
+    if (el && el.getBoundingClientRect && el.closest) {
+        const target = el.closest("button, .palette-item, .theme-opt, [role=button]") || el;
+        const r = target.getBoundingClientRect();
+        if (r.width || r.height) return { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+    }
+    return null;
+}
+
 function applyThemeRaw(resolved, ev) {
     const root = document.documentElement;
     const apply = () => root.setAttribute("data-theme", resolved);
     const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced || typeof document.startViewTransition !== "function" || !ev || typeof ev.clientX !== "number") {
+    const origin = reduced || typeof document.startViewTransition !== "function" ? null : resolveOrigin(ev);
+    if (!origin) {
         // 直切分支（reduced/不支持 VT/无坐标）——不触碰 VT 队列（直切无转场）
         apply();
         return;
@@ -101,9 +130,14 @@ function applyThemeRaw(resolved, ev) {
         try { activeVT.skipTransition(); } catch (e) { /* 已结束的转场 skip 容错 */ }
         activeVT = null;
     }
-    const x = ev.clientX;
-    const y = ev.clientY;
-    const maxR = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)) + 16; // +16px 冗余防抖动/滚动条
+    /* D7-1：clip 参考盒换算（clip 作用于 ::view-transition-new(root)，其参考盒是
+       documentElement 的盒子；clientX/clientY 是视口坐标 → 滚动时必须减去盒原点）。 */
+    const b = root.getBoundingClientRect();
+    const x = origin.clientX - b.left;
+    const y = origin.clientY - b.top;
+    const W = b.width || root.clientWidth;
+    const H = b.height || root.clientHeight;
+    const maxR = Math.hypot(Math.max(x, W - x), Math.max(y, H - y)) * 1.02 + 16; // 2% + 16px 冗余（防滚动条/缩放抖动）
     const dur = motionDur("--dur-theme-expand") || 450; // token；缺失兜底 450ms（与旧行为等价）
     const tone = ++vtTone;
     const vt = document.startViewTransition(apply);
@@ -119,9 +153,15 @@ function applyThemeRaw(resolved, ev) {
         if (tone !== vtTone) return; // 已被更新的转场打断：不挂动画（新转场负责）
         const anim = document.documentElement.animate(
             { clipPath: ["circle(0px at " + x + "px " + y + "px)", "circle(" + maxR + "px at " + x + "px " + y + "px)"] },
-            { duration: dur, easing: "ease-out", pseudoElement: "::view-transition-new(root)" }
+            { duration: dur, easing: "ease-out", fill: "forwards", pseudoElement: "::view-transition-new(root)" }
         );
         anim.finished.then(cleanup).catch(() => { /* 转场被打断时主题已生效 */ });
+        /* D7-2 收尾：转场**完全结束**后取消该动画 —— 清掉 fill 填充态与动画对象
+           （否则 `document.getAnimations()` 里会长期留一条已结束的 VT 动画，
+           被 u62 的「无 VT 动画堆积」断言判红）。此刻伪元素已随转场销毁，
+           取消不会造成任何渲染回退（铺满帧防护由动画存续期间承担）。 */
+        vt.finished.then(() => { try { anim.cancel(); } catch (e) { /* 已取消 */ } })
+            .catch(() => { try { anim.cancel(); } catch (e) { /* 已取消 */ } });
     }).catch(() => { /* 转场未 ready（被跳过/取消）——主题已生效，清理兜底 */ });
     // skipTransition 后的旧转场 finished 会 reject（AbortError）——统一兜底清理
     vt.finished.catch(() => { if (tone === vtTone) { document.documentElement.style.clipPath = ""; activeVT = null; } });
