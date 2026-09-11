@@ -71,7 +71,7 @@
      同既有增补规则：无 hex、**未动任何既有值**、未触碰 --dur-* 与 --ease-*。 */
   --space-7:28px; --fs-2xs:11px;
   --spark-w:120px; --spark-h:28px;
-  --line-h:132px;
+  --line-h:104px;
 }
 :root[data-theme="light"]{
   --bg:#f4f6fa; --bg-aurora-1:rgba(59,130,246,.10); --bg-aurora-2:rgba(125,211,252,.10);

@@ -33,9 +33,12 @@ export const APP_STATE = {
     onboarding: { pickedRoots: [] },             // P5 启用
     /* P4（问题 5/6）：depth=""（叶子口径，缺省）/ "1".."5"（聚合到第 N 层）；
        hideZero=true（请求带 drop_zero）；drillRoot=""（未下钻）或下钻目录全路径。
-       三者由 pages/compare.js 维护（切页不丢），resetCompareData 复位。 */
+       三者由 pages/compare.js 维护（切页不丢），resetCompareData 复位。
+       P6（D6-5）：baselines = 对比基准**多选**清单（快照路径数组，时间倒序）——
+       baseline 仍是主对比基准（= 清单最新一份，既有契约不变），baselines 供
+       /api/series 多快照趋势折线使用；同由 pages/compare.js 维护。 */
     compare: { baseline: "", target: "", result: null, lastSummary: null,
-               depth: "", hideZero: true, drillRoot: "" },             // U3.4 启用；P4 增 depth/hideZero/drillRoot
+               depth: "", hideZero: true, drillRoot: "", baselines: [] },             // U3.4 启用；P4 增 depth/hideZero/drillRoot；P6 增 baselines
     treemap: { tiles: [], prev: new Map(), focusIdx: -1, hoverKey: null },              // U2.2 启用
     ui: { fullscreen: false, paletteOpen: false, onboardingSeen: true },                // U2.3 全屏/U3.1 面板启用
 

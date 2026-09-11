@@ -58,6 +58,7 @@ import { pollFullscan } from "../components/scan.js";
 import { renderCompareMini } from "../components/snapshot-mini.js"; // U2.4：最近对比迷你卡
 import { markNavDot } from "../components/nav-dots.js"; // U3.1：N13 圆点提醒（对比完成）
 import { countUp, staggerIn, motionDur, motionEase, reducedMotion } from "../motion.js";
+import { renderLine } from "../viz/line.js"; // P6（D6-4）：多快照趋势折线（零依赖 SVG）
 
 /* ================= 通用 ================= */
 
@@ -153,6 +154,7 @@ function drillInto(path) {
     if (!p) return;
     APP_STATE.compare.drillRoot = p;
     renderCrumb();
+    renderTrend(); // P6（D6-4）：趋势口径随下钻目录切换（path=下钻目录，缓存键含 path）
     compareSnapshots();
 }
 
@@ -232,7 +234,11 @@ function syncForm(sel) {
     const b = $("compare-baseline");
     if (b) {
         const want = String(p.baseline || "");
-        if (want) b.value = want;
+        /* P6（D6-5）：多选语义——若 want 已在选中集里（多选中的一份）则**不得**写 value：
+           对 <select multiple> 赋 value 会把其余选中项全部取消（HTML 规范），
+           那会在每次对比/回灌时把用户的多选悄悄收敛成单选。 */
+        const already = Array.from(b.selectedOptions || []).some((o) => o.value === want);
+        if (want && !already) b.value = want;
         /* 选项集里没有该路径（外部预填/缓存共享）时补一条，避免选中态与 state 不一致 */
         if (b.value !== want && want) {
             const opt = document.createElement("option");
@@ -307,11 +313,15 @@ function baselineOptionText(path, meta, isLatest) {
     return (isLatest ? "最近一份 · " : "") + head;
 }
 
-/* 重建对比基准下拉（D5-2）：时间倒序（最近在前）；最近一份 = 首个可用项。
+/* 重建对比基准列表（D5-2 单选 → P6·D6-5 可多选）：时间倒序（最近在前）；
+   最近一份 = 首个可用项。
+   ⚠️ 多选保持：重建前先记录当前选中集（含用户 Ctrl 追加的），重建后逐项恢复；
+   没有任何历史选中时按 keep（state 预填）恢复为单选。
    返回值 = 选项数（契约/断言可读；0 表示无可用快照 → 保持空态）。 */
 export function rebuildBaselineOptions(sessions) {
     const sel = $("compare-baseline");
     if (!sel || sel.tagName !== "SELECT") return 0;
+    const prevSelected = Array.from(sel.selectedOptions || []).map((o) => o.value);
     const entries = [];
     (sessions || []).forEach((s) => {
         Object.values(s.roots || {}).forEach((r) => {
@@ -339,7 +349,11 @@ export function rebuildBaselineOptions(sessions) {
         if (i === 0) opt.dataset.latest = "1";
         sel.appendChild(opt);
     });
-    if (keep && uniq.some((e) => e.path === keep)) sel.value = keep;
+    const wanted = prevSelected.length ? prevSelected : (keep ? [keep] : []);
+    const present = wanted.filter((w) => uniq.some((e) => e.path === w));
+    if (present.length) {
+        Array.from(sel.options).forEach((o) => { o.selected = present.indexOf(o.value) !== -1; });
+    }
     sel.dataset.optionCount = String(uniq.length);
     return uniq.length;
 }
@@ -361,6 +375,159 @@ function resultCacheMatch(sel) {
     if (c.hideZero !== undefined && !!c.hideZero !== hideZeroOn()) return null;
     return c;
 }
+
+/* ================= P6（D6-3/D6-4/D6-5）：多快照趋势折线 =================
+   - 数据源：GET /api/series（P6 新增，additive）——root + snapshots[] + path + depth；
+   - 触发：对比基准选中 ≥2 份（D6-5）；否则趋势卡显示**原因**（禁止永久空白）；
+   - 口径：序列每个点都取自快照自身（与趋势卡/sparkline 同源），
+     path = 当前下钻目录（未下钻 = 整盘根口径），depth 与页头深度选择器同值；
+   - 上限：最多取 SERIES_MAX_POINTS（12）份，与后端 SERIES_MAX_POINTS 同值（D6-6）；
+   - 缓存：键 = root|path|depth|快照清单——同一选择切页往返不重发。 */
+
+const SERIES_MAX_POINTS = 12;
+const seriesCache = new Map(); // key → {status:"ok", points, reason}|{status:"err", error}
+const seriesInflight = new Set();
+
+/* 已选对比基准（时间倒序，与原下拉同序）；超上限时只取最新 N 份 */
+function selectedBaselines() {
+    const sel = $("compare-baseline");
+    if (!sel) {
+        const one = String(APP_STATE.compare.baseline || "").trim();
+        return one ? [one] : [];
+    }
+    const picked = Array.from(sel.selectedOptions || []).map((o) => o.value).filter(Boolean);
+    if (picked.length) return picked.slice(0, SERIES_MAX_POINTS);
+    const one = String(sel.value || APP_STATE.compare.baseline || "").trim();
+    return one ? [one] : [];
+}
+
+/* 已选数量提示（页头控件副行；≥2 份时高亮）
+   文案刻意保持短（与控件标题同行不换行，页头 64px 预算） */
+function syncBaselineHint() {
+    const hint = $("compare-baseline-hint");
+    if (!hint) return 0;
+    const n = selectedBaselines().length;
+    hint.textContent = n >= 2 ? "已选 " + n + " 份 · 趋势已开启" : "已选 " + n + " 份 · Ctrl/⌘ 可多选";
+    hint.classList.toggle("is-multi", n >= 2);
+    return n;
+}
+
+function trendSeriesKey(baselines) {
+    const st = APP_STATE.compare;
+    return [
+        String(st.root || ""),
+        drillRootOf(),
+        depthValue(),
+        baselines.join("\u0001"),
+    ].join("|");
+}
+
+/* /api/series 结果 → 折线数据点（label=快照采集时刻，value=字节数） */
+function seriesPointsToChart(points) {
+    return (points || []).map((p) => ({
+        label: String(p.created_at || "").replace("T", " "),
+        value: Number(p.bytes) || 0,
+        sub: p.present === false ? "该快照无此目录" : "",
+        snapshot: p.snapshot,
+    }));
+}
+
+/* 序列空态原因（复用 trendEmptyReason 的「给原因不空白」口径） */
+function seriesReason(data) {
+    if (!data) return "趋势数据不可用";
+    if (data.reason === "no_snapshots") return "还没有快照，先做全量扫描并保存";
+    if (data.reason === "all_unavailable") return "所选快照不可用（已删除或损坏）";
+    return "所选快照不足 2 个可用数据点，无法成线";
+}
+
+function setTrendState(state, subText) {
+    const card = $("compare-trend");
+    if (card) card.dataset.state = state;
+    /* P6（D6-4）：趋势成图时给结果区加 has-trend —— 分区图让出高度（style.css），
+       保证 1366×768 下「趋势 + 发散图 + 表格」三件同屏。 */
+    const result = $("compare-result");
+    if (result) result.classList.toggle("has-trend", state === "ok");
+    const sub = $("compare-trend-sub");
+    if (sub) {
+        sub.textContent = subText || "";
+        /* 空闲/错误态只留一行原因（避免与 .line-empty 文案重复） */
+        sub.toggleAttribute("hidden", !subText);
+    }
+}
+
+/* 渲染趋势卡（不重发：命中 seriesCache 直接画） */
+export function renderTrend() {
+    const host = $("compare-trend-host");
+    if (!host) return 0;
+    const baselines = selectedBaselines();
+    const n = syncBaselineHint();
+    if (baselines.length < 2) {
+        setTrendState("idle", "");
+        renderLine(host, {
+            points: [],
+            reason: n === 0
+                ? "还没有可用快照：全量扫描并保存后，这里会显示逐次变化折线"
+                : "再选 1 份对比基准即可成线（按住 Ctrl/⌘ 在多选列表里追加一份）",
+        });
+        return 0;
+    }
+    const key = trendSeriesKey(baselines);
+    const cached = seriesCache.get(key);
+    if (cached && cached.status === "ok") {
+        setTrendState("ok", "共 " + cached.points.length + " 个快照 · " +
+            (drillRootOf() ? "目录 " + String(drillRootOf()).replace(/\\+$/, "") : "整盘 " + String(APP_STATE.compare.root || "").replace(/\\+$/, "")));
+        const r = renderLine(host, { points: cached.points });
+        host.dataset.seriesKey = key;
+        return r.count;
+    }
+    if (seriesInflight.has(key)) return 0;
+    seriesInflight.add(key);
+    setTrendState("loading", "正在读取 " + baselines.length + " 份快照的序列…");
+    host.dataset.state = "loading";
+    host.innerHTML = '<p class="line-loading">正在读取 ' + esc(baselines.length) + " 份快照的序列…</p>";
+    const params = new URLSearchParams();
+    params.set("root", String(APP_STATE.compare.root || ""));
+    baselines.forEach((b) => params.append("snapshots", b));
+    if (drillRootOf()) params.set("path", drillRootOf());
+    const depthText = depthValue();
+    if (depthText) params.set("depth", depthText);
+    params.set("limit", String(SERIES_MAX_POINTS));
+    api("/api/series?" + params.toString())
+        .then((data) => {
+            const points = seriesPointsToChart(data && data.points);
+            if (points.length >= 2) {
+                seriesCache.set(key, { status: "ok", points: points });
+            } else {
+                seriesCache.set(key, { status: "ok", points: points, reason: seriesReason(data) });
+            }
+        })
+        .catch((e) => {
+            seriesCache.set(key, { status: "err", error: (e && e.message) || "趋势读取失败" });
+        })
+        .then(() => {
+            seriesInflight.delete(key);
+            if (!isPageMounted()) return; // 页面已卸载：结果保留在缓存，回挂时回灌
+            const hit = seriesCache.get(key);
+            const h = $("compare-trend-host");
+            if (!h || !hit) return;
+            if (hit.status === "err") {
+                setTrendState("empty", "趋势读取失败");
+                renderLine(h, { points: [], reason: "趋势读取失败：" + hit.error });
+                return;
+            }
+            if ((hit.points || []).length < 2) {
+                setTrendState("empty", "所选快照不足 2 个可用数据点");
+                renderLine(h, { points: [], reason: hit.reason || "所选快照不足 2 个可用数据点，无法成线" });
+                return;
+            }
+            setTrendState("ok", "共 " + hit.points.length + " 个快照");
+            renderLine(h, { points: hit.points });
+            h.dataset.seriesKey = key;
+        });
+    return 0;
+}
+
+
 
 /* ================= 页面三态（空态/骨架/结果） ================= */
 
@@ -426,6 +593,7 @@ let compareCancelled = false; // B-2：用户/超时取消标志（catch 识别�
 const COMPARE_TIMEOUT_MS = 30000; // B-2：30s 用户可感知阈值
 const COMPARE_STATUS_POLL_MS = 1500; // 202 任务轮询间隔
 let cancelEscBound = false; // B-2：Esc 取消的 document 级监听只绑一次（U1.3 纪律）
+let trendResizeBound = false; // P6：趋势折线 resize 重画监听只绑一次（同上纪律）
 
 function stopCompareTimers() {
     if (compareNow) { clearInterval(compareNow); compareNow = 0; }
@@ -889,12 +1057,20 @@ function renderReport(r, root, baseline, opts) {
 function bindComparePage() {
     // 对比（按钮 + 对比基准下拉变更即重算）
     $("btn-compare").addEventListener("click", () => compareSnapshots());
-    // P5（D5-2）：下拉列表取代原 datalist 文本框——change 即换对比基准并重算
-    //（原 keydown Enter 路径随文本框一并移除；select 无自由输入）
+    // P5（D5-2）→ P6（D6-5）：对比基准列表可多选——change 即换对比基准并重算；
+    // 选中 ≥2 份时同时刷新多快照趋势折线（/api/series）。
+    // 主对比基准 = 选中集里**最新**的一份（选项按时间倒序，selectedOptions[0] 即最新）；
+    // 空选择（Ctrl 取消最后一份）→ 回落默认最近一份，避免空基准。
     const baselineSel = $("compare-baseline");
     if (baselineSel) {
         baselineSel.addEventListener("change", () => {
-            APP_STATE.compare.baseline = String(baselineSel.value || "").trim();
+            const picked = selectedBaselines();
+            if (!picked.length) {
+                const fallback = defaultBaseline(String(APP_STATE.compare.root || getCurrentRoot() || ""));
+                if (fallback) baselineSel.value = fallback;
+            }
+            APP_STATE.compare.baseline = String(baselineSel.value || APP_STATE.compare.baseline || "").trim();
+            APP_STATE.compare.baselines = selectedBaselines(); // P6 additive：多选清单
             /* P4：换对比基准 = 换对比对象 → 下钻根失效（避免把 A 盘的子目录当成 B 盘的新根） */
             if (APP_STATE.compare.drillRoot) {
                 APP_STATE.compare.drillRoot = "";
@@ -908,6 +1084,7 @@ function bindComparePage() {
             }
             syncForm();
             APP_STATE.compare.result = null; // 换基准 → 弃用旧报告缓存
+            renderTrend();                   // 多选变化 → 趋势折线（≥2 份时请求 /api/series）
             compareSnapshots();
         });
     }
@@ -980,6 +1157,15 @@ function bindComparePage() {
         const row = ev.target.closest(".diverge-row[data-drill-path]");
         if (row) drillInto(row.getAttribute("data-drill-path"));
     });
+    // P6（D6-4）：趋势折线随窗口尺寸变化重画（viewBox 依赖实测像素；避免拉伸失真）
+    if (!trendResizeBound) {
+        trendResizeBound = true;
+        let timer = 0;
+        window.addEventListener("resize", () => {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => { if (isPageMounted()) renderTrend(); }, 180);
+        });
+    }
     ensureScanListener();
 }
 
@@ -995,11 +1181,19 @@ const COMPARE_PAGE_HTML =
     '<p class="page-sub" id="compare-root-line">对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时）</p>' +
     "</div>" +
     '<div class="compare-controls" role="group" aria-label="对比参数">' +
-    // P5（D5-2）：对比基准由 datalist 文本框升级为下拉列表，每项「时间 · 盘符 · 自动/手动」
-    '<label class="compare-ctl compare-ctl-baseline" for="compare-baseline" title="对比基准 = 一份历史快照；下拉里按时间倒序列出所有已保存快照，默认选中最近一份">' +
-    "对比基准（历史快照）" +
-    '<select id="compare-baseline" aria-label="对比基准（历史快照）" title="对比基准 = 一份历史快照；下拉里按时间倒序列出所有已保存快照，默认选中最近一份">' +
-    "</select></label>" +
+    // P6（D6-5）：对比基准升级为**可多选**列表（保留 id #compare-baseline 且仍是 <select>，
+    // P5 红线不回退）。默认仍只选中「最近一份」——单选语义与既有断言面（smoke/u34）一致；
+    // 按住 Ctrl/⌘ 追加选择 → ≥2 份时下方趋势卡显示多快照折线（/api/series）。
+    '<label class="compare-ctl compare-ctl-baseline" for="compare-baseline" title="对比基准 = 一份历史快照；列表按时间倒序列出所有已保存快照，默认选中最近一份。按住 Ctrl/⌘ 可多选：选中 ≥2 份时下方显示多快照趋势折线">' +
+    // P6（D6-1）：标题与「已选 N 份」提示同行——页头纵向预算 64px 不被撑高
+    '<span class="compare-ctl-line">' +
+    '<span class="compare-ctl-caption">对比基准（历史快照）</span>' +
+    '<span class="compare-baseline-hint" id="compare-baseline-hint" role="status">已选 1 份</span>' +
+    "</span>" +
+    '<select id="compare-baseline" class="compare-baseline-list" multiple size="3" ' +
+    'aria-label="对比基准（历史快照，可多选）" title="对比基准 = 一份历史快照；按住 Ctrl/⌘ 可多选（选中 ≥2 份显示多快照趋势折线）">' +
+    "</select>" +
+    "</label>" +
     // P5（D5-1）：删除只读「目标」输入框；改为一行只读文本「当前：…」（非表单控件）
     '<span id="compare-current" class="compare-current" role="status" ' +
     'title="当前磁盘状态 = 本机此刻的实际占用（由全量扫描结果或实时索引得出，不是快照文件）">' +
@@ -1028,6 +1222,14 @@ const COMPARE_PAGE_HTML =
     '<span id="compare-status-text">选择一份对比基准（历史快照），开始对比它的采集时刻与本机当前磁盘状态的差异。</span></div>' +
     // P4（D4-6）：下钻面包屑（未下钻时 hidden，不占高度）
     '<nav id="compare-crumb" class="compare-crumb" aria-label="下钻路径（点击返回上级）" hidden></nav>' +
+    // P6（D6-4/D6-5）：多快照趋势卡（选中 ≥2 份对比基准时成线；否则单行原因条）
+    '<div id="compare-trend" class="compare-trend-card card" data-state="idle" role="group" aria-label="多快照趋势">' +
+    '<div class="compare-trend-head">' +
+    '<h2 class="compare-trend-title">多快照趋势</h2>' +
+    '<span class="compare-trend-sub" id="compare-trend-sub">选中 ≥2 份对比基准后显示折线</span>' +
+    "</div>" +
+    '<div id="compare-trend-host" class="line-host" role="img" aria-label="多快照趋势折线"></div>' +
+    "</div>" +
     '<div id="compare-empty" class="page-compare-empty">' +
     '<div class="empty-state">' +
     '<b>选择一份对比基准（历史快照）</b>' +
@@ -1071,6 +1273,8 @@ export function mountCompare() {
     const sel = ensurePrefill(); // 三入口预填（趋势卡/迷你卡/直达默认最近一份）
     renderCrumb();
     syncForm(sel);
+    syncBaselineHint(); // P6（D6-5）：已选份数提示（回灌）
+    renderTrend();      // P6（D6-4）：趋势卡回灌（多选命中缓存不重发；<2 份给原因）
     if (!sel) {
         showEmpty();
         return;
@@ -1084,13 +1288,16 @@ export function mountCompare() {
     compareSnapshots(); // 自动执行（定稿 6.4：预填即骨架屏→摘要→图→表）
 }
 
-/* 数据清空（settings.wipeData）联动：结果/迷你摘要复位；对比页在位则回空态 */
+/* 数据清空（settings.wipeData）联动：结果/迷你摘要/趋势序列复位；对比页在位则回空态 */
 export function resetCompareData() {
     APP_STATE.compare.result = null;
     APP_STATE.compare.lastSummary = null;
     APP_STATE.compare.drillRoot = "";   // P4：下钻根一并复位
     APP_STATE.compare.depth = "";
     APP_STATE.compare.hideZero = true;
+    APP_STATE.compare.baselines = [];   // P6（D6-5）：多选清单复位
+    seriesCache.clear();                // P6（D6-4）：趋势序列缓存复位（快照可能已被删）
+    seriesInflight.clear();
     renderCompareMini();
     if (isPageMounted()) {
         const baselineSel = $("compare-baseline");
@@ -1103,6 +1310,8 @@ export function resetCompareData() {
         APP_STATE.compare.root = "";
         APP_STATE.compare.target = "";
         syncCurrentRow("");
+        syncBaselineHint();
+        renderTrend();
         renderCrumb();
         setStatus("compare-status", "", "选择一份对比基准（历史快照），开始对比它的采集时刻与本机当前磁盘状态的差异。");
         showEmpty();

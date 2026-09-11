@@ -254,7 +254,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* 会话列表（F17：会话分组 + 逐盘对比/标签/跳过原因 tooltip——红线 #7 SKIP_REASON_TEXT）
    P6（D6-1）：卡片原语统一（--radius-card + --card + --border + --shadow-sm）；
    .session-item 本体自「cards 分区」归位到本节（原列表样式与卡片样式分离两处）。 */
-.snapshots-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-2)}
+.snapshots-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-2);background:var(--card)}
 .snapshots-list-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);font-size:var(--fs-xs);color:var(--muted)}
 .snapshots-list-hint{color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .snapshots-list-scroll{flex:1;min-height:0;overflow-y:auto;padding-right:2px}
@@ -311,18 +311,20 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* P5（D5-2）→ P6（D6-5）：对比基准选择器 = 原生 <select multiple>（id 不变）
    ——原单选下拉（240px）升级为可多选列表：3 行可视 + 面板内滚，
    与页头 64px 预算同行（含 caption 与「已选 N 份」chip）。 */
-.compare-ctl-baseline{flex-direction:column;align-items:flex-start;gap:var(--space-1)}
-.compare-ctl-baseline select{width:240px;max-width:240px}
+.compare-ctl-baseline{flex-direction:column;align-items:flex-start;gap:2px}
+.compare-ctl-line{display:flex;align-items:baseline;gap:var(--space-2);min-width:0;max-width:288px}
+.compare-ctl-caption{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.compare-ctl-baseline select{width:288px;max-width:288px}
 .compare-baseline-list{
-  width:240px;height:64px;padding:var(--space-1);
+  width:288px;height:64px;padding:var(--space-1);
   border:1px solid var(--border-strong);border-radius:var(--radius-sm);
   background:var(--card);color:var(--text);font:inherit;font-size:var(--fs-xs);
   overflow-y:auto;
 }
 .compare-baseline-list option{padding:2px var(--space-1);border-radius:var(--radius-sm)}
 .compare-baseline-list option:checked{background:var(--primary-soft);color:var(--primary);font-weight:600}
-.compare-baseline-hint{font-size:var(--fs-2xs);color:var(--faint);white-space:nowrap}
-.compare-baseline-hint .is-on{color:var(--primary);font-weight:600}
+.compare-baseline-hint{font-size:var(--fs-2xs);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compare-baseline-hint.is-multi{color:var(--primary);font-weight:600}
 .compare-controls .btn{flex:none}
 /* P4（D4-2/D4-3）：深度选择器 + 隐藏零变化开关（页头控件；不动既有 .compare-ctl input 规则，
    勾选框用更高一层的专用选择器收回 220px 宽度） */
@@ -377,6 +379,10 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
    ▲/▼ 冗余；reduced 由全局降级直显终值）
    ⚠️ 高度 240px 与 .diverge-track 宽度 46% 为 u34 ③b/③c/③f 的几何判据，P6 未改。 */
 .compare-diverge{flex:none;height:240px;display:flex;flex-direction:column;gap:3px;padding:var(--space-1) 0;border:1px solid var(--border);border-radius:var(--radius-card);background:var(--card);box-shadow:var(--shadow-sm)}
+/* P6（D6-4）：趋势折线卡可见时（选中 ≥2 份对比基准）分区图让出 64px——
+   1366×768 下「趋势 + 发散图 + 表格」三件同屏：实测表格区仍有 ≈110px（约 3 行，
+   面板内滚不破零页面滚动）。未选中多份时保持 240px（u34 ③f 几何判据不受影响）。 */
+.compare-result.has-trend .compare-diverge{height:176px}
 .diverge-row{
   display:flex;align-items:center;gap:var(--space-2);flex:1;min-height:0;width:100%;padding:0 var(--space-3);
   border:0;background:transparent;color:var(--text);text-align:left;font:inherit;
@@ -397,6 +403,49 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .diverge-value{font-variant-numeric:var(--font-num);white-space:nowrap}
 .diverge-badge{flex:none;min-width:52px;padding:1px var(--space-2);border-radius:999px;background:var(--track-alt);text-align:center;font-variant-numeric:var(--font-num);white-space:nowrap}
 .diverge-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-1);color:var(--muted);font-size:var(--fs-sm)}
+
+/* P6（D6-4/D6-5）：多快照趋势折线卡（viz/line.js）。
+   · 空闲/错误态（选中 <2 份或数据不足）= **单行**原因条（禁止永久空白，不占版面）；
+   · 有值态 = 折线图（高度 --line-h，坐标轴 + 悬浮读数），此时分区图让高（见上）。 */
+.compare-trend-card{
+  flex:none;display:flex;flex-direction:column;gap:var(--space-1);
+  padding:var(--space-2) var(--space-4);min-height:0;
+}
+.compare-trend-card[data-state="idle"],
+.compare-trend-card[data-state="loading"],
+.compare-trend-card[data-state="empty"]{
+  flex-direction:row;align-items:baseline;gap:var(--space-2);
+  padding:var(--space-1) var(--space-4);
+}
+.compare-trend-card[data-state="idle"] .compare-trend-head,
+.compare-trend-card[data-state="loading"] .compare-trend-head,
+.compare-trend-card[data-state="empty"] .compare-trend-head{flex:none}
+.compare-trend-card[data-state="idle"] .line-host,
+.compare-trend-card[data-state="loading"] .line-host,
+.compare-trend-card[data-state="empty"] .line-host{flex:1;height:auto;display:flex;align-items:center}
+.compare-trend-head{display:flex;align-items:baseline;gap:var(--space-2);flex-wrap:wrap}
+.compare-trend-title{margin:0;font-size:var(--fs-sm);font-weight:600;white-space:nowrap}
+.compare-trend-sub{font-size:var(--fs-xs);color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.line-host{position:relative;height:var(--line-h);min-height:0;outline:none}
+.line-host:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:var(--radius-sm)}
+.line-svg{display:block;width:100%;height:100%}
+.line-grid-line{stroke:var(--border);stroke-width:1;stroke-dasharray:3 3}
+.line-path{stroke:var(--primary);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.line-dot{fill:var(--card);stroke:var(--primary);stroke-width:1.6}
+.line-axis-text{fill:var(--muted);font-size:var(--fs-2xs);font-variant-numeric:var(--font-num)}
+.line-guide{stroke:var(--primary);stroke-width:1;stroke-dasharray:2 2;opacity:.7}
+.line-cursor{fill:var(--primary)}
+.line-readout{
+  position:absolute;top:0;left:0;display:flex;align-items:baseline;gap:var(--space-1);
+  padding:1px var(--space-2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card-glass);backdrop-filter:blur(8px);box-shadow:var(--shadow-sm);
+  font-size:var(--fs-2xs);white-space:nowrap;pointer-events:none;
+}
+.line-readout-time{color:var(--muted)}
+.line-readout-value{font-weight:600;font-variant-numeric:var(--font-num)}
+.line-readout-sub{color:var(--faint)}
+.line-empty{margin:0;display:flex;align-items:center;height:100%;color:var(--muted);font-size:var(--fs-xs)}
+.line-loading{margin:0;display:flex;align-items:center;height:100%;color:var(--muted);font-size:var(--fs-xs)}
 
 /* 对比表格（面板内滚；行 stagger L1-2 由 motion 驱动；F19 操作列 定位+复制路径）
    P6（D6-1/变更集2）：列宽自页内内联 style 收口到本节的列类（.col-*），
@@ -488,6 +537,10 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   background:var(--card-glass);border:1px solid var(--border);border-radius:var(--radius-card);
   padding:14px 16px;box-shadow:var(--shadow-sm);
 }
+/* P6（D6-1）：对比页/快照页的卡片一律用**不透明**卡片底色（--card）——
+   右栏的 .card 是玻璃底（--card-glass），两页新卡片原语以更高特异度收回，
+   保证「五类卡片计算样式全等」在实测里成立（p06 判据②）。 */
+.page-compare .card,.page-snapshots .card{background:var(--card)}
 .card-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 /* P3/D3-4：卡标题按「整词」断行（word-break:keep-all）——CJK 默认逐字可断，
    标题被挤压时会竖排成每行 1–2 字；keep-all 后标题成为不可分单元，
