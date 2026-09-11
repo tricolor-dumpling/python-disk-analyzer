@@ -523,6 +523,44 @@ CLI / TUI 调用方**零改动**：`top_growth` 默认仍按有符号 delta 降�
   空（界面提示「请选择盘符」）」，全仓库不再有 `"D:\\"` 硬编码兜底
   （原 6 处 + 计划未列的 3 处，见 P5 交付报告越权自证）。
 
+### 多快照趋势折线（P6，问题 8 / D6-3、D6-4、D6-5、D6-6）
+
+对比页的「对比基准（历史快照）」升级为**可多选列表**（`<select multiple>`，
+`id=#compare-baseline` 与「默认只选最近一份」的既有语义不变）：按住 Ctrl/⌘
+追加选择，**选中 ≥2 份即在其下方显示多快照趋势折线**；只选 1 份时该卡片显示
+**原因**（「再选 1 份对比基准即可成线…」），不会永久空白。
+
+- 数据源：新增 additive 接口 **`GET /api/series`**
+  - 参数：`root`（必填）、`snapshots`（可重复传参 / `snapshots[]=` / `|` 分隔）、
+    `path`（可选，必须是 `root` 子树）、`depth`（可选 ≥1，折叠到相对第 N 层）、
+    `limit`（1..12，缺省 12）；
+  - 响应：`{ok, root, path, depth, limit, count, truncated, dropped, rows_total,
+    elapsed_ms, reason, points[], skipped[]}`，
+    `points[i] = {snapshot, name, created_at, auto, machine_guid, bytes, present, rows}`；
+  - 口径：每个点都取自**快照自身**的行数据（不混入当前侧 SDK 结果）；`path` 为空时
+    等于该快照的根聚合总量 —— 与快照页趋势卡 sparkline 的 `total_by_root` **同源**
+    （共享同一份进程内缓存，键含快照 `mtime_ns + size`，任一接口先跑过另一接口即命中）；
+  - 边界：快照缺失/损坏 → 计入 `skipped`（`missing`/`corrupt`/`unreadable`）；
+    全部不可用 → `reason="all_unavailable"`；未提供快照 → `reason="no_snapshots"`；
+    参数非法 → 400（不静默降级）；份数/行数超限 → 保留最新若干份并回显
+    `truncated/dropped`；
+  - 性能（实测，5 份 × 13 万行 = 65 万行夹具）：冷启动 **4152 ms**、缓存命中
+    **1.6 ms**；`/api/snapshots` 冷 853 ms → 热 0.9 ms（只快不慢）。
+- 图表：`web/static/js/app/viz/line.js`（零依赖 SVG，无第三方图表库）——
+  Y 轴量级刻度 + X 轴时间刻度 + 数据点 + **悬浮读数**（时间 · 数值）+ 键盘
+  ←/→ 游标 + `aria-label` 概述；折线路径计算复用 `motion-core.sparklinePath`。
+- 两页视觉（P6，问题 9 / D6-1、D6-2）：
+  - 快照列表**不再显示原始文件名**（`session_…json` / `C_…snap.gz`）：会话行只显示
+    「时间 · 自动/手动 · N 个盘 · 合计大小」，盘行显示「盘符 · 大小」，文件名与会话 ID
+    收进行尾「详情」展开区（悬停/展开仍可读到全名，信息零丢失）；
+  - 两页卡片统一到同一原语（单一 `--radius-card`、统一底色/边框/阴影），字号一律
+    落在 `--fs-*` 刻度（新增 `--fs-2xs`）、间距落在 `--space-*` 刻度（新增
+    `--space-7`）；表格列宽/条宽不再内联 magic px，sparkline 画布尺寸改由
+    `--spark-w/--spark-h` 单一来源派生。
+  - ⚠️ 版面取舍（实测）：1366×768 下趋势折线可见时，摘要 96px + 分区图 176px +
+    表格区 ≈79px（三件同屏、面板内滚，页面零滚动）；仅选 1 份时趋势卡收成单行原因条，
+    表格区 ≈127px。
+
 ## 项目结构
 
 代码按职责拆分为多个模块（由最初的单文件 `main.py` 演进而来，`main.py`
