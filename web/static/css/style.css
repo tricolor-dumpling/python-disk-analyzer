@@ -585,7 +585,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
    右栏的 .card 是玻璃底（--card-glass），两页新卡片原语以更高特异度收回，
    保证「五类卡片计算样式全等」在实测里成立（p06 判据②）。 */
 .page-compare .card,.page-snapshots .card{background:var(--card)}
-.card-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.card-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding-bottom:var(--space-2);margin-bottom:var(--space-2);border-bottom:1px solid var(--row-border)}
 /* P3/D3-4：卡标题按「整词」断行（word-break:keep-all）——CJK 默认逐字可断，
    标题被挤压时会竖排成每行 1–2 字；keep-all 后标题成为不可分单元，
    配合各卡头的 flex-wrap 换取「换行而非竖排」
@@ -605,7 +606,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   padding:14px 16px;border:1px solid var(--primary-border);border-radius:var(--radius-card);
   background:var(--card-glass);box-shadow:var(--elev-2);
 }
-.overview-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2) var(--space-3);flex-wrap:wrap}
+.overview-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2) var(--space-3);flex-wrap:wrap;
+  padding-bottom:var(--space-2);margin-bottom:var(--space-2);border-bottom:1px solid var(--row-border)}
 /* P3/D3-5：标题列可收缩但不逐字断行（word-break:keep-all 让「存储概览」成为
    不可再分的最小单元 → flex 自动最小尺寸 = 整词宽，标题永不竖排成「存储概 / 览」）；
    动作组 flex:none（按钮文本 nowrap，见 .btn——绝不被压窄到裁字），
@@ -890,6 +892,14 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .notice-success{border-left-color:var(--success);background:var(--success-soft)} /* P1：自动保存成功态结果区 */
 
 .table-wrap{position:relative;border:1px solid var(--border);border-radius:var(--radius-card);overflow:auto;background:var(--card);box-shadow:var(--elev-1)}
+/* R1：未浏览空态占位（#dir-body 为空 = 从未浏览过任何目录时，在视区中央给引导文案，
+   替代原「大白空盒」首屏观感；纯 CSS 伪元素，零 JS 改动。挂在 .view-area 上——
+   默认矩形图视图下可见盒是 #treemap-wrap 而非 #table-wrap） */
+.view-area:has(#dir-body:empty)::after{
+  content:"输入盘符或路径点击「浏览」，或点右上「开始扫描」建立空间索引";
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:var(--faint);font-size:var(--fs-sm);pointer-events:none;letter-spacing:.02em;z-index:6;
+}
 .dir-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
 .dir-table th{
   background:var(--th-bg);color:var(--muted);font-size:var(--fs-2xs);font-weight:650;letter-spacing:.4px;
