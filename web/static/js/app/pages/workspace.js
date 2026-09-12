@@ -813,6 +813,8 @@ export function renderEntries(data, opts) {
     const body = $("dir-body");
     if (!body) return; // U2.1：子页面时列表不在 DOM（防迟到响应/重置路径）
     APP_STATE.lastBrowseData = data; // 先记账（treemap 视图下钻时同样生效——切页不丢/视图回灌依赖）
+    const va = $("view-area"); // R1：数据到达 → 收起空态占位（CSS ::after 门控）
+    if (va) va.classList.add("has-data");
     if (APP_STATE.view.mode === "treemap") {
         // U2.2：矩形图视图——数据 → tiles（mergeTop 合并）→ L1-1 入场；
         // 筛选/排序行属排行/表格视图（定稿 F10），矩形图按组成渲染全部子项。
@@ -1391,6 +1393,8 @@ export function unmountWorkspace() {
    U2.5：列表回灌 animate:false（不作 L1-2/L1-3——「重进不重放」与虚拟滚动纪律一致）。 */
 export function restoreWorkspaceView() {
     if (!APP_STATE.lastBrowseData) return;
+    const vaEl = $("view-area"); // R1：回灌同样标记 has-data（空态占位不再出现）
+    if (vaEl) vaEl.classList.add("has-data");
     const rootInput = $("browse-root");
     if (rootInput) rootInput.value = getCurrentRoot();
     renderBreadcrumb(getCurrentPath(), browseParent);

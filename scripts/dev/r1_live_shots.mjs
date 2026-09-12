@@ -53,12 +53,13 @@ try {
     if (await sel.count()) {
         await sel.evaluate((el) => {
             const opts = [...el.options];
-            opts.slice(0, 2).forEach((o) => { o.selected = true; });
+            // 选最旧一份（差异最大，便于发散图可视验收）
+            opts.forEach((o, i) => { o.selected = i === opts.length - 1; });
             el.dispatchEvent(new Event("change", { bubbles: true }));
         });
         await wait(600);
         await page.locator("#btn-compare").click();
-        await wait(6000);
+        await wait(12000);
     }
     await shot(page, path.join(OUT, `r1-live-compare-${THEME}.png`));
 

@@ -911,7 +911,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* R1：未浏览空态占位（#dir-body 为空 = 从未浏览过任何目录时，在视区中央给引导文案，
    替代原「大白空盒」首屏观感；纯 CSS 伪元素，零 JS 改动。挂在 .view-area 上——
    默认矩形图视图下可见盒是 #treemap-wrap 而非 #table-wrap） */
-.view-area:has(#dir-body:empty)::after{
+.view-area:not(.has-data)::after{
   content:"输入盘符或路径点击「浏览」，或点右上「开始扫描」建立空间索引";
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   color:var(--faint);font-size:var(--fs-sm);pointer-events:none;letter-spacing:.02em;z-index:6;
