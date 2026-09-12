@@ -140,6 +140,13 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .tool-row{flex:none;height:48px;display:flex;align-items:center;gap:12px;min-width:0}
 .path-row{flex:1;min-width:0;display:flex;align-items:center;gap:8px;position:relative} /* 阶段G G-3：下拉面板锚点 */
 .path-row input{min-width:0}
+.path-row #browse-root{max-width:280px}
+
+/* R1：元信息行（面包屑 + 最近浏览 chips + 状态行 三合一；替代原三条堆叠整行） */
+.meta-row{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;min-height:26px}
+.meta-row .breadcrumb{flex:1;min-width:0;margin:0;padding:0;background:transparent;border:0;box-shadow:none;min-height:0}
+.meta-row .chips-row{margin:0;flex:none}
+.meta-row .status-line{margin:0 0 0 auto;flex:none;max-width:40%}
 /* R1：视图工具栏升级为分段控件（seg）——容器药丸底 + 内部按钮无边框；
    激活态 = .btn-primary（JS 切换类名不变），改为「白底+主色字+细边」的 seg 选中片 */
 .view-toolbar{
@@ -296,9 +303,11 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .session-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-width:0}
 .session-title{display:flex;align-items:center;gap:var(--space-2);font-weight:600;min-width:0}
 .session-sub{font-size:var(--fs-xs);color:var(--faint);word-break:break-all}
-.session-roots{list-style:none;margin:var(--space-2) 0 0;padding:0;display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--fs-xs)}
-.session-roots li{display:flex;align-items:center;gap:var(--space-2);min-width:0;flex-wrap:wrap}
-.session-roots code{font-size:var(--fs-xs);background:var(--card-soft);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px var(--space-2);word-break:break-all;color:var(--text-2)}
+.session-roots{list-style:none;margin:var(--space-2) 0 0;padding:0;display:flex;flex-direction:column;gap:var(--space-1);font-size:var(--fs-xs)}
+.session-roots li{display:flex;align-items:center;gap:var(--space-2);min-width:0;flex-wrap:wrap;padding:6px var(--space-2);border-radius:var(--radius-md)}
+.session-roots li:hover{background:var(--row-alt)}
+/* R1：根路径 code 升级为彩色盘符徽标（primary-soft 底 + 主色字 + 圆角） */
+.session-roots code{font-size:var(--fs-xs);font-weight:600;background:var(--primary-soft);border:1px solid var(--primary-border);border-radius:var(--radius-sm);padding:2px var(--space-2);word-break:break-all;color:var(--primary)}
 .skip-reason{color:var(--warning);cursor:help}
 /* P6（D6-2/变更集3）：会话行 = 「盘符 · 大小」正文 + 行尾动作；原始文件名进「详情」 */
 .session-root-row{padding:var(--space-1) 0}
@@ -323,7 +332,14 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
    P5（D5-1/D5-2）：原「基线 datalist + 目标只读」两控件改为
    「对比基准（历史快照）下拉 + 当前磁盘状态只读文本行」。 */
 /* ============================================================ */
-.page-head-compare{min-height:64px}
+.page-head-compare{min-height:0}
+/* R1：控件组面板化——独立卡片行（原散排在页头右侧，观感 demo） */
+.page-head-compare{flex-wrap:wrap}
+.page-head-compare .compare-controls{
+  flex:1 1 100%;justify-content:flex-start;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);
+  padding:var(--space-2) var(--space-4);box-shadow:var(--elev-1);
+}
 .page-head-compare .page-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px}
 .compare-controls{display:flex;align-items:center;gap:var(--space-3);flex:none;min-width:0;flex-wrap:wrap;justify-content:flex-end}
 .compare-ctl{display:flex;align-items:center;gap:var(--space-2);font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
@@ -569,11 +585,12 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
    右栏的 .card 是玻璃底（--card-glass），两页新卡片原语以更高特异度收回，
    保证「五类卡片计算样式全等」在实测里成立（p06 判据②）。 */
 .page-compare .card,.page-snapshots .card{background:var(--card)}
-.card-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.card-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 /* P3/D3-4：卡标题按「整词」断行（word-break:keep-all）——CJK 默认逐字可断，
    标题被挤压时会竖排成每行 1–2 字；keep-all 后标题成为不可分单元，
-   配合各卡头的 flex-wrap 换取「换行而非竖排」 */
-.card-head h2{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--fs-lg);word-break:keep-all}
+   配合各卡头的 flex-wrap 换取「换行而非竖排」
+   R1：卡标题收敛为 fs-md/650（面板标题层级，原 fs-lg 视觉过重） */
+.card-head h2{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--fs-md);font-weight:650;word-break:keep-all}
 .card-head h2 .icon{color:var(--primary)}
 .card-sub{margin:2px 0 0;font-size:var(--fs-xs);color:var(--muted);width:100%}
 
@@ -594,7 +611,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
    动作组 flex:none（按钮文本 nowrap，见 .btn——绝不被压窄到裁字），
    一行放不下时整体换行到第二行，而不是挤压标题 */
 .overview-head > div:first-child{flex:1 1 auto;min-width:0}
-.overview-head h2{margin:0;font-size:var(--fs-xl);word-break:keep-all}
+.overview-head h2{margin:0;font-size:var(--fs-lg);font-weight:650;word-break:keep-all}
 .overview-head p{margin:2px 0 0;color:var(--muted);font-size:var(--fs-xs);overflow-wrap:anywhere}
 .overview-actions{display:flex;flex-wrap:wrap;gap:6px;flex:none;margin-left:auto}
 .overview-roots{display:block;margin-top:var(--space-3)}
@@ -826,12 +843,14 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 /* list：面包屑 / 状态行 / 目录表 / 排行行 / 空态 / 筛选      */
 /* ============================================================ */
 
-.browse-filters{display:flex;gap:8px;margin:8px 0}
+/* R1：筛选行收薄（输入框定宽、select 紧凑，原为整行大通栏） */
+.browse-filters{display:flex;gap:8px;margin:4px 0}
 .browse-filters input,.browse-filters select{
   padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius-ctl);
   background:var(--card);color:var(--text);box-shadow:var(--shadow-sm);
 }
-.browse-filters input{flex:1}
+.browse-filters input{flex:0 1 260px;min-width:120px}
+.browse-filters select{flex:none}
 
 .breadcrumb{
   display:flex;align-items:center;gap:2px;flex-wrap:wrap;margin:2px 0;

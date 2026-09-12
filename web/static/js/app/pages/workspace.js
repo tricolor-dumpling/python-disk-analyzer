@@ -1224,6 +1224,8 @@ const WORKSPACE_HTML =
     '<button id="btn-back" class="btn" disabled>' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>' +
     '返回上级</button>' +
+    '<!-- 浏览历史下拉面板（R1：移入 .path-row——绝对定位锚定路径行，原位于 main-col 顶层时锚点漂移） -->' +
+    '<div id="browse-history" class="browse-history-panel hidden" role="listbox" aria-label="浏览历史"></div>' +
     '</div>' +
     '<!-- [N10] 视图工具栏位：三视图切换（U2.2 矩形图/排行/表格）+ 合并阈值 −/+（D11，仅矩形图）+ 全屏（L3-8）；P3（D3-6）密度开关已整体删除 -->' +
     '<div class="view-toolbar" aria-label="视图切换">' +
@@ -1239,11 +1241,13 @@ const WORKSPACE_HTML =
     '<button id="btn-view-fullscreen" class="btn btn-sm" aria-pressed="false" title="视图区全屏（Esc 退出）">全屏</button>' +
     '</div></div>' +
 
-    '<!-- 最近访问 / 浏览历史 / 面包屑 / 状态（阶段G G-3：浏览历史迁下拉面板，#browse-history 由 chips 行改为下拉面板容器；F07 时钟按钮形态落地） -->' +
-    '<div id="recent-roots" class="chips-row hidden"></div>' +
-    '<div id="browse-history" class="browse-history-panel hidden" role="listbox" aria-label="浏览历史"></div>' +
+    '<!-- 最近访问 / 面包屑 / 状态（阶段G G-3：浏览历史迁下拉面板，已锚入 .path-row；F07 时钟按钮形态落地） -->' +
+    '<!-- R1：元信息行——面包屑（去框文本化）+ 最近浏览 chips + 状态行，三合一行内布局 -->' +
+    '<div class="meta-row">' +
     '<nav id="breadcrumb" class="breadcrumb" aria-label="路径导航"><span class="muted">当前路径：</span><span class="crumb-current">-</span></nav>' +
+    '<div id="recent-roots" class="chips-row hidden"></div>' +
     '<div id="browse-status" class="status-line" role="status"><span class="dot"></span><span id="browse-status-text">输入路径后点击「浏览」开始</span></div>' +
+    '</div>' +
     '<div id="browse-guide" class="notice notice-warn hidden" role="status">' +
     '<b id="guide-title">Everything 尚未就绪</b>' +
     '<p id="guide-msg">正在等待 Everything 就绪（最长约 20 秒），请勿重复点击。正在加载索引，最长约 20 秒。</p>' +

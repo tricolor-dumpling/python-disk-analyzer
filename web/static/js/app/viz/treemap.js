@@ -178,7 +178,7 @@ export function nearestFocusIndex(rects, from, dx, dy) {
     return best;
 }
 
-const GAP = 1;               // 块间隙（几何常量，非动画参数）
+const GAP = 4;               // 块间隙（几何常量，非动画参数；R1：1→4 卡片间隔）
 const LABEL_H1 = 48;         // 三级标签：≥48px 全量标签
 const LABEL_H2 = 24;         // 24–48px 仅名称；<24 无
 const CROSSFADE_THRESHOLD = 1500; // >1500 块：关小标签层 + 整画布 240ms 交叉淡化
@@ -328,6 +328,28 @@ export function createTreemap(host, opts = {}) {
     }
 
     /* ---- 绘制 ---- */
+    /* R1：单元格 = 色板淡彩渐变卡（圆角 + 彩色细边 + 深墨文字），替代旧纯色满铺。
+       canvas 无法消费 color-mix()，此处 JS 侧混色：card 底 + tc 22%→6% 垂直渐变，
+       描边 tc 30%；暗色加深一档（30%→16%）。文字色走 --treemap-ink token。 */
+    function hexRgb(hex) {
+        const m = /^#([0-9a-f]{6})$/i.exec(String(hex).trim());
+        if (!m) return null;
+        const n = parseInt(m[1], 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    }
+    function mixHex(a, b, t) { // t = a 的权重
+        const ca = hexRgb(a), cb = hexRgb(b);
+        if (!ca || !cb) return a;
+        const r = Math.round(ca[0] * t + cb[0] * (1 - t));
+        const g = Math.round(ca[1] * t + cb[1] * (1 - t));
+        const bl = Math.round(ca[2] * t + cb[2] * (1 - t));
+        return `rgb(${r},${g},${bl})`;
+    }
+    function rgba(hex, a) {
+        const c = hexRgb(hex);
+        return c ? `rgba(${c[0]},${c[1]},${c[2]},${a})` : hex;
+    }
+
     function paintTile(t, r, alpha, scale, hover) {
         if (alpha <= 0) return;
         const g = GAP;
@@ -345,16 +367,30 @@ export function createTreemap(host, opts = {}) {
             sctx.scale(scale, scale);
             sctx.translate(-cx, -cy);
         }
-        sctx.fillStyle = t.color;
-        sctx.fillRect(x, y, w, h);
-        if (dark) {
-            sctx.fillStyle = "rgba(255,255,255,0.08)"; // §3.4：暗色整块叠 8% 白
-            sctx.fillRect(x, y, w, h);
-        }
+        const card = cssVar("--card") || "#ffffff";
+        const top = mixHex(t.color, card, dark ? 0.34 : 0.26);
+        const bot = mixHex(t.color, card, dark ? 0.18 : 0.12);
+        const grad = sctx.createLinearGradient(x, y, x, y + h);
+        grad.addColorStop(0, top);
+        grad.addColorStop(1, bot);
+        const rad = Math.min(8, w / 2, h / 2);
+        sctx.beginPath();
+        if (sctx.roundRect) sctx.roundRect(x, y, w, h, rad);
+        else sctx.rect(x, y, w, h);
+        sctx.fillStyle = grad;
+        sctx.fill();
+        sctx.strokeStyle = rgba(t.color, dark ? 0.5 : 0.32);
+        sctx.lineWidth = 1;
+        sctx.stroke();
         if (hover) {
+            sctx.beginPath();
+            if (sctx.roundRect) sctx.roundRect(x, y, w, h, rad);
+            else sctx.rect(x, y, w, h);
+            sctx.fillStyle = rgba(t.color, 0.12);
+            sctx.fill();
             sctx.strokeStyle = cssVar("--primary") || "#2563eb";
             sctx.lineWidth = 2;
-            sctx.strokeRect(x + 1, y + 1, Math.max(0, w - 2), Math.max(0, h - 2));
+            sctx.stroke();
         }
         sctx.restore();
     }
@@ -379,11 +415,12 @@ export function createTreemap(host, opts = {}) {
     }
     function drawLabels() {
         const bigOnly = layout.length > CROSSFADE_THRESHOLD; // >1500 块：关小标签层
-        const ink = cssVar("--on-primary") || "#ffffff";
+        const ink = cssVar("--treemap-ink") || "#0f172a"; // R1：淡彩块上深墨文字（原 --on-primary 白字配纯色块）
+        const inkSub = cssVar("--text-2") || ink;
         for (const t of layout) {
             if (t.h < LABEL_H1) {
                 if (bigOnly || t.h < LABEL_H2) continue; // 24–48 仅名称；<24 无；>1500 只留 ≥48
-                const pad = 4;
+                const pad = 7;
                 sctx.font = labelFont(false);
                 sctx.textBaseline = "top";
                 const w = t.w - pad * 2;
@@ -394,7 +431,7 @@ export function createTreemap(host, opts = {}) {
                 sctx.fillText(txt, t.x + pad, Math.max(t.y + 4, t.y + (t.h - 12) / 2));
                 continue;
             }
-            const pad = 5;
+            const pad = 8;
             const innerW = t.w - pad * 2;
             if (innerW < 20) continue;
             sctx.font = labelFont(true);
@@ -406,6 +443,7 @@ export function createTreemap(host, opts = {}) {
             if (t.h >= LABEL_H1 + 14) {
                 if (innerW < 40) continue;
                 sctx.font = labelFont(false);
+                sctx.fillStyle = inkSub;
                 const sub = humanBytes(t.size) + " · " + (t.pct * 100).toFixed(1) + "%";
                 const txt2 = ellipsize(sub, innerW);
                 if (txt2) sctx.fillText(txt2, t.x + pad, t.y + pad + 15);

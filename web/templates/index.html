@@ -21,8 +21,8 @@
         document.documentElement.setAttribute("data-theme", t);
       })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}?v=r1.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=r1.1">
 </head>
 <body>
 
@@ -309,6 +309,6 @@
 
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-<script type="module" src="{{ url_for('static', filename='js/app/main.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/app/main.js') }}?v=r1.1"></script>
 </body>
 </html>

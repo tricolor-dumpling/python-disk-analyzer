@@ -32,7 +32,7 @@ try {
     const pathInput = page.locator(".path-row input").first();
     await pathInput.fill("D:\\");
     await page.locator("#btn-browse").click();
-    await wait(3500);
+    await wait(9000);
     await shot(page, path.join(OUT, `r1-live-treemap-${THEME}.png`));
 
     // 排行 / 表格 / 关系 三视图

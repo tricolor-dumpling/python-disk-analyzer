@@ -64,6 +64,15 @@ app = Flask(
 )
 
 
+@app.after_request
+def _static_no_cache(resp):
+    """R1：静态资源禁启发式缓存——CSS/JS 更新后刷新即生效（本地工具无 CDN 场景，
+    no-cache 仅触发条件请求，304 成本可忽略；API 响应不受影响）。"""
+    if request.path.startswith("/static/"):
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
 def _json_error(message, status=400, code=None, detail=None, **extra):
     """统一错误响应（P12·W1.3 additive 扩展）。
 
