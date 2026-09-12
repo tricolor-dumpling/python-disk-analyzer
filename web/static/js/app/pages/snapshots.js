@@ -117,6 +117,9 @@ export async function refreshSnapshots() {
         const data = await api("/api/snapshots");
         sessionsCache = data.sessions || [];
         APP_STATE.snapshots.sessions = sessionsCache; // U3.3：snapshots 命名空间启用
+        // R1：广播会话更新——冷启动直达 #/compare 时对比页挂载早于本 fetch 完成，
+        // 其基准选项为空且无人重建（既有竞态）；事件由 compare.js 监听并重建选项。
+        try { window.dispatchEvent(new CustomEvent("pds:snapshots", { detail: { count: sessionsCache.length } })); } catch (e) { /* ignore */ }
         syncUndoState();
         renderSnapshotList(sessionsCache);
         renderSnapshotMini(sessionsCache); // U2.4：迷你卡最近一份

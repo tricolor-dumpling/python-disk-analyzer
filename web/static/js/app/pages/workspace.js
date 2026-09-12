@@ -1321,7 +1321,7 @@ const WORKSPACE_HTML =
     '<section class="card" aria-label="全量扫描">' +
     '<div class="card-head"><h2>' +
     '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2"/><path d="M5.5 5.5 2 12l3.5 6.5"/><path d="M18.5 5.5 22 12l-3.5 6.5"/><rect x="4" y="3" width="8" height="18" rx="2"/><rect x="12" y="3" width="8" height="18" rx="2"/></svg>' +
-    '全量扫描</h2><span id="scan-head-sub" class="panel-sub"></span><p class="card-sub">建立最新空间索引</p></div>' +
+    '全量扫描</h2><span id="scan-head-sub" class="panel-sub"></span></div>' +
     '<div class="row">' +
     '<button id="btn-fullscan" class="btn btn-primary">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>' +
@@ -1332,8 +1332,6 @@ const WORKSPACE_HTML =
     '<button id="btn-save" class="btn btn-success" disabled title="全量扫描完成后可保存">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>' +
     '保存快照</button>' +
-    // 阶段B（B-12）：引导提示块折叠为可关闭的「？」气泡（点击展开/收起 #scan-progress-hint）
-    '<button id="btn-scan-help" class="btn btn-sm btn-ghost scan-help-btn" type="button" title="扫描提示（可关闭）" aria-label="扫描提示" aria-expanded="false">？</button>' +
     '</div>' +
     // 阶段B（B-12）：进度行整合——总进度 % · 已完成 x/y 盘 · 当前 C:\ · 已用 t · 预计剩余 ~T（估算）
     // P3（D3-3）：状态行信息分层——「总进度 · 已完成 x/y 盘 · 当前盘」为第一层（#fullscan-status-text，

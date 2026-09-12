@@ -84,6 +84,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .btn-danger{background:var(--danger);border-color:var(--danger);color:var(--on-primary)}
 .btn-ghost{border-color:transparent;background:transparent;color:var(--muted);box-shadow:none}
 .btn-ghost:hover{background:var(--card-soft);box-shadow:none;transform:none;color:var(--text)}
+/* R1：顶栏纯图标幽灵按钮（文字入 title/aria-label；界面去文字化更清爽） */
+.btn-icon-only{width:32px;padding:0;justify-content:center}
 /* R1：危险幽灵按钮（删除类次级动作视觉降级；须置于 .btn-ghost 之后以胜出同特异度） */
 .btn-danger-ghost{color:var(--danger);background:transparent;border-color:transparent;box-shadow:none}
 .btn-danger-ghost:hover{background:var(--danger-soft);color:var(--danger);box-shadow:none;transform:none}
@@ -371,12 +373,43 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .compare-ctl-line{display:flex;align-items:baseline;gap:var(--space-2);min-width:0;max-width:288px}
 .compare-ctl-caption{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
 .compare-ctl-baseline select{width:288px;max-width:288px}
+/* R1：原生 select 收为 sr-only（可视层 = 自定义下拉），宽度规则仅作历史保留 */
+.baseline-picker{position:relative;display:block}
+.baseline-trigger{
+  display:inline-flex;align-items:center;gap:8px;width:288px;min-height:34px;padding:5px 12px;
+  border:1px solid var(--border);border-radius:var(--radius-ctl);background:var(--card);
+  color:var(--text);font:inherit;font-size:var(--fs-sm);cursor:pointer;box-shadow:var(--shadow-sm);
+}
+.baseline-trigger:hover{border-color:var(--border-strong)}
+.baseline-trigger:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.baseline-trigger .icon-sm{margin-left:auto;color:var(--faint)}
+#baseline-trigger-text{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.baseline-panel{
+  position:absolute;top:calc(100% + 4px);left:0;z-index:820;width:100%;max-height:260px;overflow-y:auto;
+  padding:4px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);
+  box-shadow:var(--elev-3);animation:palette-in var(--dur-palette-open) var(--ease-out) both;
+}
+.baseline-panel[hidden]{display:none!important}
+.baseline-opt{
+  display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:0;border-radius:var(--radius-sm);
+  background:transparent;color:var(--text);font:inherit;font-size:var(--fs-xs);text-align:left;cursor:pointer;
+}
+.baseline-opt:hover{background:var(--row-alt)}
+.baseline-opt:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.baseline-opt.is-on{background:var(--primary-soft);color:var(--primary);font-weight:600}
+.baseline-check{flex:none;width:16px;height:16px;display:grid;place-items:center;border-radius:5px;
+  border:1px solid var(--border-strong);color:var(--on-primary);font-size:11px;line-height:1}
+.baseline-opt.is-on .baseline-check{background:var(--primary);border-color:var(--primary)}
+.baseline-opt-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:var(--font-num)}
+.baseline-empty{padding:14px 12px;font-size:var(--fs-xs);text-align:center}
+/* R1：原生 select 收为 sr-only（可视层 = 自定义下拉），原列表样式仅作历史保留 */
 .compare-baseline-list{
   width:288px;height:64px;padding:var(--space-1);
   border:1px solid var(--border);border-radius:var(--radius-ctl);
   background:var(--card);color:var(--text);font:inherit;font-size:var(--fs-xs);
   overflow-y:auto;box-shadow:var(--shadow-sm);
 }
+.sr-only.compare-baseline-list{width:1px;height:1px;padding:0;border:0;box-shadow:none}
 .compare-baseline-list option{padding:2px var(--space-1);border-radius:var(--radius-sm)}
 .compare-baseline-list option:checked{background:var(--primary-soft);color:var(--primary);font-weight:600}
 .compare-baseline-hint{font-size:var(--fs-2xs);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -513,6 +546,10 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .compare-table .delta-cell{font-variant-numeric:var(--font-num);white-space:nowrap}
 .compare-table .cmp-ops{white-space:nowrap}
 .compare-table .cmp-ops .icon-btn{width:26px;height:26px}
+/* R1：数字列右对齐——表头与单元格同侧（修「表头一排与内容不对齐」的观感） */
+.compare-table th.col-delta,.compare-table th.col-growth,.compare-table th.col-ops{text-align:right}
+.compare-table td.delta-cell,.compare-table td:nth-child(2){text-align:right;font-variant-numeric:var(--font-num);white-space:nowrap}
+.compare-table td.cmp-ops{text-align:right}
 /* P4（D4-6）：明细行整行可点 = 页内下钻（行尾操作按钮仍是独立热区） */
 .compare-table .compare-row{cursor:pointer}
 .compare-table .compare-row:hover{background:var(--card-soft)}
@@ -648,7 +685,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
    `.side-rail` 的 overflow-x:hidden 静默切掉右缘（基线实测：图例值右缘越界 19px） */
 .storage-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;margin-top:12px}
 .donut-host{flex:none}
-.donut-box{position:relative;width:160px;height:160px}
+/* R1：112px（原 160）——与紧凑档同尺寸，右栏 ~280px 内容宽里让横向图例行
+   「标签 + 数值 + 百分比」完整成行（原 160px 时数值被 ellipsis 截断） */
+.donut-box{position:relative;width:112px;height:112px}
 .donut-svg{display:block;width:100%;height:100%}
 .donut-track{fill:none;stroke:var(--border-strong);stroke-width:10}
 .donut-arc-g{
@@ -685,7 +724,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .donut-legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
 .donut-legend-row{display:flex;flex-direction:row;align-items:center;gap:8px;min-width:0}
 .donut-legend-label{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--muted);white-space:normal;overflow-wrap:anywhere;min-width:0;flex:none}
-.donut-legend-value{margin-left:auto;font-size:var(--fs-md);font-weight:600;font-variant-numeric:tabular-nums;white-space:normal;overflow-wrap:anywhere;min-width:0;flex:0 1 auto;text-align:right}
+.donut-legend-value{margin-left:auto;font-size:var(--fs-sm);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto;text-align:right}
 .donut-legend-value em{font-style:normal;font-weight:400;font-size:var(--fs-xs);color:var(--muted);margin-left:4px;white-space:nowrap}
 .donut-dot{width:9px;height:9px;border-radius:50%;flex:none}
 .donut-dot-used{background:var(--grad-brand)}
@@ -1150,34 +1189,43 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   width:min(360px,calc(100vw - 32px));
 }
 .toast{
-  display:flex;gap:10px;padding:12px 14px;background:var(--card);border:1px solid var(--border);
-  border-left:4px solid var(--primary);border-radius:var(--radius-md);
+  display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-card);
   box-shadow:var(--elev-2);font-size:var(--fs-sm);
   position:relative;overflow:hidden; /* U3.5：时间线/描边伪元素的裁切容器 */
 }
-.toast-text{flex:1}
-.toast-close{border:0;background:transparent;color:var(--faint);cursor:pointer}
+/* R1：类型表达从「左侧色条」改为「图标徽章」——更产品化（色条是开发者工具语汇） */
+.toast-icon{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center}
+.toast-icon .icon{width:15px;height:15px}
+.toast-success .toast-icon{background:var(--success-soft);color:var(--success)}
+.toast-warn .toast-icon{background:var(--warning-soft);color:var(--warning)}
+.toast-error .toast-icon{background:var(--danger-soft);color:var(--danger)}
+.toast-info .toast-icon{background:var(--primary-soft);color:var(--primary)}
+.toast-text{flex:1;min-width:0;color:var(--text-2)}
+.toast-close{border:0;background:transparent;color:var(--faint);cursor:pointer;border-radius:var(--radius-sm)}
+.toast-close:hover{color:var(--text);background:var(--card-soft)}
 
 /* U3.5 [L2-6·F21] Toast 升级（驱动在 toast.js/WAAPI——参数可经 getAnimations
-   在 smoke 断言；本分区仅布局与配色：类型色边 / 时间线 / 成功描边层 /
+   在 smoke 断言；本分区仅布局与配色：类型色 / 时间线 / 成功描边层 /
    reduced 显隐。动画仅 transform/opacity；JS 侧 token 读时长） */
-.toast-success{border-left-color:var(--success)}
-.toast-warn{border-left-color:var(--warning)}
-.toast-error{border-left-color:var(--danger)}
-.toast-info{border-left-color:var(--primary)}
+.toast-success{border-color:var(--success-border)}
+.toast-warn{border-color:var(--warning-border)}
+.toast-error{border-color:var(--danger-border)}
+.toast-info{border-color:var(--border)}
 .toast-success .toast-timeline{background:var(--success)}
 .toast-warn .toast-timeline{background:var(--warning)}
 .toast-error .toast-timeline{background:var(--danger)}
 .toast-info .toast-timeline{background:var(--primary)}
-/* 时间线（自动消失进度条；scaleX 1→0 动画由 toast.js 驱动，时长=TTL 内联） */
+/* 时间线（自动消失进度条；scaleX 1→0 动画由 toast.js 驱动，时长=TTL 内联）
+   R1：更纤细低存在（3px→2px，透明度收敛） */
 .toast-timeline{
-  position:absolute;left:0;right:0;bottom:0;height:3px;
-  background:var(--primary);opacity:.85;transform-origin:left;
+  position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:var(--primary);opacity:.45;transform-origin:left;
 }
 /* 成功描边层（300ms opacity 呈现由 toast.js 驱动；reduced 时 JS 跳过=保持透明） */
 .toast-stroke{
   position:absolute;inset:0;border:2px solid var(--success);
-  border-radius:var(--radius-md);pointer-events:none;opacity:0;
+  border-radius:var(--radius-card);pointer-events:none;opacity:0;
 }
 /* reduced 降级：时间线隐藏（装饰性进度动画跳过；功能性保留=toast 仍出现/自动
    消失，滑入 ≤120ms 由 toast.js 控制） */

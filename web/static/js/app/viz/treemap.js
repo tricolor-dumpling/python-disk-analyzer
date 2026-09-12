@@ -329,8 +329,9 @@ export function createTreemap(host, opts = {}) {
 
     /* ---- 绘制 ---- */
     /* R1：单元格 = 色板淡彩渐变卡（圆角 + 彩色细边 + 深墨文字），替代旧纯色满铺。
-       canvas 无法消费 color-mix()，此处 JS 侧混色：card 底 + tc 22%→6% 垂直渐变，
-       描边 tc 30%；暗色加深一档（30%→16%）。文字色走 --treemap-ink token。 */
+       canvas 无法消费 color-mix()，此处 JS 侧混色：card 底 + tc 26%→12% 垂直渐变
+       （亮暗同配比，与 R1 稿 color-mix 口径一致），描边 tc 32%（暗色 50%）。
+       文字色走 --treemap-ink token。 */
     function hexRgb(hex) {
         const m = /^#([0-9a-f]{6})$/i.exec(String(hex).trim());
         if (!m) return null;
@@ -368,8 +369,8 @@ export function createTreemap(host, opts = {}) {
             sctx.translate(-cx, -cy);
         }
         const card = cssVar("--card") || "#ffffff";
-        const top = mixHex(t.color, card, dark ? 0.34 : 0.26);
-        const bot = mixHex(t.color, card, dark ? 0.18 : 0.12);
+        const top = mixHex(t.color, card, 0.26);
+        const bot = mixHex(t.color, card, 0.12);
         const grad = sctx.createLinearGradient(x, y, x, y + h);
         grad.addColorStop(0, top);
         grad.addColorStop(1, bot);

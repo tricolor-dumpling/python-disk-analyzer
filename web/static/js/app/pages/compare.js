@@ -114,7 +114,9 @@ function crumbsFor(baseRoot, drill) {
     let acc = base;
     for (const part of rest.split("\\").filter(Boolean)) {
         acc = acc ? acc + "\\" + part : part;
-        out.push({ label: acc, path: acc });
+        // R1：面包屑段只显示当前段名（与工作台面包屑同形态 D:\ › tmp › xxx），
+        // 完整累积路径保留在 title（renderCrumb 已把 path 写入 title）
+        out.push({ label: part, path: acc });
     }
     return out;
 }
@@ -355,6 +357,7 @@ export function rebuildBaselineOptions(sessions) {
         Array.from(sel.options).forEach((o) => { o.selected = present.indexOf(o.value) !== -1; });
     }
     sel.dataset.optionCount = String(uniq.length);
+    renderBaselinePanel(); // R1：自定义下拉面板镜像刷新（面板不在 DOM 时函数内守卫）
     return uniq.length;
 }
 
@@ -402,14 +405,123 @@ function selectedBaselines() {
 }
 
 /* 已选数量提示（页头控件副行；≥2 份时高亮）
-   文案刻意保持短（与控件标题同行不换行，页头 64px 预算） */
+   文案刻意保持短（与控件标题同行不换行，页头 64px 预算）
+   R1：不再提「Ctrl/⌘」——自定义下拉点击即多选 */
 function syncBaselineHint() {
     const hint = $("compare-baseline-hint");
     if (!hint) return 0;
     const n = selectedBaselines().length;
-    hint.textContent = n >= 2 ? "已选 " + n + " 份 · 趋势已开启" : "已选 " + n + " 份 · Ctrl/⌘ 可多选";
+    hint.textContent = n >= 2 ? "已选 " + n + " 份 · 趋势已开启" : "已选 " + n + " 份";
     hint.classList.toggle("is-multi", n >= 2);
     return n;
+}
+
+/* ================= R1：基准选择器自定义下拉 =================
+   原生 <select id="compare-baseline" multiple> 收为隐藏数据模型（重建/预填/缓存/
+   趋势等全部既有逻辑继续读写它）；本组函数只做可视层镜像：
+   面板行点击 → 翻转 option.selected + 派发 change（既有 change 链自动接管）。 */
+function syncBaselineTrigger() {
+    const sel = $("compare-baseline");
+    const txt = $("baseline-trigger-text");
+    if (!sel || !txt) return;
+    const picked = Array.from(sel.selectedOptions || []);
+    if (!picked.length) {
+        txt.textContent = "选择对比基准…";
+        return;
+    }
+    const first = picked[0];
+    const when = String(first.dataset.created || "").replace("T", " ").slice(0, 16);
+    const root = first.dataset.root ? " · " + first.dataset.root : "";
+    txt.textContent = picked.length >= 2
+        ? "已选 " + picked.length + " 份（最新 " + (when || first.textContent) + root + "）"
+        : (when || first.textContent) + root;
+}
+
+function renderBaselinePanel() {
+    const panel = $("baseline-panel");
+    const sel = $("compare-baseline");
+    if (!panel || !sel) return;
+    const opts = Array.from(sel.options || []);
+    if (!opts.length) {
+        panel.innerHTML = '<div class="baseline-empty muted">暂无可用快照，请先全量扫描并保存</div>';
+        return;
+    }
+    panel.innerHTML = opts.map((o, i) =>
+        '<button type="button" class="baseline-opt' + (o.selected ? " is-on" : "") + '"' +
+        ' role="option" aria-selected="' + (o.selected ? "true" : "false") + '" data-idx="' + i + '"' +
+        ' title="' + esc(o.value) + '">' +
+        '<span class="baseline-check" aria-hidden="true">' + (o.selected ? "✓" : "") + "</span>" +
+        '<span class="baseline-opt-text">' + esc(o.textContent) + "</span>" +
+        "</button>"
+    ).join("");
+}
+
+function closeBaselinePanel() {
+    const panel = $("baseline-panel");
+    const trigger = $("baseline-trigger");
+    if (panel && !panel.hidden) panel.hidden = true;
+    if (trigger) trigger.setAttribute("aria-expanded", "false");
+}
+
+function bindBaselinePicker() {
+    const trigger = $("baseline-trigger");
+    const panel = $("baseline-panel");
+    const sel = $("compare-baseline");
+    if (!trigger || !panel || !sel) return;
+    trigger.addEventListener("click", () => {
+        const opening = !!panel.hidden;
+        if (opening) renderBaselinePanel();
+        panel.hidden = !opening;
+        trigger.setAttribute("aria-expanded", String(opening));
+    });
+    panel.addEventListener("click", (ev) => {
+        const btn = ev.target && ev.target.closest ? ev.target.closest(".baseline-opt") : null;
+        if (!btn) return;
+        const opt = sel.options[Number(btn.dataset.idx)];
+        if (!opt) return;
+        opt.selected = !opt.selected;
+        sel.dispatchEvent(new Event("change", { bubbles: true })); // 既有 change 链接管（syncForm/趋势/提示）
+        renderBaselinePanel();
+    });
+    panel.addEventListener("keydown", (ev) => {
+        if (ev.key === "Escape") {
+            closeBaselinePanel();
+            trigger.focus();
+        }
+    });
+    sel.addEventListener("change", syncBaselineTrigger);
+    // 组外点击收起（document 级只绑一次；页面重挂时旧面板已随 DOM 卸载，守卫无碍）
+    if (!bindBaselinePicker.outsideBound) {
+        bindBaselinePicker.outsideBound = true;
+        document.addEventListener("pointerdown", (ev) => {
+            const p = $("baseline-panel");
+            if (!p || p.hidden) return;
+            const t = ev.target;
+            if (t && t.closest && t.closest("#baseline-picker")) return;
+            closeBaselinePanel();
+        });
+    }
+}
+
+/* R1：会话数据晚于页面挂载到达时（冷启动直达 #/compare 的竞态），
+   pds:snapshots 广播到达后重建基准选项；首次有选项时按既有语义预填最近一份。 */
+function bindSnapshotsRefresh() {
+    if (bindSnapshotsRefresh.bound) return;
+    bindSnapshotsRefresh.bound = true;
+    window.addEventListener("pds:snapshots", () => {
+        if (!isPageMounted()) return;
+        const sel = $("compare-baseline");
+        if (!sel) return;
+        const hadOptions = (sel.options ? sel.options.length : 0) > 0;
+        rebuildBaselineOptions(sessionsOf());
+        if (!hadOptions && sel.options.length) {
+            const pre = ensurePrefill();
+            syncForm(pre);
+            syncBaselineHint();
+            renderTrend();
+        }
+        syncBaselineTrigger();
+    });
 }
 
 function trendSeriesKey(baselines) {
@@ -1083,11 +1195,14 @@ function bindComparePage() {
                 if (latest) APP_STATE.compare.target = latest; // 展示标识（见 syncForm 注记）
             }
             syncForm();
+            syncBaselineHint(); // R1：选择变化即刷新「已选 N 份」（原只在挂载/复位时刷新，提示滞留）
             APP_STATE.compare.result = null; // 换基准 → 弃用旧报告缓存
             renderTrend();                   // 多选变化 → 趋势折线（≥2 份时请求 /api/series）
             compareSnapshots();
         });
     }
+    bindBaselinePicker(); // R1：自定义下拉可视层（触发钮/复选面板/组外收起）
+    bindSnapshotsRefresh(); // R1：会话晚到竞态——pds:snapshots 到达后重建基准选项
     // P4（D4-2/D4-6）：深度切换 → 记状态并重发（口径变了不能吃缓存）；下钻中换深度
     // 以「当前下钻根」为新根重新聚合，不回到整盘。
     const depthSel = $("compare-depth");
@@ -1181,19 +1296,24 @@ const COMPARE_PAGE_HTML =
     '<p class="page-sub" id="compare-root-line">对比一次磁盘状态变化：对比基准（历史快照）→ 当前磁盘状态（实时）</p>' +
     "</div>" +
     '<div class="compare-controls" role="group" aria-label="对比参数">' +
-    // P6（D6-5）：对比基准升级为**可多选**列表（保留 id #compare-baseline 且仍是 <select>，
-    // P5 红线不回退）。默认仍只选中「最近一份」——单选语义与既有断言面（smoke/u34）一致；
-    // 按住 Ctrl/⌘ 追加选择 → ≥2 份时下方趋势卡显示多快照折线（/api/series）。
-    '<label class="compare-ctl compare-ctl-baseline" for="compare-baseline" title="对比基准 = 一份历史快照；列表按时间倒序列出所有已保存快照，默认选中最近一份。按住 Ctrl/⌘ 可多选：选中 ≥2 份时下方显示多快照趋势折线">' +
-    // P6（D6-1）：标题与「已选 N 份」提示同行——页头纵向预算 64px 不被撑高
+    // R1：原生 <select multiple> 收为隐藏数据模型（smoke/预填/趋势等既有逻辑零改动），
+    // 可视层换为自定义下拉（触发钮 + 复选面板；点击即切换，无需 Ctrl/⌘）
+    '<div class="compare-ctl compare-ctl-baseline">' +
     '<span class="compare-ctl-line">' +
     '<span class="compare-ctl-caption">对比基准（历史快照）</span>' +
     '<span class="compare-baseline-hint" id="compare-baseline-hint" role="status">已选 1 份</span>' +
     "</span>" +
-    '<select id="compare-baseline" class="compare-baseline-list" multiple size="3" ' +
-    'aria-label="对比基准（历史快照，可多选）" title="对比基准 = 一份历史快照；按住 Ctrl/⌘ 可多选（选中 ≥2 份显示多快照趋势折线）">' +
+    '<span class="baseline-picker" id="baseline-picker">' +
+    '<button id="baseline-trigger" class="baseline-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">' +
+    '<span id="baseline-trigger-text">选择对比基准…</span>' +
+    '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>' +
+    "</button>" +
+    '<span id="baseline-panel" class="baseline-panel" role="listbox" aria-multiselectable="true" aria-label="可选快照（点击切换选中）" hidden></span>' +
+    "</span>" +
+    '<select id="compare-baseline" class="compare-baseline-list sr-only" multiple size="3" ' +
+    'aria-label="对比基准（历史快照，可多选）" title="对比基准 = 一份历史快照；可多选（选中 ≥2 份显示多快照趋势折线）">' +
     "</select>" +
-    "</label>" +
+    "</div>" +
     // P5（D5-1）：删除只读「目标」输入框；改为一行只读文本「当前：…」（非表单控件）
     '<span id="compare-current" class="compare-current" role="status" ' +
     'title="当前磁盘状态 = 本机此刻的实际占用（由全量扫描结果或实时索引得出，不是快照文件）">' +
@@ -1274,6 +1394,7 @@ export function mountCompare() {
     renderCrumb();
     syncForm(sel);
     syncBaselineHint(); // P6（D6-5）：已选份数提示（回灌）
+    syncBaselineTrigger(); // R1：自定义下拉触发钮文案（回灌）
     renderTrend();      // P6（D6-4）：趋势卡回灌（多选命中缓存不重发；<2 份给原因）
     if (!sel) {
         showEmpty();
