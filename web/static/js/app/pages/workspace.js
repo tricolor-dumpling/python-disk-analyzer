@@ -1319,7 +1319,7 @@ const WORKSPACE_HTML =
     '<section class="card" aria-label="全量扫描">' +
     '<div class="card-head"><h2>' +
     '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2"/><path d="M5.5 5.5 2 12l3.5 6.5"/><path d="M18.5 5.5 22 12l-3.5 6.5"/><rect x="4" y="3" width="8" height="18" rx="2"/><rect x="12" y="3" width="8" height="18" rx="2"/></svg>' +
-    '全量扫描</h2><p class="card-sub">建立最新空间索引</p></div>' +
+    '全量扫描</h2><span id="scan-head-sub" class="panel-sub"></span><p class="card-sub">建立最新空间索引</p></div>' +
     '<div class="row">' +
     '<button id="btn-fullscan" class="btn btn-primary">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>' +

@@ -84,6 +84,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .btn-danger{background:var(--danger);border-color:var(--danger);color:var(--on-primary)}
 .btn-ghost{border-color:transparent;background:transparent;color:var(--muted);box-shadow:none}
 .btn-ghost:hover{background:var(--card-soft);box-shadow:none;transform:none;color:var(--text)}
+/* R1：危险幽灵按钮（删除类次级动作视觉降级；须置于 .btn-ghost 之后以胜出同特异度） */
+.btn-danger-ghost{color:var(--danger);background:transparent;border-color:transparent;box-shadow:none}
+.btn-danger-ghost:hover{background:var(--danger-soft);color:var(--danger);box-shadow:none;transform:none}
 .btn-sm{padding:5px 10px;font-size:var(--fs-xs)}
 .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
 /* U3.2：.btn 自带 display:inline-flex 会覆盖 [hidden] 属性（nav-tabs 类坑）——
@@ -311,6 +314,15 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .skip-reason{color:var(--warning);cursor:help}
 /* P6（D6-2/变更集3）：会话行 = 「盘符 · 大小」正文 + 行尾动作；原始文件名进「详情」 */
 .session-root-row{padding:var(--space-1) 0}
+/* R1：盘符彩色方块（28px、圆角 8px、--grad-brand 底白字加粗居中；第二盘起 alt 配色） */
+.root-ic{
+  flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;
+  background:var(--grad-brand);color:var(--on-primary);font-size:var(--fs-xs);font-weight:700;
+}
+.root-ic.alt{background:linear-gradient(135deg,var(--c3),var(--c5))}
+.session-root-row.is-skipped .root-ic{background:var(--border-strong)}
+/* R1：meta 后自由空间吃掉 → 行尾动作组钉右 */
+.session-root-row .session-root-meta{margin-right:auto}
 .session-root-name{font-weight:600;font-size:var(--fs-sm);color:var(--text);flex:none;white-space:nowrap}
 .session-root-meta{color:var(--muted);font-variant-numeric:var(--font-num);flex:none;white-space:nowrap}
 .session-root-row.is-skipped .session-root-name{color:var(--muted);font-weight:400}
@@ -594,6 +606,11 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .card-head h2{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--fs-md);font-weight:650;word-break:keep-all}
 .card-head h2 .icon{color:var(--primary)}
 .card-sub{margin:2px 0 0;font-size:var(--fs-xs);color:var(--muted);width:100%}
+/* R1：卡头右侧状态摘要位（margin-left:auto 钉右；扫描卡 #scan-head-sub 默认空） */
+.panel-sub{font-size:var(--fs-xs);color:var(--muted)}
+.card-head .panel-sub{margin-left:auto}
+/* R1：右栏卡按钮行统一节奏（紧凑档的 4px 覆盖见响应式区，更高优先级不变） */
+.side-rail .card .row{margin:10px 0 4px}
 
 /* 首启引导（U3.1：hero 卡迁出为壳级弹层——.hero 死规则已删，见 overlays 分区 onboarding） */
 .steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
@@ -661,15 +678,14 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .donut-value{font-size:var(--fs-lg);font-weight:700;line-height:1.15;font-variant-numeric:var(--font-num)}
 .donut-sub{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-xs);color:var(--muted)}
 /* 图例两行（已使用 / 全部盘累计——「可用」因后端无总容量字段降级，见 storage.js 注记）
-   P3/D3-4：全部文本显式「换行」——标签与数值均 white-space:normal + overflow-wrap:anywhere，
+   R1：每行横向单行——swatch + 标签 + 数值右对齐加粗（tabular-nums）；
+   全部文本显式「可换行」——标签与数值均 white-space:normal + overflow-wrap:anywhere，
    禁止裸 nowrap（基线实测：`.donut-legend-value` nowrap 且无 overflow →
-   1920 下 scrollWidth 111 vs clientWidth 92 硬切 19px）。
-   注：@media (max-height:820px) 里 `.donut-legend-row{white-space:nowrap}` 为继承值，
-   下方两个子元素各自显式声明 normal —— 直接规则恒强于继承，紧凑档同样不裁字。 */
+   1920 下 scrollWidth 111 vs clientWidth 92 硬切 19px）。 */
 .donut-legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
-.donut-legend-row{display:flex;flex-direction:column;gap:2px;min-width:0}
+.donut-legend-row{display:flex;flex-direction:row;align-items:center;gap:8px;min-width:0}
 .donut-legend-label{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--muted);white-space:normal;overflow-wrap:anywhere;min-width:0;flex:none}
-.donut-legend-value{font-size:var(--fs-md);font-weight:600;font-variant-numeric:var(--font-num);white-space:normal;overflow-wrap:anywhere;min-width:0;flex:1 1 auto}
+.donut-legend-value{margin-left:auto;font-size:var(--fs-md);font-weight:600;font-variant-numeric:tabular-nums;white-space:normal;overflow-wrap:anywhere;min-width:0;flex:0 1 auto;text-align:right}
 .donut-legend-value em{font-style:normal;font-weight:400;font-size:var(--fs-xs);color:var(--muted);margin-left:4px;white-space:nowrap}
 .donut-dot{width:9px;height:9px;border-radius:50%;flex:none}
 .donut-dot-used{background:var(--grad-brand)}
@@ -1312,8 +1328,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   .overview-empty span{display:none}                /* 空态指引二行（主标题保留） */
   .snapshot-mini-card .status-line{display:none}    /* 迷你快照「已加载/已保存 N 会话」状态行 */
   .compare-mini-empty span{display:none}            /* 最近对比空态指引二行（主标题保留） */
-  /* 卡内纵向收紧（仅右栏） */
-  .side-rail .row{margin:4px 0}
+  /* 卡内纵向收紧（仅右栏；特异度与常规档 .side-rail .card .row 对齐才能覆盖） */
+  .side-rail .card .row{margin:4px 0}
   /* P3：紧凑档通知块（扫描卡提示 #scan-progress-hint / 自动保存结果
      #autosave-result / 保存提示 #save-prompt）纵向再收紧——文案与入口全保留 */
   .side-rail .notice{margin:var(--space-1) 0;padding:6px var(--space-3);gap:var(--space-1)}
@@ -1329,8 +1345,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   .snapshot-mini-entry{margin-top:2px}
   .compare-mini-body{margin-top:2px}
   .donut-legend{gap:6px}
-  /* 图例两行改单行（标签+数值同行）——紧凑档纵向再收紧（信息不减：已使用/全部盘累计均保留） */
-  .donut-legend-row{flex-direction:row;align-items:baseline;gap:6px;white-space:nowrap}
+  /* R1：图例基础档已横向单行（gap 收紧即可，信息不减：已使用/全部盘累计均保留） */
+  .donut-legend-row{gap:6px;white-space:nowrap}
   .snapshot-list{max-height:200px}
   .session-item{padding:8px 10px}
   .overview-roots-donut{min-height:140px}

@@ -232,11 +232,12 @@ export function renderSnapshotList(sessions) {
             const rootLines = roots.length
                 ? '<ul class="session-roots">' +
                   roots
-                      .map((r) => {
+                      .map((r, rIdx) => {
                           if (r.skipped) {
                               const reason = esc(skipReasonText(r.skip_reason));
                               return (
-                                  '<li class="session-root-row is-skipped">' + ICONS.drive +
+                                  '<li class="session-root-row is-skipped">' +
+                                  '<span class="root-ic">' + esc(rootLabel(r.root) || "?") + "</span>" +
                                   '<span class="session-root-name">' + esc(rootLabel(r.root) || "?") + "</span>" +
                                   // F17：跳过原因 tooltip（红线 #7 SKIP_REASON_TEXT；文案可见+悬停提示）
                                   '<span class="tag tag-skip" title="' + reason + '">跳过</span>' +
@@ -253,11 +254,12 @@ export function renderSnapshotList(sessions) {
                                 '" data-root="' + esc(r.root || "") + '" title="以该盘这份快照为对比基准，打开空间对比页">对比此快照</button>'
                               : "";
                           const delBtn = r.snapshot_path || r.root
-                              ? '<button class="btn btn-sm btn-ghost act-del-snap" data-session="' + esc(s.session_id || "") +
+                              ? '<button class="btn btn-sm btn-ghost btn-danger-ghost act-del-snap" data-session="' + esc(s.session_id || "") +
                                 '" data-root="' + esc(r.root || "") + '" title="删除该盘快照（其他盘保留）">删除</button>'
                               : "";
                           return (
-                              '<li class="session-root-row">' + ICONS.drive +
+                              '<li class="session-root-row">' +
+                              '<span class="root-ic' + (rIdx > 0 ? " alt" : "") + '">' + esc(rootLabel(r.root) || "?") + "</span>" +
                               '<span class="session-root-name">' + esc(rootLabel(r.root) || "?") + "</span>" +
                               '<span class="session-root-meta">' + esc(fmtSnapSize((s.total_by_root || {})[r.root])) + "</span>" +
                               cmpBtn + delBtn + "</li>"
@@ -274,7 +276,7 @@ export function renderSnapshotList(sessions) {
                 '<span class="session-tags">' +
                 (s.auto ? '<span class="tag tag-auto">自动</span>' : '<span class="tag tag-manual">手动</span>') +
                 '<span class="session-meta">' + esc(metaBits.join(" · ")) + "</span></span>" +
-                '<button class="btn btn-sm btn-ghost act-del-session" data-session="' + esc(s.session_id || "") +
+                '<button class="btn btn-sm btn-ghost btn-danger-ghost act-del-session" data-session="' + esc(s.session_id || "") +
                 '" title="删除整个会话（全部盘快照与清单）">删除整会话</button>' +
                 "</div>" +
                 rootLines +
