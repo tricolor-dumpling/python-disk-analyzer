@@ -19,7 +19,7 @@ const SHOTS = [
 
 const browser = await launch();
 try {
-    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+    const ctx = await browser.newContext({ viewport: { width: +arg("w", "1440"), height: +arg("h", "900") }, deviceScaleFactor: 1 });
     const page = await ctx.newPage();
     const errors = [];
     page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
@@ -36,7 +36,12 @@ try {
         await page.evaluate((t) => { document.documentElement.setAttribute("data-theme", t); }, s.theme);
         await wait(1400);
         await shot(page, path.join(OUT, `r1-${TAG}-${s.name}-${s.theme}.png`));
-        console.log("shot", s.name, s.theme);
+        const scroll = await page.evaluate(() => ({
+            docW: document.documentElement.scrollWidth, winW: innerWidth,
+            docH: document.documentElement.scrollHeight, winH: innerHeight,
+        }));
+        const ok = scroll.docW <= scroll.winW && scroll.docH <= scroll.winH;
+        console.log("shot", s.name, s.theme, ok ? "zero-scroll OK" : "ZERO-SCROLL OVERFLOW " + JSON.stringify(scroll));
     }
     if (errors.length) { console.log("CONSOLE_ERRORS:"); errors.slice(0, 20).forEach((e) => console.log("  " + e)); }
     else console.log("CONSOLE_ERRORS: none");
