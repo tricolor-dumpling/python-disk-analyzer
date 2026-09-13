@@ -68,6 +68,14 @@ Windows 本地磁盘分析工具，三种形态共用同一套后端模块：Web
    3. 另：用浏览器工具跑 smoke 时**不要重复打开页面**（重新 open 会打断正在跑的套件，出现 A3/A6/A8–A16/A20 的「壳未 boot」假红）；一次 open 等标题出结论即可。
 7. **前端零构建但模板会缓存**：`web/templates/index.html` 改动需**重启** Flask（Jinja 非 debug 模式缓存编译模板；静态 JS/CSS 不缓存，改完刷新即可）。改动后跑：
    `python -m pytest tests -q --ignore=tests/archive_pre_p12`、`node --test scripts/dev/*.test.mjs`、必要时 `tests/web/smoke.html`（浏览器打开，标题出现 `[suite=v2][PASS n/n]` 即绿）。
+8. **发版流程**（2026-09-13 实操固化；本机**没有 `gh` CLI**，走 git + REST API）：
+   1. 版本号唯一落点 = `web/templates/index.html` 状态栏 `.statusbar-left`（形如 `v2.1.0 · R1 视觉版`），发版前改它并单独提交；
+   2. 打 **annotated tag**（`git tag -a vX.Y.Z -F <说明文件>`）并 `git push origin main` + `git push origin vX.Y.Z`；
+   3. Release 与资产上传用 REST API。**令牌取法**：`git credential fill`（`protocol=https` / `host=github.com`）→ 读 `password=`，本机存的是 `gho_*`（scopes 含 `repo`，够建 Release）。**令牌只走管道/变量，禁止写进任何文件或提交**；
+      - 建 Release：`POST /repos/<owner>/<repo>/releases`（`tag_name`/`target_commitish`/`name`/`body`）；
+      - 传资产：`POST https://uploads.github.com/repos/<owner>/<repo>/releases/<id>/assets?name=<file>`（`Content-Type: application/zip`）；
+   4. **发布包结构**：顶层单目录 `python-disk-analyzer-X.Y.Z/`，内含全部根 `*.py` + `web/` + `everything-SDK/dll/` + `requirements.txt` + `README.md`（即「解压后 `pip install -r requirements.txt` → `python app.py` 可直接跑」），排除 `__pycache__`/`.pyc`。Windows 自带 tar **不支持 `--transform`**，先 `Copy-Item` 到临时暂存目录再 `tar -a -c -f out.zip -C <stageRoot> <dirname>`；
+   5. 发完必做外部校验：匿名 `HEAD` 资产下载 URL（应 200 且 `Content-Length` 与本地一致）+ `GET /releases/latest` 核对 `assets[].state=uploaded`；并在临时目录解压包跑一次 `python -c "import main, cli, ..."` 与 `python main.py --help` 确认包自洽。临时产物（暂存目录、校验目录、令牌文件）用完即删。
 
 ## 7. 常用命令
 
