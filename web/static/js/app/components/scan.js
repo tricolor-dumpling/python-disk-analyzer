@@ -274,6 +274,13 @@ function renderFullscanState(st) {
     const partialRoots = (Number(st.roots_done) || 0) > 0;
     if (finishedEdge && (completed || aborted)) markNavDot("/");
     if (!$("progress-fill")) return; // U2.1：子页面时扫描卡不在 DOM（状态已记账，回主页即恢复渲染）
+    /* 每拍先隐藏上一轮完成态的自动保存 notice 与保存提示——running/queued/stopping 等
+       分支直接 return 不重绘它们，不先隐藏会残留到新一轮扫描进行中；完成态由
+       renderAutosaveResult 在下方按 outcome 重新显隐（判空：子页面无 DOM） */
+    const autosaveArea = $("autosave-result");
+    if (autosaveArea) autosaveArea.classList.add("hidden");
+    const savePromptEl = $("save-prompt");
+    if (savePromptEl) savePromptEl.classList.add("hidden");
     updateExportButtons(); // 阶段B（B-15）：导出按钮可用性随状态同步（扫描中禁用）
     const pct = Number(st.progress_pct) || 0;
     $("progress-fill").style.width = pct + "%";
@@ -341,7 +348,7 @@ function renderFullscanState(st) {
             if (outcome && outcome.outcome === "saved") {
                 msg = "全量扫描已完成，已自动保存快照";
             } else if (outcome && outcome.outcome === "skipped") {
-                msg = "全量扫描已完成，已跳过自动保存（可仍要保存）";
+                msg = "全量扫描已完成，已跳过自动保存（可点「保存快照」手动保存）";
             } else if (outcome && outcome.outcome === "failed") {
                 msg = "全量扫描已完成，自动保存失败（可手动保存）";
             } else {
@@ -504,9 +511,12 @@ function renderAutosaveResult(st) {
             .filter((t, i, a) => a.indexOf(t) === i); // 去重（多盘同因）
         const reasonText = reasons.length ? reasons.join("；") : "未满足自动保存条件";
         area.className = "notice notice-warn";
-        area.textContent = "已跳过自动保存：" + reasonText + "。可点「仍要保存（强制）」手动保存。";
+        /* 保存入口唯一化：#btn-save（保存快照）与 prompt 内「仍要保存（强制）」
+           均调用 saveSnapshot(false)（同一入口，见 bindScan）——保留「保存快照」按钮
+           为唯一入口，隐藏黄色 save-prompt，消除 notice+prompt+按钮三重重复 */
+        area.textContent = "已跳过自动保存：" + reasonText + "。可点「保存快照」手动保存。";
         area.classList.remove("hidden");
-        if (prompt) prompt.classList.remove("hidden"); // 强制保存入口（auto=false）
+        if (prompt) prompt.classList.add("hidden");
         if (saveBtn) saveBtn.disabled = false;
         setStatus("fullscan-status", "ok", base + "，已跳过自动保存");
         return;
@@ -612,7 +622,9 @@ function exportFilenameFromDisposition(disposition, fallback) {
 export function isExportAvailable() {
     const st = _lastScanStatus;
     if (!st || st.running || st.error) return false;
-    if (st.result_ready && st.save_ready) return true;
+    /* 导出可用性只看「有结果」（后端 /api/export 只要求结果就绪），
+       不耦合 save_ready——自动保存成功消费 save_ready 后结果仍在，导出应可用 */
+    if (st.result_ready) return true;
     if (st.stop_requested && (Number(st.roots_done) || 0) > 0) return true;
     return false;
 }

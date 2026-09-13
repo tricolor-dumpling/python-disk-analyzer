@@ -158,16 +158,28 @@
     </div>
 </div>
 
-<!-- 设置弹窗 -->
+<!-- 设置弹窗（2026-09-13 第二轮：单页 → 三分页「常规 / 使用偏好 / 危险区」。
+     原单页内容 1045px 高，1366×768 下整个弹窗被迫滚动（标题与底部按钮一起滚走），
+     用户实测「设置界面太长了」；分页后每页都短，弹窗高度稳定。 -->
 <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="设置">
-    <div class="modal-panel">
+    <div class="modal-panel settings-panel">
         <div class="modal-head">
             <h2>设置</h2>
             <button class="icon-btn" data-close="settings-modal" title="关闭">
                 <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
         </div>
-        <div class="modal-body">
+        <div class="settings-tabs" role="tablist" aria-label="设置分类">
+            <button id="tab-general" class="settings-tab is-active" type="button" role="tab"
+                    aria-selected="true" aria-controls="pane-general" data-tab="general">常规</button>
+            <button id="tab-prefs" class="settings-tab" type="button" role="tab"
+                    aria-selected="false" aria-controls="pane-prefs" data-tab="prefs">使用偏好</button>
+            <button id="tab-danger" class="settings-tab" type="button" role="tab"
+                    aria-selected="false" aria-controls="pane-danger" data-tab="danger">危险区</button>
+        </div>
+        <div class="modal-body settings-body">
+          <!-- ===== 分页 1：常规（主题 / 自动保存 / 数据目录 / Everything 状态） ===== -->
+          <div id="pane-general" class="settings-pane is-active" role="tabpanel" aria-labelledby="tab-general">
             <!-- [F03/N03] 主题三态（U3.5：与顶栏按钮同源 state.theme；「跟随系统」=
                  缺失 key 或显式 system → matchMedia 解析，与 head 防闪烁脚本一致；
                  选择即生效（localStorage 立即写），与「保存设置」按钮解耦 -->
@@ -206,19 +218,30 @@
                 <label>Everything 状态</label>
                 <input id="setting-health" type="text" readonly value="正在检查…">
             </div>
-            <div class="divider"></div>
-            <h3>危险操作</h3>
-            <p class="muted">一键清空会删除数据目录下的全部快照、保存清单与配置文件，随后重建为空结构；配置将恢复默认。此操作不可恢复。</p>
-        </div>
-        <!-- 阶段E（E-5）：一键清空移入 modal-foot 左侧——与「保存设置/关闭」基线对齐
-             （截图 6 红按钮与右下按钮未对齐；危险区标题/说明保留在 body） -->
-        <div class="modal-foot">
-            <button id="btn-wipe-open" class="btn btn-danger modal-foot-left">
+          </div>
+          <!-- ===== 分页 2：使用偏好（prefs.js 注册表驱动；本机 localStorage 记录，
+               与扫描数据/快照解耦——「一键清空数据目录」不会清掉这些习惯设置） ===== -->
+          <div id="pane-prefs" class="settings-pane" role="tabpanel" aria-labelledby="tab-prefs" hidden>
+            <p class="muted">以下选择会记录在本机浏览器中，下次打开自动沿用；不改变扫描结果与快照数据。</p>
+            <div id="settings-prefs" class="settings-prefs" aria-label="使用偏好"></div>
+            <div class="settings-prefs-foot">
+                <button id="btn-reset-prefs" class="btn btn-sm" type="button">恢复默认偏好</button>
+                <span id="settings-prefs-note" class="muted"></span>
+            </div>
+          </div>
+          <!-- ===== 分页 3：危险区 ===== -->
+          <div id="pane-danger" class="settings-pane" role="tabpanel" aria-labelledby="tab-danger" hidden>
+            <p class="notice notice-error"><b>⚠ 不可恢复：</b>一键清空会删除数据目录下的全部快照、保存清单与配置文件，随后重建为空结构；配置将恢复默认。</p>
+            <p class="muted">使用偏好保存在本机浏览器中，不受清空影响。</p>
+            <button id="btn-wipe-open" class="btn btn-danger" type="button">
                 <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
                 </svg>
                 一键清空数据目录…
             </button>
+          </div>
+        </div>
+        <div class="modal-foot">
             <button id="btn-settings-save" class="btn btn-primary">保存设置</button>
             <button class="btn" data-close="settings-modal">关闭</button>
         </div>

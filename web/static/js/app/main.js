@@ -13,6 +13,7 @@ import { toast } from "./components/toast.js"; // B-19：顶栏扫描按钮反�
 import { APP_STATE } from "./state.js";
 import { switchTheme, setThemePref, themePref, resolvedTheme, syncThemeControls } from "./theme.js"; // U3.5：三态偏好（设置弹窗/同源联动）
 import { createRouter } from "./router.js";
+import { initPrefs } from "./prefs.js"; // 2026-09-13：使用偏好持久化（首渲染前落进 APP_STATE）
 import { loadGuide, bindOnboarding, showGuide } from "./components/onboarding.js";
 import { refreshOverview, bindOverview } from "./components/storage.js";
 import { bindSnapshotMini, renderCompareMini } from "./components/snapshot-mini.js";
@@ -367,6 +368,9 @@ async function ensureAutoScanEligible() {
 
 /* 三、启动：壳绑定 → 路由初始化（首渲染） → 工作台挂载 → 原 init 链 */
 export async function start() {
+    /* 2026-09-13：使用偏好先落地（默认视图/合并阈值/列表筛选排序/对比深度与零变化），
+       必须早于 router.init() 的首渲染，否则首帧仍是默认值再跳变 */
+    initPrefs();
     bindTopbar();
     bindTheme();
     bindSettings();

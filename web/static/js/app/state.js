@@ -35,10 +35,13 @@ export const APP_STATE = {
        hideZero=true（请求带 drop_zero）；drillRoot=""（未下钻）或下钻目录全路径。
        三者由 pages/compare.js 维护（切页不丢），resetCompareData 复位。
        P6（D6-5）：baselines = 对比基准**多选**清单（快照路径数组，时间倒序）——
-       baseline 仍是主对比基准（= 清单最新一份，既有契约不变），baselines 供
-       /api/series 多快照趋势折线使用；同由 pages/compare.js 维护。 */
+       baseline 仍是主对比基准，baselines 供 /api/series 多快照趋势折线使用；
+       2026-09-13 第四轮语义修订：baselines 是**用户在多选下拉里的选中集**
+       （= 折线看哪几次，跨路由重挂的记忆），baseline 是其中「正与哪份比」的
+       **主对比基准**（缺省 = 选中集里最新一份，可经折线点选改成任意一份）——
+       点选不改 baselines，折线因此保留全部已选；同由 pages/compare.js 维护。 */
     compare: { baseline: "", target: "", result: null, lastSummary: null,
-               depth: "", hideZero: true, drillRoot: "", baselines: [] },             // U3.4 启用；P4 增 depth/hideZero/drillRoot；P6 增 baselines
+               depth: "", hideZero: true, drillRoot: "", baselines: [], scope: "" },             // U3.4 启用；P4 增 depth/hideZero/drillRoot；P6 增 baselines；2026-09-13 增 scope（对比盘范围）
     treemap: { tiles: [], prev: new Map(), focusIdx: -1, hoverKey: null },              // U2.2 启用
     ui: { fullscreen: false, paletteOpen: false, onboardingSeen: true },                // U2.3 全屏/U3.1 面板启用
 

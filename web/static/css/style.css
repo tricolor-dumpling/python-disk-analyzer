@@ -249,77 +249,157 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
    「两快照对比差值卡」——无折线，保留 ▲/▼ 与百分比；L3-5 后端补字段后启用
    （P6 实测：/api/snapshots 已逐会话返回 additive total_by_root，sparkline 已在
    阶段G 启用，上面这条注记仅为历史沿革留痕） */
-.trend-row{flex:none;height:128px;display:flex;gap:var(--space-3)}
-.trend-card{
-  flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:var(--space-1);
-  padding:var(--space-3) var(--space-4);border:1px solid var(--border);border-radius:var(--radius-card);
-  background:var(--card);color:var(--text);text-align:left;font:inherit;cursor:pointer;
-  box-shadow:var(--elev-1);
-  /* U4.2 红线终核：hover 边框/阴影状态瞬时切换，不参与过渡（仅 transform/opacity） */
+/* 2026-09-13 快照页改版：趋势卡区（.trend-*）已移除（与对比页重复）；
+   原位置改为「筛选 + 批量管理」工具条 */
+/* 2026-09-13 第二轮排版优化（用户实测「显示会话的地方太小了」）：
+   1366×768 实测 —— 日历整宽独占 308px 高，列表内滚区只剩 153px（约 1 行会话）。
+   现改**左右两栏**：日历收成 336px 日期栏（格子因此变方、更紧凑），
+   右栏 = 筛选条 + 列表卡，占满其余宽度与全部剩余高度（实测列表高度 153 → 约 500px）。
+   窄屏（<1100px）回到上下堆叠，避免列表被挤到不可用。 */
+.snap-main{flex:1;min-height:0;display:flex;gap:12px;align-items:stretch}
+.snap-list-col{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px}
+/* 左栏（日历 + 最近快照）：日历贴内容高度，最近快照吃掉剩余高度（2026-09-13 第三轮：
+   原日历卡下方留 200px+ 空白，用户实测「左侧下方空闲太多」） */
+.snap-rail{flex:0 0 clamp(272px,25vw,336px);min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px}
+.snap-hidden-note{display:inline-flex;align-items:center;gap:var(--space-2);color:var(--faint);min-width:0}
+.snap-hidden-note[hidden]{display:none}
+.snap-hidden-note .btn{padding:1px 8px;font-size:var(--fs-2xs)}
+.snap-calendar{flex:none;min-width:0;overflow-y:auto;max-height:100%}
+.snap-recent{flex:1;min-height:120px;display:flex;flex-direction:column;gap:var(--space-2);overflow:hidden}
+.recent-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-2);flex:none}
+.recent-sub{font-size:var(--fs-2xs);color:var(--faint)}
+.recent-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.recent-item{
+  display:flex;align-items:center;gap:var(--space-2);width:100%;padding:5px 8px;border:1px solid transparent;
+  border-radius:var(--radius-sm);background:transparent;color:var(--text);font:inherit;
+  font-size:var(--fs-xs);text-align:left;cursor:pointer;
 }
-.trend-card:hover{border-color:var(--primary-border);box-shadow:var(--elev-2);transform:translateY(-1px)}
-.trend-card:hover .trend-label{color:var(--primary)}
-.trend-card:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-.trend-card.is-empty{cursor:default}
-.trend-card.is-empty:hover{border-color:var(--border);box-shadow:var(--elev-1);transform:none}
-.trend-label-line{display:flex;align-items:baseline;gap:var(--space-2);min-width:0}
-.trend-label{font-size:var(--fs-sm);font-weight:600;white-space:nowrap}
-.trend-root{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.trend-main{display:flex;align-items:baseline;gap:var(--space-2);min-width:0}
-.trend-delta{font-size:var(--fs-xl);font-weight:700;font-variant-numeric:var(--font-num);white-space:nowrap}
-.trend-pct{font-size:var(--fs-sm);color:var(--muted);font-variant-numeric:var(--font-num);white-space:nowrap}
-.trend-sub{font-size:var(--fs-xs);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.trend-pending,.trend-empty{font-size:var(--fs-sm);color:var(--muted)}
-.trend-err{font-size:var(--fs-xs);color:var(--danger);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* 阶段C（C-4）：趋势卡空态原因行（从 sessions 推导；纯文本无动画）
-   P6（D6-1）：自「list 分区」归位到趋势卡同节——原定义距卡片 500+ 行，
-   改趋势卡样式时极易漏改（D6-1 根因 #1 的「离趋势卡分区 500 行远」）。 */
-.trend-reason{display:block;font-size:var(--fs-xs);color:var(--muted);margin-top:var(--space-1);line-height:1.5;max-width:260px}
-/* 阶段G（G-2）：sparkline（L3-5）——趋势卡折线 + 终点脉冲（--dur-sparkline 描线
-   由 motion.sparkline 驱动；终点脉冲仅 opacity（P7 红线））
-   P6（D6-1）：画布尺寸改由 tokens.css 的 --spark-w/--spark-h 单一来源派生
-   （原先 JS `const W=120,H=28` 与本节各写一遍 = 两处真相） */
-.trend-spark{flex:none;width:var(--spark-w);height:var(--spark-h);margin-left:auto}
-.trend-spark-svg{display:block;width:var(--spark-w);height:var(--spark-h);overflow:visible}
-.trend-spark-line{stroke:var(--primary);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.trend-spark-dot{fill:var(--primary);transform-box:fill-box;transform-origin:center;animation:trend-spark-pulse 2s var(--ease-out) infinite}
-@keyframes trend-spark-pulse{
-  0%,100%{opacity:1}
-  50%{opacity:.25}
+.recent-item:hover{background:var(--row-alt);border-color:var(--border)}
+.recent-item.is-picked{background:var(--primary-soft);border-color:var(--primary-border);color:var(--primary)}
+.recent-time{flex:none;font-variant-numeric:var(--font-num);color:var(--muted)}
+.recent-drives{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.recent-size{flex:none;color:var(--faint);font-variant-numeric:var(--font-num)}
+.recent-empty{margin:0;font-size:var(--fs-xs);color:var(--faint)}
+/* 窄屏才上下堆叠：900px 是全书既有的「整页退化纵向滚动」断点（§3.4 规则 3）。
+   1000–1100px 宽仍保持左右两栏（日期栏收到 272px）——实测 1024×768 若堆叠，
+   列表只剩 199px，与修复前的「列表太小」同病。 */
+@media (max-width:900px){
+  .snap-main{flex-direction:column}
+  .snap-rail{flex:none}
+  .snap-calendar{flex:none;overflow:visible}
+  .snap-recent{flex:none;min-height:0;overflow:visible}
+  .recent-list{overflow:visible}
 }
-@media (prefers-reduced-motion: reduce){
-  .trend-spark-dot{animation:none}
+.snap-filter-bar{
+  flex:none;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;
+  padding:var(--space-2) var(--space-3);border:1px solid var(--border);
+  border-radius:var(--radius-card);background:var(--card);box-shadow:var(--elev-1);
 }
+.snap-filter-bar select{
+  font-size:var(--fs-sm);padding:4px 8px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--card-soft);color:var(--text);cursor:pointer;
+}
+.snap-filter-bar input[type=search]{
+  flex:1;min-width:140px;font-size:var(--fs-sm);padding:5px 10px;
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card-soft);color:var(--text);
+}
+.snap-filter-bar input[type=search]:focus{outline:2px solid var(--primary);outline-offset:1px}
+.snap-check-all-wrap{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-xs);color:var(--muted);cursor:pointer;white-space:nowrap;user-select:none}
+.snap-check-all-wrap input{width:14px;height:14px;accent-color:var(--primary);cursor:pointer}
+#snap-btn-batch-del{margin-left:auto}
+/* 禁用态改中性灰（btn-danger 红底 + 全局 45% 透明在禁用态可读性太差） */
+#snap-btn-batch-del:disabled{background:var(--card-soft);color:var(--faint);border-color:var(--border);opacity:1}
+.snap-check{display:inline-flex;align-items:center;flex:none;cursor:pointer}
+.snap-check input{width:14px;height:14px;accent-color:var(--primary);cursor:pointer}
+
+/* ---- 快照日历（2026-09-13 用户实测反馈新增：月历热力图） ----
+   一眼看出「某一天有没有快照 / 有几个」：格子色深 = 当天份数（四档），
+   格内右下角 = 份数徽标；今天内描边、当前筛选日外发光；点日期 = 筛选下方列表。
+   与 .snap-filter-bar 同卡原语（--card/--border/--radius-card/--elev-1）。 */
+.snap-calendar{
+  flex:none;display:flex;flex-direction:column;gap:var(--space-2);
+  padding:var(--space-3);
+}
+.cal-head{display:flex;flex-direction:column;gap:var(--space-2)}
+.cal-title{margin:0;font-size:var(--fs-sm);font-weight:600;color:var(--text)}
+.cal-sub{margin:2px 0 0;font-size:var(--fs-2xs);color:var(--muted)}
+.cal-nav{display:flex;align-items:center;gap:var(--space-1);justify-content:space-between}
+.cal-nav-btn{padding:0 7px;line-height:1.3;font-size:var(--fs-md)}
+.cal-month{min-width:64px;text-align:center;font-size:var(--fs-xs);font-weight:600;font-variant-numeric:var(--font-num)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.cal-dow{text-align:center;font-size:var(--fs-2xs);color:var(--faint);padding-bottom:1px}
+.cal-cell{
+  position:relative;min-height:28px;display:flex;align-items:center;justify-content:center;
+  padding:0;font:inherit;font-size:var(--fs-xs);color:var(--faint);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card-soft);cursor:default;
+}
+.cal-cell.is-blank{border-color:transparent;background:transparent}
+.cal-cell.is-empty{opacity:.7}
+.cal-cell.has-snap{
+  cursor:pointer;color:var(--text);font-weight:600;
+  border-color:color-mix(in srgb,var(--primary) 32%,var(--border));
+}
+.cal-cell.has-snap:hover{outline:2px solid var(--primary);outline-offset:1px}
+.cal-cell.is-today{box-shadow:inset 0 0 0 1px var(--primary)}
+.cal-cell.is-picked{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-border)}
+.cal-cell.lvl-1{background:color-mix(in srgb,var(--primary) 14%,var(--card))}
+.cal-cell.lvl-2{background:color-mix(in srgb,var(--primary) 32%,var(--card))}
+.cal-cell.lvl-3{background:color-mix(in srgb,var(--primary) 55%,var(--card));color:var(--on-primary)}
+.cal-cell.lvl-4{background:color-mix(in srgb,var(--primary) 80%,var(--card));color:var(--on-primary)}
+.cal-cell.lvl-3 .cal-count,.cal-cell.lvl-4 .cal-count{color:var(--on-primary)}
+.cal-day{line-height:1}
+.cal-count{
+  position:absolute;right:3px;bottom:2px;font-size:var(--fs-2xs);font-weight:700;
+  color:var(--primary);font-variant-numeric:var(--font-num);
+}
+.cal-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);flex-wrap:wrap;font-size:var(--fs-2xs);color:var(--muted)}
+.cal-picked{font-weight:600;color:var(--primary);font-variant-numeric:var(--font-num)}
+.cal-hint{color:var(--faint)}
+.cal-legend{display:inline-flex;align-items:center;gap:3px;color:var(--faint);margin-left:auto}
+.cal-swatch{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--border)}
+.cal-swatch.lvl-1{background:color-mix(in srgb,var(--primary) 14%,var(--card))}
+.cal-swatch.lvl-2{background:color-mix(in srgb,var(--primary) 32%,var(--card))}
+.cal-swatch.lvl-3{background:color-mix(in srgb,var(--primary) 55%,var(--card))}
+.cal-swatch.lvl-4{background:color-mix(in srgb,var(--primary) 80%,var(--card))}
+.session-item.is-sel{border-color:var(--primary-border);box-shadow:0 0 0 1px var(--primary-border)}
 
 /* 会话列表（F17：会话分组 + 逐盘对比/标签/跳过原因 tooltip——红线 #7 SKIP_REASON_TEXT）
    P6（D6-1）：卡片原语统一（--radius-card + --card + --border + --shadow-sm）；
    .session-item 本体自「cards 分区」归位到本节（原列表样式与卡片样式分离两处）。 */
 .snapshots-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-2);background:var(--card)}
-.snapshots-list-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);font-size:var(--fs-xs);color:var(--muted)}
+.snapshots-list-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);font-size:var(--fs-xs);color:var(--muted);flex-wrap:wrap}
 .snapshots-list-hint{color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .snapshots-list-scroll{flex:1;min-height:0;overflow-y:auto;padding-right:2px}
 .snapshot-list{list-style:none;margin:var(--space-2) 0 0;padding:0;display:flex;flex-direction:column;gap:var(--space-2)}
 .session-item{
-  display:flex;flex-direction:column;gap:var(--space-2);min-width:0;
-  padding:var(--space-3) var(--space-4);border:1px solid var(--border);
+  display:flex;flex-direction:column;gap:4px;min-width:0;
+  padding:var(--space-2) var(--space-3);border:1px solid var(--border);
   border-radius:var(--radius-card);background:var(--card);box-shadow:var(--elev-1);
   font-size:var(--fs-sm);
 }
+/* 2026-09-13 第二轮排版：会话卡内动作按钮收紧凑档——
+   全局 .btn-sm 的 36px 触控高度会把每个盘行撑到 44px（实测），一行会话占 180px+，
+   列表同屏只能看到 2 个会话。只作用于会话卡内部，不动全局按钮尺寸。 */
+.session-root-row .btn-sm,
+.session-head .btn-sm{min-height:26px;padding:2px 9px;font-size:var(--fs-2xs)}
 .session-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-width:0}
 .session-title{display:flex;align-items:center;gap:var(--space-2);font-weight:600;min-width:0}
 .session-sub{font-size:var(--fs-xs);color:var(--faint);word-break:break-all}
-.session-roots{list-style:none;margin:var(--space-2) 0 0;padding:0;display:flex;flex-direction:column;gap:var(--space-1);font-size:var(--fs-xs)}
-.session-roots li{display:flex;align-items:center;gap:var(--space-2);min-width:0;flex-wrap:wrap;padding:6px var(--space-2);border-radius:var(--radius-md)}
+.session-roots{list-style:none;margin:var(--space-1) 0 0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:var(--fs-xs)}
+.session-roots li{display:flex;align-items:center;gap:var(--space-2);min-width:0;flex-wrap:wrap;padding:4px 14px;border-radius:var(--radius-md);min-height:30px}
 .session-roots li:hover{background:var(--row-alt)}
 /* R1：根路径 code 升级为彩色盘符徽标（primary-soft 底 + 主色字 + 圆角） */
 .session-roots code{font-size:var(--fs-xs);font-weight:600;background:var(--primary-soft);border:1px solid var(--primary-border);border-radius:var(--radius-sm);padding:2px var(--space-2);word-break:break-all;color:var(--primary)}
 .skip-reason{color:var(--warning);cursor:help}
 /* P6（D6-2/变更集3）：会话行 = 「盘符 · 大小」正文 + 行尾动作；原始文件名进「详情」 */
 .session-root-row{padding:var(--space-1) 0}
-/* R1：盘符彩色方块（28px、圆角 8px、--grad-brand 底白字加粗居中；第二盘起 alt 配色） */
+/* R1：盘符彩色方块（24px、圆角 7px、--grad-brand 底白字加粗居中；第二盘起 alt 配色）
+   2026-09-13 第二轮：28→24px（会话行更紧凑，列表同屏可见更多会话） */
 .root-ic{
-  flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;
-  background:var(--grad-brand);color:var(--on-primary);font-size:var(--fs-xs);font-weight:700;
+  flex:none;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;
+  background:var(--grad-brand);color:var(--on-primary);font-size:var(--fs-2xs);font-weight:700;
 }
 .root-ic.alt{background:linear-gradient(135deg,var(--c3),var(--c5))}
 .session-root-row.is-skipped .root-ic{background:var(--border-strong)}
@@ -349,6 +429,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .page-head-compare{min-height:0}
 /* R1：控件组面板化——独立卡片行（原散排在页头右侧，观感 demo） */
 .page-head-compare{flex-wrap:wrap}
+/* 2026-09-13 用户实测反馈：控件条原为水平居中（justify-content:center），
+   与页头左对齐的标题/副行形成两条视觉中轴，"不像成熟产品"。
+   现改为左对齐（flex-start）——控件从卡片左内边距起排，与标题同一左基准线。 */
 .page-head-compare .compare-controls{
   flex:1 1 100%;justify-content:flex-start;
   background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);
@@ -397,6 +480,15 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .baseline-opt:hover{background:var(--row-alt)}
 .baseline-opt:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
 .baseline-opt.is-on{background:var(--primary-soft);color:var(--primary);font-weight:600}
+/* 2026-09-13 第三轮：基准按「一次保存」分组的组头（时间 · 该次保存含哪些盘） */
+.baseline-group{
+  padding:6px 10px 2px;font-size:var(--fs-2xs);color:var(--faint);
+  border-top:1px solid var(--row-border);margin-top:2px;
+}
+.baseline-panel > .baseline-group:first-child{border-top:0;margin-top:0;padding-top:2px}
+/* 对比盘范围（第三轮）：紧凑下拉，禁用态（只有一个盘）保持可见不跳版 */
+.compare-ctl-scope select{min-width:74px}
+.compare-ctl-scope select:disabled{opacity:.7;cursor:default}
 .baseline-check{flex:none;width:16px;height:16px;display:grid;place-items:center;border-radius:5px;
   border:1px solid var(--border-strong);color:var(--on-primary);font-size:11px;line-height:1}
 .baseline-opt.is-on .baseline-check{background:var(--primary);border-color:var(--primary)}
@@ -453,7 +545,7 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 
 /* 摘要 3 卡（96px；▲/▼ 符号冗余 + --up/--down 双编码；数字 tabular-nums）
    P6（D6-1）：与 .trend-card/.session-item 同源卡片原语（底色/边框/圆角/阴影） */
-.compare-summary-row{flex:none;height:96px;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3)}
+.compare-summary-row{flex:none;height:96px;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2)}
 .compare-stat{display:flex;flex-direction:column;justify-content:center;gap:var(--space-1);min-width:0;padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--radius-card);background:var(--card);box-shadow:var(--elev-1);overflow:hidden}
 .compare-stat-label{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
 .compare-stat-value{display:flex;align-items:baseline;gap:var(--space-1);font-size:var(--fs-xl);font-weight:700;font-variant-numeric:var(--font-num);white-space:nowrap;min-width:0}
@@ -462,36 +554,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .compare-stat-sub{font-size:var(--fs-xs);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .compare-legacy{flex:none;margin:0;padding:var(--space-2) var(--space-3)}
 
-/* 红绿发散图（L3-6：中轴基线；增长条向左红(--up)、缩减条向右绿(--down)；
-   中轴生长 500ms --dur-diverge（仅 transform scaleX——动画只动 transform/opacity）；
-   徽标 pop-in scale .8→1（--dur-3 + --ease-spring，仅 transform/opacity）；
-   ▲/▼ 冗余；reduced 由全局降级直显终值）
-   ⚠️ 高度 240px 与 .diverge-track 宽度 46% 为 u34 ③b/③c/③f 的几何判据，P6 未改。 */
-.compare-diverge{flex:none;height:240px;display:flex;flex-direction:column;gap:3px;padding:var(--space-1) 0;border:1px solid var(--border);border-radius:var(--radius-card);background:var(--card);box-shadow:var(--elev-1)}
-/* P6（D6-4）：趋势折线卡可见时（选中 ≥2 份对比基准）分区图让出 64px——
-   1366×768 下「趋势 + 发散图 + 表格」三件同屏：实测表格区仍有 ≈110px（约 3 行，
-   面板内滚不破零页面滚动）。未选中多份时保持 240px（u34 ③f 几何判据不受影响）。 */
-.compare-result.has-trend .compare-diverge{height:176px}
-.diverge-row{
-  display:flex;align-items:center;gap:var(--space-2);flex:1;min-height:0;width:100%;padding:0 var(--space-3);
-  border:0;background:transparent;color:var(--text);text-align:left;font:inherit;
-  font-size:var(--fs-xs);cursor:pointer;border-radius:var(--radius-sm);
-}
-.diverge-row:hover,.diverge-row:focus-visible{background:var(--primary-soft)}
-.diverge-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
-.diverge-track{position:relative;flex:none;width:46%;height:8px;border-radius:999px;background:var(--track-alt)}
-.diverge-axis{position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;margin-left:-1px;border-radius:2px;background:var(--border-strong)}
-.diverge-bar{position:absolute;top:0;bottom:0;border-radius:999px;will-change:transform}
-/* P6（D6-1/变更集2）：条宽由 CSS 变量 --diverge-w 承载（原内联 style="width:XX%"），
-   几何规则收口到本文件；flat 条固定 2px 中性标记（原内联 width 已删） */
-.diverge-bar-grow{right:50%;width:var(--diverge-w,2%);background:linear-gradient(90deg,color-mix(in srgb,var(--up) 65%,transparent),var(--up));transform-origin:right center}
-.diverge-bar-shrink{left:50%;width:var(--diverge-w,2%);background:linear-gradient(270deg,color-mix(in srgb,var(--down) 65%,transparent),var(--down));transform-origin:left center}
-.diverge-bar-flat{left:50%;width:2px;margin-left:-1px;background:var(--faint);transform-origin:center}
-.diverge-meta{display:flex;align-items:center;gap:var(--space-1);flex:none;min-width:150px;justify-content:flex-end}
-.diverge-sign{flex:none;font-weight:700}
-.diverge-value{font-variant-numeric:var(--font-num);white-space:nowrap}
-.diverge-badge{flex:none;min-width:52px;padding:1px var(--space-2);border-radius:999px;background:var(--track-alt);text-align:center;font-variant-numeric:var(--font-num);white-space:nowrap}
-.diverge-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-1);color:var(--muted);font-size:var(--fs-sm)}
+/* 2026-09-13 用户实测反馈：红绿发散图区（.compare-diverge / .diverge-*）与摘要卡+
+   明细表信息重复且稀疏，已整区移除——明细表承载同口径 Top 差异信息。 */
 
 /* P6（D6-4/D6-5）：多快照趋势折线卡（viz/line.js）。
    · 空闲/错误态（选中 <2 份或数据不足）= **单行**原因条（禁止永久空白，不占版面）；
@@ -521,14 +585,30 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .line-grid-line{stroke:var(--border);stroke-width:1;stroke-dasharray:3 3}
 .line-path{stroke:var(--primary);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .line-dot{fill:var(--card);stroke:var(--primary);stroke-width:1.6}
+/* 2026-09-13 第四轮：折线点选（点中的点 = 对比基准）
+   - .line-dot.is-active：当前对比基准点（实心高亮）；
+   - .line-active-ring：基准环（比悬浮游标更大更显眼，二者可区分）；
+   - cursor:pointer 由 line.js 写在 svg 的表现属性上（可点选时）。 */
+.line-dot.is-active{fill:var(--primary);stroke:var(--primary)}
+.line-active-ring{fill:none;stroke:var(--primary);stroke-width:1.6;opacity:.55}
+.line-active-dot{fill:var(--primary)}
+.line-active-g[hidden]{display:none}
 .line-axis-text{fill:var(--muted);font-size:var(--fs-2xs);font-variant-numeric:var(--font-num)}
 .line-guide{stroke:var(--primary);stroke-width:1;stroke-dasharray:2 2;opacity:.7}
 .line-cursor{fill:var(--primary)}
+/* 2026-09-13：`[hidden]` 的 UA `display:none` 只对 HTML 元素生效——
+   SVG 的 .line-guide/.line-cursor 上写 hidden 属性无效（游标始终画在原点），
+   .line-readout 则被自身 display:flex 覆盖（左上角常驻一个空读数胶囊）。
+   三处一并显式收口。 */
+.line-guide[hidden],.line-cursor[hidden],.line-readout[hidden]{display:none}
 .line-readout{
   position:absolute;top:0;left:0;display:flex;align-items:baseline;gap:var(--space-1);
   padding:1px var(--space-2);border:1px solid var(--border);border-radius:var(--radius-sm);
   background:var(--card-glass);backdrop-filter:blur(8px);box-shadow:var(--shadow-sm);
   font-size:var(--fs-2xs);white-space:nowrap;pointer-events:none;
+  /* 2026-09-13：水平落位由 line.js 按读数实际宽度夹取（不越出宿主）；
+     此处只兜「宿主比读数还窄」的极端：截在宿主编框内。 */
+  max-width:calc(100% - 8px);overflow:hidden;
 }
 .line-readout-time{color:var(--muted)}
 .line-readout-value{font-weight:600;font-variant-numeric:var(--font-num)}
@@ -1149,8 +1229,8 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .modal-head h2{margin:0;font-size:var(--fs-lg);font-weight:650}
 .modal-body{padding:10px 20px}
 .modal-foot{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:14px 20px 18px}
-/* 阶段E（E-5）：一键清空移入 modal-foot 左侧与常规按钮基线对齐（截图 6 修复） */
-.modal-foot .modal-foot-left{margin-right:auto}
+/* 阶段E（E-5）的 .modal-foot .modal-foot-left 规则已随设置分页删除：
+   一键清空按钮迁入「危险区」分页（不再是 foot 左侧按钮），全站无使用方。 */
 .divider{height:1px;background:var(--border);margin:16px 0 4px}
 
 /* 阶段E（E-5）：设置弹窗「扫描完成自动保存」行——label 左、开关右两列布局
@@ -1162,6 +1242,50 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 .switch-row .switch-hint{font-size:var(--fs-xs);color:var(--muted);line-height:1.4}
 .switch-row .switch-control{flex:none;display:flex;align-items:center}
 .switch-row .switch{width:40px;height:22px;accent-color:var(--primary);cursor:pointer;margin:0}
+
+/* ---- 设置弹窗分页（2026-09-13 第二轮：原单页 1045px 高 → 三分页） ----
+   固定面板高度：内容区独立内滚（min-height 兜底），标题/分页条/底部按钮常驻可见。 */
+.settings-panel{display:flex;flex-direction:column;max-height:min(90vh,640px)}
+.settings-tabs{
+  display:flex;gap:4px;flex:none;margin:6px 20px 0;padding:3px;
+  border:1px solid var(--border);border-radius:var(--radius-ctl);background:var(--card-soft);
+}
+.settings-tab{
+  flex:1;min-width:0;padding:6px 10px;border:0;border-radius:var(--radius-sm);
+  background:transparent;color:var(--muted);font:inherit;font-size:var(--fs-xs);font-weight:600;
+  cursor:pointer;white-space:nowrap;
+}
+.settings-tab:hover{color:var(--text);background:var(--row-alt)}
+.settings-tab.is-active{background:var(--card);color:var(--primary);box-shadow:var(--shadow-sm)}
+.settings-tab:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.settings-body{flex:1;min-height:0;overflow-y:auto}
+.settings-pane[hidden]{display:none!important}
+.settings-pane.is-active{display:block}
+/* 危险区：红框提示 + 左对齐的危险按钮（原 modal-foot-left 位置随分页迁移） */
+.settings-pane .notice{margin-top:4px}
+.settings-pane #btn-wipe-open{margin-top:var(--space-3)}
+
+/* ---- 设置弹窗「使用偏好」区（2026-09-13 新增；注册表驱动，见 prefs.js） ----
+   行结构与 .switch-row 同构（左 label+hint / 右控件），但按分组归拢并允许
+   数值/下拉控件；窄屏复用 <420px 的纵向换行规则。 */
+.settings-prefs{display:flex;flex-direction:column;gap:10px;margin:10px 0 0}
+.pref-group{display:flex;flex-direction:column;gap:2px}
+.pref-group-title{font-size:var(--fs-2xs);font-weight:700;letter-spacing:.04em;color:var(--faint);text-transform:uppercase;margin:2px 0 2px}
+.pref-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:6px 0;cursor:pointer;border-bottom:1px dashed var(--row-border)}
+.pref-group .pref-row:last-child{border-bottom:0}
+.pref-label{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pref-label b{font-size:var(--fs-sm);color:var(--text);font-weight:600}
+.pref-hint{font-size:var(--fs-xs);color:var(--muted);line-height:1.4}
+.pref-control{flex:none;display:flex;align-items:center}
+.pref-input{
+  font:inherit;font-size:var(--fs-sm);color:var(--text);background:var(--card-soft);
+  border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 8px;min-width:132px;
+}
+.pref-input:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.pref-number{min-width:74px;width:74px;text-align:center;font-variant-numeric:var(--font-num)}
+.pref-control .switch{width:40px;height:22px;accent-color:var(--primary);cursor:pointer;margin:0}
+.settings-prefs-foot{display:flex;align-items:center;gap:var(--space-2);margin:10px 0 2px}
+.settings-prefs-foot .muted{font-size:var(--fs-xs)}
 
 /* U3.5 [F03/N03] 设置弹窗主题三态：分段单选（与顶栏按钮同源 state.theme；
    选择即生效；checked=主色高亮，焦点环经 input:focus-visible 递达 span）。
@@ -1395,7 +1519,11 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
   .donut-legend{gap:6px}
   /* R1：图例基础档已横向单行（gap 收紧即可，信息不减：已使用/全部盘累计均保留） */
   .donut-legend-row{gap:6px;white-space:nowrap}
-  .snapshot-list{max-height:200px}
+  /* 2026-09-13 第二轮修复：原此处有 `.snapshot-list{max-height:200px}`——该选择器
+     只命中**快照管理页**的会话列表（工作台迷你卡用 .snapshot-mini-*），
+     在 max-height:820px 的机器上把整页列表硬压到 200px，正是用户实测
+     「显示会话的地方太小了」的直接成因之一（另一成因：日历整宽独占 308px）。
+     列表高度应完全交给 .snapshots-list-scroll 的 flex:1，故删除该上限。 */
   .session-item{padding:8px 10px}
   .overview-roots-donut{min-height:140px}
   .donut-box{width:112px;height:112px} /* 定稿 3.3：环形图直径 160→112px */
@@ -1446,6 +1574,9 @@ input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--
 @media (max-width:419px){
   .switch-row{flex-direction:column;align-items:flex-start;gap:8px}
   .switch-row .switch-control{align-self:flex-end}
+  .pref-row{flex-direction:column;align-items:flex-start;gap:6px}
+  .pref-control{align-self:flex-end;width:100%}
+  .pref-input{width:100%;min-width:0}
   .theme-opt span{min-height:34px;padding:6px 4px;font-size:var(--fs-xs)}
   .modal-foot{flex-wrap:wrap}
   .modal-foot .btn{flex:1;min-width:0}

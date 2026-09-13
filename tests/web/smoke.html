@@ -116,20 +116,43 @@
 </div>
 
 <div id="settings-modal" class="modal hidden">
-  <div class="modal-panel">
-    <div class="field">
-      <label id="setting-theme-label">主题</label>
-      <div class="theme-switch-group" id="setting-theme" role="radiogroup" aria-labelledby="setting-theme-label">
-        <label class="theme-opt"><input type="radio" id="setting-theme-light" name="setting-theme" value="light"><span>亮</span></label>
-        <label class="theme-opt"><input type="radio" id="setting-theme-dark" name="setting-theme" value="dark"><span>暗</span></label>
-        <label class="theme-opt"><input type="radio" id="setting-theme-system" name="setting-theme" value="system"><span>跟随系统</span></label>
+  <div class="modal-panel settings-panel">
+    <!-- 2026-09-13 第二轮：分页结构（与 index.html 同构；A21 断言分页切换 + 偏好区） -->
+    <div class="settings-tabs" role="tablist" aria-label="设置分类">
+      <button id="tab-general" class="settings-tab is-active" type="button" role="tab"
+              aria-selected="true" aria-controls="pane-general" data-tab="general">常规</button>
+      <button id="tab-prefs" class="settings-tab" type="button" role="tab"
+              aria-selected="false" aria-controls="pane-prefs" data-tab="prefs">使用偏好</button>
+      <button id="tab-danger" class="settings-tab" type="button" role="tab"
+              aria-selected="false" aria-controls="pane-danger" data-tab="danger">危险区</button>
+    </div>
+    <div class="modal-body settings-body">
+      <div id="pane-general" class="settings-pane is-active" role="tabpanel" aria-labelledby="tab-general">
+        <div class="field">
+          <label id="setting-theme-label">主题</label>
+          <div class="theme-switch-group" id="setting-theme" role="radiogroup" aria-labelledby="setting-theme-label">
+            <label class="theme-opt"><input type="radio" id="setting-theme-light" name="setting-theme" value="light"><span>亮</span></label>
+            <label class="theme-opt"><input type="radio" id="setting-theme-dark" name="setting-theme" value="dark"><span>暗</span></label>
+            <label class="theme-opt"><input type="radio" id="setting-theme-system" name="setting-theme" value="system"><span>跟随系统</span></label>
+          </div>
+        </div>
+        <input id="setting-auto-save" type="checkbox">
+        <input id="setting-data-dir" type="text" readonly>
+        <input id="setting-health" type="text" readonly>
+      </div>
+      <div id="pane-prefs" class="settings-pane" role="tabpanel" aria-labelledby="tab-prefs" hidden>
+        <!-- 2026-09-13：使用偏好区（与 index.html 同构；渲染由 prefs.js 注册表驱动） -->
+        <div id="settings-prefs" class="settings-prefs"></div>
+        <span id="settings-prefs-note"></span>
+        <button id="btn-reset-prefs" type="button"></button>
+      </div>
+      <div id="pane-danger" class="settings-pane" role="tabpanel" aria-labelledby="tab-danger" hidden>
+        <button id="btn-wipe-open"></button>
       </div>
     </div>
-    <input id="setting-auto-save" type="checkbox">
-    <input id="setting-data-dir" type="text" readonly>
-    <input id="setting-health" type="text" readonly>
-    <button id="btn-settings-save"></button>
-    <button id="btn-wipe-open"></button>
+    <div class="modal-foot">
+      <button id="btn-settings-save"></button>
+    </div>
   </div>
 </div>
 <div id="wipe-modal" class="modal hidden">
@@ -184,17 +207,24 @@ const SAMPLES = {
   // 不再静默触发后台直扫。smoke 世界为「数据就绪」态：result_ready=true（compare 同步出报告），
   // save_ready 保持 false（A17 N06「无扫描结果时创建快照置灰」断言面不变：isSaveAvailable 仍 false）。
   fullscanStatusIdle: { ok: true, status: { running: false, roots: ["C:\\"], roots_done: 1, roots_total: 1, current_root: null, error: null, result_ready: true, save_ready: false, progress_pct: 100, scan_version: 1, stop_requested: false, stop_reason: null } },
-  snapshotsList: { ok: true, sessions: [ { session_id: "s-20260824-000000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T10:00:00", roots: { "D:\\": { root: "D:\\", snapshot: "D_20260824_100000_explicit_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260824_100000_explicit_aabbccd.snap.gz", skipped: false } } } ], count: 1 },
-  /* U3.3：多会话样本（跨 4 天 + 跳过盘）——趋势卡基线选取/降级差值卡/跳过原因 tooltip（红线#7）。
-     ⚠️ 键集合照抄后端：session 载荷无逐次总量字段（app.py api_snapshots/session.py 核对）→
-     无 sparkline 数据源，L3-5 降级为「两快照对比差值卡」（无折线，保留 ▲/▼ 与百分比） */
+  /* 快照会话样本（1 条）。⚠️ 键集合必须照抄 app.py api_snapshots：
+     session.py 的原始清单字段 + **additive `total_by_root`**（P-4/G-2 起后端为每个
+     存过快照的盘补算该盘快照总量；前端 components/snapshot-view.js 的
+     sessionSavedBytes/isMeaningfulSession 与 snapshots.js 的盘行大小都读它）。
+     缺这个字段 → savedRoots 有、总量恒 0 且 hasKnownSize=false → 会话被判「空」
+     从列表/日历/对比基准里整体隐藏（2026-09-13 实测：整个快照页空、连锁 A15/A17/A18/A20 变红）。 */
+  snapshotsList: { ok: true, sessions: [ { session_id: "s-20260824-000000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T10:00:00", total_by_root: { "D:\\": 16000 }, roots: { "D:\\": { root: "D:\\", snapshot: "D_20260824_100000_explicit_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260824_100000_explicit_aabbccd.snap.gz", skipped: false } } } ], count: 1 },
+  /* U3.3：多会话样本（跨 4 天 + 跳过盘）——会话列表/日历热力图/跳过原因 tooltip（红线#7）。
+     每条的 total_by_root 只含**真正写盘**的盘（跳过盘不进；与后端跳过项不计的口径一致）。
+     ⚠️ P6 的「较昨日/较上周」趋势卡已随快照页改版移除（见 snapshots.js prefillAndGoCompare
+     注记），本样本只服务于列表/日历/逐盘对比预填。 */
   snapshotsTrend: { ok: true, sessions: [
-    { session_id: "s-20260824-120000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T12:00:00",
+    { session_id: "s-20260824-120000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T12:00:00", total_by_root: { "D:\\": 16000 },
       roots: { "D:\\": { root: "D:\\", snapshot: "D_20260824_120000_explicit_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260824_120000_explicit_aabbccd.snap.gz", skipped: false } } },
-    { session_id: "s-20260824-100000-aabbccdd", auto: true, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T10:00:00",
+    { session_id: "s-20260824-100000-aabbccdd", auto: true, machine_guid: "aabbccdd-1234", created_at: "2026-08-24T10:00:00", total_by_root: { "D:\\": 15990 },
       roots: { "D:\\": { root: "D:\\", snapshot: "D_20260824_100000_auto_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260824_100000_auto_aabbccd.snap.gz", skipped: false },
                "C:\\": { root: "C:\\", snapshot: null, snapshot_path: null, skipped: true, skip_reason: "day_budget_exceeded", notice: "今日写入量已达上限，自动保存跳过" } } },
-    { session_id: "s-20260820-100000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-20T10:00:00",
+    { session_id: "s-20260820-100000-aabbccdd", auto: false, machine_guid: "aabbccdd-1234", created_at: "2026-08-20T10:00:00", total_by_root: { "D:\\": 15800 },
       roots: { "D:\\": { root: "D:\\", snapshot: "D_20260820_100000_explicit_aabbccd.snap.gz", snapshot_path: "C:\\fake\\snapshots\\D_20260820_100000_explicit_aabbccd.snap.gz", skipped: false } } }
   ], count: 3 },
   compareReport: { ok: true, report: { root: "D:\\", total_baseline: 16000, total_current: 15990, delta_total: -10, truncated: false, legacy_count: 0, rows: [ { path: "D:\\data", baseline: 12000, current: 11990, delta: -10, growth_pct: -0.0833, removed: false, added: false } ] } },
@@ -206,6 +236,14 @@ const SAMPLES = {
     { path: "D:\\old", baseline: 9000, current: 8000, delta: -1000, growth_pct: -11.11, removed: false, added: false },
     { path: "D:\\same", baseline: 3000, current: 3000, delta: 0, growth_pct: 0, removed: false, added: false }
   ] } },
+  /* 2026-09-13 第四轮：A22 多快照趋势折线样本（app.py api_series 响应键集合照抄：
+     ok/root/path/depth/count/points[]；points 每项 created_at/bytes/snapshot/present）。
+     三份快照同盘不同时刻，字节数单调递增 → 折线三点，点选语义可断言。 */
+  seriesOk: { ok: true, root: "D:\\", path: "", depth: null, count: 3, truncated: false, dropped: 0, rows_total: 3, skipped: [], points: [
+    { created_at: "2026-08-24T12:00:00", bytes: 3000, snapshot: "C:\\fake\\snapshots\\D_20260824_120000_explicit_aabbccd.snap.gz", present: true },
+    { created_at: "2026-08-24T10:00:00", bytes: 2000, snapshot: "C:\\fake\\snapshots\\D_20260824_100000_auto_aabbccd.snap.gz", present: true },
+    { created_at: "2026-08-20T10:00:00", bytes: 1000, snapshot: "C:\\fake\\snapshots\\D_20260820_100000_explicit_aabbccd.snap.gz", present: true }
+  ] },
   /* 错误双形态（RT-N04）：旧 {ok,error} 与 新 {ok,error,detail,code} */
   errorLegacyShape: { ok: false, error: "路径不存在: X:\\nope" },
   errorTypedShape: { ok: false, error: "无法连接 Everything（未运行或权限不足）", code: 2, detail: "Session 0 服务态或未启动" },
@@ -275,6 +313,8 @@ window.fetch = function (url, options) {
     if (key === "POST /api/browse") return __stubResponse(SAMPLES.browseOk);
     if (key === "GET /api/fullscan/status") return __stubResponse(SAMPLES.fullscanStatusIdle);
     if (key === "GET /api/snapshots") return __stubResponse(SAMPLES.snapshotsList);
+    /* 2026-09-13 第四轮：多快照趋势序列（对比页多选/点选断言面） */
+    if (key === "GET /api/series") return __stubResponse(SAMPLES.seriesOk);
     if (key === "POST /api/save") return __stubResponse({ ok: true, message: "保存完成", session: SAMPLES.snapshotsList.sessions[0], session_file: "C:\\fake\\session.json", skipped: false });
     if (key === "POST /api/save/undo") return __stubResponse({ ok: true, message: "已撤销最近一次保存", session_id: "s-1", deleted: [], undeleted: [] });
     if (key === "POST /api/compare") return __stubResponse(SAMPLES.compareReport);
@@ -304,6 +344,7 @@ import {
     $, APP_STATE, switchTheme, renderApiError, refreshHealth,
     setStatusForSettingsHealth, renderEntries, openModal, closeModal,
     browsePath, getCurrentPath, getTreemapView, openPalette,
+    setMergeTop, // A20：矩形图合并阈值前置复位（该阈值是使用偏好，前置断言会改它）
     probeStopSupport, refreshSnapshots, openWipeModal,
     /* U3.5：主题三态（A19 断言面） */
     setThemePref, themePref, resolvedTheme,
@@ -332,7 +373,12 @@ function __renderResults() {
     passCount + "/" + total + " 通过" + (failCount ? "" : (total ? " ✔" : "")) + "</b>";
   document.getElementById("smoke-table").innerHTML = html;
   // 自动化验证口：把结论写进标题（suite 名 + 通过数），浏览器标签/工具可直接读取
-  document.title = "[suite=" + __currentSuite + "][" + (failCount ? "FAIL" : "PASS") + " " + passCount + "/" + total + "] " + document.title;
+  /* 2026-09-13：失败项 id 一并写进标题（`FAIL 3/23 · A18,A20,A22`）——
+     浏览器工具在无法注入脚本的环境下也能一眼定位是哪些断言红了，
+     不必再靠截图逐行找。 */
+  const failIds = __smoke.results.filter((r) => r.pass === false).map((r) => r.id).join(",");
+  document.title = "[suite=" + __currentSuite + "][" + (failCount ? "FAIL" : "PASS") + " " + passCount + "/" + total +
+    (failIds ? " · " + failIds : "") + "] " + document.title;
 }
 
 function __resetFormState() {
@@ -820,7 +866,7 @@ const ASSERTIONS_V2 = [
         await wait(20);
       }
     } },
-  { id: "A14", name: "U2.4：存储 chips 语义——chips 点击只切环形数据不触发 /api/browse（D15）；「浏览此盘」恰 1 次 browse 且 path=所选盘",
+  { id: "A14", name: "U2.4/2026-09-13：存储 chips 语义——chips 点击切环形数据 **且** 浏览该盘（恰 1 次 /api/browse）；「浏览此盘」同口径",
     fn: async function () {
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       // 默认 stub = overviewOk（双盘），启动链已渲染存储卡；条件等待 chips 就位
@@ -830,23 +876,37 @@ const ASSERTIONS_V2 = [
       const arc = document.querySelector("#overview-donut .donut-arc");
       const sub = document.querySelector("#overview-donut .donut-sub");
       const legendVal = document.querySelector("#overview-legend .donut-legend-value");
-      const d = chips[1].getAttribute("data-root");
-      __assert(chips[0].classList.contains("is-active"), "默认应激活第 1 个盘（首根）");
+      /* 目标盘 = **当前未激活**的那个 chip——不再假设「首盘必激活」：
+         前面的浏览断言（A9–A13）会经 pds:browse 反向联动把激活盘切到当前浏览根，
+         按 DOM 下标取盘是脆弱的（历史红灯 A14 首断言即源于此）。 */
+      const activeChip = chips.find((c) => c.classList.contains("is-active"));
+      const targetChip = chips.find((c) => !c.classList.contains("is-active")) || chips[1];
+      const d = targetChip.getAttribute("data-root");
+      __assert(chips.filter((c) => c.classList.contains("is-active")).length === 1,
+               "存储 chip 应恰有一个激活盘（实际 " + chips.filter((c) => c.classList.contains("is-active")).length + "）");
+      __assert(targetChip !== activeChip, "应存在一个未激活盘可供切换（激活 " + (activeChip && activeChip.getAttribute("data-root")) + "）");
       const legendBefore = legendVal.textContent;
-      // D15：chips 点击 → 0 次 /api/browse；环形/中心/图例切到所选盘（不重建目录）
+      // 盘符联动（用户实测反馈）：chips 点击 → 环形/中心/图例切到所选盘 + 左侧浏览该盘（恰 1 次）
       __smoke.fetchLog.length = 0;
-      chips[1].click();
-      await __waitUntil(() => chips[1].classList.contains("is-active"), 1500);
-      const browses = __smoke.fetchLog.filter((e) => e.url === "/api/browse").length;
-      __assert(browses === 0, "点击存储 chip 应 0 次 /api/browse（D15），实际 " + browses);
+      targetChip.click();
+      await __waitUntil(() => targetChip.classList.contains("is-active"), 1500);
       __assert(sub.textContent === d, "环形图中心副行应切为 " + d + "，实际「" + sub.textContent + "」");
       const legendAfter = document.querySelector("#overview-legend .donut-legend-value");
       __assert(legendAfter && legendAfter.textContent !== legendBefore, "图例「已使用」应随所选盘变化");
+      await __waitUntil(() => __smoke.fetchLog.filter((e) => e.url === "/api/browse").length >= 1, 2500);
+      const chipBrowses = __smoke.fetchLog.filter((e) => e.url === "/api/browse");
+      __assert(chipBrowses.length === 1, "点击存储 chip 应恰 1 次 /api/browse（盘符联动左侧浏览），实际 " + chipBrowses.length);
+      __assert(chipBrowses[0] && chipBrowses[0].body && chipBrowses[0].body.path === d,
+               "chip 触发的浏览 path 应为 " + d + "，实际 " + (chipBrowses[0] && chipBrowses[0].body && chipBrowses[0].body.path));
       await wait(900); // sweep 终帧（--dur-donut-sweep 800ms 权威值）
       const dash = parseFloat(getComputedStyle(arc).strokeDasharray) || 0;
-      const expect = 2 * Math.PI * 52 * (4800000 / (1200000 + 4800000)); // D 盘环比 80%
-      __assert(Math.abs(dash - expect) < 4, "D 盘弧长应 ≈ " + expect.toFixed(1) + "（环比 80%），实际 " + dash.toFixed(1));
-      // 「浏览此盘」= 唯一跳转浏览入口：恰 1 次 browse 且 path=所选盘
+      // 环比口径：选中盘已用 / 全部盘累计（stub 样本 C=1.2MB、D=4.8MB），按目标盘现算
+      const SAMPLE_TOTAL = { "C:\\": 1200000, "D:\\": 4800000 };
+      const pct = (SAMPLE_TOTAL[d] || 0) / (1200000 + 4800000);
+      const expect = 2 * Math.PI * 52 * pct;
+      __assert(Math.abs(dash - expect) < 4,
+               d + " 弧长应 ≈ " + expect.toFixed(1) + "（环比 " + (pct * 100).toFixed(0) + "%），实际 " + dash.toFixed(1));
+      // 「浏览此盘」与 chips 同收口：恰 1 次 browse 且 path=所选盘
       __smoke.fetchLog.length = 0;
       $("btn-overview-browse").click();
       await __waitUntil(() => __smoke.fetchLog.filter((e) => e.url === "/api/browse").length >= 1, 2500);
@@ -860,31 +920,39 @@ const ASSERTIONS_V2 = [
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       // 默认矩形图 → 切表格视图（U2.5 交叉淡化后行已渲染）
       $("btn-view-table").click();
-      await __waitUntil(() => document.querySelectorAll("#dir-body .row-check").length === 4, 2000);
+      __assert(await __waitUntil(() => document.querySelectorAll("#dir-body .row-check").length === 4, 2000),
+               "表格视图应渲染 4 个 checkbox（2 目录 + 2 文件），实际 " +
+               document.querySelectorAll("#dir-body .row-check").length);
       const boxes = () => Array.from(document.querySelectorAll("#dir-body .row-check"));
       __assert(boxes().length === 4, "表格视图应渲染 4 个 checkbox（2 目录 + 2 文件），实际 " + boxes().length);
       __assert($("list-count").textContent.indexOf("共 4 项") !== -1, "页脚应显示「共 4 项」，实际「" + $("list-count").textContent + "」");
+      __assert(await __waitUntil(() => $("list-selected").textContent.trim() === "已选 0 项", 2000),
+               "初始应「已选 0 项」，实际「" + $("list-selected").textContent + "」");
       __assert($("list-selected").textContent.indexOf("已选 0 项") !== -1, "初始应「已选 0 项」，实际「" + $("list-selected").textContent + "」");
       __assert($("list-selected-actions").hasAttribute("hidden"), "无选中时操作组应隐藏");
       // 单选 → 半选态 + 操作组出现
+      /* P4 加固（同一纪律：固定时序采样是 flake 根因）：点击后**轮询到目标态**再断言，
+         终态永不到达时断言依旧失败（保留查错力）；文案用**精确等值**（indexOf 会把
+         "已选 10 项" 也判成命中，且旧文本同样是 indexOf 命中源）。 */
       boxes()[0].click();
-      await wait(10);
-      __assert($("list-selected").textContent.indexOf("已选 1 项") !== -1, "单选后应「已选 1 项」");
-      __assert(!$("list-selected-actions").hasAttribute("hidden"), "选中后「定位所选/导出所选 CSV」应出现");
+      __assert(await __waitUntil(() => $("list-selected").textContent.trim() === "已选 1 项", 2000),
+               "单选后应「已选 1 项」，实际「" + $("list-selected").textContent + "」");
+      __assert(await __waitUntil(() => !$("list-selected-actions").hasAttribute("hidden"), 2000),
+               "选中后「定位所选/导出所选 CSV」应出现");
       __assert($("check-all").indeterminate === true, "部分选中时表头应为半选态");
       // Shift 范围选（anchor=item0 → 点击 item2：0..2 全选 = 3 项）
       boxes()[2].dispatchEvent(new MouseEvent("click", { bubbles: true, shiftKey: true }));
-      await wait(10);
-      __assert($("list-selected").textContent.indexOf("已选 3 项") !== -1, "Shift 范围选应「已选 3 项」（0..2），实际「" + $("list-selected").textContent + "」");
+      __assert(await __waitUntil(() => $("list-selected").textContent.trim() === "已选 3 项", 2000),
+               "Shift 范围选应「已选 3 项」（0..2），实际「" + $("list-selected").textContent + "」");
       // 第 4 项普通点选 → 全选 + 表头 checked
       boxes()[3].click();
-      await wait(10);
-      __assert($("list-selected").textContent.indexOf("已选 4 项") !== -1, "补选后应「已选 4 项」");
+      __assert(await __waitUntil(() => $("list-selected").textContent.trim() === "已选 4 项", 2000),
+               "补选后应「已选 4 项」，实际「" + $("list-selected").textContent + "」");
       __assert($("check-all").checked === true, "全选后表头应为 checked 态");
       // 表头点击 = 清选
       $("check-all").click();
-      await wait(10);
-      __assert($("list-selected").textContent.indexOf("已选 0 项") !== -1, "表头点击后应清选");
+      __assert(await __waitUntil(() => $("list-selected").textContent.trim() === "已选 0 项", 2000),
+               "表头点击后应清选，实际「" + $("list-selected").textContent + "」");
       __assert($("list-selected-actions").hasAttribute("hidden"), "清选后操作组应隐藏");
       // 排行视图同样渲染 checkbox（N08 口径：表格/排行视图底部固定行 + 首列 checkbox）
       $("btn-view-ranking").click();
@@ -985,51 +1053,30 @@ const ASSERTIONS_V2 = [
         await wait(200);
       }
     } },
-  { id: "A17", name: "U3.3：快照管理页——页头装配（创建/撤销）· 趋势卡×2 降级差值卡（▲/▼+百分比+无折线）· 基线选取（≤24h/(24h,7d]）· 点击预填跳转 · 跳过原因 tooltip（红线#7）· 逐盘对比预填 · 撤销确认流",
+  { id: "A17", name: "U3.3 + 2026-09-13：快照管理页——页头装配（创建/撤销）· 左右两栏（日历热力图 + 最近快照 + 筛选条 + 会话列表）· 会话可见性过滤（有内容且非夹具）· 跳过原因 tooltip（红线#7）· 逐盘对比预填跳转 · 撤销确认流",
     fn: async function () {
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-      const dayPath = "C:\\fake\\snapshots\\D_20260824_100000_auto_aabbccd.snap.gz";
-      const weekPath = "C:\\fake\\snapshots\\D_20260820_100000_explicit_aabbccd.snap.gz";
       const latestPath = "C:\\fake\\snapshots\\D_20260824_120000_explicit_aabbccd.snap.gz";
       try {
-        // ① 默认样本（1 会话 → 无基线）：页面装配 + 趋势卡空态 + 列表 1 条
+        // ① 默认样本（1 会话）：页面装配 + 会话列表 1 条
         location.hash = "#/snapshots";
         __assert(await __waitUntil(() => APP_STATE.route === "/snapshots", 2500), "应切到快照页");
         __assert($("btn-create-snapshot"), "页头应有「创建快照」按钮（F15）");
         __assert($("btn-undo-save"), "页头应有「撤销最近保存」按钮（F16）");
         __assert($("btn-create-snapshot").disabled === true, "无扫描结果时「创建快照」应置灰（N06）");
         __assert($("btn-undo-save").disabled === false, "有会话时「撤销」应可用");
-        __assert(document.querySelectorAll(".trend-card").length === 2, "趋势区应渲染 2 张卡（较昨日/较上周）");
-        const empties = Array.from(document.querySelectorAll(".trend-card.is-empty"));
-        __assert(empties.length === 2 && empties.every((c) => c.textContent.indexOf("暂无可用的对比基准") !== -1),
-                 "单份快照时两卡均应「暂无可用的对比基准」（定稿 6.5；P5·D5-5 术语改词）");
         __assert(document.querySelectorAll("#snapshot-list .session-item").length === 1, "列表应渲染 1 个会话");
-        // ② 3 会话（跨 4 天 + 跳过盘）：趋势卡升级为差值卡（降级形态），各自恰 1 次 /api/compare
+        /* 2026-09-13 改版：左栏 = 快照日历 + 最近快照；P6 的「较昨日/较上周」趋势卡已移除
+           （见 snapshots.js prefillAndGoCompare 注记）——旧 .trend-card/data-slot 断言随之删除 */
+        __assert($("snapshot-calendar") && $("snapshot-recent"), "左栏应有快照日历 + 最近快照两卡");
+        __assert(document.querySelectorAll("#snapshot-recent .recent-item").length === 1,
+                 "最近快照应列出该会话，实际 " + document.querySelectorAll("#snapshot-recent .recent-item").length);
+        // ② 3 会话（跨 4 天 + 跳过盘）：列表 3 条 + 跳过原因 tooltip（红线 #7）
         __smoke.routes["GET /api/snapshots"] = { ok: true, sessions: SAMPLES.snapshotsTrend.sessions, count: 3 };
         __smoke.fetchLog.length = 0;
         await refreshSnapshots();
-        __assert(await __waitUntil(() => document.querySelector(".trend-card[data-slot='day'] .trend-delta") &&
-                                         document.querySelector(".trend-card[data-slot='week'] .trend-delta"), 4000),
-                 "两卡应渲染差值（/api/compare 完成）");
-        const dayCard = document.querySelector(".trend-card[data-slot='day']");
-        const weekCard = document.querySelector(".trend-card[data-slot='week']");
-        __assert(dayCard.getAttribute("data-baseline") === dayPath, "较昨日基线应取 ≤24h 最近一份（08-24 10:00）");
-        __assert(weekCard.getAttribute("data-baseline") === weekPath, "较上周基线应取 (24h,7d] 最近一份（08-20 10:00）");
-        __assert(dayCard.getAttribute("data-root") === "D:\\", "趋势卡应带盘符根");
-        __assert(dayCard.getAttribute("data-target") === latestPath, "目标应=该盘最新快照");
-        const deltaText = dayCard.querySelector(".trend-delta").textContent;
-        __assert(deltaText.indexOf("▼") !== -1 && deltaText.indexOf("-10.00 B") !== -1,
-                 "差值卡应含 ▼ 与负值（色盲冗余符号），实际「" + deltaText + "」");
-        __assert(dayCard.querySelector(".trend-pct").textContent.indexOf("-0.06%") !== -1,
-                 "差值卡应含百分比 -0.06%，实际「" + dayCard.querySelector(".trend-pct").textContent + "」");
-        __assert(dayCard.querySelector(".trend-sub").textContent.indexOf("2026-08-24 10:00:00") !== -1 &&
-                 dayCard.querySelector(".trend-sub").textContent.indexOf("2026-08-24 12:00:00") !== -1,
-                 "副行应显示 基线→最新 时间");
-        const cmpCalls = __smoke.fetchLog.filter((e) => e.url === "/api/compare");
-        __assert(cmpCalls.length === 2, "两卡应各自恰 1 次 /api/compare（复用既有接口），实际 " + cmpCalls.length);
-        __assert(cmpCalls.every((c) => c.body && c.body.root === "D:\\" && c.body.baseline),
-                 "compare 载荷应含 root/baseline");
-        // 列表：3 会话（含跳过盘 + 原因 tooltip——红线 #7 SKIP_REASON_TEXT）
+        __assert(await __waitUntil(() => document.querySelectorAll("#snapshot-list .session-item").length === 3, 3000),
+                 "列表应渲染 3 个会话，实际 " + document.querySelectorAll("#snapshot-list .session-item").length);
         const items = Array.from(document.querySelectorAll("#snapshot-list .session-item"));
         __assert(items.length === 3, "列表应渲染 3 个会话，实际 " + items.length);
         const skipTag = document.querySelector("#snapshot-list .tag-skip");
@@ -1039,20 +1086,17 @@ const ASSERTIONS_V2 = [
                  "跳过原因 tooltip 应含 SKIP_REASON_TEXT（红线#7），实际「" + skipTitle + "」");
         __assert(document.querySelector("#snapshot-list .skip-reason"), "跳过原因文本应可见");
         __assert(document.querySelector("#snapshot-list .tag-auto"), "应出现「自动」标签");
-        // ③ 趋势卡点击 → #/compare 预填（APP_STATE 传递，不走 URL）
-        APP_STATE.compare.baseline = ""; APP_STATE.compare.target = ""; APP_STATE.compare.root = "";
-        dayCard.click();
-        __assert(await __waitUntil(() => APP_STATE.route === "/compare", 2500), "点击趋势卡应跳转 #/compare");
-        __assert(APP_STATE.compare.baseline === dayPath, "baseline 应预填较昨日基线，实际「" + APP_STATE.compare.baseline + "」");
-        __assert(APP_STATE.compare.target === latestPath, "target 应预填同盘符最新快照");
-        __assert(APP_STATE.compare.root === "D:\\", "root 应预填 D:\\");
-        // 回快照页：趋势卡应从缓存回灌（不重发 /api/compare——切页不丢）
-        location.hash = "#/snapshots";
-        __assert(await __waitUntil(() => APP_STATE.route === "/snapshots", 2500), "应回到快照页");
-        __assert(await __waitUntil(() => document.querySelector(".trend-card[data-slot='day'] .trend-delta"), 2000),
-                 "返回后较昨日卡应直接回灌差值");
-        const cmpAfterReturn = __smoke.fetchLog.filter((e) => e.url === "/api/compare").length;
-        __assert(cmpAfterReturn === 2, "返回不应重发 /api/compare（缓存回灌），实际 " + cmpAfterReturn);
+        /* 盘行大小来自 additive total_by_root（夹具已补该字段——缺它会话会被判「空」而隐藏） */
+        const rootMeta = Array.from(document.querySelectorAll("#snapshot-list .session-root-meta")).map((el) => el.textContent);
+        __assert(rootMeta.some((t) => /15\.63 KB/.test(t)),
+                 "盘行应显示该盘快照总量（total_by_root=16000B→15.63 KB），实际 " + JSON.stringify(rootMeta));
+        /* 日历：3 次保存落在 2 天（08-20 / 08-24），默认展示「数据里最新一天所在月」 */
+        __assert(document.querySelectorAll("#snapshot-calendar .cal-cell.has-snap").length >= 2,
+                 "日历应有至少 2 个「有快照」日期格，实际 " +
+                 document.querySelectorAll("#snapshot-calendar .cal-cell.has-snap").length);
+        // ③ 快照页不再发 /api/compare（趋势卡已移除；对比一律在对比页发起）
+        __assert(__smoke.fetchLog.filter((e) => e.url === "/api/compare").length === 0,
+                 "快照页不应再发 /api/compare（趋势卡已随改版移除）");
         // ④ 逐盘「对比此快照」→ 预填 + 跳转
         APP_STATE.compare.baseline = ""; APP_STATE.compare.target = ""; APP_STATE.compare.root = "";
         document.querySelector("#snapshot-list .act-cmp-snap").click();
@@ -1079,10 +1123,9 @@ const ASSERTIONS_V2 = [
         await wait(600);
       }
     } },
-  { id: "A18", name: "U3.4：对比工作台页——页头装配（基线 datalist+目标只读+开始对比）· 三入口预填（趋势卡/迷你卡/直达默认最近一份）· 自动执行与骨架屏 · 摘要 3 卡 count-up · 红绿发散图 L3-6（中轴/增长红·缩减绿/▲▼/500ms 生长/pop-in 徽标）· 表格行+F19 定位/复制路径 · 空态（定稿 6.5）",
+  { id: "A18", name: "U3.4 + 2026-09-13：对比页——页头装配（基准下拉+当前磁盘状态行+开始对比）· 三入口预填（快照页逐盘对比/工作台迷你条目/直达默认最近一份）· 自动执行与骨架屏 · 摘要 3 卡 count-up · 表格行+F19 定位/复制路径 · 状态行口径 · 空态（定稿 6.5）；发散图区已移除（断言其不存在）",
     fn: async function () {
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-      const dayPath = "C:\\fake\\snapshots\\D_20260824_100000_auto_aabbccd.snap.gz";
       const latestPath = "C:\\fake\\snapshots\\D_20260824_120000_explicit_aabbccd.snap.gz";
       const singlePath = "C:\\fake\\snapshots\\D_20260824_100000_explicit_aabbccd.snap.gz";
       try {
@@ -1102,27 +1145,30 @@ const ASSERTIONS_V2 = [
         __assert(emptyText.indexOf("选择一份对比基准（历史快照）") !== -1 && emptyText.indexOf("开始对比两个时间点的空间变化") !== -1,
                  "空态文案=定稿 6.5（P5·D5-1 术语改词后），实际「" + emptyText + "」");
         __assert($("compare-result").hasAttribute("hidden"), "无结果时结果区应隐藏");
-        /* ② 趋势卡点击 → trio 预填 + 结果共享渲染（不重发 /api/compare——A17 计数口径保持） */
+        /* ② 快照页入口：逐盘「对比此快照」→ trio 预填（趋势卡已随快照页改版移除，
+           替代入口 = 会话列表的逐盘对比按钮；对比页落地后自行发起 /api/compare） */
         location.hash = "#/snapshots";
-        __assert(await __waitUntil(() => APP_STATE.route === "/snapshots", 2500), "应切到快照页（趋势卡入口）");
+        __assert(await __waitUntil(() => APP_STATE.route === "/snapshots", 2500), "应切到快照页");
         __smoke.routes["GET /api/snapshots"] = { ok: true, sessions: SAMPLES.snapshotsTrend.sessions, count: 3 };
         __smoke.fetchLog.length = 0;
         await refreshSnapshots();
-        __assert(await __waitUntil(() => document.querySelector(".trend-card[data-slot='day'] .trend-delta"), 4000), "趋势卡差值就绪");
+        __assert(await __waitUntil(() => document.querySelectorAll("#snapshot-list .session-item").length === 3, 3000),
+                 "快照列表应就绪（3 会话）");
         APP_STATE.compare.baseline = ""; APP_STATE.compare.root = ""; APP_STATE.compare.target = ""; APP_STATE.compare.result = null;
         const beforeClick = __smoke.fetchLog.filter((e) => e.url === "/api/compare").length;
-        document.querySelector(".trend-card[data-slot='day']").click();
-        __assert(await __waitUntil(() => APP_STATE.route === "/compare", 2500), "趋势卡点击应跳 #/compare");
-        __assert(APP_STATE.compare.baseline === dayPath && APP_STATE.compare.root === "D:\\" &&
+        document.querySelector("#snapshot-list .act-cmp-snap").click();
+        __assert(await __waitUntil(() => APP_STATE.route === "/compare", 2500), "逐盘对比应跳 #/compare");
+        __assert(APP_STATE.compare.baseline === latestPath && APP_STATE.compare.root === "D:\\" &&
                  APP_STATE.compare.target === latestPath,
-                 "趋势卡预填 trio（baseline/root/target），实际 " + JSON.stringify({ b: APP_STATE.compare.baseline, r: APP_STATE.compare.root, t: APP_STATE.compare.target }));
+                 "逐盘对比预填 trio（baseline/root/target），实际 " + JSON.stringify({ b: APP_STATE.compare.baseline, r: APP_STATE.compare.root, t: APP_STATE.compare.target }));
         __assert(await __waitUntil(() => $("compare-summary") && $("compare-summary").querySelectorAll(".compare-stat").length === 3, 4000),
-                 "摘要 3 卡渲染（缓存共享回灌）");
+                 "摘要 3 卡渲染（对比页自行发起）");
         __assert($("compare-current").textContent.indexOf("D:") !== -1 &&
                  $("compare-current").textContent.indexOf("当前：") === 0,
                  "当前磁盘状态行应显示「当前：<盘> · 数据时间 …」，实际「" + $("compare-current").textContent + "」");
         const sharedCalls = __smoke.fetchLog.filter((e) => e.url === "/api/compare").length;
-        __assert(sharedCalls === beforeClick, "趋势卡点击 → 对比页落地渲染不重发（结果共享自趋势卡缓存），" + beforeClick + " → " + sharedCalls);
+        __assert(sharedCalls >= beforeClick,
+                 "对比页落地后应自行发起对比（不再有趋势卡缓存共享），" + beforeClick + " → " + sharedCalls);
         __assert($("compare-baseline").tagName === "SELECT" && $("compare-baseline").querySelectorAll("option").length === 3,
                  "对比基准下拉应含 3 个快照选项（P5·D5-2：原 datalist 3 项断言改为下拉可选项数）");
         /* ③ 直达（默认最近一份）+ 富样本：骨架屏 → 摘要 count-up → 发散图 L3-6 → 表格 F19 */
@@ -1155,33 +1201,12 @@ const ASSERTIONS_V2 = [
         const statCls = Array.from(document.querySelectorAll("#compare-summary .compare-stat-value")).map((el) => el.className);
         __assert(statCls[0].indexOf("grow") !== -1 && statCls[1].indexOf("grow") !== -1 && statCls[2].indexOf("shrink") !== -1,
                  "摘要颜色语义 grow/grow/shrink，实际 " + JSON.stringify(statCls));
-        const tokenCol = (name) => { const d = document.createElement("div"); d.style.color = "var(" + name + ")"; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; };
-        const rows = Array.from(document.querySelectorAll("#compare-diverge .diverge-row"));
-        __assert(rows.length === 4, "发散图应渲染 4 行（Top8 切片），实际 " + rows.length);
-        __assert(document.querySelectorAll("#compare-diverge .diverge-bar-grow").length === 2 &&
-                 document.querySelectorAll("#compare-diverge .diverge-bar-shrink").length === 1,
-                 "发散图应 增长条×2 + 缩减条×1（持平行=中轴中性标记）");
-        const axis = document.querySelector("#compare-diverge .diverge-axis");
-        __assert(!!axis, "应有中轴（基线）");
-        const growBar = document.querySelector("#compare-diverge .diverge-bar-grow");
-        const shrinkBar = document.querySelector("#compare-diverge .diverge-bar-shrink");
-        __assert(growBar && growBar.classList.contains("diverge-bar-grow") && shrinkBar && shrinkBar.classList.contains("diverge-bar-shrink"),
-                 "增长/缩减条类名应存在（左红/右绿几何与颜色在 u34 探针按 style.css 实测）");
-        const growBarReal = document.querySelector("#compare-diverge .diverge-bar-grow");
-        const growAnim = (growBarReal && growBarReal.getAnimations()[0]) || null;
-        if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          __assert(true, "L3-6 生长/徽标按 reduced-motion 直显终值（动画参数断言降级跳过）");
-        } else {
-          __assert(growAnim && growAnim.effect && growAnim.effect.getTiming().duration === 500,
-                   "L3-6 中轴生长 500ms（--dur-diverge），实际 " + (growAnim && growAnim.effect && growAnim.effect.getTiming().duration));
-          const badgeAnim = document.querySelector("#compare-diverge .diverge-badge").getAnimations()[0];
-          __assert(badgeAnim && badgeAnim.effect && badgeAnim.effect.getTiming().duration === 320 &&
-                   /scale\(0?\.8\)/.test(String(badgeAnim.effect.getKeyframes()[0].transform)),
-                   "徽标 pop-in：320ms（--dur-3）+ scale .8→1（--ease-spring）");
-        }
-        const signs = Array.from(document.querySelectorAll("#compare-diverge .diverge-sign")).map((el) => el.textContent);
-        __assert(signs.filter((s) => s === "▲").length === 2 && signs.filter((s) => s === "▼").length === 1 && signs.filter((s) => s === "±").length === 1,
-                 "发散图 ▲/▼/± 冗余符号，实际 " + JSON.stringify(signs));
+        /* ③c 2026-09-13：红绿发散图区（原 #compare-diverge / .diverge-*）已按用户实测反馈
+           整体移除（与摘要卡+明细表信息重复），原 L3-6 生长动画/徽标 pop-in 断言随之删除。
+           本节改为断言「发散图确实不存在 + 摘要/表格承担同口径信息」。 */
+        __assert(!document.querySelector("#compare-diverge") &&
+                 !document.querySelector(".compare-diverge"),
+                 "发散图区应已移除（与摘要卡+明细表重复）");
         const trs = document.querySelectorAll("#compare-body tr");
         __assert(trs.length === 4, "表格应渲染 4 行，实际 " + trs.length);
         __assert(/▲ \+1\.95 KB/.test($("compare-body").rows[0].cells[0].textContent),
@@ -1356,6 +1381,10 @@ const ASSERTIONS_V2 = [
       try {
         /* ---- ① 前置：脚手架画布尺寸约束（无 style.css → flex 高度缺失致画布失控巨条；
             像素采样需真实几何；真实页由 .main-col flex 布局保证） + 回工作台 + 样本接管 ---- */
+        /* 前置隔离：矩形图合并阈值是**使用偏好**（A21 会把它改成 200）——不显式复位时
+           本断言的「3 块布局」会随执行顺序变成 4 块（小目录被并成一块），实测 flake。
+           本项要的是「≤mergeTop 24 → data/docs/readme 独立成块」，故自己钉死阈值。 */
+        setMergeTop(24);
         $("treemap-wrap").style.width = "100%";
         $("treemap-wrap").style.height = "360px";
         await wait(150); // ResizeObserver → doResize 重排
@@ -1363,11 +1392,15 @@ const ASSERTIONS_V2 = [
         __assert(await __waitUntil(() => APP_STATE.route === "/" && !!getTreemapView() && getTreemapView().getLayout().length >= 1, 8000),
                  "应回到工作台且矩形图已有布局");
         __smoke.routes["POST /api/browse"] = SAMPLES.browseFocus;
+        /* P4 加固：browsePath 对**同路径**会短路（不发请求），而前面几项断言可能已把
+           当前路径留在样本根上 → 这里只需保证最终拿到样本布局，不必依赖"这次一定发请求"：
+           轮询到 3 块（data/docs/readme，≤mergeTop 24 无合并块）即算接管成功。 */
         await browsePath("D:\\");
         __assert(await __waitUntil(() => {
           const v = getTreemapView();
-          return v && !v.isAnimating() && v.getLayout().length === 3; // data/docs/readme（≤mergeTop 24 无合并块）
-        }, 8000), "样本接管后应 3 块布局（data/docs/readme）");
+          return v && !v.isAnimating() && v.getLayout().length === 3;
+        }, 8000), "样本接管后应 3 块布局（data/docs/readme），实际 " +
+                  ((getTreemapView() && getTreemapView().getLayout().length) || 0) + " 块");
         const v = getTreemapView();
 
         /* ---- ② 容器可聚焦 + 焦点块初始化（tabindex=0；focusin 从最大块起） ---- */
@@ -1491,6 +1524,166 @@ const ASSERTIONS_V2 = [
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         location.hash = "#/";
         await wait(500);
+      }
+    } },
+  { id: "A21", name: "2026-09-13：使用偏好持久化 + 设置分页——「常规/使用偏好/危险区」切换（pane 显隐与 aria-selected 同步）；偏好区由 prefs.js 注册表渲染（6 项/3 组）；改默认视图写入 pds_prefs_v1 并当场生效；越界数值夹取回显；恢复默认清空回落",
+    fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      try { localStorage.removeItem("pds_prefs_v1"); } catch (e) { /* ignore */ }
+      // 真实入口：点设置按钮开弹窗（openSettings → 分页回显 + renderPrefs）
+      $("btn-settings").click();
+      const ready = await __waitUntil(() => document.querySelectorAll("#settings-prefs .pref-row").length >= 1, 3000);
+      __assert(ready, "设置弹窗应渲染使用偏好行");
+      /* 分页（2026-09-13 第二轮）：默认「常规」可见、偏好/危险区隐藏；点分页条切换 */
+      __assert(!$("pane-general").hasAttribute("hidden"), "默认应停在「常规」分页");
+      __assert($("pane-prefs").hasAttribute("hidden"), "「使用偏好」分页应默认隐藏");
+      __assert($("tab-general").getAttribute("aria-selected") === "true", "常规分页 aria-selected=true");
+      $("tab-prefs").click();
+      await wait(30);
+      __assert(!$("pane-prefs").hasAttribute("hidden") && $("pane-general").hasAttribute("hidden"),
+               "点「使用偏好」分页应切换显隐");
+      __assert($("tab-prefs").getAttribute("aria-selected") === "true" &&
+               $("tab-general").getAttribute("aria-selected") === "false", "分页 aria-selected 应同步");
+      $("tab-danger").click();
+      await wait(30);
+      __assert(!$("pane-danger").hasAttribute("hidden") && !!$("btn-wipe-open"), "危险区分页应可见且含「一键清空」入口");
+      $("tab-prefs").click();
+      await wait(30);
+      const rows = document.querySelectorAll("#settings-prefs .pref-row").length;
+      const groups = Array.from(document.querySelectorAll("#settings-prefs .pref-group-title")).map((el) => el.textContent);
+      __assert(rows === 6, "偏好行应 6 项（注册表 PREF_REGISTRY），实际 " + rows);
+      __assert(groups.join(",") === "工作台,列表,对比", "偏好分组应为 工作台/列表/对比，实际 " + groups.join(","));
+      __assert(($("settings-prefs-note") || {}).textContent === "当前全部为默认值",
+               "未改过时提示应为「当前全部为默认值」，实际「" + ($("settings-prefs-note") || {}).textContent + "」");
+      // 改默认视图 → 存储 + 当场生效（同一收口 workspace.setBrowseView）
+      const sel = document.querySelector('#settings-prefs [data-pref="view.mode"]');
+      sel.value = "ranking";
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+      await wait(80);
+      const doc = localStorage.getItem("pds_prefs_v1") || "";
+      __assert(doc.indexOf("ranking") !== -1, "改默认视图应写入 pds_prefs_v1，实际 " + doc);
+      __assert($("btn-view-ranking").classList.contains("btn-primary"), "改默认视图应当场生效（排行按钮高亮）");
+      // 越界数值 → 清洗夹取并回显
+      const num = document.querySelector('#settings-prefs [data-pref="view.mergeTop"]');
+      num.value = "5000";
+      num.dispatchEvent(new Event("change", { bubbles: true }));
+      await wait(80);
+      __assert(num.value === "200", "合并阈值越界应夹取到 200 并回显，实际 " + num.value);
+      // 恢复默认 → 无自定义项 + 视图回落矩形图
+      $("btn-reset-prefs").click();
+      await wait(80);
+      const after = localStorage.getItem("pds_prefs_v1") || "";
+      __assert(after.indexOf("ranking") === -1 && after.indexOf("200") === -1,
+               "恢复默认后不应残留自定义项，实际 " + after);
+      __assert($("btn-view-treemap").classList.contains("btn-primary"), "恢复默认后视图应回落矩形图");
+      closeModal("settings-modal");
+      try { localStorage.removeItem("pds_prefs_v1"); } catch (e) { /* ignore */ }
+      await wait(50);
+    } },
+  { id: "A22", name: "2026-09-13 第四轮：对比页折线点选=选对比基准（用户实测反馈）——多选 3 份成线并标出基准环；点数据点/Enter → state.baseline 换成该快照 + 重发 /api/compare 且 baseline 正确 + 已选清单保留（不塌缩成单选）+ 折线保留 3 点 + data-active 更新；图上空处点击不误改基准",
+    fn: async function () {
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const latest = "C:\\fake\\snapshots\\D_20260824_120000_explicit_aabbccd.snap.gz";
+      const mid = "C:\\fake\\snapshots\\D_20260824_100000_auto_aabbccd.snap.gz";
+      const oldest = "C:\\fake\\snapshots\\D_20260820_100000_explicit_aabbccd.snap.gz";
+      try {
+        __smoke.routes["GET /api/snapshots"] = { ok: true, sessions: SAMPLES.snapshotsTrend.sessions, count: 3 };
+        __smoke.routes["POST /api/compare"] = SAMPLES.compareRich;
+        __smoke.routes["GET /api/series"] = SAMPLES.seriesOk; // 本断言自带（不依赖默认桩）
+        await refreshSnapshots();
+        APP_STATE.compare.baseline = ""; APP_STATE.compare.root = "";
+        APP_STATE.compare.baselines = [];
+        APP_STATE.compare.result = null;
+        location.hash = "#/compare";
+        __assert(await __waitUntil(() => APP_STATE.route === "/compare" && $("compare-baseline"), 2500),
+                 "应切到对比页");
+        __assert(await __waitUntil(() => $("compare-baseline").options.length === 3, 2500),
+                 "对比基准下拉应有 3 个选项（同盘各次保存）");
+        /* 多选 3 份 → 折线成线（≥2 份） */
+        const sel = $("compare-baseline");
+        Array.from(sel.options).forEach((o) => { o.selected = true; });
+        __smoke.fetchLog.length = 0;
+        sel.dispatchEvent(new Event("change", { bubbles: true }));
+        __assert(APP_STATE.compare.baseline === latest,
+                 "多选后主对比基准应仍是「最近一份」（点选前口径不变），实际 " + APP_STATE.compare.baseline);
+        __assert(APP_STATE.compare.baselines.length === 3,
+                 "已选清单应记 3 份，实际 " + JSON.stringify(APP_STATE.compare.baselines));
+        __assert(await __waitUntil(() => document.querySelectorAll("#compare-trend-host .line-dot").length === 3, 4000),
+                 "折线应渲染 3 个数据点，实际 " + document.querySelectorAll("#compare-trend-host .line-dot").length);
+        __assert(($("compare-trend-host").dataset.active || "") === "0",
+                 "点选前基准环应落在第 0 点（最新一份），实际 " + $("compare-trend-host").dataset.active);
+        __assert($("compare-trend-sub").textContent.indexOf("正与") === -1,
+                 "未点选时不应宣称「正与 … 比」，实际「" + $("compare-trend-sub").textContent + "」");
+        /* 点第 3 个数据点（= 08-20 最早一份）→ 换对比基准 */
+        const svg = document.querySelector("#compare-trend-host .line-svg");
+        const dot = document.querySelectorAll("#compare-trend-host .line-dot")[2];
+        const dr = dot.getBoundingClientRect();
+        const sr = svg.getBoundingClientRect();
+        __assert(dr.width > 0 && sr.width > 0, "数据点应有可见矩形（布局已就绪）");
+        svg.dispatchEvent(new MouseEvent("click", {
+          bubbles: true, clientX: dr.left + dr.width / 2, clientY: dr.top + dr.height / 2,
+        }));
+        __assert(APP_STATE.compare.baseline === oldest,
+                 "点第 3 个数据点后对比基准应换成该快照（08-20），实际 " + APP_STATE.compare.baseline.replace(/^.*[\\/]/, ""));
+        /* ⚠️ 主基准的读取口径是 sel.dataset.base（表单层显式值），**不是** sel.value——
+           <select multiple> 的 value 恒等于「DOM 里第一个 selected 项」= 多选时永远是最新一份，
+           这正是修复前「多选后下方对比恒跟最近一份比」的成因（见 compare.js 主基准收口注记）。 */
+        __assert(sel.dataset.base === oldest,
+                 "主基准表单值（dataset.base）应同步为点中的快照，实际 " + String(sel.dataset.base || "").replace(/^.*[\\/]/, ""));
+        __assert(sel.selectedOptions.length >= 2,
+                 "已选清单应保留多份（点选不塌缩成单选），实际 selected=" + sel.selectedOptions.length +
+                 " picks=" + JSON.stringify(APP_STATE.compare.baselines.map((p) => p.replace(/^.*[\\/]/, ""))));
+        __assert(APP_STATE.compare.baselines.length === 3,
+                 "点选后 state 已选清单应保留 3 份，实际 " + APP_STATE.compare.baselines.length);
+        __assert(document.querySelectorAll("#compare-trend-host .line-dot").length === 3,
+                 "点选后折线应保留 3 个点（不塌缩），实际 " +
+                 document.querySelectorAll("#compare-trend-host .line-dot").length);
+        __assert(($("compare-trend-host").dataset.active || "") === "2",
+                 "基准环应移到第 2 点，实际 " + $("compare-trend-host").dataset.active);
+        __assert($("compare-trend-sub").textContent.indexOf("正与 2026-08-20") !== -1,
+                 "趋势副行应给出「正与 … 比」可见回执，实际「" + $("compare-trend-sub").textContent + "」");
+        __assert($("compare-baseline-hint").textContent.indexOf("对比 2026-08-20") !== -1,
+                 "页头「已选 N 份」提示应带主对比基准，实际「" + $("compare-baseline-hint").textContent + "」");
+        /* 下方对比改按点中的快照重跑 */
+        const posts = __smoke.fetchLog.filter((e) => e.method === "POST" && e.url === "/api/compare");
+        __assert(posts.length >= 1 && posts[posts.length - 1].body &&
+                 posts[posts.length - 1].body.baseline === oldest,
+                 "点选后应重发 /api/compare 且 baseline = 点中的快照，实际 " +
+                 JSON.stringify(posts.length ? posts[posts.length - 1].body : null));
+        /* 图上空处点击 → 不命中任何点 → 不得改基准。
+           y 取绘图区底部（宿主高 72~：底部 20px 是 X 轴刻度区），与各点像素距离 > 命中半径。 */
+        const beforeFar = APP_STATE.compare.baseline;
+        svg.dispatchEvent(new MouseEvent("click", {
+          bubbles: true, clientX: sr.left + 10, clientY: sr.top + sr.height - 2,
+        }));
+        __assert(APP_STATE.compare.baseline === beforeFar,
+                 "图上空处点击不应误改对比基准（命中半径守卫），实际 " + APP_STATE.compare.baseline);
+        __assert($("compare-trend-host").dataset.active === "2",
+                 "空处点击后基准环不应移动，实际 " + $("compare-trend-host").dataset.active);
+        /* 键盘等价路径：←/→ 移动读数游标 + Enter 选中游标所在点。
+           直接设 dataset.cursor（宿主 focus() 的焦点语义在自动化上下文里不可靠：
+           未连到驱动焦点时 focus 事件不触发，游标停在旧下标 → 断言随顺序 flake），
+           断言的是**键位处理契约**本身（Enter 取 dataset.cursor 下标并把该点设为基准）。 */
+        const tHost = $("compare-trend-host");
+        tHost.dataset.cursor = "1";
+        tHost.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+        await wait(30);
+        __assert(APP_STATE.compare.baseline === mid,
+                 "Enter 应把读数游标所在点（第 2 点 08-24 10:00）设为对比基准，实际 " +
+                 String(APP_STATE.compare.baseline || "").replace(/^.*[\\/]/, "") +
+                 " · cursor=" + String(tHost.dataset.cursor));
+        __assert($("compare-trend-host").dataset.active === "1",
+                 "Enter 后基准环应移到第 1 点，实际 " + $("compare-trend-host").dataset.active);
+      } finally {
+        __smoke.delayMs = 0;
+        delete __smoke.routes["GET /api/snapshots"];
+        delete __smoke.routes["POST /api/compare"];
+        APP_STATE.compare.baseline = ""; APP_STATE.compare.root = "";
+        APP_STATE.compare.baselines = [];
+        APP_STATE.compare.result = null; APP_STATE.compare.lastSummary = null;
+        await refreshSnapshots();
+        location.hash = "#/";
+        await wait(300);
       }
     } },
 ];

@@ -6,6 +6,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+/* 折线读数落位（viz/line.js 真实现；见文件末尾「折线读数落位」段）——
+   line.js 仅依赖 motion-core 纯函数与 api.js 文本工具，无 DOM 副作用，可直接 import。 */
+import { readoutLeft } from "../../web/static/js/app/viz/line.js";
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7 * DAY_MS;
 const SLOTS = [
@@ -148,4 +152,41 @@ test("多盘混合：C 盘无窗口基线但 D 盘有 → 命中（确定性取�
     const day = pickTrendForSlot(s, SLOTS[0]);
     assert.ok(day, "C 盘 23h 命中较昨日");
     assert.equal(day.root, "C:\\");
+});
+
+/* ================= 折线读数落位（viz/line.js 纯函数，2026-09-13 第二轮） =================
+   用户实测：悬浮到最左/最右数据点时，读数的快照大小会越出卡片、最右时超出窗口被截断
+   （1366×768 实测末点 overflowRight=+123px、超视口 94px）。
+   本模块直接 import 真实现（line.js 无 UI 副作用，仅 import 纯函数）。 */
+test("readoutLeft：默认贴游标右侧（+gap）", () => {
+    assert.equal(readoutLeft(100, 120, 1200), 112);
+    assert.equal(readoutLeft(0, 120, 1200), 12);
+});
+
+test("readoutLeft：右侧放不下 → 翻到游标左侧", () => {
+    // 游标 x=1100、读数 150 → 右侧 1112+150=1262 > 1196 → 翻左：1100-12-150 = 938
+    assert.equal(readoutLeft(1100, 150, 1200), 938);
+    // 右侧刚好放得下（1162 ≤ 1196）→ 不翻
+    assert.equal(readoutLeft(1000, 150, 1200), 1012);
+});
+
+test("readoutLeft：最右数据点不越出宿主（用户实测场景）", () => {
+    const hostW = 1308;              // 1366 视口下趋势卡宿主宽度实测
+    const ptX = 1308 - 14;           // 末点 x ≈ 右内边距处
+    const left = readoutLeft(ptX, 149, hostW);
+    assert.ok(left + 149 <= hostW - 4, "读数右边界应落在宿主内，实际 right=" + (left + 149));
+    assert.ok(left >= 4, "读数左边界不应为负");
+});
+
+test("readoutLeft：最左数据点不越出宿主左边", () => {
+    const left = readoutLeft(62, 149, 1308);   // 首点 x = LINE_PAD.l
+    assert.equal(left, 74);
+    assert.ok(left >= 4);
+});
+
+test("readoutLeft：宿主比读数还窄 → 夹到左边界（退化态不抛）", () => {
+    assert.equal(readoutLeft(10, 400, 300), 4);
+    // 尺寸不可得（首帧/未布局）：返回有限数且不越左边界，绝不 NaN
+    const degenerate = readoutLeft(NaN, NaN, NaN);
+    assert.ok(Number.isFinite(degenerate) && degenerate >= 0, "退化输入应返回有限非负值，实际 " + degenerate);
 });

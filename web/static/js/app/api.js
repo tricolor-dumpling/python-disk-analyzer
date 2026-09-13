@@ -18,7 +18,19 @@ export function esc(text) {
 }
 
 export async function api(url, options) {
-    const resp = await fetch(url, options);
+    let resp;
+    try {
+        resp = await fetch(url, options);
+    } catch (e) {
+        /* 网络层失败（断网/服务未启动/连接被拒）：fetch 直接 reject TypeError
+           （原生文案 "Failed to fetch" 是英文且不友好）——映射为友好中文，
+           原始错误保留在 console 供排查 */
+        if (e instanceof TypeError) {
+            try { console.error("[api] 网络请求失败：", url, e); } catch (e2) { /* ignore */ }
+            throw new Error("无法连接本地服务，请确认程序正在运行");
+        }
+        throw e;
+    }
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok || data.ok === false) {
         // P12·W1.3：新形态错误 {ok,error,code,detail} 把 code/detail 挂到 Error 上；

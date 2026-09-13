@@ -61,6 +61,7 @@ import { toast } from "../components/toast.js";
 import { setStatus } from "../components/statusbar.js";
 import { renderApiError } from "../components/feedback.js";
 import { getDrives } from "../components/drives.js"; // P5（D5-4）：盘符清单唯一来源（后端真枚举）
+import { getPref, setPref } from "../prefs.js"; // 2026-09-13：使用偏好持久化（视图/阈值/列表筛选排序）
 import { flip as motionFlip, motionDur, motionEase, reducedMotion } from "../motion.js";
 import { isTypingEvent } from "../keys.js"; // U4.1：单键守卫共享（Backspace 同口径）
 import {
@@ -587,9 +588,11 @@ function renderStrip() {
    （P2 帧级基线实测 166/497 窗口内帧违规，首违规 opacity=1 且命中 treemap-canvas）。
    现在仅在矩形图**参与**该次切换（prev 或 next 为 treemap）时做交叉淡化，
    其余情况直接收束终态（零过渡、零残留）。 */
-function setBrowseView(mode) {
+/* 2026-09-13：导出给设置弹窗「使用偏好」区应用默认视图（同一切换收口，零重复实现） */
+export function setBrowseView(mode) {
     const prev = APP_STATE.view.mode;
     APP_STATE.view.mode = mode; // U2.5：§3.2 对齐（切页不丢；跨路由保持）
+    setPref("view.mode", mode); // 2026-09-13：持久化（下次打开沿用，见 prefs.js）
     const seq = ++viewSeq;
     $("btn-view-treemap").classList.toggle("btn-primary", mode === "treemap");
     $("btn-view-ranking").classList.toggle("btn-primary", mode === "ranking");
@@ -794,6 +797,7 @@ function setTreemapPaused(on) {
 export function setMergeTop(n) {
     const v = Math.max(1, Math.min(200, Math.floor(Number(n) || 1)));
     APP_STATE.view.mergeTop = v;
+    setPref("view.mergeTop", v); // 2026-09-13：持久化（± 调整后下次打开沿用）
     const label = $("merge-top-label");
     if (label) label.textContent = String(v);
     if (APP_STATE.lastBrowseData && APP_STATE.view.mode === "treemap") renderTreemap(APP_STATE.lastBrowseData, "reflow");
@@ -913,6 +917,10 @@ export async function browsePath(path, quiet) {
             renderBrowseHistory();
         }
         lastBrowse = { root: currentRoot, path: currentPath };
+        /* 盘符联动（2026-09-13）：浏览落盘后广播，存储概览 chip/环形图跟随切换 */
+        try {
+            window.dispatchEvent(new CustomEvent("pds:browse", { detail: { root: currentRoot, path: currentPath } }));
+        } catch (e) { /* 事件派发失败不影响浏览 */ }
         /* F06（U4.2 G1 核销）：启动恢复上次浏览位置——成功浏览即写（失败分支不写，保持旧值） */
         try {
             localStorage.setItem("pds_last_browse_v1", JSON.stringify({ root: currentRoot, path: currentPath }));
@@ -1069,6 +1077,12 @@ export function bindWorkspace() {
     // 路由返回时保持用户选择（切页不丢，view 状态存 APP_STATE）。
     setDrillHandler((path) => browsePath(path)); // list.js 行点击/下钻图标回调（防循环依赖）
     bindList(); // U2.5：列表多选/页脚/虚拟滚动/触屏长按接线（每挂载容器新绑）
+    /* 2026-09-13（使用偏好）：列表筛选/排序控件回灌持久值——DOM 随路由重建，
+       若不回灌，用户「默认内容类型/默认排序」的设置只在首挂生效（切页即丢） */
+    const kindEl = $("browse-kind");
+    if (kindEl) kindEl.value = String(getPref("list.kind"));
+    const sortEl = $("browse-sort");
+    if (sortEl) sortEl.value = String(getPref("list.sort"));
     setBrowseView(APP_STATE.view.mode);
     $("btn-view-treemap").addEventListener("click", () => setBrowseView("treemap"));
     $("btn-view-ranking").addEventListener("click", () => setBrowseView("ranking"));
@@ -1132,6 +1146,15 @@ export function bindWorkspace() {
             if (scanRunning) kickLive(); // 子页面降 2s / 回主页恢复 500ms
             syncSweep();
         });
+        // 阶段G（G-3，P-2）：浏览历史下拉的「外部点击关闭」——document 级监听，
+        // 必须在本守卫内注册一次（bindWorkspace 随路由返回重入，守卫外会重复叠加）
+        document.addEventListener("mousedown", (ev) => {
+            const box = $("browse-history");
+            if (!box || box.classList.contains("hidden")) return;
+            if (!box.contains(ev.target) && !$("btn-browse-history")?.contains(ev.target)) {
+                closeBrowseHistory();
+            }
+        });
     }
     // L2-5 联动方向②（行 hover → tile 高亮；事件委托，避免千级行监听器）
     /* P2（R4）：可见性守卫——矩形图隐藏（非矩形图视图）时行 hover 不得触发矩形图
@@ -1146,7 +1169,13 @@ export function bindWorkspace() {
         const v = getTreemapView();
         if (v && !v.isAnimating()) v.highlightKey(row.dataset.path);
     });
-    ["browse-filter", "browse-kind", "browse-sort"].forEach((id) => $(id).addEventListener("input", () => { if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData); }));
+    /* 筛选/排序：即时重渲染 + 2026-09-13 起把类型与排序写入使用偏好
+       （关键词 pds 不持久化——它是一次性检索词，留着反而像「列表少了内容」） */
+    ["browse-filter", "browse-kind", "browse-sort"].forEach((id) => $(id).addEventListener("input", () => {
+        if (id === "browse-kind") setPref("list.kind", $(id).value);
+        if (id === "browse-sort") setPref("list.sort", $(id).value);
+        if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
+    }));
 
     // 目录浏览
     $("btn-browse").addEventListener("click", () => {
@@ -1163,13 +1192,6 @@ export function bindWorkspace() {
         toggleBrowseHistory();
     });
     $("browse-history")?.addEventListener("keydown", handleBrowseHistoryKey);
-    document.addEventListener("mousedown", (ev) => {
-        const box = $("browse-history");
-        if (!box || box.classList.contains("hidden")) return;
-        if (!box.contains(ev.target) && !$("btn-browse-history")?.contains(ev.target)) {
-            closeBrowseHistory();
-        }
-    });
     $("browse-root").addEventListener("keydown", (ev) => {
         if (ev.key === "Enter") $("btn-browse").click();
     });

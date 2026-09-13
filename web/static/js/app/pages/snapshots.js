@@ -1,7 +1,7 @@
 /* ============================================================
    UI 2.0（SpaceLens Pro）· pages/snapshots.js（U2.0 模块化迁入，U3.3 快照管理页）
    - 布局（§3.3/§3.5）：页头 64px（创建快照 F15 + 撤销最近保存 F16）→
-     趋势区 128px（趋势卡×2 N07）→ 会话分组列表（F17，flex:1 面板内滚）；
+     筛选/批量管理工具条 → 会话分组列表（F17，flex:1 面板内滚）；※ 趋势卡区 2026-09-13 起移除（与对比页重复，趋势归 #/compare）
    - [N07] 趋势卡（较昨日/较上周）：对比基准（历史快照）= 同盘符快照中时间 ≤24h（较昨日）/
      (24h,7d]（较上周）最近的一份（D7：前端就近选对比基准，复用 /api/compare，无新后端）；
      另一侧 = 当前磁盘状态（实时，由全量扫描结果/SDK 直扫得出，**不是**「该盘最新快照」）；
@@ -24,16 +24,18 @@
      防环：scan.js → snapshots.js 已有单向依赖）。
    ============================================================ */
 
-import { $, api, postJson, esc, humanBytes, signedBytes } from "../api.js";
+import { $, api, postJson, esc, humanBytes } from "../api.js";
 import { ICONS } from "../icons.js";
 import { APP_STATE } from "../state.js";
 import { setStatus } from "../components/statusbar.js";
 import { skipReasonText } from "../labels.js";
-import { confirmDialog } from "../components/modals.js"; // 阶段C（C-3）：删除确认弹窗（红线 #9 弹窗栈）
+import { confirmDialog } from "../components/modals.js"; // 阶段C（C-3）：删除确认弹窗（红线 #9 弹窗栈；批量删除复用）
 import { toast } from "../components/toast.js"; // 阶段C（C-3）：删除结果反馈
 import { renderSnapshotMini } from "../components/snapshot-mini.js"; // U2.4：N06 迷你条目
-import { sparklinePath, sparklineLastPoint } from "../motion-core.js"; // 阶段G（G-2）：sparkline 折线纯函数
-import { sparkline as runSparkline } from "../motion.js"; // 阶段G（G-2）：L3-5 描线 800ms（--dur-sparkline）
+import {
+    calendarHtml, dayKeyOf, defaultMonth, shiftMonth, todayKey,
+    recentListHtml, sessionSavedBytes, splitSessions,
+} from "../components/snapshot-view.js"; // 2026-09-13 新增：快照页纯函数（日历/最近快照/会话可见性）
 
 let sessionsCache = [];
 
@@ -80,33 +82,88 @@ function syncCreateAvailability() {
 /* pds:scan 订阅（模块级一次；快照页挂载后「创建快照」可用性随扫描状态同步——
    与扫描卡保存按钮同派生，事件 detail=status 原样） */
 let scanSubscribed = false;
-/* 阶段C（C-5）：最近一次扫描状态（result_ready 等；事件 detail=status 原样）。
-   趋势卡在无全量结果时据此提示「先做全量扫描」而非后台直扫。 */
-let lastScanStatusForTrend = null;
 function ensureScanListener() {
     if (scanSubscribed) return;
     scanSubscribed = true;
-    window.addEventListener("pds:scan", (ev) => {
-        if (ev && ev.detail) lastScanStatusForTrend = ev.detail;
-        /* 阶段C（C-5）时序修复：快照页冷启动/切页早于首拍 pds:scan 时，
-           lastScanStatusForTrend 为空 → fetchTrendCompare 误判「先做全量扫描」
-           并缓存 err（fullscan-first）。事件到达且 result_ready 后必须清除
-           该误置缓存并重算——否则趋势卡永久停在「对比不可用」。 */
-        if (ev && ev.detail && ev.detail.result_ready && !ev.detail.running) {
-            let cleared = false;
-            for (const [key, entry] of Array.from(trendCache.entries())) {
-                if (entry && entry.status === "err" && entry.hint === "fullscan-first") {
-                    trendCache.delete(key);
-                    cleared = true;
-                }
-            }
-            if (cleared) {
-                trendInflight.clear(); // 在途残留标记一并清（其结果到达时按新缓存态渲染）
-                renderTrendCards(sessionsCache);
-            }
-        }
+    window.addEventListener("pds:scan", () => {
         syncCreateAvailability();
     });
+}
+
+/* ================= 会话可见性（2026-09-13 第二轮/第三轮用户实测反馈） =================
+   「跳过快照里到底有没有保存，没有保存不应该出现，如果保存没有内容也不应该出现」
+   「C:\SDK5 这些是测试环境吗，如果是请和真实数据隔离」
+   → 展示层只渲染「真的有内容且非夹具」的会话；空会话与夹具会话隐藏并可一键清理。
+   ⚠️ 判定是纯函数（components/snapshot-view.js），后端契约不变（审计轨迹仍落盘）。 */
+
+function visibleSessions() {
+    return splitSessions(sessionsCache).meaningful;
+}
+
+function emptySessions() {
+    return splitSessions(sessionsCache).empty;
+}
+
+function fixtureSessions() {
+    return splitSessions(sessionsCache).fixture;
+}
+
+/* 列表头部的「已隐藏 N 个空会话 / M 个测试会话 + 清理」提示条（DOM 无该节点时空守卫） */
+function syncHiddenNote() {
+    const el = $("snap-hidden-note");
+    if (!el) return;
+    const emptyN = emptySessions().length;
+    const fixtureN = fixtureSessions().length;
+    if (!emptyN && !fixtureN) {
+        el.setAttribute("hidden", "");
+        el.innerHTML = "";
+        return;
+    }
+    const bits = [];
+    if (emptyN) bits.push(emptyN + " 个空会话（自动保存被跳过，未产生快照）");
+    if (fixtureN) bits.push(fixtureN + " 个测试会话（夹具根 " + fixtureRootSample() + "）");
+    el.removeAttribute("hidden");
+    el.innerHTML = "已隐藏 " + bits.join(" · ") +
+        '<button type="button" class="btn btn-sm btn-ghost" id="btn-clean-hidden" ' +
+        'title="删除这些会话的清单与夹具快照文件（不影响真实会话）">清理</button>';
+}
+
+/* 夹具根样例（提示条里给一个可辨认的例子，如 C:\SDK1） */
+function fixtureRootSample() {
+    const s = fixtureSessions()[0];
+    if (!s) return "";
+    const r = Object.values(s.roots || {}).find((x) => x && x.snapshot_path && !x.skipped);
+    return (r && String(r.root || "").replace(/\\+$/, "")) || "";
+}
+
+/* 清理空会话 + 测试会话：复用既有整会话删除 API
+   （空会话没有快照文件 → 后端只删清单；夹具会话会连带删掉那几 KB 的夹具快照） */
+async function cleanHiddenSessions() {
+    const empties = emptySessions();
+    const fixtures = fixtureSessions();
+    const ids = empties.concat(fixtures).map((s) => s.session_id).filter(Boolean);
+    if (!ids.length) return;
+    const ok = await confirmDialog({
+        title: "清理 " + ids.length + " 个非真实会话？",
+        text: "包含 " + empties.length + " 个空会话（自动保存被跳过，仅有清单）与 " +
+            fixtures.length + " 个测试会话（夹具根，如 C:\\SDK*）。将删除其会话清单与夹具快照文件，不影响真实会话。",
+        okLabel: "清理",
+        okClass: "btn-danger",
+    });
+    if (!ok) return;
+    let okCount = 0;
+    let failCount = 0;
+    for (const sid of ids) {
+        try {
+            await deleteSnapshot(sid, "");
+            okCount += 1;
+        } catch (e) {
+            failCount += 1;
+        }
+    }
+    if (!failCount) toast("已清理 " + okCount + " 个会话", "success");
+    else toast("清理完成：" + okCount + " 个成功，" + failCount + " 个失败", failCount === ids.length ? "error" : "warn");
+    await refreshSnapshots();
 }
 
 /* ================= 刷新与回灌（切页不丢：mount 时从缓存回灌，不重发） ================= */
@@ -122,24 +179,24 @@ export async function refreshSnapshots() {
         try { window.dispatchEvent(new CustomEvent("pds:snapshots", { detail: { count: sessionsCache.length } })); } catch (e) { /* ignore */ }
         syncUndoState();
         renderSnapshotList(sessionsCache);
-        renderSnapshotMini(sessionsCache); // U2.4：迷你卡最近一份
+        renderCalendar(); // 2026-09-13：快照日历（月历热力图）
+        renderSnapshotMini(visibleSessions()); // U2.4：迷你卡最近一份（只认有内容的会话）
         rebuildBaselineSuggest(sessionsCache);
-        renderTrendCards(sessionsCache);
-        setStatus("snapshot-status", "", "共 " + sessionsCache.length + " 个快照会话");
+        setStatus("snapshot-status", "", "共 " + visibleSessions().length + " 个快照会话");
         syncListCount();
     } catch (e) {
         setStatus("snapshot-status", "err", e.message);
     }
 }
 
-/* U2.1：路由返回时的视图恢复（快照列表/基线下拉/撤销灰置/状态行/趋势卡从缓存回灌） */
+/* U2.1：路由返回时的视图恢复（快照列表/基线下拉/撤销灰置/状态行从缓存回灌） */
 export function applySnapshotsView() {
     syncUndoState();
     renderSnapshotList(sessionsCache);
-    renderSnapshotMini(sessionsCache); // U2.4：回挂回灌迷你条目
+    renderCalendar(); // 2026-09-13：日历随会话缓存回灌（切页不丢展示月/选中日）
+    renderSnapshotMini(visibleSessions()); // U2.4：回挂回灌迷你条目
     rebuildBaselineSuggest(sessionsCache);
-    renderTrendCards(sessionsCache);
-    setStatus("snapshot-status", "", "共 " + sessionsCache.length + " 个快照会话");
+    setStatus("snapshot-status", "", "共 " + visibleSessions().length + " 个快照会话");
     syncListCount();
     syncCreateAvailability(); // U3.3：页头「创建快照」可用性（扫描状态镜像）
 }
@@ -150,9 +207,153 @@ function syncUndoState() {
     if (undo) undo.disabled = !sessionsCache.length;
 }
 
+/* ================= 筛选工具条 + 批量选择（趋势卡区移除后：页头直下接筛选条+列表） ================= */
+
+const snapFilter = { root: "all", type: "all", kw: "", day: "" };
+const selectedSessions = new Set(); // 批量删除勾选（按 session_id；含「跳过」型空会话）
+
+/* 2026-09-13：日历当前展示月份（"" = 跟随数据最新月份；用户翻月后固定） */
+let calMonth = "";
+
+function isFiltering() {
+    return snapFilter.root !== "all" || snapFilter.type !== "all" ||
+        !!snapFilter.day || !!snapFilter.kw.trim();
+}
+
+/* 会话中出现的盘符（动态生成盘符筛选选项；跳过条目也计入） */
+function sessionRootsList(sessions) {
+    const seen = new Set();
+    for (const s of sessions) {
+        for (const r of Object.values(s.roots || {})) {
+            const lbl = rootLabel(r && r.root);
+            if (lbl) seen.add(lbl);
+        }
+    }
+    return Array.from(seen).sort();
+}
+
+function sessionMatchesFilter(s) {
+    if (snapFilter.type === "auto" && !s.auto) return false;
+    if (snapFilter.type === "manual" && s.auto) return false;
+    /* 2026-09-13：日历选日筛选（当天口径 = created_at 本地日期；缺失回退 session_id 前缀） */
+    if (snapFilter.day) {
+        const day = dayKeyOf(s.created_at) || dayKeyOf(s.session_id);
+        if (day !== snapFilter.day) return false;
+    }
+    if (snapFilter.root !== "all") {
+        const hit = Object.values(s.roots || {}).some((r) => rootLabel(r && r.root) === snapFilter.root);
+        if (!hit) return false;
+    }
+    const kw = snapFilter.kw.trim().toLowerCase();
+    if (kw) {
+        const hay = (formatCreatedAt(s.created_at || "") + " " + (s.session_id || "")).toLowerCase();
+        if (hay.indexOf(kw) === -1) return false;
+    }
+    return true;
+}
+
+function filteredSessions() {
+    // 2026-09-13：只在**有内容**的会话里筛选（空会话已被隐藏，不参与计数/全选/批量）
+    return visibleSessions().filter(sessionMatchesFilter);
+}
+
+/* 盘符下拉选项随会话数据动态重建（保留当前选中项；选中盘已消失则回落「全部」） */
+function rebuildRootFilterOptions() {
+    const sel = $("snap-filter-root");
+    if (!sel) return;
+    const roots = sessionRootsList(visibleSessions());
+    sel.innerHTML = '<option value="all">全部盘符</option>' +
+        roots.map((r) => '<option value="' + esc(r) + '">' + esc(r) + "</option>").join("");
+    if (snapFilter.root !== "all" && roots.indexOf(snapFilter.root) === -1) snapFilter.root = "all";
+    sel.value = snapFilter.root;
+}
+
+/* 全选框 / 批量删除按钮可用态（未选时禁用） */
+function syncBatchBar() {
+    const btn = $("snap-btn-batch-del");
+    const all = $("snap-check-all");
+    const n = selectedSessions.size;
+    if (btn) {
+        btn.disabled = !n;
+        btn.textContent = n ? "已选 " + n + " 项 · 批量删除" : "批量删除";
+    }
+    if (all) {
+        const ids = filteredSessions().map((s) => s.session_id).filter(Boolean);
+        all.checked = ids.length > 0 && ids.every((id) => selectedSessions.has(id));
+    }
+}
+
 function syncListCount() {
     const el = $("snapshots-list-count");
-    if (el) el.textContent = "共 " + sessionsCache.length + " 个快照会话";
+    if (!el) return;
+    const n = filteredSessions().length;
+    el.textContent = isFiltering()
+        ? "共 " + n + " 个会话（已筛选）"
+        : "共 " + visibleSessions().length + " 个快照会话";
+    syncHiddenNote(); // 2026-09-13：空会话隐藏提示（+ 清理入口）
+}
+
+/* ================= 快照日历（2026-09-13 用户实测反馈新增） =================
+   可视化：月历热力图，一眼看出「某一天有没有快照 / 有几个」；点日期 = 筛选下方列表。
+   渲染与模型全部在 components/snapshot-view.js（零依赖纯函数），
+   本处只持有两个状态：calMonth（展示月，"" = 跟随数据最新月）与 snapFilter.day（选中日）。
+   ⚠️ 日历只统计**有内容**的会话（空会话已隐藏，不该在日历上留下"有快照"的假象）。 */
+
+function activeCalMonth() {
+    return /^\d{4}-\d{2}$/.test(calMonth) ? calMonth : defaultMonth(visibleSessions());
+}
+
+function renderCalendar() {
+    const host = $("snapshot-calendar");
+    if (!host) return; // 子页面时不在 DOM（与其它渲染函数同守卫纪律）
+    host.innerHTML = calendarHtml(visibleSessions(), {
+        month: activeCalMonth(),
+        picked: snapFilter.day,
+        today: todayKey(),
+    });
+    renderRecent();
+}
+
+/* 左栏「最近快照」（2026-09-13 第三轮）：填掉日历卡下方的空白，兼作日期快捷入口 */
+function renderRecent() {
+    const host = $("snapshot-recent");
+    if (!host) return;
+    host.innerHTML = recentListHtml(visibleSessions(), { limit: 8, picked: snapFilter.day });
+}
+
+/* 筛选条件变更统一出口：日历（选中态/统计）+ 列表 + 计数一起重渲染 */
+function applyFilterChange() {
+    renderCalendar();
+    renderSnapshotList(sessionsCache);
+    syncListCount();
+}
+/* 日历/最近快照 事件（委托，DOM 重建后仍生效；两个宿主共用同一处理器）：
+   选日（再点同日 = 取消）/ 翻月 / 回本月 / 清除日期筛选 */
+function onCalendarClick(ev) {
+    const host = ev.currentTarget || $("snapshot-calendar");
+    if (!host || !host.contains(ev.target)) return;
+    const dayBtn = ev.target.closest("[data-cal-day]");
+    if (dayBtn) {
+        const day = dayBtn.getAttribute("data-cal-day") || "";
+        snapFilter.day = snapFilter.day === day ? "" : day;
+        applyFilterChange();
+        return;
+    }
+    const nav = ev.target.closest("[data-cal-nav]");
+    if (nav) {
+        calMonth = shiftMonth(activeCalMonth(), Number(nav.getAttribute("data-cal-nav")) || 0);
+        renderCalendar();
+        return;
+    }
+    if (ev.target.closest("[data-cal-today]")) {
+        calMonth = todayKey().slice(0, 7);
+        renderCalendar();
+        return;
+    }
+    if (ev.target.closest("[data-cal-clear]")) {
+        snapFilter.day = "";
+        applyFilterChange();
+    }
 }
 
 /* ================= 会话列表（F17；renderSnapshotList 语义迁移） ================= */
@@ -174,17 +375,17 @@ function fmtSnapSize(bytes) {
     return Number.isFinite(n) && n > 0 ? humanBytes(n) : "—";
 }
 
-/* 会话内逐盘合计（仅统计有 size 的盘；无一份可得 → ""） */
+/* 会话内逐盘合计（仅统计有 size 的盘；无一份可得 → ""）——口径与
+   components/snapshot-view.js 的 sessionSavedBytes 同源（后者为纯函数，供日历复用） */
 function sessionTotalText(s) {
     const totals = s.total_by_root || {};
-    let sum = 0;
     let seen = 0;
     Object.values(s.roots || {}).forEach((r) => {
         if (!r || r.skipped || !r.snapshot_path) return;
         const n = Number(totals[r.root]);
-        if (Number.isFinite(n) && n > 0) { sum += n; seen += 1; }
+        if (Number.isFinite(n) && n > 0) seen += 1;
     });
-    return seen ? humanBytes(sum) : "";
+    return seen ? humanBytes(sessionSavedBytes(s)) : "";
 }
 
 /* 「详情」展开区：会话 ID + 各盘快照文件名/全路径（原始名唯一可见处，可选中复制） */
@@ -215,17 +416,32 @@ function sessionDetailHtml(s, roots) {
 export function renderSnapshotList(sessions) {
     const list = $("snapshot-list");
     if (!list) return; // U2.1：子页面时快照卡不在 DOM；U3.3 起列表随快照页渲染
-    if (!sessions.length) {
+    rebuildRootFilterOptions(); // 盘符选项随会话数据动态更新
+    /* 2026-09-13 第二轮反馈：只列表**真的有内容**的会话（空会话见 syncHiddenNote 提示条） */
+    const visible = splitSessions(sessions).meaningful;
+    if (!visible.length) {
         // 定稿 6.5：快照页无快照（三处空态之一）
         list.innerHTML =
             '<li><div class="empty-state">' +
             ICONS.empty +
             "<b>还没有快照</b>" +
-            "<p>全量扫描后保存一份，变化趋势从这里开始记录。</p>" +
+            "<p>全量扫描后保存一份，之后可在这里筛选与批量管理。</p>" +
             "</div></li>";
+        syncBatchBar();
         return;
     }
-    list.innerHTML = sessions
+    const filtered = visible.filter(sessionMatchesFilter);
+    if (!filtered.length) {
+        list.innerHTML =
+            '<li><div class="empty-state">' +
+            ICONS.empty +
+            "<b>没有匹配的会话</b>" +
+            "<p>调整盘符 / 类型 / 关键词筛选条件后再试。</p>" +
+            "</div></li>";
+        syncBatchBar();
+        return;
+    }
+    list.innerHTML = filtered
         .map((s) => {
             const roots = Object.values(s.roots || {});
             const okCount = roots.filter((r) => r && !r.skipped && r.snapshot_path).length;
@@ -271,9 +487,14 @@ export function renderSnapshotList(sessions) {
                       .join("") +
                   "</ul>"
                 : '<div class="session-sub">该会话没有快照记录</div>';
+            const sid = s.session_id || "";
+            const checked = sid && selectedSessions.has(sid);
             return (
-                '<li class="session-item">' +
+                '<li class="session-item' + (checked ? " is-sel" : "") + '">' +
                 '<div class="session-head">' +
+                '<label class="snap-check" title="选择该会话（可批量删除；「跳过」型空会话也可勾选）">' +
+                '<input type="checkbox" class="act-sel-session" data-session="' + esc(sid) + '"' +
+                (checked ? " checked" : "") + ' aria-label="选择会话"></label>' +
                 '<span class="session-title">' + ICONS.clock +
                 esc(formatCreatedAt(s.created_at || s.session_id)) + "</span>" +
                 '<span class="session-tags">' +
@@ -288,6 +509,7 @@ export function renderSnapshotList(sessions) {
             );
         })
         .join("");
+    syncBatchBar();
 }
 
 /* P5（D5-2）：原「基线 datalist 填充」——P5 起对比页的对比基准改为 <select>
@@ -314,51 +536,6 @@ export function rebuildBaselineSuggest(sessions) {
     return n;
 }
 
-/* ================= U3.3：趋势卡×2（N07；sparkline 降级为差值卡） =================
-   ⚠️ 字段核对结论：/api/snapshots 会话数据无逐次总量 → 无 sparkline 数据源，
-   按手册 U3.3 预案降级为「两快照对比差值卡」（无折线，保留 ▲/▼ 与百分比），
-   L3-5（sparkline 800ms/终点脉冲 2s）留待后端补总量字段后启用（记偏差注记）。
-
-   基线口径（D7/N07 展开）：
-   - 较昨日（day）：同盘符快照 0 < Δt ≤ 24h 最近一份；
-   - 较上周（week）：同盘符快照 24h < Δt ≤ 7d 最近一份（排除 ≤24h——否则与
-     「较昨日」同基线、两卡信息重复；按「周变化」语义取窗口内最近一份）；
-   - 目标＝该盘最新快照；多盘时取「最新目标且窗口内有基线」的第一个盘
-     （会话时间倒序确定性扫描）；无合适基线 → 「暂无对比基线」。
-
-   Δ 计算：/api/compare（{root, baseline}）；结果入模块级缓存（键=槽:根:基线），
-   路由往返/列表刷新不回源（applySnapshotsView 只渲染缓存，不重发）。 */
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const WEEK_MS = 7 * DAY_MS;
-const TREND_SLOTS = [
-    { key: "day", label: "较昨日", minMs: 0, windowMs: DAY_MS },
-    { key: "week", label: "较上周", minMs: DAY_MS, windowMs: WEEK_MS },
-];
-
-const trendCache = new Map(); // key "slotKey:root:baseline" → {status:"ok",...}|{status:"err",error}
-const trendInflight = new Set(); // 防止并发渲染双发 /api/compare（缓存未落前重复渲染）
-
-/* 阶段C（C-3）：删除成功清 trendCache 中涉及被删基线的条目（防趋势卡缓存陈旧）。
-   根可空（整会话删除时清全部）；基线路径可空（按根清）。
-   ⚠️ 键含 Windows 盘符冒号，不能 split(":") 解析——按条目值元数据（root/baseline）匹配。 */
-export function clearTrendCacheForDeleted({ root, baseline } = {}) {
-    const normRoot = (x) => String(x || "").replace(/\\+$/, "").toUpperCase();
-    const rootKey = root ? normRoot(root) : null;
-    const baselineKey = baseline ? String(baseline) : null;
-    for (const [key, entry] of Array.from(trendCache.entries())) {
-        if (!entry) continue;
-        const eRoot = normRoot(entry.root);
-        const eBase = String(entry.baseline || "");
-        const rootHit = !rootKey || eRoot === rootKey;
-        const baselineHit = !baselineKey || eBase === baselineKey;
-        if (rootHit && baselineHit) trendCache.delete(key);
-    }
-    for (const key of Array.from(trendInflight)) {
-        trendInflight.delete(key); // 在途请求的结果到达时会重渲染；删除后整表刷新，清空在途标记防陈旧回填
-    }
-}
-
 /* 阶段C（C-2/C-3）：调用删除 API（单盘/整会话）；返回 {ok, data} 或抛错。 */
 async function deleteSnapshot(sessionId, root) {
     const payload = { session_id: sessionId };
@@ -367,350 +544,8 @@ async function deleteSnapshot(sessionId, root) {
     return data;
 }
 
-function trendCacheKey(slot, trend) {
-    return slot.key + ":" + trend.root + ":" + trend.baseline;
-}
-
 function rootLabel(root) {
     return String(root || "").replace(/\\+$/, "");
-}
-
-function slotTimeText(ms) {
-    const d = new Date(ms);
-    const p = (n) => String(n).padStart(2, "0");
-    return (
-        d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " +
-        p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds())
-    ); // 本地 YYYY-MM-DD HH:MM:SS（确定性格式，不依赖 locale）
-}
-
-/* 收集所有可对比条目（root+snapshot_path+时间），时间降序 */
-function collectDriveEntries(sessions) {
-    const out = [];
-    for (const s of sessions) {
-        const t = Date.parse(String(s.created_at || ""));
-        if (!t) continue;
-        for (const r of Object.values(s.roots || {})) {
-            if (!r || r.skipped || !r.root || !r.snapshot_path) continue;
-            out.push({ root: r.root, snapPath: r.snapshot_path, createdMs: t });
-        }
-    }
-    out.sort((a, b) => b.createdMs - a.createdMs || (a.root < b.root ? -1 : a.root > b.root ? 1 : 0));
-    return out;
-}
-
-/* 阶段G（G-2）：按根收集「逐次总量」时间序列（sparkline 数据源）。
-   - 数据 = /api/snapshots 每会话 additive total_by_root（后端从快照文件派生，
-     与 compare 差值卡 total_current 同口径——C-6 两地一致）；
-   - 时间升序（早→晚，折线左→右）；缺失/损坏/跳过 → 该会话该根跳过；
-   - 返回 [{ms, bytes}] 或空数组。 */
-export function collectDriveTotals(sessions, root) {
-    const out = [];
-    for (const s of sessions) {
-        const t = Date.parse(String(s.created_at || ""));
-        if (!t) continue;
-        const r = Object.values(s.roots || {}).find((x) => x && x.root === root && !x.skipped);
-        if (!r) continue;
-        const totals = s.total_by_root || {};
-        const bytes = Number(totals[root]);
-        if (!Number.isFinite(bytes)) continue;
-        out.push({ ms: t, bytes });
-    }
-    out.sort((a, b) => a.ms - b.ms);
-    return out;
-}
-
-/* 按槽窗口选（根, 基线, 目标）；无合适基线返回 null */
-export function pickTrendForSlot(sessions, slot) {
-    const entries = collectDriveEntries(sessions);
-    if (!entries.length) return null;
-    const byRoot = new Map();
-    for (const e of entries) {
-        if (!byRoot.has(e.root)) byRoot.set(e.root, []);
-        byRoot.get(e.root).push(e);
-    }
-    for (const e of entries) { // 时间倒序：每盘首次出现即该盘最新目标（确定性取首个合格盘）
-        const list = byRoot.get(e.root);
-        const target = list[0];
-        for (let i = 1; i < list.length; i++) {
-            const diff = target.createdMs - list[i].createdMs;
-            if (diff > slot.minMs && diff <= slot.windowMs) {
-                return {
-                    root: target.root,
-                    baseline: list[i].snapPath,
-                    target: target.snapPath,
-                    baselineAtText: slotTimeText(list[i].createdMs),
-                    targetAtText: slotTimeText(target.createdMs),
-                };
-            }
-            if (diff > slot.windowMs) break; // 更早的只会更远
-        }
-    }
-    return null;
-}
-
-/* 阶段C（C-4）：空态原因行推导（从 sessions）——
-   - 无任何会话 → 「还没有快照，先做全量扫描并保存」；
-   - 有会话但窗口内无同盘基线 → 「最近快照 <时间>，超出 7 天窗口，请保存新快照后查看」；
-   - 全部快照损坏/跳过 → 「基线快照不可用（已删除或损坏）」。
-   禁止改为误导性「无变化」（手册 2-4 注意点）。 */
-function trendEmptyReason(sessions, slot) {
-    const entries = collectDriveEntries(sessions);
-    if (!entries.length) {
-        return "还没有快照，先做全量扫描并保存";
-    }
-    const anyUsable = entries.some((e) => e.snapPath);
-    if (!anyUsable) {
-        return "对比基准快照不可用（已删除或损坏）";
-    }
-    // 与 pickTrendForSlot 同口径：每盘最新为「目标」，其同盘更早条目若有落在
-    // (minMs, windowMs] 的则非空；全部盘都没有 → 窗口外（给最近快照时间提示）。
-    const byRoot = new Map();
-    for (const e of entries) {
-        if (!byRoot.has(e.root)) byRoot.set(e.root, []);
-        byRoot.get(e.root).push(e);
-    }
-    let anyInWindow = false;
-    let latestMs = 0;
-    for (const list of byRoot.values()) {
-        const target = list[0];
-        if (target.createdMs > latestMs) latestMs = target.createdMs;
-        for (let i = 1; i < list.length; i++) {
-            const diff = target.createdMs - list[i].createdMs;
-            if (diff > slot.minMs && diff <= slot.windowMs) { anyInWindow = true; break; }
-            if (diff > slot.windowMs) break;
-        }
-    }
-    if (anyInWindow) return ""; // 有窗口内基线——空态不会出现（防御）
-    return "最近快照 " + slotTimeText(latestMs) +
-        "，超出 " + (slot.windowMs / DAY_MS).toFixed(0) + " 天窗口，请保存新快照后查看";
-}
-
-/* 窗口口径 tooltip（阶段C C-4：两卡分别注明窗口口径；P5·D5-5：术语与对比页统一——
-   「对比基准（历史快照）」/「当前磁盘状态（实时）」，不再出现裸词「基线/目标」） */
-function trendSlotTooltip(slot) {
-    const label = slot.key === "day" ? "较昨日" : "较上周";
-    const caliber = slot.key === "day"
-        ? "同盘 0&lt;Δt≤24h 最近一份"
-        : "同盘 24h&lt;Δt≤7d 最近一份";
-    return label + "＝对比基准（历史快照：" + caliber + "）→ 当前磁盘状态（实时）";
-}
-
-function trendCardEmpty(slot, sessions) {
-    const reason = trendEmptyReason(sessions, slot);
-    return (
-        '<div class="trend-card is-empty" data-slot="' + slot.key + '"' +
-        ' title="' + esc(trendSlotTooltip(slot)) + '" aria-label="' + esc(slot.label + "：" + (reason || "暂无可用的对比基准（历史快照）")) + '">' +
-        '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span></span>" +
-        '<span class="trend-empty">暂无可用的对比基准</span>' +
-        (reason ? '<span class="trend-reason">' + esc(reason) + "</span>" : "") +
-        "</div>"
-    );
-}
-
-function trendCardPending(slot, trend) {
-    return (
-        '<button class="trend-card" type="button" data-slot="' + slot.key + '"' +
-        ' data-root="' + esc(trend.root) + '" data-baseline="' + esc(trend.baseline) + '"' +
-        ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，对比基准已预填）">' +
-        '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span>" +
-        '<span class="trend-root">' + esc(rootLabel(trend.root)) + "</span></span>" +
-        '<span class="trend-pending">正在计算对比…</span>' +
-        '<span class="trend-sub">对比基准 ' + esc(trend.baselineAtText) + " → 最新 " + esc(trend.targetAtText) + "</span>" +
-        "</button>"
-    );
-}
-
-/* ================= P6（D6-1/变更集2）：sparkline 画布尺寸单一来源 =================
-   原先本文件 `const W = 120, H = 28` 与 style.css `.trend-spark*` 各写一遍
-   （同一几何两处真相）。P6 起两者同读 tokens.css 的 --spark-w/--spark-h：
-   CSS 经 var() 直接消费，本函数经 getComputedStyle 读取同一 token（:root 恒可达）。
-   ⚠️ 数字后缀兜底仅用于「token 解析失败」（如宿主样式表未加载），不是第二处默认值。 */
-function sparkCanvasSize() {
-    const cs = getComputedStyle(document.documentElement);
-    const w = parseFloat(cs.getPropertyValue("--spark-w"));
-    const h = parseFloat(cs.getPropertyValue("--spark-h"));
-    return {
-        w: Number.isFinite(w) && w > 0 ? w : 120,
-        h: Number.isFinite(h) && h > 0 ? h : 28,
-    };
-}
-
-/* 阶段G（G-2）：sparkline（L3-5）内联 SVG——该根 ≥2 个逐次总量点才画折线；
-   与差值卡 total_current 同口径（collectDriveTotals 取自 total_by_root）。
-   返回 {html, draw}：html 为 SVG 片段；draw(svgEl, pathEl) 触发 800ms 描线
-   （motion.sparkline，--dur-sparkline；reduced 直显终值）。 */
-function trendSparkline(sessions, root) {
-    const totals = collectDriveTotals(sessions, root);
-    if (totals.length < 2) return null;
-    const size = sparkCanvasSize();
-    const W = size.w, H = size.h;
-    const values = totals.map((t) => t.bytes);
-    const d = sparklinePath(values, W, H);
-    const last = sparklineLastPoint(values, W, H);
-    if (!d || !last) return null;
-    const html =
-        '<span class="trend-spark">' +
-        '<svg class="trend-spark-svg" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true">' +
-        '<path class="trend-spark-line" d="' + esc(d) + '" fill="none"/>' +
-        (last ? '<circle class="trend-spark-dot" cx="' + last.x + '" cy="' + last.y + '" r="2"/>' : "") +
-        "</svg></span>";
-    const draw = (svgEl) => {
-        const path = svgEl && svgEl.querySelector(".trend-spark-line");
-        if (path) runSparkline(svgEl, path);
-    };
-    return { html, draw };
-}
-
-function trendCardBody(slot, trend, cached) {
-    if (cached.status === "err") {
-        const isHint = cached.hint === "fullscan-first";
-        const errText = isHint ? "对比不可用" : "对比失败";
-        const errDetail = isHint
-            ? "请先完成全量扫描，保存快照后再查看趋势"
-            : (cached.error || "对比失败");
-        return (
-            '<button class="trend-card" type="button" data-slot="' + slot.key + '"' +
-            ' data-root="' + esc(trend.root) + '" data-baseline="' + esc(trend.baseline) + '"' +
-            ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，对比基准已预填）">' +
-            '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span>" +
-            '<span class="trend-root">' + esc(rootLabel(trend.root)) + "</span></span>" +
-            '<span class="trend-err" title="' + esc(errDetail) + '">' + esc(errText) + "：" +
-            esc(errDetail) + "</span></button>"
-        );
-    }
-    const d = Number(cached.delta) || 0;
-    const cls = d > 0 ? "grow" : d < 0 ? "shrink" : "flat";
-    const arrow = d > 0 ? "▲" : d < 0 ? "▼" : "±"; // §3.4：不得仅靠颜色（色盲冗余）
-    const pctText = (Number(cached.pct) > 0 ? "+" : "") + Number(cached.pct).toFixed(2) + "%";
-    // 阶段G（G-2）：sparkline（L3-5）——该根多会话逐次总量折线（数据源 total_by_root）
-    const spark = trendSparkline(sessionsCache, trend.root);
-    return (
-        '<button class="trend-card" type="button" data-slot="' + slot.key + '"' +
-        ' data-root="' + esc(trend.root) + '" data-baseline="' + esc(trend.baseline) + '"' +
-        ' data-target="' + esc(trend.target) + '" title="' + esc(trendSlotTooltip(slot)) + '（点击跳转对比页，对比基准已预填）">' +
-        '<span class="trend-label-line"><span class="trend-label">' + esc(slot.label) + "</span>" +
-        '<span class="trend-root">' + esc(rootLabel(trend.root)) + "</span></span>" +
-        '<span class="trend-main">' +
-        '<span class="trend-delta ' + cls + '">' + arrow + " " + esc(signedBytes(d)) + "</span>" +
-        '<span class="trend-pct">' + esc(pctText) + "</span>" +
-        (spark ? spark.html : "") + "</span>" +
-        '<span class="trend-sub">对比基准 ' + esc(trend.baselineAtText) + " → 最新 " + esc(trend.targetAtText) + "</span>" +
-        "</button>"
-    );
-}
-
-/* 阶段C（C-5）：Δ 计算复用 B-1（/api/compare 异步化）——
-   - 响应 200+report → 直接入库（缓存命中同步路径）；
-   - 响应 202+job_id → 轮询 /api/compare/status（≤30s 超时；B-2 同款节奏）；
-   - 无全量结果（result_ready=false 且非扫描中）→ 提示先做全量扫描，不静默
-     触发后台 SDK 直扫（分钟级，G8）。
-   三态文案：计算中（pending）/ 失败（err）/ 无基线（empty 原因行）。
-   禁止把「暂无可用的对比基准」改为误导性「无变化」（手册 2-4 注意点）。 */
-const TREND_COMPARE_TIMEOUT_MS = 30000;
-
-async function pollCompareJob(jobId) {
-    const deadline = Date.now() + TREND_COMPARE_TIMEOUT_MS;
-    while (Date.now() < deadline) {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 5000);
-        try {
-            const data = await api("/api/compare/status?job_id=" + encodeURIComponent(jobId), { signal: ctrl.signal });
-            if (data && data.status === "done" && data.report) return { ok: true, report: data.report };
-            if (data && data.status === "error") {
-                return { ok: false, error: data.error || "对比失败" };
-            }
-        } catch (e) {
-            if (e && e.name === "AbortError") return { ok: false, error: "对比超时（30s），可稍后重试" };
-            // 轮询瞬时网络错误：继续（短暂抖动可容忍）
-        } finally {
-            clearTimeout(timer);
-        }
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // 2s 轮询节奏（B-17 同频）
-    }
-    return { ok: false, error: "对比超时（30s），可稍后重试" };
-}
-
-async function fetchTrendCompare(slot, trend, key) {
-    // 阶段C（C-5）：无全量结果（result_ready=false 且非扫描中）→ 提示先做全量扫描，
-    // 不静默触发后台直扫（B-1 异步任务仅在全量索引存在时秒级；否则 SDK 直扫分钟级）。
-    const scanSt = lastScanStatusForTrend || {};
-    if (!scanSt.result_ready && !scanSt.running) {
-        trendCache.set(key, {
-            status: "err",
-            error: "暂无全量扫描结果，请先完成全量扫描后再查看趋势",
-            hint: "fullscan-first",
-        });
-        applySnapshotsView();
-        return;
-    }
-    try {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), TREND_COMPARE_TIMEOUT_MS);
-        let data;
-        try {
-            data = await postJson("/api/compare", { root: trend.root, baseline: trend.baseline }, { signal: ctrl.signal });
-        } finally {
-            clearTimeout(timer);
-        }
-        if (data && data.status === "scanning" && data.job_id) {
-            // B-1 异步任务：轮询 status 直到 done/error（复用 /api/compare/status）
-            const polled = await pollCompareJob(data.job_id);
-            if (!polled.ok) {
-                trendCache.set(key, { status: "err", error: polled.error });
-                return;
-            }
-            data = { report: polled.report };
-        }
-        const r = (data && data.report) || {};
-        const totalBaseline = Number(r.total_baseline) || 0;
-        const delta = Number(r.delta_total) || 0;
-        trendCache.set(key, {
-            status: "ok",
-            root: trend.root,
-            baseline: trend.baseline,
-            target: trend.target,
-            totalBaseline: totalBaseline,
-            totalCurrent: Number(r.total_current) || 0,
-            delta: delta,
-            pct: totalBaseline ? (delta / totalBaseline) * 100 : 0,
-            report: r, // U3.4：整份 report 入库——趋势卡点击预填时与对比页结果缓存共享（落地即渲染不回源）
-        });
-    } catch (e) {
-        trendCache.set(key, { status: "err", error: (e && e.message) || "对比失败" });
-    } finally {
-        trendInflight.delete(key);
-    }
-    applySnapshotsView(); // 结果到达后重渲染（列表/趋势卡均从缓存回灌，不重发）
-}
-
-function renderTrendCards(sessions) {
-    const row = $("trend-row");
-    if (!row) return; // 快照页未挂载
-    const slots = TREND_SLOTS.map((slot) => ({ slot, trend: pickTrendForSlot(sessions, slot) }));
-    row.innerHTML = slots
-        .map(({ slot, trend }) => {
-            if (!trend) return trendCardEmpty(slot, sessions);
-            const cached = trendCache.get(trendCacheKey(slot, trend));
-            if (cached) return trendCardBody(slot, trend, cached);
-            return trendCardPending(slot, trend);
-        })
-        .join("");
-    // 阶段G（G-2）：sparkline 描线（L3-5，--dur-sparkline 800ms；reduced 直显）
-    slots.forEach(({ trend }) => {
-        if (!trend) return;
-        const spark = trendSparkline(sessions, trend.root);
-        if (!spark) return;
-        const card = row.querySelector('.trend-card[data-root="' + CSS.escape(trend.root) + '"] .trend-spark-svg');
-        if (card && spark.draw) spark.draw(card);
-    });
-    slots.forEach(({ slot, trend }) => {
-        if (!trend) return;
-        const key = trendCacheKey(slot, trend);
-        if (trendCache.has(key) || trendInflight.has(key)) return;
-        trendInflight.add(key);
-        fetchTrendCompare(slot, trend, key); // 未缓存且在途无 → 各卡恰一次
-    });
 }
 
 /* ================= 页面接线（每次挂载新 DOM 重绑） ================= */
@@ -720,25 +555,9 @@ function prefillAndGoCompare(baseline, root, target) {
     // ⚠️ 注记：§3.2 compare 形状之外附加 root 键（U3.4 消费「目标=同盘符最新快照」需要根）
     APP_STATE.compare.root = root || "";
     APP_STATE.compare.target = target || findLatestForRoot(sessionsCache, root || "");
-    // U3.4：趋势卡已算过该基线 Δ → 结果缓存共享——#/compare 挂载时缓存命中
-    // 直接渲染（不重发 /api/compare；路由往返回灌不重发语义与趋势卡一致）
-    const cached = findTrendCachedResult(root || "", baseline || "");
-    APP_STATE.compare.result = cached
-        ? { root: root || "", baseline: baseline || "", report: cached.report, at: Date.now() }
-        : null;
+    // 2026-09-13：趋势卡及其缓存已随快照页改版移除——跳转后由对比页自行发起对比
+    APP_STATE.compare.result = null;
     location.hash = "#/compare";
-}
-
-/* trendCache 按 根+基线 找已算结果（趋势卡点击预填的缓存共享入口） */
-function findTrendCachedResult(root, baseline) {
-    for (const v of trendCache.values()) {
-        if (v && v.status === "ok" && v.report &&
-            String(v.root || "").replace(/\\+$/, "") === String(root || "").replace(/\\+$/, "") &&
-            String(v.baseline || "") === String(baseline || "")) {
-            return v;
-        }
-    }
-    return null;
 }
 
 export function findLatestForRoot(sessions, root) {
@@ -764,8 +583,6 @@ async function doDeleteSnapshot(sessionId, root) {
     if (!ok) return;
     try {
         const data = await deleteSnapshot(sessionId, root);
-        // 清 trendCache 中涉及被删基线的条目（阶段C 纪律#15：防趋势卡缓存陈旧）
-        clearTrendCacheForDeleted({ root: root || undefined, baseline: undefined });
         if (data && (data.deleted || []).length) {
             toast("已删除 " + data.deleted.length + " 份快照" + (data.already && data.already.length ? "（" + data.already.length + " 份已不存在）" : ""), "success");
         } else if (data && (data.already || []).length) {
@@ -811,17 +628,69 @@ function bindSnapshotsPage() {
             doDeleteSnapshot(delSessionBtn.getAttribute("data-session") || "", "");
         }
     });
-    // 趋势卡点击 → 预填 + 跳转（N07：点击卡片跳 #/compare 并自动填基线）
-    const row = $("trend-row");
-    if (row) row.addEventListener("click", (ev) => {
-        const card = ev.target.closest(".trend-card[data-baseline]");
-        if (!card) return;
-        prefillAndGoCompare(
-            card.getAttribute("data-baseline") || "",
-            card.getAttribute("data-root") || "",
-            card.getAttribute("data-target") || ""
-        );
+    // 会话勾选（委托：复选框在列表重渲染后重建，故走 change 委托）
+    if (list) list.addEventListener("change", (ev) => {
+        const cb = ev.target.closest(".act-sel-session");
+        if (!cb) return;
+        const sid = cb.getAttribute("data-session") || "";
+        if (!sid) return;
+        if (cb.checked) selectedSessions.add(sid); else selectedSessions.delete(sid);
+        cb.closest(".session-item")?.classList.toggle("is-sel", cb.checked);
+        syncBatchBar();
     });
+    // 筛选工具条：盘符 / 类型 / 关键词（即时重渲染）
+    const onFilter = () => applyFilterChange();
+    $("snap-filter-root")?.addEventListener("change", (ev) => { snapFilter.root = ev.target.value; onFilter(); });
+    $("snap-filter-type")?.addEventListener("change", (ev) => { snapFilter.type = ev.target.value; onFilter(); });
+    $("snap-filter-kw")?.addEventListener("input", (ev) => { snapFilter.kw = ev.target.value; onFilter(); });
+    // 2026-09-13：快照日历（选日筛选 / 翻月 / 回本月 / 清除日期筛选）
+    const cal = $("snapshot-calendar");
+    if (cal) cal.addEventListener("click", onCalendarClick);
+    /* 2026-09-13 第二轮：空会话隐藏提示里的「清理」按钮（提示条 HTML 每次渲染重建 →
+       委托到列表容器上，挂载期只绑一次） */
+    const listWrap = document.querySelector(".snapshots-list-wrap");
+    if (listWrap) listWrap.addEventListener("click", (ev) => {
+        if (ev.target.closest("#btn-clean-hidden")) cleanHiddenSessions();
+    });
+    /* 2026-09-13 第三轮：左栏「最近快照」条目 = 与日历格同语义（data-cal-day 走同一委托） */
+    const recent = $("snapshot-recent");
+    if (recent) recent.addEventListener("click", onCalendarClick);
+    // 全选（当前筛选结果口径）
+    $("snap-check-all")?.addEventListener("change", (ev) => {
+        const on = !!ev.target.checked;
+        filteredSessions().forEach((s) => { if (s.session_id) { if (on) selectedSessions.add(s.session_id); else selectedSessions.delete(s.session_id); } });
+        renderSnapshotList(sessionsCache);
+        syncBatchBar();
+    });
+    // 批量删除：确认 → 逐会话调既有删除 API → 汇总反馈
+    $("snap-btn-batch-del")?.addEventListener("click", doBatchDelete);
+}
+
+/* 批量删除（2026-09-13 用户反馈新增）：复用 confirm-dialog 与单会话删除 API，
+   逐会话删除并汇总成功/失败；清空选择并刷新列表。 */
+async function doBatchDelete() {
+    const ids = Array.from(selectedSessions);
+    if (!ids.length) return;
+    const ok = await confirmDialog({
+        title: "批量删除 " + ids.length + " 个会话？",
+        text: "将删除所选会话的全部盘快照文件与清单。此操作不可撤销，确认继续？",
+        okLabel: "全部删除",
+        okClass: "btn-danger",
+    });
+    if (!ok) return;
+    let okCount = 0, failCount = 0;
+    for (const sid of ids) {
+        try {
+            await deleteSnapshot(sid, "");
+            okCount += 1;
+        } catch (e) {
+            failCount += 1;
+        }
+    }
+    selectedSessions.clear();
+    if (!failCount) toast("已删除 " + okCount + " 个会话", "success");
+    else toast("删除完成：" + okCount + " 个成功，" + failCount + " 个失败", failCount === ids.length ? "error" : "warn");
+    await refreshSnapshots();
 }
 
 /* ============================================================
@@ -833,7 +702,7 @@ const SNAPSHOTS_PAGE_HTML =
     '<header class="page-head page-head-row">' +
     '<div class="page-head-titles">' +
     '<h1 class="page-title" data-page-title>快照管理</h1>' +
-    '<p class="page-sub">创建快照 · 撤销最近保存 · 较昨日/较上周变化趋势与全部会话</p>' +
+    '<p class="page-sub">创建快照 · 撤销最近保存 · 筛选与批量管理全部会话（对比与趋势请前往「对比」页）</p>' +
     "</div>" +
     '<div class="page-head-actions">' +
     '<button id="btn-create-snapshot" class="btn btn-success" disabled title="暂无全量扫描结果，请先完成全量扫描并保存">' +
@@ -843,13 +712,40 @@ const SNAPSHOTS_PAGE_HTML =
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3.5 13a9 9 0 1 0 2-9.3L3 7"/></svg>' +
     "撤销最近保存</button>" +
     "</div></header>" +
-    '<div class="trend-row" id="trend-row" role="group" aria-label="变化趋势（较昨日/较上周）"></div>' +
+    /* 2026-09-13 用户实测反馈：趋势卡区（较昨日/较上周）与对比页重复，移除；
+       原位置改为「筛选 + 批量管理」工具条（盘符/类型/关键词 + 全选/批量删除）。
+       2026-09-13 新增：日历卡（月历热力图——某天有没有快照 / 几个，点日期筛选列表）。
+       2026-09-13 第二轮排版优化（用户实测「显示会话的地方太小了」）：
+       1366×768 实测日历独占 308px 高、列表内滚区只剩 153px（约 1 行）——
+       现改为**左右两栏**：日历收成 336px 左侧日期栏（格子变方、更紧凑），
+       列表占满其余宽度与全部剩余高度（实测列表高度 153px → 约 500px）。 */
+    '<div class="snap-main">' +
+    '<div class="snap-rail">' +
+    '<div class="snap-calendar card" id="snapshot-calendar" aria-label="快照日历（每天有无快照与份数）"></div>' +
+    /* 2026-09-13 第三轮：日历下方接「最近快照」快捷列表，填掉左栏空白 */
+    '<div class="snap-recent card" id="snapshot-recent" aria-label="最近快照（点击按该天筛选）"></div>' +
+    "</div>" +
+    '<div class="snap-list-col">' +
+    '<div class="snap-filter-bar" role="group" aria-label="会话筛选与批量管理">' +
+    '<select id="snap-filter-root" aria-label="按盘符筛选" title="按会话包含的盘符筛选">' +
+    '<option value="all">全部盘符</option></select>' +
+    '<select id="snap-filter-type" aria-label="按类型筛选" title="按保存方式筛选">' +
+    '<option value="all">全部类型</option><option value="auto">自动</option><option value="manual">手动</option></select>' +
+    '<input id="snap-filter-kw" type="search" placeholder="筛选时间 / 会话 ID" aria-label="关键词筛选">' +
+    '<label class="snap-check-all-wrap" title="选中当前筛选结果中的全部会话">' +
+    '<input type="checkbox" id="snap-check-all" aria-label="全选当前筛选结果">全选</label>' +
+    '<button id="snap-btn-batch-del" class="btn btn-sm btn-danger" disabled>批量删除</button>' +
+    "</div>" +
     // P6（D6-1/变更集2）：会话列表区统一为卡片原语（.card：同一底色/边框/圆角/阴影），
     // 卡头常驻「数量 + 排序口径」，避免列表与卡片两种视觉语言并存
     '<div class="snapshots-list-wrap card">' +
     '<div class="snapshots-list-head"><span id="snapshots-list-count">共 0 个快照会话</span>' +
+    // 2026-09-13 第二轮：空会话（全盘 skipped / 保存了但无内容）隐藏提示 + 清理入口
+    '<span id="snap-hidden-note" class="snap-hidden-note" hidden></span>' +
     '<span class="snapshots-list-hint">按时间倒序 · 每份快照可对比或删除</span></div>' +
     '<div class="snapshots-list-scroll"><ul id="snapshot-list" class="snapshot-list" aria-label="快照会话列表"></ul></div>' +
+    "</div>" +
+    "</div>" +
     "</div>" +
     "</section>";
 
