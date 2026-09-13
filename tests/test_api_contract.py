@@ -608,7 +608,7 @@ class FullscanStopContractTests(unittest.TestCase):
     """U3.2（D10）：POST /api/fullscan/stop 契约——200 形态与空闲幂等。
 
     ⚠️ 偏差注记：手册 §U3.2 提「tests/test_web.py 新增契约用例」——该文件已于
-    U1.0 归档至 tests/archive_pre_p12/（P12 前旧草稿），当前契约护栏以
+    U1.0 移出正式用例（P12 前旧草稿，2026-09-13 随仓库瘦身删除），当前契约护栏以
     tests/test_api_contract.py 为准（本文件编码规约：with-resp/close、additive 冻结）。
     """
 

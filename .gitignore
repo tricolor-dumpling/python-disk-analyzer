@@ -54,3 +54,8 @@ dsh-image-gen/
 /问题.zip
 # docs/问题核查资料_20260902.zip = docs/问题核查资料_20260902/ 的压缩副本（已入库）
 docs/问题核查资料_20260902.zip
+
+# 开发探针一次性产物（2026-09-13 起：scripts/dev/archive/ 已取消，
+# 一次性脚本用完即删，不再入库；留规则防止误提交）
+/scripts/dev/archive/
+/tests/archive_pre_p12/

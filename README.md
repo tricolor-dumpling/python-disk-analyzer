@@ -64,10 +64,9 @@ python main.py C:\ --export csv            # 导出全部目录占用到 exports
 
 | 路径 | 说明 |
 |---|---|
-| `tests/test_*.py` | 正式 pytest 用例（scan/compare/snapshots/tui/web/security/shutdown/stale_lock/undo 等） |
-| `tests/archive_pre_p12/` | P12 之前的历史用例归档（非现行） |
+| `tests/test_*.py` | 26 个正式 pytest 用例（scan/compare/snapshots/tui/web/security/shutdown/stale_lock/undo/API 契约等）。P12 之前的历史用例归档已于 2026-09-13 随仓库瘦身删除（引用已删除模块、收集期即报错）；现在 `pytest tests` 可全量收集，**不再需要 `--ignore`** |
 | `tests/web/smoke.html` | 前端冒烟页（`?suite=v2`，标题 `[PASS n/n]` 即绿）。⚠️ **会话夹具必须照抄 `/api/snapshots` 真实载荷**：`session.py` 字段 **+ additive `total_by_root`**（`app.py` api_snapshots 为每个存过快照的盘补算该盘总量）。漏掉 `total_by_root` → `snapshot-view.js` 的 `sessionSavedBytes/isMeaningfulSession` 判定该会话「空」→ 整页列表/日历/对比基准全空，A15/A17/A18/A20 连锁变红（2026-09-13 实测踩过） |
-| `scripts/dev/` | 可复用开发工具（用法见 `scripts/dev/README.md`）：`_harness.mjs` 浏览器探针统一入口、`fixture_snapshots.mjs` 快照夹具、`destructive_acceptance.ps1` 破坏性流程验收、6 个 `*.test.mjs` 纯 JS 单测（treemap / trend-window / motion-core / **snapshot-view** / **prefs** / **line-pick**）；历史一次性探针在 `scripts/dev/archive/` |
+| `scripts/dev/` | 可复用开发工具（清单见 `scripts/dev/README.md`，共 10 项）：`_harness.mjs` 浏览器探针统一入口、`fixture_snapshots.mjs` 快照夹具、`destructive_acceptance.ps1` 破坏性流程验收、6 个 `*.test.mjs` 纯 JS 单测（treemap / trend-window / motion-core / **snapshot-view** / **prefs** / **line-pick**）。历史一次性探针（72 个）已随仓库瘦身删除，需要考古从 git 历史取 |
 | `everything-SDK/dll/` | 运行时依赖的 Everything DLL（仅保留 32/64 两个 DLL） |
 | `问题/问题清单.md` | 当前待办的用户实测问题清单（UI 问题需借助截图多次确认定位） |
 
@@ -78,7 +77,7 @@ python main.py C:\ --export csv            # 导出全部目录占用到 exports
 ## 测试
 
 ```powershell
-python -m pytest tests -q --ignore=tests/archive_pre_p12   # 后端（archive_pre_p12 引用已删除模块，不参与收集）
+python -m pytest tests -q                                  # 后端（356 项；历史归档已删除，可全量收集）
 node --test scripts/dev/treemap.test.mjs scripts/dev/trend-window.test.mjs scripts/dev/motion-core.test.mjs scripts/dev/snapshot-view.test.mjs scripts/dev/prefs.test.mjs scripts/dev/line-pick.test.mjs
 ```
 

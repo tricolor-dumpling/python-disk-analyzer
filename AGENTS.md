@@ -10,7 +10,7 @@ Windows 本地磁盘分析工具，三种形态共用同一套后端模块：Web
 
 - 本机 PowerShell 为 **5.1 Desktop**：无 `&&`/`||`、无三元/空合并语法；pwsh 每次调用是全新进程，不保留 cwd/变量。
 - `npm`/`pnpm`/`npx` 不在 PATH 上；本机**无 Chrome**，浏览器自动化用 dsh 的 `browser_*` 工具，不要从 pwsh 启动无头浏览器。
-- 运行/测试入口：`.venv` 在项目根；`python -m pytest tests -q --ignore=tests/archive_pre_p12` 跑后端（`archive_pre_p12` 引用已删除模块，收集期即报错，须排除），`node --test scripts/dev/*.test.mjs` 跑前端纯 JS 单测。
+- 运行/测试入口：`.venv` 在项目根；`python -m pytest tests -q` 跑后端（356 项，可全量收集——P12 前的历史归档已于 2026-09-13 删除），`node --test scripts/dev/*.test.mjs` 跑前端纯 JS 单测。
 
 ## 3. 架构红线（违反即返工）
 
@@ -44,7 +44,7 @@ Windows 本地磁盘分析工具，三种形态共用同一套后端模块：Web
 - Python 兼容 **3.9+**；CLI/TUI 路径仅标准库，第三方依赖只允许出现在 Web 形态。
 - Windows 专有 API（msvcrt/winreg/ctypes）一律受保护导入（try/except ImportError），保持非 Windows 环境可 import。
 - 测试命名 `tests/test_*.py`；仓库根不落地临时 `test_*.py` / 散置脚本（.gitignore 已拦截，开发探针放 `scripts/dev/`）。
-- 开发工具纪律：`scripts/dev/` 只保留可复用工具（清单见 `scripts/dev/README.md`）；新写浏览器探针必须 import `_harness.mjs`；一次性核查脚本用完即归 `scripts/dev/archive/`。
+- 开发工具纪律：`scripts/dev/` 只保留可复用工具（清单见 `scripts/dev/README.md`，≤10 个文件）；新写浏览器探针必须 import `_harness.mjs`；**一次性核查脚本用完即删**——2026-09-13 起不再设 `archive/`（历史 72 个探针已整体删除，考古走 git 历史）。
 - UI 问题排查：必须借助截图（`browser_screenshot`）多次确认定位，不凭猜测改样式。
 
 ## 5. 数据与产物位置
@@ -67,7 +67,7 @@ Windows 本地磁盘分析工具，三种形态共用同一套后端模块：Web
    2. **断言前置要自己建立、失败要轮询不靠固定 `wait`**——跨断言共享的**使用偏好**（如矩形图合并阈值 `setMergeTop`）必须在用它的断言里显式复位；点击/浏览后的状态用 `__waitUntil` 轮询到目标态再断言（精确等值比较，不用 `indexOf`——旧文本同样命中）；`browsePath` 对同路径会短路不发请求，不能假设「这次一定发请求」。
    3. 另：用浏览器工具跑 smoke 时**不要重复打开页面**（重新 open 会打断正在跑的套件，出现 A3/A6/A8–A16/A20 的「壳未 boot」假红）；一次 open 等标题出结论即可。
 7. **前端零构建但模板会缓存**：`web/templates/index.html` 改动需**重启** Flask（Jinja 非 debug 模式缓存编译模板；静态 JS/CSS 不缓存，改完刷新即可）。改动后跑：
-   `python -m pytest tests -q --ignore=tests/archive_pre_p12`、`node --test scripts/dev/*.test.mjs`、必要时 `tests/web/smoke.html`（浏览器打开，标题出现 `[suite=v2][PASS n/n]` 即绿）。
+   `python -m pytest tests -q`、`node --test scripts/dev/*.test.mjs`、必要时 `tests/web/smoke.html`（浏览器打开，标题出现 `[suite=v2][PASS n/n]` 即绿）。
 8. **发版流程**（2026-09-13 实操固化；本机**没有 `gh` CLI**，走 git + REST API）：
    1. 版本号唯一落点 = `web/templates/index.html` 状态栏 `.statusbar-left`（形如 `v2.1.0 · R1 视觉版`），发版前改它并单独提交；
    2. 打 **annotated tag**（`git tag -a vX.Y.Z -F <说明文件>`）并 `git push origin main` + `git push origin vX.Y.Z`；
@@ -80,7 +80,7 @@ Windows 本地磁盘分析工具，三种形态共用同一套后端模块：Web
 ## 7. 常用命令
 
 ```powershell
-python -m pytest tests -q --ignore=tests/archive_pre_p12   # 后端测试（archive_pre_p12 引用已删除模块，不参与收集）
+python -m pytest tests -q                   # 后端测试（356 项；历史归档已删除，可全量收集）
 node --test scripts/dev/treemap.test.mjs scripts/dev/trend-window.test.mjs scripts/dev/motion-core.test.mjs scripts/dev/snapshot-view.test.mjs scripts/dev/prefs.test.mjs scripts/dev/line-pick.test.mjs   # 前端纯 JS 单测
 python app.py                             # 本地 Web UI（改 index.html 后需重启）
 python main.py C:\ -top 20 --export csv   # 非交互报告
