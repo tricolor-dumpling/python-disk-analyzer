@@ -36,6 +36,25 @@ function arg(name, dflt) {
 const FIXTURE_ROOT = path.resolve(arg("dir", path.join(os.tmpdir(), "pds_fixture_snapshots_" + Date.now())));
 const NOW_ISO = arg("now", null);
 const NOW = NOW_ISO ? new Date(NOW_ISO) : new Date();
+
+/* 2026-09-13（用户实测：真实数据目录里出现 C:\SDK1..6 夹具会话）：
+   本生成器**只允许写隔离目录**——一旦解析出的输出根落在真实数据目录
+   （%LOCALAPPDATA%\PythonDiskScanner 及其子目录）内，直接拒绝执行。
+   历史事故成因：探针用 DSA_SNAPSHOT_DIR 指向夹具 snapshots，却把 session 清单
+   落在了真实数据根。要显式覆盖必须给 --allow-real-dir（并自负污染风险）。 */
+(function guardRealDataDir() {
+    if (process.argv.includes("--allow-real-dir")) return;
+    const local = process.env.LOCALAPPDATA || process.env.XDG_DATA_HOME || "";
+    if (!local) return;
+    const real = path.resolve(path.join(local, "PythonDiskScanner"));
+    const rel = path.relative(real, FIXTURE_ROOT);
+    const inside = rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+    if (inside) {
+        console.error("[fixture] 拒绝写入真实数据目录：" + FIXTURE_ROOT);
+        console.error("[fixture] 本生成器只写隔离目录；如确需覆盖请显式加 --allow-real-dir");
+        process.exit(2);
+    }
+})();
 /* --fixture：选择生成哪些场景（P0-4 新增 growth/flat/series；P4 挂账清理新增 tree）
    all(缺省) = 既有五类 + growth + flat + series + tree；也可单独指定一个。 */
 const FIXTURE_SEL = (arg("fixture", "all") || "all").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);

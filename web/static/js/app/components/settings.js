@@ -7,14 +7,17 @@
    - 跨模块状态经导出访问器读写（模块化拆分副作用：wipeData 清空多模块状态）。
    ============================================================ */
 
-import { $, api, postJson } from "../api.js";
+import { $, api, postJson, esc } from "../api.js";
 import { APP_STATE } from "../state.js";
 import { toast } from "../components/toast.js";
 import { openModal, closeModal } from "../components/modals.js";
 import { setStatus } from "../components/statusbar.js";
 import { GUIDE_KEY } from "../components/onboarding.js";
+import { PICK_KEY } from "../components/drives.js"; // pds_selected_drives_v1（wipe 清键）
 import { setAutoSaveSetting, pollFullscan } from "../components/scan.js";
-import { applyLastRoots, resetBrowseHistory } from "../pages/workspace.js";
+import { applyLastRoots, resetBrowseHistory, setBrowseView, setMergeTop, renderEntries } from "../pages/workspace.js";
+/* 2026-09-13 新增：使用偏好（记录 + 回显 + 恢复默认；注册表见 prefs.js） */
+import { PREF_REGISTRY, getPref, prefGroups, resetPrefs, setPref, storedPrefIds } from "../prefs.js";
 import { setSessionsCache, applySnapshotsView } from "../pages/snapshots.js";
 import { resetCompareData } from "../pages/compare.js"; // U3.4：清空联动（结果/迷你摘要复位 + 对比页回空态）
 import { setThemePref, resolvedTheme, syncThemeControls } from "../theme.js"; // U3.5：主题三态
@@ -29,8 +32,10 @@ export function getDataDir() { return dataDir; }
 
 export async function openSettings() {
     openModal("settings-modal"); // P12·W2.6（K1）：统一走弹窗工具
+    setSettingsTab(activeSettingsTab); // 2026-09-13：回显上次分页（默认「常规」）
     setStatusForSettingsHealth();
     syncThemeControls(); // U3.5：主题单选回显（同源：与顶栏按钮改一处另一处反映）
+    renderPrefs();       // 2026-09-13：使用偏好回显（每次打开重建，值可能被页面控件改过）
     try {
         const data = await api("/api/settings");
         // 阶段D（D-2）：「扫描完成自动保存」默认开启——未显式存储（缺键）视为 ON；
@@ -151,6 +156,9 @@ async function wipeData() {
         // P12·W2.6（RT-N06）：清键集合——成功响应后、关弹窗前执行（失败不清理）
         try {
             localStorage.removeItem(GUIDE_KEY);          // 恢复出厂：引导页重现
+            localStorage.removeItem(PICK_KEY);           // 已选盘符偏好（pds_selected_drives_v1）
+            localStorage.removeItem("pds_last_browse_v1"); // 上次浏览位置（F06；无常量定义，字面量与 workspace.js 同键）
+            // pds_theme_v1 属用户偏好，恢复出厂保留
         } catch (e) { /* ignore */ }
         // P1（D1-1）：K7「已处理扫描代次」闸门（pds_handled_scan_version_v1）已移除，
         // 自动保存由后端归口，前端不再有跨进程持久化代次键可清。
@@ -249,12 +257,186 @@ function bindThemeGroup() {
     });
 }
 
+/* ============================================================
+   2026-09-13 第二轮：设置弹窗分页（常规 / 使用偏好 / 危险区）
+   背景：原单页内容 1045px 高，1366×768 下 `.modal-panel{max-height:90vh;overflow:auto}`
+   让**整个弹窗**滚动（标题与底部按钮一起滚走）——用户实测「设置界面太长了」。
+   分页后每页都短、弹窗高度稳定；活动分页在本次会话内记忆（重开回到上次分页）。
+   ============================================================ */
+
+const SETTINGS_TABS = ["general", "prefs", "danger"];
+let activeSettingsTab = "general";
+
+export function setSettingsTab(name) {
+    const tab = SETTINGS_TABS.indexOf(name) === -1 ? "general" : name;
+    activeSettingsTab = tab;
+    SETTINGS_TABS.forEach((t) => {
+        const btn = $("tab-" + t);
+        const pane = $("pane-" + t);
+        const on = t === tab;
+        if (btn) {
+            btn.classList.toggle("is-active", on);
+            btn.setAttribute("aria-selected", String(on));
+            btn.tabIndex = on ? 0 : -1;
+        }
+        if (pane) {
+            pane.classList.toggle("is-active", on);
+            pane.toggleAttribute("hidden", !on);
+        }
+    });
+}
+
+function bindSettingsTabs() {
+    const bar = document.querySelector(".settings-tabs");
+    if (!bar) return;
+    bar.addEventListener("click", (ev) => {
+        const btn = ev.target && ev.target.closest ? ev.target.closest("[data-tab]") : null;
+        if (btn) setSettingsTab(btn.getAttribute("data-tab"));
+    });
+    // ←/→ 在分页间移动（radiogroup/tablist 键盘惯例）
+    bar.addEventListener("keydown", (ev) => {
+        if (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight") return;
+        const cur = SETTINGS_TABS.indexOf(activeSettingsTab);
+        const next = (cur + (ev.key === "ArrowRight" ? 1 : -1) + SETTINGS_TABS.length) % SETTINGS_TABS.length;
+        setSettingsTab(SETTINGS_TABS[next]);
+        const btn = $("tab-" + SETTINGS_TABS[next]);
+        if (btn) btn.focus();
+        ev.preventDefault();
+    });
+}
+
+/* ============================================================
+   2026-09-13 新增：使用偏好区（记录 / 回显 / 恢复默认）
+   - 数据源 = prefs.js 的 PREF_REGISTRY（单一事实源）——本文件不硬编码任何偏好项；
+   - 控件形态按注册表定义派生：options → <select>；def 为布尔 → 开关；数值 → number；
+   - 改动立即写存储并**当场应用**（同一收口：视图切换走 workspace.setBrowseView、
+     列表筛选与对比口径走各自既有 change 事件，零重复实现）。
+   ============================================================ */
+
+function prefInputId(id) {
+    return "pref-" + String(id).replace(/[.]/g, "-");
+}
+
+function prefControlHtml(it) {
+    const id = prefInputId(it.id);
+    const label = esc(it.label);
+    if (Array.isArray(it.options)) {
+        const opts = it.options
+            .map((v) => {
+                const text = it.optionText && it.optionText[v] !== undefined ? it.optionText[v] : v;
+                return '<option value="' + esc(v) + '"' +
+                    (String(v) === String(it.value) ? " selected" : "") + ">" + esc(text) + "</option>";
+            })
+            .join("");
+        return '<select id="' + id + '" class="pref-input" data-pref="' + esc(it.id) +
+            '" aria-label="' + label + '">' + opts + "</select>";
+    }
+    if (typeof it.def === "boolean") {
+        return '<input id="' + id + '" class="pref-input switch" type="checkbox" data-pref="' + esc(it.id) +
+            '"' + (it.value ? " checked" : "") + ' aria-label="' + label + '">';
+    }
+    const min = typeof it.min === "number" ? ' min="' + it.min + '"' : "";
+    const max = typeof it.max === "number" ? ' max="' + it.max + '"' : "";
+    return '<input id="' + id + '" class="pref-input pref-number" type="number" data-pref="' + esc(it.id) +
+        '"' + min + max + ' step="1" value="' + esc(it.value) + '" aria-label="' + label + '">';
+}
+
+/* 设置弹窗打开时渲染（每次打开都重建：值可能被页面内控件改过） */
+export function renderPrefs() {
+    const host = $("settings-prefs");
+    if (!host) return;
+    host.innerHTML = prefGroups()
+        .map((g) => {
+            const rows = g.items
+                .map((it) =>
+                    '<label class="pref-row" for="' + prefInputId(it.id) + '" title="' + esc(it.hint) + '">' +
+                    '<span class="pref-label"><b>' + esc(it.label) + "</b>" +
+                    '<span class="pref-hint">' + esc(it.hint) + "</span></span>" +
+                    '<span class="pref-control">' + prefControlHtml(it) + "</span></label>")
+                .join("");
+            return '<div class="pref-group"><div class="pref-group-title">' + esc(g.group) + "</div>" + rows + "</div>";
+        })
+        .join("");
+    syncPrefsNote();
+}
+
+function syncPrefsNote() {
+    const note = $("settings-prefs-note");
+    if (!note) return;
+    const n = storedPrefIds().length;
+    note.textContent = n ? "已记住 " + n + " 项自定义偏好" : "当前全部为默认值";
+}
+
+/* 偏好 → 现场应用（各页面既有收口；控件不在 DOM 时只改 APP_STATE，等挂载时渲染） */
+export function applyPrefNow(id, value) {
+    switch (id) {
+        case "view.mode":
+            APP_STATE.view.mode = value;
+            if ($("btn-view-treemap")) setBrowseView(value);
+            break;
+        case "view.mergeTop":
+            if ($("merge-top-label")) setMergeTop(value);
+            else APP_STATE.view.mergeTop = value;
+            break;
+        case "list.kind":
+        case "list.sort": {
+            const el = $(id === "list.kind" ? "browse-kind" : "browse-sort");
+            if (el) {
+                el.value = String(value);
+                if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
+            }
+            break;
+        }
+        case "compare.depth": {
+            APP_STATE.compare.depth = String(value || "");
+            const sel = $("compare-depth");
+            // 派发既有 change：页面自身负责「口径变更 → 弃缓存 → 重发对比」
+            if (sel) { sel.value = String(value || ""); sel.dispatchEvent(new Event("change")); }
+            break;
+        }
+        case "compare.hideZero": {
+            APP_STATE.compare.hideZero = !!value;
+            const box = $("compare-hide-zero");
+            if (box) { box.checked = !!value; box.dispatchEvent(new Event("change")); }
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+function onPrefsChange(ev) {
+    const el = ev.target && ev.target.closest ? ev.target.closest("[data-pref]") : null;
+    if (!el) return;
+    const id = el.getAttribute("data-pref");
+    let value;
+    if (el.type === "checkbox") value = !!el.checked;
+    else if (el.tagName === "SELECT") value = el.value;
+    else value = Math.floor(Number(el.value));
+    setPref(id, value);                       // 越界/非法值在 prefs 内清洗
+    applyPrefNow(id, getPref(id));            // 应用清洗后的权威值
+    if (el.type === "number") el.value = String(getPref(id)); // 越界回显
+    syncPrefsNote();
+}
+
+function onResetPrefs() {
+    resetPrefs();
+    PREF_REGISTRY.forEach((def) => applyPrefNow(def.id, def.def));
+    renderPrefs();
+    toast("使用偏好已恢复默认", "success");
+}
+
 /* 本组件在 init 期的绑定（顺序等价：原 bind() 的设置/危险区段；主题按钮绑定在主题段） */
 export function bindSettings() {
     // 设置
     $("btn-settings").addEventListener("click", openSettings);
     $("btn-settings-save").addEventListener("click", saveSettings);
+    bindSettingsTabs(); // 2026-09-13：设置分页（常规 / 使用偏好 / 危险区）
     bindThemeGroup(); // U3.5：主题三态单选
+    const prefsBox = $("settings-prefs");
+    if (prefsBox) prefsBox.addEventListener("change", onPrefsChange);
+    const resetPrefsBtn = $("btn-reset-prefs");
+    if (resetPrefsBtn) resetPrefsBtn.addEventListener("click", onResetPrefs);
     $("btn-wipe-open").addEventListener("click", openWipeModal);
     $("wipe-confirm").addEventListener("input", () => {
         // U3.5·L2-10：匹配 → 3s 倒计时解锁；失配 → 取消武装并复位

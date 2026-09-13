@@ -102,14 +102,10 @@ export function hideBrowseGuide() {
 }
 
 /* 环境门控（RT-02 边界）：只在首次加载与「重试环境检测」两处求值；
-   15s 轮询只刷徽章、绝不重评本门控。ready → 自动浏览首根；否则进引导态。
-   阶段D（D-1）：ready 分支追加自动扫描触发派发——autoScanEligible 为
-   main.js 预检的「无当日快照会话」信号（true=可评估自动扫描）；事件由
-   main.js 监听（tryAutoStartFullscan 做最终幂等判定：保护键/运行态/结果态）。
-   启动时序（D-1 冷启动竞态修复）：自动扫描与启动浏览必须避免在同一瞬间竞争
-   SDK 锁（真机实测：并发触发产生 5×409 browse console 噪声）——当自动扫描
-   可评估时，**先派发自动扫描（拿锁）**，把启动浏览延后到扫描完成后（走索引，
-   零 409）；不可评估时保持既有立即浏览（u20 网络时序不变）。 */
+   15s 轮询只刷徽章、绝不重评本门控。ready → 自动扫描评估；否则进引导态。
+   R1（用户裁定）：打开页面即直接触发全盘扫描（autoScanEligible = 本会话未发起过），
+   不再「打开时自动浏览单个盘符」；启动浏览延后到扫描完成（pds:browse-after-scan，
+   走索引零 409）；不可评估时（本会话已发起/已有结果）保持既有立即浏览。 */
 export function evaluateEnvGate(h, autoScanEligible) {
     if (!h) {
         showBrowseGuide(null);

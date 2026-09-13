@@ -324,7 +324,7 @@ function measureRowHeight() {
 
 /* 行行为绑定（每次 innerHTML 渲染后调用；虚拟窗口只绑窗口行）。
    mode=ranking：仅 .ranking-row[data-path]（既有行为：div 可点击/键盘）；
-   mode=table：行级（.dir-link 点击 + row-highlight + 行 Enter/Space）。 */
+   mode=table：行级（目录行整行 click 下钻 + .dir-link 点击 + row-highlight + 行 Enter/Space）。 */
 function bindRowBehaviors(body, mode) {
     body.querySelectorAll(".ranking-row[data-path]").forEach((row) => {
         row.addEventListener("click", (ev) => {
@@ -347,6 +347,16 @@ function bindRowBehaviors(body, mode) {
         });
     });
     body.querySelectorAll("tr:not(.v-spacer)").forEach((row) => {
+        /* 目录行整行点击下钻（README 语义：文件行不响应点击——文件行无 .dir-link，
+           自然跳过）；名称链接自身已有处理、复选框/行内操作不触发行导航 */
+        row.addEventListener("click", (ev) => {
+            if (ev.target.closest(".dir-link")) return;    // 链接点击由上方 .dir-link 处理器负责
+            if (ev.target.closest(".row-actions")) return; // F19：行内操作不触发下钻
+            if (ev.target.closest(".cell-check")) return;  // 复选框列交给多选委托（onCheckClick）
+            if (row.dataset.suppressClick) return;         // 触屏长按后的回落点击吞掉
+            const link = row.querySelector(".dir-link");
+            if (link) browsePathVia(link.getAttribute("data-path"));
+        });
         row.addEventListener("mouseenter", () => row.classList.add("row-highlight"));
         row.addEventListener("mouseleave", () => row.classList.remove("row-highlight"));
         row.setAttribute("tabindex", "0");

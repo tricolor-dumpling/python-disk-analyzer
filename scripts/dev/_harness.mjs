@@ -25,7 +25,7 @@ const require = createRequire(import.meta.url);
 export const PW_PATH = process.env.PDS_PW ||
     "C:/Users/Laptop/.dsh/profiles/web/node_modules/playwright";
 export const CHROMIUM_EXE = process.env.PDS_CHROME ||
-    "C:/Users/Laptop/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe";
+    "C:/Users/Laptop/AppData/Local/ms-playwright/chromium-1243/chrome-win64/chrome.exe";
 
 const { chromium: rawChromium } = require(PW_PATH);
 

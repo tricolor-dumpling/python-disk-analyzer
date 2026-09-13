@@ -1,7 +1,9 @@
 /* ============================================================
    UI 2.0（SpaceLens Pro）· components/storage.js（U2.0 建，U2.4 环形图卡重写）
-   - 存储概览卡（N04）：viz/donut.js 环形图 + 盘符 chips（D15：只切环形数据，
-     不切浏览目录）+ 图例两行 + 「浏览此盘」按钮（跳转浏览的唯一入口）；
+   - 存储概览卡（N04）：viz/donut.js 环形图 + 盘符 chips（2026-09-13 用户实测反馈后
+     口径修订：chips 点击 = 切环形数据 **且** 左侧视图区浏览该盘——旧 D15
+     「只切环形数据不切浏览目录」被用户判定为「盘符没联动上」，已废止）
+     + 图例两行 + 「浏览此盘」按钮（与 chips 同一 goBrowseRoot 收口）；
    - 四态：空（未扫描，定稿 6.5 文案）/ 加载（首拍占位）/ 数据（sweep 入场 +
      中心 count-up）/ 扫描中（不确定旋转弧 + 自动跟随当前盘，N04）；
    - 自动跟随与锁定：全量扫描中跟随 pds:scan 当前盘，用户手选 chip 后本扫描期
@@ -53,6 +55,20 @@ function disposeDonut() {
     if (donutView) { donutView.destroy(); donutView = null; }
 }
 
+/* 盘符联动（正向）唯一收口：点盘符 = ①环形/图例/chips 切到该盘（选中态）
+   + ②左侧视图区真的浏览该盘根目录（会话根 + 浏览根输入框同步）。
+   2026-09-13 用户实测反馈（图二）：chips 原先只切环形数据（旧 D15 口径）、
+   仅把值回写进 #browse-root 输入框而不发起浏览，左侧视图区毫无反应，
+   用户判定「盘符没有联动上」。现口径：chips 与「浏览此盘」等价（同一函数），
+   零重复实现——「浏览此盘」按钮点击也走这里。 */
+function goBrowseRoot(root) {
+    if (!root) return;
+    setCurrentRoot(root);
+    const input = $("browse-root");
+    if (input) input.value = root;
+    browsePath(root); // 异步；失败分支由 browsePath 内部状态行/toast 反馈
+}
+
 /* 卡片骨架（数据态与扫描态共用；空态/错误态整体替换） */
 function storageBodyHtml() {
     return (
@@ -91,7 +107,7 @@ function legendHtml(roots, sel) {
     );
 }
 
-/* chips 渲染 + D15 绑定（只切环形数据，不切目录） */
+/* chips 渲染 + 盘符联动绑定（点击 = 切环形数据 + 左侧浏览该盘，见 goBrowseRoot） */
 function bindChips(box, roots, { onChip }) {
     const chips = $("overview-chips");
     if (!chips) return;
@@ -149,15 +165,14 @@ function renderDataState(roots) {
         onChip: (root) => {
             selectedRoot = root;
             if (scanMode) userLocked = true; // N04：扫描期手选 → 本扫描期锁定
-            applySelectedRoot(roots);        // D15：只切环形数据，不触发 browse
+            applySelectedRoot(roots);        // D15：环形/图例/chips 切到所选盘
+            /* 盘符联动（2026-09-13 用户实测反馈·图二）：不仅同步浏览根输入框，
+               而是真正发起左侧浏览——点盘符 = 看这个盘（与「浏览此盘」同一收口） */
+            goBrowseRoot(root);
         },
     });
     $("btn-overview-browse").addEventListener("click", () => {
-        const root = selectedRoot || getCurrentRoot();
-        setCurrentRoot(root);
-        const input = $("browse-root");
-        if (input) input.value = root;
-        browsePath(root);
+        goBrowseRoot(selectedRoot || getCurrentRoot());
     });
     applySelectedRoot(roots);
     $("overview-meta").textContent = overviewData && overviewData.completed_at
@@ -201,6 +216,9 @@ function renderScanChips(st) {
                 c.setAttribute("aria-pressed", String(on));
             });
             syncScanBrowse(st);
+            /* 扫描态盘符联动：仅**已完成**的盘可即时浏览（与「浏览此盘」禁用口径一致；
+               未完成的盘浏览只会撞上「该盘正在扫描中」提示，故此处不发浏览）。 */
+            if (scanChipDone(st, activeRoot)) goBrowseRoot(activeRoot);
         });
     });
 }
@@ -230,11 +248,7 @@ function renderScanState(st) {
     if (legend) legend.innerHTML = '<div class="donut-legend-scan">扫描完成后展示各盘已用占比</div>';
     renderScanChips(st);
     $("btn-overview-browse").addEventListener("click", () => {
-        const root = selectedRoot || getCurrentRoot();
-        setCurrentRoot(root);
-        const input = $("browse-root");
-        if (input) input.value = root;
-        browsePath(root);
+        goBrowseRoot(selectedRoot || getCurrentRoot());
     });
     syncScanBrowse(st);
     $("overview-meta").textContent = "扫描中 " + (Number(st.progress_pct) || 0) + "% · 已完成 " +
@@ -339,11 +353,38 @@ export async function refreshOverview() {
     }
 }
 
-/* 本组件在 init 期的绑定（刷新按钮 + 扫描跟随事件一次绑定） */
+/* 盘符联动（反向）：页面其他入口浏览了某盘（浏览按钮/扫描卡 chips/命令面板跳转）→
+   存储概览 chip 与环形图跟随切换到该盘（不重取数据，复用最近概览载荷）。
+   ⚠️ 与正向 goBrowseRoot 不构成环：正向先落 selectedRoot 再 browsePath，
+   返回的 pds:browse 事件在 root === selectedRoot 时即时返回。 */
+function onBrowseEvent(ev) {
+    const root = ev && ev.detail && ev.detail.root;
+    if (!root || root === selectedRoot) return;
+    if (scanMode) {
+        // 扫描态：用户在别处浏览了某盘 → 视为显式选择，跟随高亮（本扫描期锁定）
+        if (!lastScanSt || !(lastScanSt.roots || []).includes(root)) return;
+        selectedRoot = root;
+        userLocked = true;
+        document.querySelectorAll("#overview-chips .chip").forEach((c) => {
+            const on = c.getAttribute("data-root") === root;
+            c.classList.toggle("is-active", on);
+            c.setAttribute("aria-pressed", String(on));
+        });
+        syncScanBrowse(lastScanSt);
+        return;
+    }
+    const roots = overviewData && overviewData.roots;
+    if (!roots || !roots.length || !roots.find((r) => r.root === root)) return;
+    selectedRoot = root;
+    applySelectedRoot(roots);
+}
+
+/* 本组件在 init 期的绑定（刷新按钮 + 扫描跟随/浏览联动事件一次绑定） */
 export function bindOverview() {
     $("btn-overview-refresh").addEventListener("click", refreshOverview);
     if (!_scanFollowBound) {
         _scanFollowBound = true;
         window.addEventListener("pds:scan", onScanEvent);
+        window.addEventListener("pds:browse", onBrowseEvent);
     }
 }

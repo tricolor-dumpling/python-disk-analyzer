@@ -4,8 +4,8 @@
      轮询单链 + _wasScanRunning 完成边沿（机制 #3）、
      SKIP_REASON_TEXT 经 labels.js（机制 #7,共享叶子避免循环依赖）；
    - U3.2（D10）状态机四态：空闲 / 扫描中（#btn-stop-scan 红描边 L2-2 + 耗时计时 +
-     chips 三态 ✓/脉冲/灰） / 完成（L2-3 绿光+对勾 drawCheck + L2-4 粒子 16 粒，
-     先 toast、仅主页可见时播） / 中止（toast「已停止，已完成部分可浏览」+ 保存可用）；
+     chips 三态 ✓/脉冲/灰） / 完成（L2-3 绿光+对勾 drawCheck；R1 起 L2-4 粒子下线） /
+     中止（toast「已停止，已完成部分可浏览」+ 保存可用）；
    - 停止能力特性探测：OPTIONS /api/fullscan/stop（零副作用——真 POST 在运行中
      会触发实际停止，不能用于探测；⚠️ 偏差注记：手册按「POST 探测」表述，
      以 OPTIONS 实现并记录于执行记录），404/405 → 隐藏「停止」按钮；
@@ -19,11 +19,11 @@ import { toast } from "../components/toast.js";
 import { setStatus } from "../components/statusbar.js";
 import { skipReasonText } from "../labels.js";
 import { confirmDialog } from "../components/modals.js";
-import { confetti, drawCheck } from "../motion.js"; // U3.2：L2-4 粒子 / L2-3 对勾描边
+import { drawCheck } from "../motion.js"; // U3.2：L2-3 对勾描边（L2-4 粒子已于 R1 下线）
 import { formatElapsed, estimateRemainingSec, etaShouldUpdate } from "../motion-core.js";  // U3.2：耗时计时（HH:MM:SS 口径）；阶段D（D-3b）：ETA 估算纯函数
 import { refreshSnapshots, getSessionsCache } from "../pages/snapshots.js";
 import { refreshOverview } from "../components/storage.js";
-import { getCurrentRoot, browsePath, setCurrentRoot, getTreemapView } from "../pages/workspace.js"; // 扫描盘 chips 与导出根；U3.2 粒子挂点（fx 层）
+import { getCurrentRoot, browsePath, setCurrentRoot } from "../pages/workspace.js"; // 扫描盘 chips 与导出根
 import { markNavDot } from "../components/nav-dots.js"; // U3.1：N13 圆点提醒（叶子模块，防环）
 
 /* ================= 全量扫描 ================= */
@@ -256,15 +256,8 @@ export function isSaveAvailable() {
     return false;
 }
 
-/* U3.2（L2-4）：完成庆祝粒子——先 toast（调用方）后粒子；仅主页可见时播：
-   fx 层画布必须仍在文档中（isConnected）；reduced-motion 由 motion.confetti 直跳过。 */
-function playCompletionConfetti() {
-    if (APP_STATE.route !== "/") return;
-    const view = getTreemapView();
-    const fx = view && view.fx ? view.fx() : null;
-    if (!fx || !fx.isConnected) return;
-    confetti(fx, { count: 16 }); // 定稿 L2-4：16 粒 / 600ms（--dur-4）/ 单次
-}
+/* R1：L2-4 完成烟花已下线（用户反馈突兀）——playCompletionConfetti 与 confetti 引用移除，
+   完成反馈 = L2-3 绿光扫过 + 对勾描边 + toast。 */
 
 /* U3.2：扫描卡状态机渲染（四态：空闲/扫描中/完成/中止；保存提示属完成态子分支）。
    ⚠️ 边沿顺序保留 U3.1 纪律：markNavDot("/")（圆点三触发之扫描完成）先于
@@ -281,6 +274,13 @@ function renderFullscanState(st) {
     const partialRoots = (Number(st.roots_done) || 0) > 0;
     if (finishedEdge && (completed || aborted)) markNavDot("/");
     if (!$("progress-fill")) return; // U2.1：子页面时扫描卡不在 DOM（状态已记账，回主页即恢复渲染）
+    /* 每拍先隐藏上一轮完成态的自动保存 notice 与保存提示——running/queued/stopping 等
+       分支直接 return 不重绘它们，不先隐藏会残留到新一轮扫描进行中；完成态由
+       renderAutosaveResult 在下方按 outcome 重新显隐（判空：子页面无 DOM） */
+    const autosaveArea = $("autosave-result");
+    if (autosaveArea) autosaveArea.classList.add("hidden");
+    const savePromptEl = $("save-prompt");
+    if (savePromptEl) savePromptEl.classList.add("hidden");
     updateExportButtons(); // 阶段B（B-15）：导出按钮可用性随状态同步（扫描中禁用）
     const pct = Number(st.progress_pct) || 0;
     $("progress-fill").style.width = pct + "%";
@@ -348,14 +348,15 @@ function renderFullscanState(st) {
             if (outcome && outcome.outcome === "saved") {
                 msg = "全量扫描已完成，已自动保存快照";
             } else if (outcome && outcome.outcome === "skipped") {
-                msg = "全量扫描已完成，已跳过自动保存（可仍要保存）";
+                msg = "全量扫描已完成，已跳过自动保存（可点「保存快照」手动保存）";
             } else if (outcome && outcome.outcome === "failed") {
                 msg = "全量扫描已完成，自动保存失败（可手动保存）";
             } else {
                 msg = "全量扫描已完成，结果就绪" + (st.save_ready ? "，可保存快照" : "");
             }
             toast(msg, outcome && outcome.outcome === "saved" ? "success" : (outcome && outcome.outcome === "failed" ? "error" : "info"));
-            playCompletionConfetti();
+            /* R1：移除 L2-4 完成烟花（用户反馈突兀）——保留 L2-3 进度条绿光 + 条尾对勾
+               描边作为完成反馈（上面 checkEl 分支），粒子特效整体下线。 */
             /* 阶段D（D-1）：冷启动自动扫描路径的延后浏览——完成且结果就绪时
                派发 pds:browse-after-scan（topbar 已挂一次性监听），browse 命中
                全量索引 → 零 409、零重复 SDK 直扫（u20 网络时序纪律） */
@@ -510,9 +511,12 @@ function renderAutosaveResult(st) {
             .filter((t, i, a) => a.indexOf(t) === i); // 去重（多盘同因）
         const reasonText = reasons.length ? reasons.join("；") : "未满足自动保存条件";
         area.className = "notice notice-warn";
-        area.textContent = "已跳过自动保存：" + reasonText + "。可点「仍要保存（强制）」手动保存。";
+        /* 保存入口唯一化：#btn-save（保存快照）与 prompt 内「仍要保存（强制）」
+           均调用 saveSnapshot(false)（同一入口，见 bindScan）——保留「保存快照」按钮
+           为唯一入口，隐藏黄色 save-prompt，消除 notice+prompt+按钮三重重复 */
+        area.textContent = "已跳过自动保存：" + reasonText + "。可点「保存快照」手动保存。";
         area.classList.remove("hidden");
-        if (prompt) prompt.classList.remove("hidden"); // 强制保存入口（auto=false）
+        if (prompt) prompt.classList.add("hidden");
         if (saveBtn) saveBtn.disabled = false;
         setStatus("fullscan-status", "ok", base + "，已跳过自动保存");
         return;
@@ -618,7 +622,9 @@ function exportFilenameFromDisposition(disposition, fallback) {
 export function isExportAvailable() {
     const st = _lastScanStatus;
     if (!st || st.running || st.error) return false;
-    if (st.result_ready && st.save_ready) return true;
+    /* 导出可用性只看「有结果」（后端 /api/export 只要求结果就绪），
+       不耦合 save_ready——自动保存成功消费 save_ready 后结果仍在，导出应可用 */
+    if (st.result_ready) return true;
     if (st.stop_requested && (Number(st.roots_done) || 0) > 0) return true;
     return false;
 }

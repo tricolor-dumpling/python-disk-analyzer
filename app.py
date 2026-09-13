@@ -64,6 +64,15 @@ app = Flask(
 )
 
 
+@app.after_request
+def _static_no_cache(resp):
+    """R1：静态资源禁启发式缓存——CSS/JS 更新后刷新即生效（本地工具无 CDN 场景，
+    no-cache 仅触发条件请求，304 成本可忽略；API 响应不受影响）。"""
+    if request.path.startswith("/static/"):
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
 def _json_error(message, status=400, code=None, detail=None, **extra):
     """统一错误响应（P12·W1.3 additive 扩展）。
 
@@ -529,13 +538,18 @@ def _save_fullscan_result(auto):
     skipped_roots = []
     any_saved = False
     any_skipped = False
+    # 台账只加载一次（原循环内逐盘重复 load_ledger）：备份只读各 root 的既有条目，
+    # save_snapshot 只更新当前根的条目、不影响其他根的备份值，提至循环外语义不变。
+    try:
+        ledger_snapshot = snapshots.load_ledger(snap_dir)
+    except Exception:
+        ledger_snapshot = None
     for root, item in roots_map.items():
         rows = item["rows"]
         # P12·W2.11（B-2）：保存前抓取该根当前台账条目（undo 回滚依据）
-        try:
-            current_ledger = snapshots.load_ledger(snap_dir)
-            ledger_backup[root] = current_ledger.get(root)
-        except Exception:
+        if ledger_snapshot is not None:
+            ledger_backup[root] = ledger_snapshot.get(root)
+        else:
             ledger_backup[root] = None
         try:
             saved_path = snapshots.save_snapshot(
@@ -1468,8 +1482,16 @@ def api_compare():
     key = _compare_job_key(raw_root, baseline_path, options)
     job_id = None
     with _COMPARE_JOBS_LOCK:
+        # 惰性清理：先删已过期（_expire_at 已到点）的条目，防 COMPARE_JOBS 只进不出
+        now = time.time()
         for jid, job in list(COMPARE_JOBS.items()):
-            if job.get("opt_key") == key[2:]:
+            expire_at = job.get("_expire_at")
+            if expire_at is not None and expire_at < now:
+                COMPARE_JOBS.pop(jid, None)
+        for jid, job in list(COMPARE_JOBS.items()):
+            # 去重键按完整三元组比对（root_case/baseline_case/opt_key），
+            # 与 _compare_job_key 构造口径一致——不同盘/不同基线的同口径对比不复用
+            if (job.get("root_case"), job.get("baseline_case"), job.get("opt_key")) == key:
                 if not job.get("done"):
                     job_id = jid
                 break
@@ -1526,6 +1548,13 @@ def api_compare_status():
     if not job_id:
         return _json_error("缺少 job_id 参数")
     with _COMPARE_JOBS_LOCK:
+        # 惰性清理：删除 _expire_at 已到点的历史任务（COMPARE_JOBS 只进不出兜底，
+        # 沿用 _COMPARE_JOBS_LOCK 与字典其他访问保持一致的线程安全方式）
+        now = time.time()
+        for jid, item in list(COMPARE_JOBS.items()):
+            expire_at = item.get("_expire_at")
+            if expire_at is not None and expire_at < now:
+                COMPARE_JOBS.pop(jid, None)
         job = COMPARE_JOBS.get(job_id)
         if job is None:
             return _json_error("对比任务不存在或已过期", status=404)

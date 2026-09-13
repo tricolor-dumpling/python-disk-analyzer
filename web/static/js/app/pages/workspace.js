@@ -61,6 +61,7 @@ import { toast } from "../components/toast.js";
 import { setStatus } from "../components/statusbar.js";
 import { renderApiError } from "../components/feedback.js";
 import { getDrives } from "../components/drives.js"; // P5（D5-4）：盘符清单唯一来源（后端真枚举）
+import { getPref, setPref } from "../prefs.js"; // 2026-09-13：使用偏好持久化（视图/阈值/列表筛选排序）
 import { flip as motionFlip, motionDur, motionEase, reducedMotion } from "../motion.js";
 import { isTypingEvent } from "../keys.js"; // U4.1：单键守卫共享（Backspace 同口径）
 import {
@@ -587,9 +588,11 @@ function renderStrip() {
    （P2 帧级基线实测 166/497 窗口内帧违规，首违规 opacity=1 且命中 treemap-canvas）。
    现在仅在矩形图**参与**该次切换（prev 或 next 为 treemap）时做交叉淡化，
    其余情况直接收束终态（零过渡、零残留）。 */
-function setBrowseView(mode) {
+/* 2026-09-13：导出给设置弹窗「使用偏好」区应用默认视图（同一切换收口，零重复实现） */
+export function setBrowseView(mode) {
     const prev = APP_STATE.view.mode;
     APP_STATE.view.mode = mode; // U2.5：§3.2 对齐（切页不丢；跨路由保持）
+    setPref("view.mode", mode); // 2026-09-13：持久化（下次打开沿用，见 prefs.js）
     const seq = ++viewSeq;
     $("btn-view-treemap").classList.toggle("btn-primary", mode === "treemap");
     $("btn-view-ranking").classList.toggle("btn-primary", mode === "ranking");
@@ -794,6 +797,7 @@ function setTreemapPaused(on) {
 export function setMergeTop(n) {
     const v = Math.max(1, Math.min(200, Math.floor(Number(n) || 1)));
     APP_STATE.view.mergeTop = v;
+    setPref("view.mergeTop", v); // 2026-09-13：持久化（± 调整后下次打开沿用）
     const label = $("merge-top-label");
     if (label) label.textContent = String(v);
     if (APP_STATE.lastBrowseData && APP_STATE.view.mode === "treemap") renderTreemap(APP_STATE.lastBrowseData, "reflow");
@@ -813,6 +817,8 @@ export function renderEntries(data, opts) {
     const body = $("dir-body");
     if (!body) return; // U2.1：子页面时列表不在 DOM（防迟到响应/重置路径）
     APP_STATE.lastBrowseData = data; // 先记账（treemap 视图下钻时同样生效——切页不丢/视图回灌依赖）
+    const va = $("view-area"); // R1：数据到达 → 收起空态占位（CSS ::after 门控）
+    if (va) va.classList.add("has-data");
     if (APP_STATE.view.mode === "treemap") {
         // U2.2：矩形图视图——数据 → tiles（mergeTop 合并）→ L1-1 入场；
         // 筛选/排序行属排行/表格视图（定稿 F10），矩形图按组成渲染全部子项。
@@ -911,6 +917,10 @@ export async function browsePath(path, quiet) {
             renderBrowseHistory();
         }
         lastBrowse = { root: currentRoot, path: currentPath };
+        /* 盘符联动（2026-09-13）：浏览落盘后广播，存储概览 chip/环形图跟随切换 */
+        try {
+            window.dispatchEvent(new CustomEvent("pds:browse", { detail: { root: currentRoot, path: currentPath } }));
+        } catch (e) { /* 事件派发失败不影响浏览 */ }
         /* F06（U4.2 G1 核销）：启动恢复上次浏览位置——成功浏览即写（失败分支不写，保持旧值） */
         try {
             localStorage.setItem("pds_last_browse_v1", JSON.stringify({ root: currentRoot, path: currentPath }));
@@ -1067,6 +1077,12 @@ export function bindWorkspace() {
     // 路由返回时保持用户选择（切页不丢，view 状态存 APP_STATE）。
     setDrillHandler((path) => browsePath(path)); // list.js 行点击/下钻图标回调（防循环依赖）
     bindList(); // U2.5：列表多选/页脚/虚拟滚动/触屏长按接线（每挂载容器新绑）
+    /* 2026-09-13（使用偏好）：列表筛选/排序控件回灌持久值——DOM 随路由重建，
+       若不回灌，用户「默认内容类型/默认排序」的设置只在首挂生效（切页即丢） */
+    const kindEl = $("browse-kind");
+    if (kindEl) kindEl.value = String(getPref("list.kind"));
+    const sortEl = $("browse-sort");
+    if (sortEl) sortEl.value = String(getPref("list.sort"));
     setBrowseView(APP_STATE.view.mode);
     $("btn-view-treemap").addEventListener("click", () => setBrowseView("treemap"));
     $("btn-view-ranking").addEventListener("click", () => setBrowseView("ranking"));
@@ -1130,6 +1146,15 @@ export function bindWorkspace() {
             if (scanRunning) kickLive(); // 子页面降 2s / 回主页恢复 500ms
             syncSweep();
         });
+        // 阶段G（G-3，P-2）：浏览历史下拉的「外部点击关闭」——document 级监听，
+        // 必须在本守卫内注册一次（bindWorkspace 随路由返回重入，守卫外会重复叠加）
+        document.addEventListener("mousedown", (ev) => {
+            const box = $("browse-history");
+            if (!box || box.classList.contains("hidden")) return;
+            if (!box.contains(ev.target) && !$("btn-browse-history")?.contains(ev.target)) {
+                closeBrowseHistory();
+            }
+        });
     }
     // L2-5 联动方向②（行 hover → tile 高亮；事件委托，避免千级行监听器）
     /* P2（R4）：可见性守卫——矩形图隐藏（非矩形图视图）时行 hover 不得触发矩形图
@@ -1144,7 +1169,13 @@ export function bindWorkspace() {
         const v = getTreemapView();
         if (v && !v.isAnimating()) v.highlightKey(row.dataset.path);
     });
-    ["browse-filter", "browse-kind", "browse-sort"].forEach((id) => $(id).addEventListener("input", () => { if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData); }));
+    /* 筛选/排序：即时重渲染 + 2026-09-13 起把类型与排序写入使用偏好
+       （关键词 pds 不持久化——它是一次性检索词，留着反而像「列表少了内容」） */
+    ["browse-filter", "browse-kind", "browse-sort"].forEach((id) => $(id).addEventListener("input", () => {
+        if (id === "browse-kind") setPref("list.kind", $(id).value);
+        if (id === "browse-sort") setPref("list.sort", $(id).value);
+        if (APP_STATE.lastBrowseData) renderEntries(APP_STATE.lastBrowseData);
+    }));
 
     // 目录浏览
     $("btn-browse").addEventListener("click", () => {
@@ -1161,13 +1192,6 @@ export function bindWorkspace() {
         toggleBrowseHistory();
     });
     $("browse-history")?.addEventListener("keydown", handleBrowseHistoryKey);
-    document.addEventListener("mousedown", (ev) => {
-        const box = $("browse-history");
-        if (!box || box.classList.contains("hidden")) return;
-        if (!box.contains(ev.target) && !$("btn-browse-history")?.contains(ev.target)) {
-            closeBrowseHistory();
-        }
-    });
     $("browse-root").addEventListener("keydown", (ev) => {
         if (ev.key === "Enter") $("btn-browse").click();
     });
@@ -1224,6 +1248,8 @@ const WORKSPACE_HTML =
     '<button id="btn-back" class="btn" disabled>' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>' +
     '返回上级</button>' +
+    '<!-- 浏览历史下拉面板（R1：移入 .path-row——绝对定位锚定路径行，原位于 main-col 顶层时锚点漂移） -->' +
+    '<div id="browse-history" class="browse-history-panel hidden" role="listbox" aria-label="浏览历史"></div>' +
     '</div>' +
     '<!-- [N10] 视图工具栏位：三视图切换（U2.2 矩形图/排行/表格）+ 合并阈值 −/+（D11，仅矩形图）+ 全屏（L3-8）；P3（D3-6）密度开关已整体删除 -->' +
     '<div class="view-toolbar" aria-label="视图切换">' +
@@ -1239,11 +1265,13 @@ const WORKSPACE_HTML =
     '<button id="btn-view-fullscreen" class="btn btn-sm" aria-pressed="false" title="视图区全屏（Esc 退出）">全屏</button>' +
     '</div></div>' +
 
-    '<!-- 最近访问 / 浏览历史 / 面包屑 / 状态（阶段G G-3：浏览历史迁下拉面板，#browse-history 由 chips 行改为下拉面板容器；F07 时钟按钮形态落地） -->' +
-    '<div id="recent-roots" class="chips-row hidden"></div>' +
-    '<div id="browse-history" class="browse-history-panel hidden" role="listbox" aria-label="浏览历史"></div>' +
+    '<!-- 最近访问 / 面包屑 / 状态（阶段G G-3：浏览历史迁下拉面板，已锚入 .path-row；F07 时钟按钮形态落地） -->' +
+    '<!-- R1：元信息行——面包屑（去框文本化）+ 最近浏览 chips + 状态行，三合一行内布局 -->' +
+    '<div class="meta-row">' +
     '<nav id="breadcrumb" class="breadcrumb" aria-label="路径导航"><span class="muted">当前路径：</span><span class="crumb-current">-</span></nav>' +
+    '<div id="recent-roots" class="chips-row hidden"></div>' +
     '<div id="browse-status" class="status-line" role="status"><span class="dot"></span><span id="browse-status-text">输入路径后点击「浏览」开始</span></div>' +
+    '</div>' +
     '<div id="browse-guide" class="notice notice-warn hidden" role="status">' +
     '<b id="guide-title">Everything 尚未就绪</b>' +
     '<p id="guide-msg">正在等待 Everything 就绪（最长约 20 秒），请勿重复点击。正在加载索引，最长约 20 秒。</p>' +
@@ -1315,7 +1343,7 @@ const WORKSPACE_HTML =
     '<section class="card" aria-label="全量扫描">' +
     '<div class="card-head"><h2>' +
     '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2"/><path d="M5.5 5.5 2 12l3.5 6.5"/><path d="M18.5 5.5 22 12l-3.5 6.5"/><rect x="4" y="3" width="8" height="18" rx="2"/><rect x="12" y="3" width="8" height="18" rx="2"/></svg>' +
-    '全量扫描</h2><p class="card-sub">建立最新空间索引</p></div>' +
+    '全量扫描</h2><span id="scan-head-sub" class="panel-sub"></span></div>' +
     '<div class="row">' +
     '<button id="btn-fullscan" class="btn btn-primary">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>' +
@@ -1326,8 +1354,6 @@ const WORKSPACE_HTML =
     '<button id="btn-save" class="btn btn-success" disabled title="全量扫描完成后可保存">' +
     '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>' +
     '保存快照</button>' +
-    // 阶段B（B-12）：引导提示块折叠为可关闭的「？」气泡（点击展开/收起 #scan-progress-hint）
-    '<button id="btn-scan-help" class="btn btn-sm btn-ghost scan-help-btn" type="button" title="扫描提示（可关闭）" aria-label="扫描提示" aria-expanded="false">？</button>' +
     '</div>' +
     // 阶段B（B-12）：进度行整合——总进度 % · 已完成 x/y 盘 · 当前 C:\ · 已用 t · 预计剩余 ~T（估算）
     // P3（D3-3）：状态行信息分层——「总进度 · 已完成 x/y 盘 · 当前盘」为第一层（#fullscan-status-text，
@@ -1387,6 +1413,8 @@ export function unmountWorkspace() {
    U2.5：列表回灌 animate:false（不作 L1-2/L1-3——「重进不重放」与虚拟滚动纪律一致）。 */
 export function restoreWorkspaceView() {
     if (!APP_STATE.lastBrowseData) return;
+    const vaEl = $("view-area"); // R1：回灌同样标记 has-data（空态占位不再出现）
+    if (vaEl) vaEl.classList.add("has-data");
     const rootInput = $("browse-root");
     if (rootInput) rootInput.value = getCurrentRoot();
     renderBreadcrumb(getCurrentPath(), browseParent);

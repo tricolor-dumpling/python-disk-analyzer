@@ -9,6 +9,8 @@
 
 import { $ } from "../api.js";
 import { browsePath, getCurrentPath } from "../pages/workspace.js"; // R 快捷刷新（弹窗关闭时回接浏览）
+import { APP_STATE } from "../state.js"; // R 路由守卫（仅工作台 "/" 执行刷新）
+import { isTypingEvent } from "../keys.js"; // U4.1 共享守卫（输入框/可编辑/isComposing 同口径）
 
 export let confirmResolver = null;
 
@@ -103,8 +105,11 @@ export function bindModalClose() {
         // U3.1：Ctrl/⌘K 语义移交命令面板（palette-cmd.js 接管——定稿 N02），
         // 本处理器不再消费；原「弹窗开着时忽略」守卫由 palette-cmd.hasOpenModal 保持。
         trapModalFocus(ev); // Tab 循环（仅在弹窗开启时接管）
-        if (ev.key.toLowerCase() === "r" && !/input|textarea|select/i.test(document.activeElement.tagName)) {
+        if (ev.key.toLowerCase() === "r" && !isTypingEvent(ev)) { // U4.1 同口径守卫（输入框/可编辑/isComposing 忽略）
             if (modalStack.length) return; // 弹窗开着时忽略 R 快捷刷新
+            /* 路由守卫：R 刷新只对工作台 "/" 有意义——子页面（#/compare、#/snapshots）
+               没有工作台 DOM（dir-body 等），调用 browsePath 会 TypeError */
+            if (APP_STATE.route !== "/") return;
             ev.preventDefault();
             browsePathForRefresh();
             return;
