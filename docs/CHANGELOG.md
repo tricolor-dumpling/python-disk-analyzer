@@ -16,6 +16,30 @@
 
 ---
 
+## 2026-09-28 · 补写部署与运维（文档欠账清零，第六轮）
+
+- 变更：把最后 2 项欠账（「部署与多实例运维说明」+「发布产物校验清单」）**合并成一篇**成文——
+  两者同属「跑起来 / 交出去」的运维面，拆两篇会立刻产生重复内容。
+  - 新增 `docs/部署与运维.md`：三种形态启动参数（Web 的 `--no-browser`/`--verbose`/`--debug-log`）、
+    端口与绑定（仅 `127.0.0.1`、默认 5000 且**无命令行开关可改**）、防双实例探测口径
+    （`/api/health` 1 秒超时、返回 200 即视为已有本工具实例 → 打印提示后**直接退出不 bind**）、
+    两种端口占用情形的不同行为、停服协作取消（`atexit` → `cancel_scan(join_timeout=5)`，超时放弃、不硬杀）、
+    作业沙箱差异、数据目录与隔离根、常用运维命令，以及**可勾选的发版交付校验清单**
+    （发版前 / 打包结构 / 发版后外部校验 / 收尾）。
+  - 成文过程中**实测发现一处行为差异并如实登记**：作业对象沙盒（`KILL_ON_JOB_CLOSE`）只在 CLI/TUI 的
+    启动路径调用 `init_windows_job_sandbox()`，**Web 形态（`python app.py`）未调用**（grep 调用点：0 次）——
+    因此 Web 退出后，本次自动拉起的 Everything 会继续运行。属已知行为而非故障，已在文档写明运维口径；
+    若需统一，应在 `app.py` 启动路径补调用（属行为变更，须同步 `tests/test_shutdown.py`）。
+- 文件：新增 `docs/部署与运维.md`；修改 `docs/README.md`（索引 + 欠账表改为「当前无未还欠账」）、
+  `README.md`（文件总表 +1）、`tests/test_docs_consistency.py`（`DOC_FILES` 纳入）。
+- 验证：`.venv\Scripts\python.exe -m pytest tests -q` 全绿（**371** 项，本轮只增文档未加用例）；
+  两套文档契约 15 项全绿；文档引用的函数/常量/行为逐条读码核实（`_another_instance_running`、
+  `_shutdown_fullscan`、`fullscan.cancel_scan` 的 `join_timeout=5`、`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`、
+  `init_windows_job_sandbox` 的调用点计数）。
+- 文档：`docs/README.md` 第 4 节现为「当前无未还欠账」，保留 4 项已还清记录与欠账判断门槛
+  （「不写会不会让人做错事」）。
+- 遗留：无未还欠账；后续发现新缺口按 `docs/README.md` 第 4 节格式登记即可。
+
 ## 2026-09-28 · 补写架构决策记录 ADR（第五轮）
 
 - 变更：还清「ADR」这项欠账——「为什么这么设计」此前只散落在源码的阶段标记注释里
