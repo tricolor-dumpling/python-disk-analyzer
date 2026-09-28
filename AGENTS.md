@@ -19,7 +19,7 @@ Windows 本地磁盘分析工具，三种形态共用同一套后端模块：
 - 本机 PowerShell 为 **5.1 Desktop**：无 `&&`/`||`、无三元/空合并语法；每次 `pwsh` 调用都是全新进程，不保留 cwd/变量。
 - `npm`/`pnpm`/`npx` 不在 PATH 上；本机**无 Chrome**（有 Edge）。浏览器自动化一律用 DSH 的 `browser_*` 工具，
   **不要**从 pwsh 启动无头浏览器。
-- 运行/测试入口：`.venv` 在项目根；`.venv\Scripts\python.exe -m pytest tests -q` 跑后端（362 项）。
+- 运行/测试入口：`.venv` 在项目根；`.venv\Scripts\python.exe -m pytest tests -q` 跑后端（**371** 项）。
   前端纯 JS 单测正常环境用 `node --test scripts/dev/`（86 项）；**在 DSH 沙盒里多进程隔离会假红**
   （`test at scripts\dev:1:1 'test failed'`），改用单进程模式：
   `node --test-isolation=none --test "scripts/dev/*.test.mjs"`。
@@ -28,6 +28,10 @@ Windows 本地磁盘分析工具，三种形态共用同一套后端模块：
   在命令内 `Set-Location 'D:\deepseek\python-disk-analyzer'`；`read`/`write`/`edit`/`glob`/`grep` 工具不受影响。
 
 ## 3. 架构红线（违反即返工）
+
+<!-- DOCFACT:BEGIN architecture_redlines -->
+**可数事实**：本节共 **20** 条红线（新增红线必须改本行；`tests/test_docs_consistency.py` 按本节实际编号项计数核对）。
+<!-- DOCFACT:END -->
 
 1. **扫描锁单例**：一切触碰 Everything SDK 的调用（主扫描/轻刷/深刷/指纹探测/健康探测/前台浏览）必须经过
    `scan.SCAN_LOCK`（`fullscan.GLOBAL_SCAN_LOCK` 是同一把锁的别名）。新增 DLL 调用路径前先确认走锁。
@@ -83,6 +87,16 @@ Windows 本地磁盘分析工具，三种形态共用同一套后端模块：
 19. **文档同步由测试强制**（2026-09-28 新增）：`README.md` 的「文件职责总表」是唯一文件级事实源，
     `tests/test_docs_sync.py` 双向比对磁盘文件——**新增/删除/改名任何文件都必须同步该表**，
     否则 pytest 变红（`<!-- FILEMAP:BEGIN -->` / `<!-- FILEMAP:END -->` 之间为机读区段，结构变更须同步改该测试）。
+20. **文档按需自动生成，且文档之间不得冲突**（2026-09-28 新增，两条硬约束）：
+    - **自动生成**：开发触到「尚无文档覆盖的领域」时，**不必先问，按 `docs/_文档模板.md` 直接生成**
+      对应文档并登记进 `docs/README.md` 第 1 节；**禁止**把新领域的信息塞进 `tmp/`（那是不入库的临时区）
+      或硬塞进 `README.md` 造成臃肿。
+    - **不许冲突**：一个事实只能有**一处权威定义**，其它文档一律改为**链接或引用**，禁止各写一份。
+      权威优先级：**可执行事实（代码 / 测试）> `README.md`（内容类）> `AGENTS.md`（约束类）> `docs/*`（参考）**；
+      冲突时改文档、不改测试（除非确实要改行为）。可数事实必须用 `<!-- DOCFACT:BEGIN name -->` 标记，
+      由 `tests/test_docs_consistency.py` 与代码真值核对。
+      **上述三条（自动生成 / 单一权威 / 冲突优先级）由 `tests/test_docs_consistency.py` 机械执法**——
+      重复登记职责、幽灵引用、数值失真都会让 pytest 变红。
 
 ## 4. 编码约定
 
@@ -127,6 +141,10 @@ Windows 本地磁盘分析工具，三种形态共用同一套后端模块：
 
 ## 7. 变更后必做（文档同步硬约束）
 
+> 本节检查项与 [`docs/开发规范.md`](docs/开发规范.md) 第 3 节的 **12 项清单**一一对应：
+> 权威计数声明在 `docs/开发规范.md`（那里是执行清单），两处数量由 `tests/test_docs_consistency.py` 核对，
+> 防止「一边加项、另一边忘加」。
+
 每次提交更改前，agent 必须逐项检查：
 
 1. **`README.md`**：新增/删除/改名任何文件 → 更新「代码地图（文件职责总表）」；路由/API 变更 → 「API 概览」；
@@ -167,7 +185,7 @@ Windows 本地磁盘分析工具，三种形态共用同一套后端模块：
    `everything-SDK/dll/` + `requirements.txt` + `README.md`（解压后 `pip install -r requirements.txt` →
    `python app.py` 可直接跑），排除 `__pycache__`/`.pyc`。Windows 自带 tar **不支持 `--transform`**：
    先 `Copy-Item` 到临时暂存目录，再 `tar -a -c -f out.zip -C <stageRoot> <dirname>`。
-   ⚠️ 历史打包脚本 `scripts/build_min.ps1` **已不在仓库**，需要自动化打包时须重建该脚本。
+   ⚠️ 历史打包脚本（原 `scripts/` 根下的 build_min）**已不在仓库**，需要自动化打包时须重建。
 5. **发完必做外部校验**：匿名 `HEAD` 资产下载 URL（应 200 且 `Content-Length` 与本地一致）+
    `GET /releases/latest` 核对 `assets[].state=uploaded`；并在临时目录解压包跑一次
    `python -c "import main, cli, compare, snapshots"` 与 `python main.py --help` 确认包自洽。

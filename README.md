@@ -117,6 +117,7 @@ python main.py C:\ --baseline <快照文件>    # 与基线快照对比后打印
 | `tests/test_cli.py` | cli.main：致命出口路径、成功装配流程、非交互 Top-N 报告 |
 | `tests/test_compare.py` | compare 现状护栏：总量/深度聚合、零值过滤、三处同值阈值常量、merge 排序 |
 | `tests/test_docs_sync.py` | **文档同步契约**：必备文档存在性、README 骨架章节、文件职责总表与磁盘文件双向一致 |
+| `tests/test_docs_consistency.py` | **文档冲突与一致性契约**：职责唯一（只有 README 可登记职责）、引用不悬空（幽灵路径）、数值事实不撒谎（`DOCFACT` 与代码真值核对）、CHANGELOG 时间不倒序 |
 | `tests/test_env.py` | env：启动参数规范化、配置 IO 与迁移、Everything.exe 定位、启动流程 |
 | `tests/test_export.py` | cli 导出：CSV/JSON 内容、自动命名、写失败退出、交互模式忽略 |
 | `tests/test_fullscan.py` | fullscan：BrowseIndex shard 收缩、行数超限文案、停止事件状态 |
@@ -159,8 +160,9 @@ python main.py C:\ --baseline <快照文件>    # 与基线快照对比后打印
 | 文件 | 职责 |
 |---|---|
 | `README.md` | **本文件**：项目唯一入口（项目说明 + 代码地图 / 逐文件职责总表 + API 概览 + Git 分支规范 + 文档维护规范 + 界面契约 + 使用偏好） |
-| `AGENTS.md` | AI agent 工作约束（约束类**唯一事实源**）：环境红线、19 条架构红线、编码约定、分支与提交要点、变更后必做、发版流程 |
-| `docs/README.md` | **文档索引与管理规范**：文档清单（管什么/何时更新/权威性）、文档分级（长期/过程/记录/禁入库）、更新与淘汰规则、当前文档欠账登记 |
+| `AGENTS.md` | AI agent 工作约束（约束类**唯一事实源**）：环境红线、20 条架构红线、编码约定、分支与提交要点、变更后必做、发版流程 |
+| `docs/README.md` | **文档索引与管理规范**：文档清单（管什么/何时更新/权威性）、**自动生成触发条件与命名约定**、**文档冲突判定与权威优先级**、文档分级（长期/过程/记录/禁入库）、更新与淘汰规则、当前文档欠账登记 |
+| `docs/_文档模板.md` | 新增文档的**强制模板**（下划线前缀 = 不参与索引编号）：复制后补齐「职责/权威来源/更新触发/唯一性声明」四要素 |
 | `docs/开发规范.md` | 开发操作手册：分支作用表与准入条件、一次开发的标准流程、每次开发后必更文档的 12 项清单、提交信息格式 |
 | `docs/API 契约.md` | API 契约参考（人读）：三条契约红线（additive/JSON 错误/白名单）、三种错误体形态、Everything 错误码表、HTTP 状态约定、冻结键集合速查（**权威在 `tests/test_api_contract.py`**） |
 | `docs/排查手册.md` | 排查手册（症状 → 原因 → 处置）：环境与工具链、扫描与 Everything、快照与历史、界面与前端、诊断命令 |
@@ -189,6 +191,11 @@ python main.py C:\ --baseline <快照文件>    # 与基线快照对比后打印
 ## API 概览
 
 `app.py` 共 19 条路由（18 条 `/api/*` + 首页）。测试经 `app.test_client()` 进行，不真正启服务。
+
+<!-- DOCFACT:BEGIN routes -->
+**可数事实**：`app.py` 共 **19** 条路由 = 1 条页面路由（`GET /`）+ 18 条 API 路由。
+本数值由 `tests/test_docs_consistency.py` 按 `app.py` 的路由装饰器**实际计数**核对——改路由必须同步本行。
+<!-- DOCFACT:END -->
 
 | 方法与路径 | 作用 |
 |---|---|
@@ -219,6 +226,11 @@ CLI（`cli.py`）：`TARGET`（可选，给了就进非交互模式）、`--top 
 `--no-snapshot`、`--baseline PATH`、`--allow-other-machine`。
 
 TUI 键位（单一事实源 `keyrouter.KEY_BINDINGS`，改键位只改注册表）：
+
+<!-- DOCFACT:BEGIN keybindings -->
+**可数事实**：注册表共 **12** 条键位（下表即其展开）。
+`tests/test_docs_consistency.py` 按 `keyrouter.KEY_BINDINGS` 实际长度核对，新增键位必须同步本行与下表。
+<!-- DOCFACT:END -->
 
 | 键 | 动作 | 键 | 动作 |
 |---|---|---|---|
@@ -299,9 +311,14 @@ TUI 键位（单一事实源 `keyrouter.KEY_BINDINGS`，改键位只改注册表
 ## 测试与验证
 
 ```powershell
-python -m pytest tests -q          # 后端全量（356 + 文档同步 6 = 362 项）
-node --test scripts/dev/           # 前端纯 JS 单测（86 项；沙盒内可用 node --test-isolation=none --test "scripts/dev/*.test.mjs"）
+python -m pytest tests -q          # 后端全量（含文档同步与文档一致性两套契约）
+node --test scripts/dev/           # 前端纯 JS 单测（沙盒内改用 node --test-isolation=none --test "scripts/dev/*.test.mjs"）
 ```
+
+<!-- DOCFACT:BEGIN pytest_nodes -->
+**可数事实**：`pytest tests` 当前收集 **371** 项（与实跑一致：371 = 通过数 + 失败数，子测试另计）。
+测试增减后本行会过期，`tests/test_docs_consistency.py` 会跑一次 `pytest --collect-only` 取真实收集数与本行核对。
+<!-- DOCFACT:END -->
 
 - 后端测试经 `app.test_client()` 进行，不真正启动服务器、不联网。
 - 前端冒烟：浏览器打开 `tests/web/smoke.html`，标题出现 `[suite=v2][PASS 23/23]` 即绿；
