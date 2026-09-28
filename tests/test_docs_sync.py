@@ -22,6 +22,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+# 文件职责总表所在文档（机读契约的事实源；2026-09-28 由根 README 拆出）
+FILEMAP_DOC = REPO_ROOT / "docs" / "代码地图.md"
 README = REPO_ROOT / "README.md"
 AGENTS = REPO_ROOT / "AGENTS.md"
 
@@ -32,6 +34,7 @@ FILEMAP_END = "<!-- FILEMAP:END -->"
 REQUIRED_DOCS = (
     "README.md",
     "AGENTS.md",
+    "docs/代码地图.md",
     "scripts/dev/README.md",
     "web/static/assets/来源清单.md",
 )
@@ -58,12 +61,12 @@ IGNORED_SUFFIXES = (".pyc", ".pyo", ".spec")
 # 总表行：首个单元格必须是整格反引号包裹的路径
 ROW_RE = re.compile(r"^\|\s*`([^`]+)`\s*\|")
 
-# README 必须保留的章节标题（文档体系的骨架）
+# 根 README 必须保留的章节（项目入口的骨架：说明 + 快速开始 + 导航 + 验证）
 README_REQUIRED_HEADINGS = (
-    "## 代码地图（文件职责总表）",
-    "## API 概览",
-    "## Git 分支规范",
-    "## 文档维护规范",
+    "## 快速开始",
+    "## 开发文档导航",
+    "## 测试与验证",
+    "## 版本与分支（要点）",
 )
 
 AGENTS_REQUIRED_HEADINGS = (
@@ -96,11 +99,11 @@ def disk_files():
 
 
 def documented_files():
-    """从 README 的文件职责总表区段里解析出全部登记路径（已排序去重）。"""
-    text = README.read_text(encoding="utf-8")
+    """从文件职责总表所在文档（`docs/代码地图.md`）的机读区段解析出全部登记路径。"""
+    text = FILEMAP_DOC.read_text(encoding="utf-8")
     if FILEMAP_BEGIN not in text or FILEMAP_END not in text:
         raise AssertionError(
-            "README.md 缺少文件总表标记 %s / %s" % (FILEMAP_BEGIN, FILEMAP_END)
+            "docs/代码地图.md 缺少文件总表标记 %s / %s" % (FILEMAP_BEGIN, FILEMAP_END)
         )
     section = text.split(FILEMAP_BEGIN, 1)[1].split(FILEMAP_END, 1)[0]
     paths = set()
@@ -122,6 +125,16 @@ class TestDocsExist(unittest.TestCase):
         text = README.read_text(encoding="utf-8")
         missing = [h for h in README_REQUIRED_HEADINGS if h not in text]
         self.assertEqual([], missing, "README.md 缺少章节：%s" % missing)
+
+    def test_filemap_doc_has_required_headings(self):
+        """文件总表所在文档的骨架：职责总表 + 接口与命令（防止总表被挪走后又挪丢）。"""
+        text = FILEMAP_DOC.read_text(encoding="utf-8")
+        missing = [
+            h
+            for h in ("## 1. 文件职责总表", "## 2. 接口与命令")
+            if h not in text
+        ]
+        self.assertEqual([], missing, "docs/代码地图.md 缺少章节：%s" % missing)
 
     def test_agents_has_required_headings(self):
         text = AGENTS.read_text(encoding="utf-8")

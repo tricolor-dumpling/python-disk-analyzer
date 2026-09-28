@@ -105,4 +105,4 @@ python main.py C:\ --baseline <路径> --allow-other-machine
   `snapshots.py`（`_LEGACY_SIZE_THRESHOLD` / `read_snapshot`）、`compare.py`（`_LEGACY_SIZE_THRESHOLD` / `_count_legacy_rows`）。
 - 回归护栏：`tests/test_scan.py`（哨兵、BOOL FALSE、超上限三类滤除）、`tests/test_compare.py`
   （三处阈值同值 + 两侧 legacy 计数）、`tests/test_snapshot_golden.py`（`legacy_unknown_rows` 读回）。
-- 对比页横幅与 TUI 提示的契约位置见 [`docs/API 契约.md`](API%20契约.md) 与 [`README.md`](../README.md)「界面契约」。
+- 对比页横幅与 TUI 提示的契约位置见 [`docs/API 契约.md`](API%20契约.md) 与 [`docs/界面契约.md`](界面契约.md)。

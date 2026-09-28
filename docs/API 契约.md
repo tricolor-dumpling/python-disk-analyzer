@@ -2,7 +2,10 @@
 
 **权威声明**：本文件是给人读的摘要。**机器可执行的契约事实源是
 `tests/test_api_contract.py`**（`app.test_client()` 直连，逐键比对）——两者冲突时**以测试为准**，
-并应立即修正本文件。字段级清单见 [`README.md`](../README.md)「API 概览」。
+并应立即修正本文件。
+
+> 分工：**路由与端点清单**（有哪些接口、各自作用）在 [`docs/代码地图.md`](代码地图.md) 第 2 节；
+> 本文件只讲**响应形状、错误码与状态约定**，不复述端点表。
 
 ---
 
@@ -78,5 +81,5 @@
 
 1. 改路由或响应字段 → 先改 `tests/test_api_contract.py`（键集合显式列出，不要用「包含」弱断言）；
 2. 跑 `.venv\Scripts\python.exe -m pytest tests/test_api_contract.py -q` 确认新契约成立、旧契约不破；
-3. 同步本文件第 5 节与 `README.md`「API 概览」；
+3. 同步本文件第 5 节与 [`docs/代码地图.md`](代码地图.md) 第 2 节「接口与命令」；
 4. 若改动影响前端断言面 → 同步 `tests/web/smoke.html` 对应断言（见 `AGENTS.md` 第 7 节）。
