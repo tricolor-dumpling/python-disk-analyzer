@@ -166,6 +166,7 @@ python main.py C:\ --baseline <快照文件>    # 与基线快照对比后打印
 | `docs/开发规范.md` | 开发操作手册：分支作用表与准入条件、一次开发的标准流程、每次开发后必更文档的 12 项清单、提交信息格式 |
 | `docs/API 契约.md` | API 契约参考（人读）：三条契约红线（additive/JSON 错误/白名单）、三种错误体形态、Everything 错误码表、HTTP 状态约定、冻结键集合速查（**权威在 `tests/test_api_contract.py`**） |
 | `docs/排查手册.md` | 排查手册（症状 → 原因 → 处置）：环境与工具链、扫描与 Everything、快照与历史、界面与前端、诊断命令 |
+| `docs/legacy 快照迁移指引.md` | 历史快照中 **≥16 TiB「已知异常大小」数据**的判定与处置：三处计数口径（`unknown_size_count`/`legacy_unknown_rows`/`legacy_count`）、要不要重建基线、重建步骤、5 条常见误区 |
 | `docs/CHANGELOG.md` | 变更日志（时间倒序）：每次开发完成后追加一条记录（变更/文件/验证/文档/遗留）；亦保留历史阶段名索引 |
 
 ### 临时工作区（`tmp/`，整个目录不入库）
