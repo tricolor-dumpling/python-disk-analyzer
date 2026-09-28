@@ -33,11 +33,13 @@ DOC_FILES = (
     "README.md",
     "AGENTS.md",
     "docs/README.md",
+    "docs/代码地图.md",
     "docs/开发规范.md",
     "docs/API 契约.md",
     "docs/排查手册.md",
     "docs/legacy 快照迁移指引.md",
     "docs/架构决策记录.md",
+    "docs/界面契约.md",
     "docs/部署与运维.md",
     "docs/CHANGELOG.md",
     "scripts/dev/README.md",
@@ -46,13 +48,14 @@ DOC_FILES = (
 )
 
 # 只有这些文档允许登记「文件职责」（单一事实源；其它文档只许引用路径）
-RESPONSIBILITY_OWNERS = frozenset({"README.md"})
+# 2026-09-28：职责总表由根 README 拆到 docs/代码地图.md（根 README 精简为项目入口）
+RESPONSIBILITY_OWNERS = frozenset({"docs/代码地图.md"})
 
 # 历史记录类文档：记录「当时是什么」，不是「现在是什么」的声明，
 # 因此不参与数值事实核对（否则「当时 19 条红线」会被当成现行声明而永远报红）。
 HISTORICAL_DOCS = frozenset({"docs/CHANGELOG.md"})
 
-# 文档中的职责表只允许出现在 README 的机读区段内
+# 文档中的职责表只允许出现在「文件职责总表」文档的机读区段内
 FILEMAP_BEGIN = "<!-- FILEMAP:BEGIN -->"
 FILEMAP_END = "<!-- FILEMAP:END -->"
 
@@ -273,7 +276,7 @@ def existing_paths():
 def responsibility_entries(text):
     """解析机读总表里的 (路径, 职责) 条目。"""
     if FILEMAP_BEGIN not in text or FILEMAP_END not in text:
-        raise AssertionError("README.md 缺少机读区段标记 %s" % FILEMAP_BEGIN)
+        raise AssertionError("docs/代码地图.md 缺少机读区段标记 %s" % FILEMAP_BEGIN)
     section = text.split(FILEMAP_BEGIN, 1)[1].split(FILEMAP_END, 1)[0]
     entries = []
     for line in section.splitlines():
@@ -295,7 +298,7 @@ def is_repo_path(token):
 
     只认**仓库根直呼**或**带目录的相对完整路径**（如 `web/static/css/tokens.css`）。
     仅写 `viz/line.js`、`components/snapshot-view.js` 这类「子树内简写」不算——
-    它们不是可校验的仓库路径写法（README 机读总表里一律写全路径）。
+    它们不是可校验的仓库路径写法（机读总表里一律写全路径）。
     """
     if token in PATH_ALLOWLIST:
         return False
@@ -360,8 +363,8 @@ def responsibility_tables(text):
 class TestNoDuplicateResponsibility(unittest.TestCase):
     """职责唯一性：一个文件的职责不得在多个文档里各写一份。"""
 
-    def test_only_readme_registers_file_responsibilities(self):
-        """除 README 外，任何文档都不得再登记「文件职责表」。"""
+    def test_only_filemap_doc_registers_responsibilities(self):
+        """除「文件职责总表」文档外，任何文档都不得再登记职责表。"""
         offenders = {}
         for rel, text in all_doc_texts().items():
             if rel in RESPONSIBILITY_OWNERS:
@@ -372,13 +375,13 @@ class TestNoDuplicateResponsibility(unittest.TestCase):
         self.assertEqual(
             {},
             offenders,
-            "以下文档重复登记了文件职责（职责只能在 README.md 登记一次，其它文档请改为链接）：%s"
-            % offenders,
+            "以下文档重复登记了文件职责（职责只能在 %s 登记一次，其它文档请改为链接）：%s"
+            % (sorted(RESPONSIBILITY_OWNERS)[0], offenders),
         )
 
     def test_responsibility_paths_are_unique(self):
         """机读总表内同一路径不得登记两次（否则两行职责可能互相矛盾）。"""
-        entries = responsibility_entries(read_doc("README.md"))
+        entries = responsibility_entries(read_doc(sorted(RESPONSIBILITY_OWNERS)[0]))
         seen = {}
         for path, duty in entries:
             seen.setdefault(path, []).append(duty)
@@ -386,7 +389,7 @@ class TestNoDuplicateResponsibility(unittest.TestCase):
         self.assertEqual(
             {},
             duplicates,
-            "README 机读总表内同一路径重复登记（可能职责冲突）：%s" % sorted(duplicates),
+            "机读总表内同一路径重复登记（可能职责冲突）：%s" % sorted(duplicates),
         )
 
 
