@@ -1,0 +1,974 @@
+"""Web API 字段契约护栏（P12·W1.0，RT-03）。
+
+用 app.test_client() 直连，冻结既有响应键集合：
+- GET  /api/health   -> {ok, ready, dll, message}
+- POST /api/browse   正常 {ok, root, parent, directories, files,
+                            total_dirs, total_files} / 错误 {ok, error}
+- POST /api/compare  错误分支 {ok, error}（report 键集合由 W1.2 扩展时同 PR 增补）
+- GET  /api/settings -> {ok, settings, data_dir, snapshots_dir}
+
+web 契约测试编码规约（自此生效）：一律 ``with app.test_client() as client:``
+且逐 resp 关闭（with-resp/close），杜绝 ResourceWarning；discover 统一加
+``-W error::ResourceWarning``。新增字段一律 additive：本文件只允许「增键」，
+删除既有键必须先改本文件并说明。
+"""
+
+import os
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+import compare
+import env
+import fullscan
+import messages
+import scan
+import snapshots
+import sdk
+import app as app_module
+from app import app
+from exceptions import EverythingQueryError
+
+
+def _write_probe_file(tmpdir):
+    """在临时目录写一个真实存在的文件，返回其路径字符串。"""
+    probe = Path(tmpdir) / "probe.txt"
+    probe.write_text("x", encoding="utf-8")
+    return str(probe)
+
+
+GUID = "deadbeef-1234-5678-9abc-def012345678"
+# W2.13 起 /api/compare 默认强校验：契约夹具一律使用本机 guid（异机见 test_machine.py）
+LOCAL_GUID = snapshots.get_machine_guid()
+
+
+def _keys(body):
+    return set(body.keys())
+
+
+class ApiContractTests(unittest.TestCase):
+    """既有 API 响应键集合冻结（additive 红线的对照基线）。"""
+
+    def test_health_shape(self):
+        """GET /api/health 就绪形态：键集合恰为 {ok, ready, dll, message}。"""
+        with app.test_client() as client:
+            with mock.patch.object(sdk, "DLL_PATH", "C:\\fake\\Everything64.dll"), \
+                    mock.patch.object(sdk, "is_everything_ipc_ready", return_value=True):
+                resp = client.get("/api/health")
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(
+                _keys(body), {"ok", "ready", "dll", "message", "busy"},  # W2.1 additive
+                f"/api/health 键集合漂移: {_keys(body)}",
+            )
+            self.assertIs(body["ok"], True)
+            self.assertIs(body["ready"], True)
+            self.assertEqual(body["message"], "Everything 已就绪")
+            resp.close()
+
+    def test_browse_error_shape(self):
+        """POST /api/browse 缺参错误形态：键集合恰为 {ok, error}。"""
+        with app.test_client() as client:
+            resp = client.post("/api/browse", json={})
+            self.assertEqual(resp.status_code, 400)
+            body = resp.get_json()
+            self.assertEqual(_keys(body), {"ok", "error"})
+            self.assertIs(body["ok"], False)
+            self.assertTrue(body["error"])
+            resp.close()
+
+    def test_browse_file_path_returns_not_a_directory(self):
+        """P12·W2.5（E）：root 指向文件路径 → 400「不是一个目录」。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        probe = _write_probe_file(tmp.name)
+        with app.test_client() as client:
+            resp = client.post("/api/browse", json={"root": probe})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIn("不是一个目录", resp.get_json()["error"])
+            resp.close()
+
+    def test_404_returns_json(self):
+        """P12·W3.3：未知接口 → 404 + JSON（旧形态 {ok,error}），非 HTML。"""
+        with app.test_client() as client:
+            resp = client.get("/api/no-such")
+            self.assertEqual(resp.status_code, 404)
+            self.assertIn("json", resp.headers["Content-Type"])
+            body = resp.get_json()
+            self.assertIs(body["ok"], False)
+            self.assertTrue(body["error"])
+            resp.close()
+
+    def test_wipe_double_confirmation(self):
+        """P12·W3.5 回归：错确认 400、正确确认 200 且重建空 snapshots/exports。"""
+        import datadir
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        data_root = Path(tmp.name) / "PythonDiskScanner"
+        with app.test_client() as client:
+            # 错误确认 → 400 JSON
+            resp = client.post("/api/admin/wipe", json={"confirm": "错误的确认"})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIs(resp.get_json()["ok"], False)
+            resp.close()
+
+            # 正确确认 → 200，且数据目录重建空结构
+            with mock.patch.object(datadir, "get_data_dir", return_value=data_root):
+                resp = client.post("/api/admin/wipe", json={"confirm": "确认清空"})
+            self.assertEqual(resp.status_code, 200)
+            self.assertIs(resp.get_json()["ok"], True)
+            resp.close()
+            self.assertTrue((data_root / "snapshots").is_dir())
+            self.assertTrue((data_root / "exports").is_dir())
+
+    def test_405_returns_json(self):
+        """P12·W3.3：方法不允许 → 405 + JSON。"""
+        with app.test_client() as client:
+            resp = client.delete("/api/health")
+            self.assertEqual(resp.status_code, 405)
+            self.assertIn("json", resp.headers["Content-Type"])
+            body = resp.get_json()
+            self.assertIs(body["ok"], False)
+            resp.close()
+
+    def test_roots_shape_and_enumerate_reuse(self):
+        """P5·D5-3/D5-4：GET /api/roots 键集合 + 每项形状 + 枚举来源复用。
+
+        键集合冻结为 {ok, roots, count, drives_source}（additive 新路由；
+        既有 11 条路由语义零改动）。
+        """
+        fake = [Path("Q:\\"), Path("R:\\")]
+        with app.test_client() as client:
+            with mock.patch.object(fullscan, "_enumerate_roots", return_value=fake) as spy:
+                resp = client.get("/api/roots")
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(
+                _keys(body), {"ok", "roots", "count", "drives_source"},
+                f"/api/roots 键集合漂移: {_keys(body)}",
+            )
+            self.assertIs(body["ok"], True)
+            self.assertEqual(body["count"], 2)
+            self.assertEqual([r["root"] for r in body["roots"]], ["Q:\\", "R:\\"])
+            self.assertTrue(spy.called, "/api/roots 必须复用 fullscan._enumerate_roots()")
+            for item in body["roots"]:
+                self.assertEqual(_keys(item), {"root", "label", "ready"},
+                                 f"/api/roots 项键集合漂移: {_keys(item)}")
+                self.assertIsInstance(item["root"], str)
+                self.assertIsInstance(item["label"], str)
+                self.assertIsInstance(item["ready"], bool)
+                self.assertIn("本地盘", item["label"], "label 必须自解释（不依赖悬停）")
+            resp.close()
+
+    def test_roots_not_ready_marks_label_and_keeps_entry(self):
+        """盘符不可用/未就绪：ready=False + label 带「未就绪」，且**不静默丢弃**。
+
+        Q:\\ 在本机不存在 → ready False（用真实 os.path.exists 判定，
+        不 mock 就绪探测：这正是要冻结的行为）。
+        """
+        fake = [Path("Q:\\")]
+        with app.test_client() as client:
+            with mock.patch.object(fullscan, "_enumerate_roots", return_value=fake):
+                resp = client.get("/api/roots")
+            body = resp.get_json()
+            self.assertEqual(len(body["roots"]), 1, "不可用盘符也必须出现在清单中")
+            item = body["roots"][0]
+            self.assertIs(item["ready"], False, "Q: 不应被判为就绪")
+            self.assertIn("未就绪", item["label"])
+            resp.close()
+
+    def test_roots_fallback_source_and_empty(self):
+        """枚举回退/空清单：drives_source 如实标注，且空清单不报错（前端回落「请选择盘符」）。"""
+        with app.test_client() as client:
+            with mock.patch.object(fullscan, "_enumerate_roots", return_value=[]):
+                resp = client.get("/api/roots")
+            body = resp.get_json()
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(body["roots"], [])
+            self.assertEqual(body["count"], 0)
+            self.assertIn(body["drives_source"], {"win32", "probe"})
+            resp.close()
+
+    def test_roots_enumerate_exception_degrades(self):
+        """枚举抛错 → 200 + 空清单 + drives_source=error（不 500：让前端走「请选择盘符」）。"""
+        with app.test_client() as client:
+            with mock.patch.object(fullscan, "_enumerate_roots",
+                                   side_effect=OSError("GetLogicalDrives 失败")):
+                resp = client.get("/api/roots")
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertIs(body["ok"], True)
+            self.assertEqual(body["roots"], [])
+            self.assertEqual(body["drives_source"], "error")
+            resp.close()
+
+    def test_roots_enumerate_impl_untouched_fallback_a_to_z(self):
+        """P5 授权边界：`fullscan._enumerate_roots` **实现体未被修改**。
+
+        无 mock 直调真实函数：返回值必须是「存在的盘符」集合，且每个形如 X:\\。
+        这条用例是「不得修改其实现体」的回归锚（回退语义 = A–Z 探测）。
+        """
+        real = fullscan._enumerate_roots()
+        self.assertIsInstance(real, list)
+        for root in real:
+            self.assertRegex(str(root), r"^[A-Za-z]:\\$")
+            self.assertTrue(Path(str(root)).exists(),
+                            f"枚举结果必须是真实存在的盘符: {root}")
+
+    def test_settings_get_shape(self):
+        """GET /api/settings：键集合恰为 {ok, settings, data_dir, snapshots_dir}。"""
+        with app.test_client() as client:
+            resp = client.get("/api/settings")
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(
+                _keys(body), {"ok", "settings", "data_dir", "snapshots_dir"},
+                f"/api/settings 键集合漂移: {_keys(body)}",
+            )
+            self.assertIsInstance(body["settings"], dict)
+            self.assertIsInstance(body["data_dir"], str)
+            self.assertIsInstance(body["snapshots_dir"], str)
+            resp.close()
+
+    def test_settings_post_whitelist_matrix(self):
+        """P12·W2.6（K4）/W2.9（SEC-1）：白名单矩阵——everything_*/未知键 400，
+        合法键 200 且落盘无脏键；last_roots 超 5 截断。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        config_path = Path(tmp.name) / "config.json"
+        with app.test_client() as client:
+            # everything_* 投毒链：固定文案 400，且不落盘
+            for key in ("everything_exe", "everything_dll", "everything_startup_args"):
+                resp = client.post(f"/api/settings", json={key: "C:\\evil.exe"})
+                self.assertEqual(resp.status_code, 400, f"{key} 必须 400")
+                body = resp.get_json()
+                self.assertIn("安全限制", body["error"])
+                self.assertIn("everything_", body["error"])
+                resp.close()
+            self.assertFalse(config_path.exists(), "被拒写入不得落盘")
+
+            # 未知键 → 400
+            resp = client.post("/api/settings", json={"hacker_key": "x"})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIn("不允许写入设置项", resp.get_json()["error"])
+            resp.close()
+
+            # 合法键：200；last_roots 6 项截断为 5
+            six_roots = ["C:\\", "D:\\", "E:\\", "F:\\", "G:\\", "H:\\"]
+            with mock.patch.object(env, "_default_config_path", return_value=config_path):
+                resp = client.post("/api/settings", json={"auto_save": True, "last_roots": six_roots})
+            self.assertEqual(resp.status_code, 200)
+            saved = resp.get_json()["settings"]
+            self.assertIs(saved["auto_save"], True)
+            self.assertEqual(len(saved["last_roots"]), 5, "last_roots 必须截断为 5")
+            resp.close()
+
+            # 落盘内容无脏键（config.json 只含白名单键）
+            import json as _json
+            on_disk = _json.loads(config_path.read_text(encoding="utf-8"))
+            self.assertNotIn("hacker_key", on_disk)
+            for forbidden in ("everything_exe", "everything_dll"):
+                self.assertNotIn(forbidden, on_disk)
+
+    def test_settings_post_rejects_bad_types(self):
+        """P12·W2.6（K4）：类型不符（auto_save 非布尔 / theme 非枚举）→ 400。"""
+        with app.test_client() as client:
+            resp = client.post("/api/settings", json={"auto_save": "yes"})
+            self.assertEqual(resp.status_code, 400)
+            resp.close()
+            resp = client.post("/api/settings", json={"theme": "solarized"})
+            self.assertEqual(resp.status_code, 400)
+            resp.close()
+
+    def test_compare_error_shape(self):
+        """POST /api/compare 缺参错误形态：键集合恰为 {ok, error}。"""
+        with app.test_client() as client:
+            resp = client.post("/api/compare", json={})
+            self.assertEqual(resp.status_code, 400)
+            body = resp.get_json()
+            self.assertEqual(_keys(body), {"ok", "error"})
+            self.assertIn("root", body["error"])
+            resp.close()
+
+    def test_query_error_typed_response(self):
+        """P12·W1.3：SDK 抛 EverythingQueryError(2) → POST /api/browse 502 且
+        body={ok:false,error:中文文案,code:2}（无裸错误码）。"""
+        calls = {}
+
+        def fake_scan(root_path_obj, cancel_event=None, everything=None):
+            calls["root"] = str(root_path_obj)
+            raise EverythingQueryError(2)
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        with app.test_client() as client:
+            with mock.patch.object(fullscan.BROWSE_INDEX, "root_for", return_value=None), \
+                    mock.patch.object(fullscan, "is_running", return_value=False), \
+                    mock.patch.object(scan, "scan_via_everything_sdk", side_effect=fake_scan), \
+                    mock.patch.object(env, "list_everything_process_sessions", return_value=[]), \
+                    mock.patch.object(env, "get_current_session_id", return_value=1):
+                resp = client.post(
+                    "/api/browse",
+                    json={"root": tmp.name, "path": tmp.name},
+                )
+            self.assertEqual(resp.status_code, 502)
+            body = resp.get_json()
+            self.assertIs(body["ok"], False)
+            self.assertEqual(body["code"], 2)
+            self.assertIn(messages.render_everything_error(2), body["error"])
+            self.assertNotIn("service_only", body, "会话列表为空时不得误报 service_only")
+            resp.close()
+
+    def test_service_only_flag(self):
+        """P12·W1.3：Everything 全在 Session 0、当前会话为 1 → service_only=True
+        且文案含「管理员」对齐提示。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        with app.test_client() as client:
+            with mock.patch.object(fullscan.BROWSE_INDEX, "root_for", return_value=None), \
+                    mock.patch.object(fullscan, "is_running", return_value=False), \
+                    mock.patch.object(
+                        scan, "scan_via_everything_sdk",
+                        side_effect=EverythingQueryError(2),
+                    ), \
+                    mock.patch.object(env, "list_everything_process_sessions",
+                                      return_value=[0]), \
+                    mock.patch.object(env, "get_current_session_id", return_value=1):
+                resp = client.post("/api/browse", json={"root": tmp.name, "path": tmp.name})
+            self.assertEqual(resp.status_code, 502)
+            body = resp.get_json()
+            self.assertIs(body["service_only"], True)
+            self.assertIn("管理员", body["error"])
+            resp.close()
+
+    def test_health_degraded_dll_not_installed_config(self):
+        """P12·W1.3：health 三种 degraded 分支（dll / not_installed / config），
+        均含 message 且 ready=False。"""
+        corrupt_tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(corrupt_tmp.cleanup)
+        corrupt_config = Path(corrupt_tmp.name) / "config.json"
+        corrupt_config.write_text("{broken json", encoding="utf-8")
+        fake_dll = "C:\\fake\\Everything64.dll"
+
+        # 病因② DLL 解析失败
+        with app.test_client() as client:
+            with mock.patch.object(sdk, "DLL_PATH", None), \
+                    mock.patch.object(sdk, "resolve_everything_dll",
+                                      side_effect=FileNotFoundError("未找到 DLL")):
+                resp = client.get("/api/health")
+            body = resp.get_json()
+            self.assertEqual(body["degraded"], "dll")
+            self.assertIs(body["ready"], False)
+            self.assertTrue(body["message"])
+            resp.close()
+
+        # 病因③ 未安装（找不到 Everything.exe）
+        with app.test_client() as client:
+            with mock.patch.object(sdk, "DLL_PATH", fake_dll), \
+                    mock.patch.object(sdk, "is_everything_ipc_ready", return_value=False), \
+                    mock.patch.object(env, "find_everything_exe", return_value=None):
+                resp = client.get("/api/health")
+            body = resp.get_json()
+            self.assertEqual(body["degraded"], "not_installed")
+            self.assertIs(body["ready"], False)
+            self.assertIn("安装", body["message"])
+            resp.close()
+
+        # 病因① config.json 损坏（config_health 经 _default_config_path 注入）
+        with app.test_client() as client:
+            with mock.patch.object(sdk, "DLL_PATH", fake_dll), \
+                    mock.patch.object(sdk, "is_everything_ipc_ready", return_value=False), \
+                    mock.patch.object(env, "find_everything_exe", return_value=Path("C:\\e\\Everything.exe")), \
+                    mock.patch.object(env, "_default_config_path", return_value=corrupt_config):
+                resp = client.get("/api/health")
+            body = resp.get_json()
+            self.assertEqual(body["degraded"], "config")
+            self.assertIs(body["ready"], False)
+            self.assertIn("配置文件损坏", body["message"])
+            resp.close()
+
+    def test_health_ready_shape_unchanged(self):
+        """P12·W1.3 additive：就绪分支键集合保持 {ok,ready,dll,message} 不变。"""
+        with app.test_client() as client:
+            with mock.patch.object(sdk, "DLL_PATH", "C:\\fake\\Everything64.dll"), \
+                    mock.patch.object(sdk, "is_everything_ipc_ready", return_value=True):
+                resp = client.get("/api/health")
+            body = resp.get_json()
+            self.assertEqual(_keys(body), {"ok", "ready", "dll", "message", "busy"})  # W2.1 additive
+            resp.close()
+
+    def test_legacy_error_shape_still_ok(self):
+        """RT-N04 并存锚点：未迁移动作（缺参 400）仍为 {ok,error} 两键。"""
+        with app.test_client() as client:
+            resp = client.post("/api/browse", json={"path": "X:\\y"})  # 缺 root
+            self.assertEqual(resp.status_code, 400)
+            body = resp.get_json()
+            self.assertEqual(_keys(body), {"ok", "error"}, "旧形态必须原样保留")
+            resp.close()
+
+    def test_open_path_happy_and_errors(self):
+        """P12·W1.4：合法 tmp 路径（mock Popen）→ 200 launched:true；
+        相对路径/控制字符/不存在 → 400 且 error 为中文。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        probe = _write_probe_file(tmp.name)
+
+        with app.test_client() as client:
+            with mock.patch.object(app_module, "subprocess") as fake_sp:
+                fake_sp.Popen.return_value = mock.Mock()
+                resp = client.post("/api/open-path", json={"path": probe})
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertIs(body["ok"], True)
+            self.assertIs(body["launched"], True)
+            self.assertIn("资源管理器", body["message"])
+            resp.close()
+
+            # 相对路径 → 400
+            resp = client.post("/api/open-path", json={"path": "relative\\path.txt"})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIn("绝对路径", resp.get_json()["error"])
+            resp.close()
+
+            # 控制字符 → 400
+            resp = client.post("/api/open-path", json={"path": probe + "\x01"})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIn("控制字符", resp.get_json()["error"])
+            resp.close()
+
+            # 不存在且不在索引 → 400
+            missing = str(Path(tmp.name) / "no_such_dir" / "x.txt")
+            resp = client.post("/api/open-path", json={"path": missing})
+            self.assertEqual(resp.status_code, 400)
+            self.assertIn("不存在", resp.get_json()["error"])
+            resp.close()
+
+    def test_open_path_rejects_non_string(self):
+        """P12·W1.4：path=123 / null → 400。"""
+        with app.test_client() as client:
+            for bad in (123, None):
+                resp = client.post("/api/open-path", json={"path": bad})
+                self.assertEqual(resp.status_code, 400, f"path={bad!r} 应 400")
+                self.assertIs(resp.get_json()["ok"], False)
+                resp.close()
+
+    def test_open_path_spawn_failure_degrades(self):
+        """P12·W1.4：Popen 抛 OSError → 200 launched:false（前端降级复制）。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        probe = _write_probe_file(tmp.name)
+        with app.test_client() as client:
+            with mock.patch.object(app_module, "subprocess") as fake_sp:
+                fake_sp.Popen.side_effect = OSError("spawn denied")
+                resp = client.post("/api/open-path", json={"path": probe})
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertIs(body["launched"], False)
+            self.assertIn("复制", body["message"])
+            resp.close()
+
+    def test_compare_report_shape_and_three_cards_consistent(self):
+        """P12·W1.2：report 键集合冻结（+legacy_count additive）；三卡数值与直调
+        diff_from_current 全等（CLI==Web==engine 同口径）。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        baseline_rows = [
+            {"p": "D:\\T", "s": 7050},
+            {"p": "D:\\T\\sub", "s": 4000},
+            {"p": "D:\\T\\sub\\deep", "s": 2500},
+        ]
+        current_rows = [
+            {"p": "D:\\T", "s": 6050},
+            {"p": "D:\\T\\sub", "s": 4000},
+            {"p": "D:\\T\\sub\\deep", "s": 1500},
+        ]
+        baseline_file = snapshots.save_snapshot(
+            "D:\\T",
+            baseline_rows,
+            dir_path=Path(tmp.name),
+            auto=False,
+            machine_guid=LOCAL_GUID,
+            fingerprint={"count": len(baseline_rows), "crc32": 0},
+        )
+        # fullscan.result(root=...) 的返回契约是单根条目 {"root": ..., "rows": [...]}
+        cached_result = {
+            "root": "D:\\T",
+            "rows": [{"p": row["p"], "s": row["s"]} for row in current_rows],
+        }
+        with app.test_client() as client:
+            with mock.patch.object(fullscan, "is_running", return_value=False), \
+                    mock.patch.object(fullscan, "result", return_value=cached_result):
+                resp = client.post(
+                    "/api/compare",
+                    json={"root": "D:\\T", "baseline": str(baseline_file)},
+                )
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            report = body["report"]
+            self.assertEqual(
+                _keys(report),
+                {"root", "total_baseline", "total_current", "delta_total",
+                 "truncated", "legacy_count", "baseline_created_at",
+                 "current_completed_at",
+                 # P4（D4-5）additive：全量聚合行口径汇总 + depth 回显
+                 "rows_total", "zero_count", "zero_total",
+                 "max_growth", "max_release", "depth",
+                 "rows"},  # W2.11 additive
+                f"/api/compare report 键集合漂移: {_keys(report)}",
+            )
+            # P4（D4-2）：不传新参 = 旧口径——叶子行集合与逐字段值与修复前一致，
+            # additive 汇总字段按「全量行集（叶子过滤后、零过滤与切片之前）」自洽
+            self.assertEqual(report["depth"], None, "不传 depth 时回显 None（叶子口径）")
+            self.assertEqual(report["rows_total"], 1, "leaf 口径行集：仅 D:\\\\T\\\\sub\\\\deep")
+            self.assertEqual(report["zero_count"], 0, "返回行中的零行数")
+            self.assertEqual(report["zero_total"], 0, "全量行集中的零行数")
+            self.assertEqual(report["max_growth"], 0, "本例无正增量")
+            self.assertEqual(report["max_release"], 1000, "deep 缩减 2500→1500")
+            self.assertEqual(len(report["rows"]), report["rows_total"])
+            # 三卡（基线总大小/当前总大小/总变化量）与直调引擎全等（根行口径）
+            engine = compare.diff_from_current(
+                {Path(row["p"]): int(row["s"]) for row in current_rows},
+                baseline_rows,
+            )
+            self.assertEqual(report["total_baseline"], engine["total_baseline"])
+            self.assertEqual(report["total_current"], engine["total_current"])
+            self.assertEqual(report["delta_total"], engine["delta_total"])
+            self.assertEqual(report["delta_total"], -1000)
+            resp.close()
+
+    def test_compare_drill_subtree_reuses_ancestor_cache(self):
+        """P4 挂账清理：下钻子目录且**只有祖先根**缓存时按子树派生（同步 200）。
+
+        fullscan.result(root) 仅精确匹配根（fullscan.py:688）；下钻到 D:\\T\\sub 时
+        若退回 202 + `scan_via_everything_sdk(子目录)`，深度/下钻切换会各自触发一次
+        SDK 直扫。本用例锁定「祖先根存在即同步派生」：SDK 直扫被替换为 AssertionError
+        桩——一旦退回异步路径，响应码即非 200，用例立刻失败。
+        """
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        baseline_rows = [
+            {"p": "D:\\T", "s": 7050},
+            {"p": "D:\\T\\sub", "s": 4000},
+            {"p": "D:\\T\\sub\\deep", "s": 2500},
+            {"p": "D:\\T\\other", "s": 3050},
+        ]
+        current_rows = [
+            {"p": "D:\\T", "s": 6050},
+            {"p": "D:\\T\\sub", "s": 4000},
+            {"p": "D:\\T\\sub\\deep", "s": 1500},
+            {"p": "D:\\T\\other", "s": 3050},
+        ]
+        baseline_file = snapshots.save_snapshot(
+            "D:\\T",
+            baseline_rows,
+            dir_path=Path(tmp.name),
+            auto=False,
+            machine_guid=LOCAL_GUID,
+            fingerprint={"count": len(baseline_rows), "crc32": 0},
+        )
+        parent_result = {
+            "roots": {"D:\\T": {"root": "D:\\T", "rows": [
+                {"p": row["p"], "s": row["s"]} for row in current_rows]}},
+            "completed_at": "2026-09-10T12:00:00",
+        }
+
+        def fake_result(root=None):
+            if root is None:
+                return parent_result          # 无参 = 最近一次全量结果（含各根）
+            return None                        # 子目录无精确根缓存
+
+        with app.test_client() as client:
+            with mock.patch.object(fullscan, "is_running", return_value=False), \
+                    mock.patch.object(fullscan, "result", side_effect=fake_result), \
+                    mock.patch.object(scan, "scan_via_everything_sdk",
+                                      side_effect=AssertionError("不应触发 SDK 直扫")):
+                resp = client.post(
+                    "/api/compare",
+                    json={"root": "D:\\T\\sub", "baseline": str(baseline_file)},
+                )
+            self.assertEqual(resp.status_code, 200, "祖先根缓存应派生子树 → 同步 200")
+            report = resp.get_json()["report"]
+            self.assertEqual(report["root"], "D:\\T\\sub", "对比根应为下钻目录")
+            self.assertEqual(report["total_baseline"], 4000)
+            self.assertEqual(report["total_current"], 4000)
+            self.assertEqual(report["delta_total"], 0, "子树根行两侧一致")
+            for row in report["rows"]:
+                self.assertTrue(
+                    row["path"] == "D:\\T\\sub" or row["path"].startswith("D:\\T\\sub\\"),
+                    "派生行必须落在下钻子树内：%s" % row["path"],
+                )
+            self.assertNotIn("D:\\T\\other", [row["path"] for row in report["rows"]],
+                             "兄弟目录不得进入下钻结果")
+            resp.close()
+
+
+class FullscanStopContractTests(unittest.TestCase):
+    """U3.2（D10）：POST /api/fullscan/stop 契约——200 形态与空闲幂等。
+
+    ⚠️ 偏差注记：手册 §U3.2 提「tests/test_web.py 新增契约用例」——该文件已于
+    U1.0 移出正式用例（P12 前旧草稿，2026-09-13 随仓库瘦身删除），当前契约护栏以
+    tests/test_api_contract.py 为准（本文件编码规约：with-resp/close、additive 冻结）。
+    """
+
+    def setUp(self):
+        fullscan.USER_STOP_EVENT.clear()
+        self.addCleanup(fullscan.USER_STOP_EVENT.clear)
+        self.addCleanup(
+            fullscan._update_state,
+            running=False, thread=None, current_root=None,
+            error=None, cancelled=False, stop_requested=False,
+            stop_reason=None, last_result=None,
+        )
+
+    def test_stop_running_returns_stopped_true(self):
+        """运行中：200 + {ok:true, stopped:true, status}；status additive 报
+        stop_requested=true / stop_reason="user"；用户停止事件确实置位。"""
+        fullscan._update_state(running=True)
+        with app.test_client() as client:
+            resp = client.post("/api/fullscan/stop", json={})  # 可空体
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(
+                _keys(body), {"ok", "stopped", "status"},
+                f"契约键集合漂移: {_keys(body)}",
+            )
+            self.assertIs(body["ok"], True)
+            self.assertIs(body["stopped"], True)
+            self.assertIn("stop_requested", body["status"])
+            self.assertIn("stop_reason", body["status"])
+            self.assertIs(body["status"]["stop_requested"], True)
+            self.assertEqual(body["status"]["stop_reason"], "user")
+            resp.close()
+        self.assertTrue(fullscan.USER_STOP_EVENT.is_set())
+
+    def test_stop_idempotent_when_idle(self):
+        """空闲：200 + stopped=false（幂等不报错）；无事件、无状态污染。"""
+        with app.test_client() as client:
+            resp = client.post("/api/fullscan/stop", json={})
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertIs(body["ok"], True)
+            self.assertIs(body["stopped"], False)
+            self.assertIs(body["status"]["stop_requested"], False)
+            self.assertIsNone(body["status"]["stop_reason"])
+            resp.close()
+        self.assertFalse(fullscan.USER_STOP_EVENT.is_set())
+
+
+class SeriesContractTests(unittest.TestCase):
+    """P6（D6-3/变更集4）：GET /api/series 契约 + GET /api/snapshots 显式冻结。
+
+    覆盖门禁要求的五条路径：成功 / 空 / 参数非法 / 快照缺失 / 上限。
+    另补 P5 挂账「GET /api/snapshots 无显式契约用例」（键集合 + total_by_root
+    additive + 跳过盘形态）。
+    """
+
+    def _make_series(self, tmpdir):
+        """三份同根快照（时间递增，根总量递增），返回路径列表。
+
+        行集语义（与真实扫描同构）：父目录行已含全部后代，
+        D:\\T = size、D:\\T\\sub = size-200、D:\\T\\sub\\deep = size-500、D:\\T\\other = 200。
+        """
+        out = []
+        for idx, (stamp, size) in enumerate(
+            [("2026-09-01T10:00:00", 1000), ("2026-09-02T10:00:00", 1500), ("2026-09-03T10:00:00", 2100)]
+        ):
+            path = snapshots.save_snapshot(
+                "D:\\T",
+                [
+                    {"p": "D:\\T", "s": size},
+                    {"p": "D:\\T\\sub", "s": size - 200},
+                    {"p": "D:\\T\\sub\\deep", "s": size - 500},
+                    {"p": "D:\\T\\other", "s": 200},
+                ],
+                dir_path=Path(tmpdir),
+                auto=(idx == 1),
+                machine_guid=LOCAL_GUID,
+                fingerprint={"count": 4, "crc32": idx},
+                now=_dt(stamp),
+            )
+            out.append(str(path))
+        return out
+
+    def _isolate_sessions(self, tmpdir, snapshot_path, created_at="2026-09-03T10:00:00"):
+        """把 session.list_sessions 指向隔离目录（**绝不读用户真实数据目录**，红线 B）。
+
+        会话 id 以 `session_` 开头 → 文件名与生产 build_session_id 同构
+        （session_path 直接用 session_id 作文件名）。
+        """
+        import session as session_module
+
+        session_dir = Path(tmpdir)
+        session_module.save_session(
+            {
+                "session_id": "session_contract_series_1",
+                "auto": False,
+                "machine_guid": LOCAL_GUID,
+                "created_at": created_at,
+                "roots": {
+                    "D:\\T": {"root": "D:\\T", "snapshot": Path(snapshot_path).name,
+                              "snapshot_path": str(snapshot_path), "skipped": False},
+                },
+            },
+            dir_path=session_dir,
+        )
+        patcher = mock.patch.object(
+            session_module, "list_sessions",
+            return_value=sorted(session_dir.glob("session_*.json")),
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return session_dir
+
+    def test_series_success_shape_and_caliber(self):
+        """成功路径：键集合冻结 + 根口径 == /api/snapshots 的 total_by_root 同源值。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        paths = self._make_series(tmp.name)
+        self._isolate_sessions(tmp.name, paths[-1], created_at="2026-09-03T10:00:00")
+        with app.test_client() as client:
+            resp = client.get(
+                "/api/series",
+                query_string={"root": "D:\\T", "snapshots": paths},
+            )
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(
+                _keys(body),
+                {"ok", "root", "path", "depth", "limit", "count", "truncated",
+                 "dropped", "rows_total", "elapsed_ms", "reason", "points", "skipped"},
+                f"/api/series 键集合漂移: {_keys(body)}",
+            )
+            self.assertIs(body["ok"], True)
+            self.assertEqual(body["count"], 3)
+            self.assertEqual(body["reason"], "")
+            self.assertEqual(body["skipped"], [])
+            self.assertEqual(body["truncated"], False)
+            self.assertEqual(body["dropped"], 0)
+            self.assertEqual(body["limit"], app_module.SERIES_MAX_POINTS)
+            point = body["points"][0]
+            self.assertEqual(
+                _keys(point),
+                {"snapshot", "name", "created_at", "auto", "machine_guid",
+                 "bytes", "present", "rows", "cached"},
+                f"/api/series point 键集合漂移: {_keys(point)}",
+            )
+            # 时间升序（早→晚）+ 逐点根口径值
+            self.assertEqual([p["bytes"] for p in body["points"]], [1000, 1500, 2100])
+            self.assertEqual(
+                [p["created_at"] for p in body["points"]],
+                ["2026-09-01T10:00:00", "2026-09-02T10:00:00", "2026-09-03T10:00:00"],
+            )
+            self.assertEqual(body["points"][1]["auto"], True, "auto 取自快照头")
+            self.assertEqual(body["points"][0]["machine_guid"], LOCAL_GUID)
+            self.assertEqual(body["points"][0]["present"], True)
+            self.assertEqual(body["rows_total"], 12, "三份 × 4 行")
+            # 同源自证：与 /api/snapshots 的 total_by_root 逐值相等（C-6 两地一致）
+            snap_resp = client.get("/api/snapshots")
+            self.assertEqual(snap_resp.status_code, 200)
+            snap_body = snap_resp.get_json()
+            totals = {}
+            for sess in snap_body["sessions"]:
+                totals.update(sess.get("total_by_root") or {})
+            self.assertEqual(totals.get("D:\\T"), 2100, "最新一份会话的根总量应与序列末点相等")
+            snap_resp.close()
+            resp.close()
+
+    def test_series_path_and_depth_caliber(self):
+        """path/depth 口径：缺省 = 目录行自身值；depth ≥1 = 折叠到第 N 层的合计。
+
+        ⚠️ depth 口径与 compare._rollup 一致：**不含 path 自身行**（根行由
+        delta_total 承载），因此 sub 在 depth=1 下的值 = 其直属子项行之和。
+        """
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        paths = self._make_series(tmp.name)
+        with app.test_client() as client:
+            resp = client.get(
+                "/api/series",
+                query_string={"root": "D:\\T", "snapshots": paths, "path": "D:\\T\\sub"},
+            )
+            body = resp.get_json()
+            self.assertEqual([p["bytes"] for p in body["points"]], [800, 1300, 1900],
+                             "缺省 = 目录行自身值（已含后代）")
+            self.assertTrue(all(p["present"] for p in body["points"]))
+            self.assertEqual([p["rows"] for p in body["points"]], [4, 4, 4],
+                             "缺省口径 rows = 快照总行数（口径可核对）")
+            resp.close()
+            # depth=1：sub 子树折叠到第 1 层 = 直属子项行（deep），不含 sub 自身
+            resp = client.get(
+                "/api/series",
+                query_string={"root": "D:\\T", "snapshots": paths, "path": "D:\\T\\sub", "depth": 1},
+            )
+            body = resp.get_json()
+            self.assertEqual(body["depth"], 1)
+            self.assertEqual([p["bytes"] for p in body["points"]], [500, 1000, 1600],
+                             "depth=1 = 直属子项合计（_rollup 剔除根行口径）")
+            self.assertEqual([p["rows"] for p in body["points"]], [1, 1, 1],
+                             "折叠后行数 = 1（仅 deep）")
+            resp.close()
+            # 不存在的目录：present=False + bytes=0（不编造、不报错）
+            resp = client.get(
+                "/api/series",
+                query_string={"root": "D:\\T", "snapshots": paths, "path": "D:\\T\\nope"},
+            )
+            body = resp.get_json()
+            self.assertEqual([p["bytes"] for p in body["points"]], [0, 0, 0])
+            self.assertEqual([p["present"] for p in body["points"]], [False, False, False])
+            resp.close()
+
+    def test_series_empty_and_missing_snapshot(self):
+        """空路径：无快照 → reason=no_snapshots；全部缺失 → all_unavailable + skipped。"""
+        with app.test_client() as client:
+            resp = client.get("/api/series", query_string={"root": "D:\\T"})
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(body["count"], 0)
+            self.assertEqual(body["points"], [])
+            self.assertEqual(body["reason"], "no_snapshots")
+            resp.close()
+            missing_a = "C:\\nope\\a.snap.gz"
+            missing_b = "C:\\nope\\b.snap.gz"
+            resp = client.get(
+                "/api/series",
+                query_string={"root": "D:\\T", "snapshots": [missing_a, missing_b]},
+            )
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(body["count"], 0)
+            self.assertEqual(body["reason"], "all_unavailable")
+            self.assertEqual(
+                body["skipped"],
+                [{"snapshot": missing_a, "reason": "missing"},
+                 {"snapshot": missing_b, "reason": "missing"}],
+            )
+            resp.close()
+
+    def test_series_invalid_params(self):
+        """参数非法四例一律 400（不静默降级）。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        paths = self._make_series(tmp.name)
+        with app.test_client() as client:
+            cases = [
+                ({"snapshots": paths}, "缺少 root"),
+                ({"root": "D:\\T", "snapshots": paths, "path": "C:\\elsewhere"}, "path 越界"),
+                ({"root": "D:\\T", "snapshots": paths, "depth": "0"}, "depth<1"),
+                ({"root": "D:\\T", "snapshots": paths, "depth": "abc"}, "depth 非整数"),
+                ({"root": "D:\\T", "snapshots": paths, "limit": "0"}, "limit<1"),
+                ({"root": "D:\\T", "snapshots": paths, "limit": "99"}, "limit 超上限"),
+            ]
+            for qs, label in cases:
+                resp = client.get("/api/series", query_string=qs)
+                self.assertEqual(resp.status_code, 400, f"{label} 应 400，实际 {resp.status_code}")
+                body = resp.get_json()
+                self.assertIs(body["ok"], False, label)
+                self.assertIn("error", body, label)
+                resp.close()
+
+    def test_series_limit_truncation_keeps_newest(self):
+        """上限路径：份数超 limit → 保留最新 limit 份 + truncated/dropped 如实回显。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        paths = self._make_series(tmp.name)
+        with app.test_client() as client:
+            resp = client.get(
+                "/api/series",
+                query_string={"root": "D:\\T", "snapshots": paths, "limit": 2},
+            )
+            self.assertEqual(resp.status_code, 200)
+            body = resp.get_json()
+            self.assertEqual(body["limit"], 2)
+            self.assertEqual(body["count"], 2)
+            self.assertEqual(body["truncated"], True)
+            self.assertEqual(body["dropped"], 1)
+            self.assertEqual([p["bytes"] for p in body["points"]], [1500, 2100],
+                             "保留下来的必须是「最新」两份（旧的一份被裁掉）")
+            resp.close()
+
+    def test_series_cache_reuses_and_invalidates_on_signature(self):
+        """D6-3/D6-6：进程内缓存按文件签名命中；同名文件被重写 → 自动失效。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        paths = self._make_series(tmp.name)
+        app_module._SERIES_CACHE.clear()
+        with app.test_client() as client:
+            resp = client.get("/api/series", query_string={"root": "D:\\T", "snapshots": paths})
+            first = resp.get_json()
+            self.assertTrue(all(p["cached"] is False for p in first["points"]), "首跑必须实解析")
+            resp.close()
+            resp = client.get("/api/series", query_string={"root": "D:\\T", "snapshots": paths})
+            second = resp.get_json()
+            self.assertTrue(all(p["cached"] is True for p in second["points"]), "复跑应命中缓存")
+            self.assertEqual([p["bytes"] for p in first["points"]],
+                             [p["bytes"] for p in second["points"]], "缓存不得改变数值")
+            resp.close()
+
+    def test_snapshots_contract_keys_and_total_by_root(self):
+        """P5 挂账补测：/api/snapshots 键集合显式冻结 + total_by_root additive +
+        跳过盘形态（无 snapshot_path 的盘不进 total_by_root，且不报错）。"""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        snap_path = snapshots.save_snapshot(
+            "D:\\T",
+            [{"p": "D:\\T", "s": 4096}, {"p": "D:\\T\\sub", "s": 2048}],
+            dir_path=Path(tmp.name),
+            auto=True,
+            machine_guid=LOCAL_GUID,
+            fingerprint={"count": 2, "crc32": 7},
+        )
+        import session as session_module
+
+        session_dir = Path(tmp.name)
+        session_module.save_session(
+            {
+                "session_id": "session_contract_snapshots_1",
+                "auto": True,
+                "machine_guid": LOCAL_GUID,
+                "created_at": "2026-09-05T10:00:00",
+                "roots": {
+                    "D:\\T": {"root": "D:\\T", "snapshot": Path(snap_path).name,
+                              "snapshot_path": str(snap_path), "skipped": False},
+                    "C:\\": {"root": "C:\\", "snapshot": None, "snapshot_path": None,
+                             "skipped": True, "skip_reason": "day_budget_exceeded",
+                             "notice": "今日写入量已达上限，自动保存跳过"},
+                },
+            },
+            dir_path=session_dir,
+        )
+        with mock.patch.object(session_module, "list_sessions",
+                               return_value=sorted(session_dir.glob("session_*.json"))):
+            with app.test_client() as client:
+                resp = client.get("/api/snapshots")
+                self.assertEqual(resp.status_code, 200)
+                body = resp.get_json()
+                self.assertEqual(_keys(body), {"ok", "sessions", "count"},
+                                 f"/api/snapshots 键集合漂移: {_keys(body)}")
+                self.assertEqual(body["count"], 1)
+                sess = body["sessions"][0]
+                self.assertEqual(
+                    _keys(sess),
+                    {"session_id", "auto", "machine_guid", "created_at", "roots",
+                     "total_by_root", "_file"},
+                    f"会话键集合漂移: {_keys(sess)}",
+                )
+                self.assertEqual(sess["total_by_root"], {"D:\\T": 4096},
+                                 "total_by_root 只含有快照的盘（跳过盘不入表）")
+                self.assertEqual(_keys(sess["roots"]["C:\\"]),
+                                 {"root", "snapshot", "snapshot_path", "skipped",
+                                  "skip_reason", "notice"},
+                                 "跳过盘形态（红线 #7 SKIP_REASON_TEXT 依赖）不得漂移")
+                resp.close()
+
+
+def _dt(text):
+    """ISO 文本 → datetime（series 夹具用固定时刻，避免依赖运行时钟）。"""
+    from datetime import datetime as _datetime
+
+    return _datetime.fromisoformat(text)
+
+
+if __name__ == "__main__":
+    unittest.main()

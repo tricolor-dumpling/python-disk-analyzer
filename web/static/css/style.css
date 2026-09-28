@@ -1,0 +1,1620 @@
+/* ============================================================
+   UI 2.0（SpaceLens Pro）· style.css 分区重构（U1.3）
+   分区顺序：base / layout / topbar / cards / list / treemap / overlays / motion
+   - 色值一律引用 tokens.css（本文件 hex 出现次数 = 基线 51 只减不增，
+     U1.3 重构后目标为 0；rgba() 等函数色不受色值门禁约束）；
+   - 旧规则逐条迁移或删除（删除清单见《开发执行手册》U1.3 执行记录）；
+   - 非色值度量变量（字号 fs / 圆角 radius / 间距 space）已于 P3 迁入
+     tokens.css 的 :root（见该文件「P3 迁入」段）；
+   - 布局模型：App Shell 单屏（顶栏 60 + 工具栏行 48 + 内容 flex + 状态栏 32），
+     body 零滚动；<900px 宽 / <640px 高恢复页面滚动（§3.4 声明例外）；
+     右栏允许面板内滚（§3.4 面板内滚允许）。
+   ============================================================ */
+
+/* ⚠️ 历史缺陷登记 DEF-P3-01（P3 已修，勿回退）：本条注释原文写作
+   「非色值度量变量（--fs-* / --radius-* / --space-*）暂留本文件 :root」，
+   其中的 `*` + `/` 相邻写法会**提前闭合注释**，使紧随其后的
+   `:root{--fs-*;--radius-*;--space-*}` 被解析为「选择器非法」整条丢弃——
+   实测 document.styleSheets 中无 :root 规则、--fs-xs 计算值为空、
+   全站 87 处 var(--fs-*) 与 36 处 var(--radius-*) 全部失效
+   （字号回落 16px / 圆角回落 0）。P3 起度量变量已迁入 tokens.css，
+   本文件不再持有 :root，缺陷根因随之消除。 */
+
+/* ============================================================ */
+/* base：全局复位与基础控件                                  */
+/* ============================================================ */
+
+*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent}
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-thumb{background:var(--border-strong);border:2px solid transparent;border-radius:999px;background-clip:padding-box}
+
+html{-webkit-text-size-adjust:100%}
+html,body{height:100%}
+body{
+  margin:0;
+  overflow:hidden; /* 桌面零滚动（§3.4 规则 1；<900px/<640px 恢复滚动见 layout 尾部） */
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  font-size:var(--fs-md);line-height:1.55;
+  background:
+    radial-gradient(640px 320px at 12% -8%,var(--bg-aurora-1),transparent 70%),
+    radial-gradient(720px 360px at 88% -12%,var(--bg-aurora-2),transparent 70%),
+    var(--bg);
+  color:var(--text);
+}
+a{color:var(--primary);text-decoration:none}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.hidden{display:none!important}
+.muted{color:var(--muted)}
+/* 视觉隐藏但可聚焦/可朗读（路由焦点管理目标：[data-page-title]） */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.icon{width:18px;height:18px;flex:none}
+.icon-lg{width:22px;height:22px}
+.icon-sm{width:14px;height:14px}
+
+input[type=text],input[type=search]{
+  flex:1;min-width:160px;min-height:34px;padding:6px 12px;
+  border:1px solid var(--border);border-radius:var(--radius-ctl);
+  background:var(--card);color:var(--text);font:inherit;box-shadow:var(--shadow-sm);
+}
+input::placeholder{color:var(--faint)}
+input:hover{border-color:var(--border-strong)}
+input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.row{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap;align-items:center}
+.field{margin:12px 0}
+.field label{display:block;font-size:var(--fs-xs);color:var(--muted);margin-bottom:4px}
+.field input{width:100%}
+/* P-5（G-1）：口径标注（D5 裁定——设置弹窗数据目录区说明；幂等注入，仅文案样式） */
+.field .calibre-note{font-size:var(--fs-xs);color:var(--muted);margin-top:4px;line-height:1.4}
+
+/* 按钮 / 图标按钮 / 徽章 / 芯片（L2-1 hover-active 反馈保留；U4.2 红线终核：
+   过渡仅 transform/opacity——颜色/边框/阴影状态瞬时切换，不参与过渡（定稿性能红线#1）） */
+.btn,.icon-btn,.chip,.badge{transition:transform .12s ease,opacity .12s ease}
+.btn{
+  min-height:36px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius-ctl);
+  background:var(--card);color:var(--text-2);font-size:var(--fs-sm);font-weight:550;cursor:pointer;white-space:nowrap;
+  box-shadow:var(--shadow-sm);
+}
+.btn:hover{border-color:var(--border-strong);box-shadow:var(--elev-1);transform:translateY(-1px);color:var(--text)}
+.btn:active{transform:translateY(0);box-shadow:var(--shadow-sm)}
+.btn-primary{background:var(--grad-brand);border-color:transparent;color:var(--on-primary);box-shadow:var(--elev-1)}
+.btn-primary:hover{box-shadow:var(--elev-2);filter:saturate(1.08);color:var(--on-primary)}
+.btn-success{background:var(--success);border-color:var(--success);color:var(--on-primary)}
+.btn-danger{background:var(--danger);border-color:var(--danger);color:var(--on-primary)}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--muted);box-shadow:none}
+.btn-ghost:hover{background:var(--card-soft);box-shadow:none;transform:none;color:var(--text)}
+/* R1：顶栏纯图标幽灵按钮（文字入 title/aria-label；界面去文字化更清爽） */
+.btn-icon-only{width:32px;padding:0;justify-content:center}
+/* R1：危险幽灵按钮（删除类次级动作视觉降级；须置于 .btn-ghost 之后以胜出同特异度） */
+.btn-danger-ghost{color:var(--danger);background:transparent;border-color:transparent;box-shadow:none}
+.btn-danger-ghost:hover{background:var(--danger-soft);color:var(--danger);box-shadow:none;transform:none}
+.btn-sm{padding:5px 10px;font-size:var(--fs-xs)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+/* U3.2：.btn 自带 display:inline-flex 会覆盖 [hidden] 属性（nav-tabs 类坑）——
+   #btn-fullscan 扫描中（变「停止」）与 .btn 类成员的显隐必须显式关闭 */
+.btn[hidden]{display:none!important}
+.icon-btn{
+  display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;
+  border:none;border-radius:var(--radius-sm);background:transparent;color:var(--muted);cursor:pointer;
+}
+.icon-btn:hover{background:var(--card-soft);color:var(--text)}
+.icon-btn:focus-visible{outline:2px solid currentColor;outline-offset:1px}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;padding:5px 12px;height:30px;
+  border:1px solid var(--warning-border);border-radius:var(--radius-chip);
+  background:var(--warning-soft);color:var(--warning);font-size:var(--fs-xs);font-weight:600;cursor:pointer;
+}
+/* R1：状态点（纯 CSS ::before，topbar.js 只改 className/文本，无需改 JS） */
+.badge::before{
+  content:"";width:7px;height:7px;border-radius:50%;flex:none;background:currentColor;
+  box-shadow:0 0 0 3px color-mix(in srgb,currentColor 18%,transparent);
+}
+.badge-ok{background:var(--success-soft);color:var(--success);border-color:var(--success-border)}
+.badge-err{background:var(--danger-soft);color:var(--danger);border-color:var(--danger-border)}
+.chips-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
+.chips-label{font-size:var(--fs-xs);color:var(--faint)}
+/* 阶段G（G-3，P-2）：浏览历史下拉面板（时钟按钮形态；命令面板同款分组样式） */
+.browse-history-panel{
+  position:absolute;top:calc(100% + 4px);left:0;z-index:812;min-width:280px;max-width:min(420px,90vw);
+  max-height:300px;overflow-y:auto;padding:4px 6px 6px;border:1px solid var(--border);
+  border-radius:var(--radius-card);background:var(--card);box-shadow:var(--elev-3);
+  animation:palette-in var(--dur-palette-open) var(--ease-out) both;
+}
+.browse-history-panel .palette-item:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.browse-history-panel .palette-item.is-active{background:var(--primary-soft);color:var(--primary)}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;padding:4px 11px;
+  border:1px solid var(--border);border-radius:var(--radius-chip);
+  background:var(--card);color:var(--text-2);font-size:var(--fs-xs);font-weight:550;cursor:pointer;
+  box-shadow:var(--shadow-sm);
+}
+.chip:hover{border-color:var(--primary-border);color:var(--primary);background:var(--primary-soft)}
+
+/* ============================================================ */
+/* layout：App Shell 单屏骨架（顶栏 60 + 工具栏行 48 + flex + 状态栏 32） */
+/* ============================================================ */
+
+.app{height:100%;display:flex;flex-direction:column;overflow:hidden}
+.shell{flex:1;min-height:0;display:flex;padding:12px 24px}
+/* U2.1 路由视区：页面模块渲染进 #route-view（flex 行 = 旧 .shell 主区布局） */
+#route-view{flex:1;min-width:0;min-height:0;display:flex;gap:16px}
+.main-col{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;gap:8px}
+
+/* 面包屑 / 工具栏行（48px 预算；F06 路径行 + N10 视图工具栏位） */
+.tool-row{flex:none;height:48px;display:flex;align-items:center;gap:12px;min-width:0}
+.path-row{flex:1;min-width:0;display:flex;align-items:center;gap:8px;position:relative} /* 阶段G G-3：下拉面板锚点 */
+.path-row input{min-width:0}
+.path-row #browse-root{max-width:280px}
+
+/* R1：元信息行（面包屑 + 最近浏览 chips + 状态行 三合一；替代原三条堆叠整行） */
+.meta-row{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;min-height:26px}
+.meta-row .breadcrumb{flex:1;min-width:0;margin:0;padding:0;background:transparent;border:0;box-shadow:none;min-height:0}
+.meta-row .chips-row{margin:0;flex:none}
+.meta-row .status-line{margin:0 0 0 auto;flex:none;max-width:40%}
+/* R1：视图工具栏升级为分段控件（seg）——容器药丸底 + 内部按钮无边框；
+   激活态 = .btn-primary（JS 切换类名不变），改为「白底+主色字+细边」的 seg 选中片 */
+.view-toolbar{
+  flex:none;display:flex;align-items:center;gap:2px;padding:3px;
+  background:var(--card-soft);border:1px solid var(--border);border-radius:var(--radius-ctl);
+}
+.view-toolbar .btn{
+  min-height:28px;padding:4px 10px;border-color:transparent;background:transparent;
+  box-shadow:none;color:var(--muted);font-weight:550;border-radius:7px;
+}
+.view-toolbar .btn:hover{background:transparent;color:var(--text);transform:none;box-shadow:none}
+.view-toolbar .btn.btn-primary{
+  background:var(--card);color:var(--primary);border:1px solid var(--border);
+  box-shadow:var(--shadow-sm);font-weight:600;
+}
+.view-toolbar .btn.btn-primary:hover{filter:none;color:var(--primary)}
+
+/* 视图区（flex:1；面板内滚；U2.5：treemap/table 两容器 absolute 叠加共用视口——120ms 交叉淡化） */
+.view-area{flex:1;min-height:0;display:flex;position:relative}
+.view-area .table-wrap{position:absolute;inset:0;min-width:0;z-index:1} /* P2：终态基值（交叉淡化层序见 .v-crossfade-* 规则） */
+/* P2（R2/R3）：交叉淡化层序契约。两容器同为 position:absolute;inset:0，DOM 中
+   #treemap-wrap 靠后 → 叠加时矩形图恒在上层（旧实现无 z-index 无规则，靠 DOM 顺序）；
+   且旧 JS 已加 `.v-crossfade` 类但 style.css 中不存在该规则（层序/指针/裁剪从未定义）。
+   现补齐为完整语义：
+     · .v-crossfade-in  = 入向视图，压在出向之上；
+     · .v-crossfade-out = 出向视图，置于下层；
+     · 交叉淡化期间两者 pointer-events:none —— 过渡中不得拦截命中测试
+       （收束后由 finishViewSwap 移除语义类并还原内联 opacity）；
+     · 层序取值 2/3 均低于 #browse-loading 骨架屏（z-index:5，在 .view-area 层叠上下文内），
+       故骨架屏仍覆盖视区（DoD 5 帧级断言）；全屏态 .view-fullscreen(z 800) 与
+       .tool-row(z 810) 在本层叠上下文之外，不受影响。
+   终态基值（z-index:1）随各自容器的定位声明一并给出：
+     `.treemap-wrap`（本文件 treemap 段）与 `.view-area .table-wrap`（上一行）。 */
+.treemap-wrap.v-crossfade,.table-wrap.v-crossfade{pointer-events:none}
+.treemap-wrap.v-crossfade-in{z-index:3}
+.treemap-wrap.v-crossfade-out{z-index:2}
+.table-wrap.v-crossfade-in{z-index:3}
+.table-wrap.v-crossfade-out{z-index:2}
+/* [N09] 迷你条带位（U2.3 装配 treemap 上级上下文，48px） */
+.strip-slot{flex:none;height:48px}
+
+/* 右栏：区间自适应（§3.3 原固定 300px；P3/D3-2 改 clamp(280px,22vw,380px)——
+   1024→280（下限）/ 1366→300.5（≈原 300，1366×768 紧凑档宽度基本不变，
+   故 P6「1366 右栏无内滚」内容预算不受影响）/ 1440→316.8 / 1920→380（上限）；
+   面板内滚允许 §3.4；横向仍 overflow-x:hidden，但 P3 起右栏内不得再有元素
+   越过内容盒（见下方各文本截断策略） */
+.side-rail{
+  width:clamp(280px,22vw,380px);flex:none;min-height:0;display:flex;flex-direction:column;gap:var(--space-3);
+  overflow-y:auto;overflow-x:hidden;
+}
+
+/* P3/D3-4：右栏内「可能溢出的文本」统一截断策略——
+   · .btn 自带 white-space:nowrap（按钮标签不换行是 UI 约定），故必须保证
+     「盒子装得下文本」：flex:none + max-width:100%，让按钮换行而不是被压窄裁字
+     （基线实测 #btn-stop-scan 被压窄 2px 裁字）。容器的 flex-wrap 负责换行。
+   · .chip 长盘符/长盘名允许词内换行（overflow-wrap:anywhere）且不得超出内容盒
+     （max-width:100%），信息零丢失（原样全文可见，title 仍带完整路径）。 */
+.side-rail .btn{flex:none;max-width:100%}
+.side-rail .chip{max-width:100%;min-width:0;overflow-wrap:anywhere}
+.side-rail .chips-row{min-width:0}
+
+/* 状态栏 32px（F22） */
+.statusbar{
+  flex:none;height:32px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:0 24px;border-top:1px solid var(--border);background:var(--card-soft);
+  color:var(--muted);font-size:var(--fs-2xs);white-space:nowrap;overflow:hidden;
+}
+
+/* ============================================================ */
+/* pages：子页面（U2.1 路由；页头规格 §3.3/§3.5；U3.3/U3.4 已全量填充） */
+/* ============================================================ */
+
+.page{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px}
+/* R1：路由焦点管理会 programmatic focus 页标题（a11y 公告用，tabindex=-1 不可 Tab 到达），
+   不画焦点环——否则页标题常驻一个蓝色矩形框（截图观感缺陷） */
+[data-page-title]:focus,[data-page-title]:focus-visible{outline:none}
+.page-head{flex:none;min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:4px 0}
+.page-title{margin:0;font-size:var(--fs-2xl);font-weight:700;letter-spacing:-.2px;line-height:1.2}
+.page-sub{margin:0;font-size:var(--fs-xs);color:var(--muted)}
+.page-body{flex:1;min-height:0;display:flex;flex-direction:column}
+
+/* ============================================================ */
+/* U3.3 快照管理页（#/snapshots）：页头 64px + 趋势卡×2 128px + 会话列表 flex:1 内滚
+   P6（D6-1·变更集1）：本节全面令牌化——间距一律 var(--space-*)、字号一律
+   var(--fs-*)，卡片统一消费「卡片原语」（--card + --border + --radius-card +
+   --shadow-sm，全站单一圆角）；原散落在 cards 分区（.session-item）与 list
+   分区（.trend-reason）的两条规则归位到本节对应位置。 */
+/* ============================================================ */
+.page-head-row{flex-direction:row;align-items:center;justify-content:space-between;gap:var(--space-4)}
+.page-head-titles{min-width:0;display:flex;flex-direction:column;gap:var(--space-1)}
+.page-head-actions{display:flex;align-items:center;gap:var(--space-2);flex:none}
+
+/* 趋势区 128px（N07：较昨日/较上周）
+   ⚠️ 降级注记：/api/snapshots 会话数据无逐次总量字段 → sparkline（L3-5）降级为
+   「两快照对比差值卡」——无折线，保留 ▲/▼ 与百分比；L3-5 后端补字段后启用
+   （P6 实测：/api/snapshots 已逐会话返回 additive total_by_root，sparkline 已在
+   阶段G 启用，上面这条注记仅为历史沿革留痕） */
+/* 2026-09-13 快照页改版：趋势卡区（.trend-*）已移除（与对比页重复）；
+   原位置改为「筛选 + 批量管理」工具条 */
+/* 2026-09-13 第二轮排版优化（用户实测「显示会话的地方太小了」）：
+   1366×768 实测 —— 日历整宽独占 308px 高，列表内滚区只剩 153px（约 1 行会话）。
+   现改**左右两栏**：日历收成 336px 日期栏（格子因此变方、更紧凑），
+   右栏 = 筛选条 + 列表卡，占满其余宽度与全部剩余高度（实测列表高度 153 → 约 500px）。
+   窄屏（<1100px）回到上下堆叠，避免列表被挤到不可用。 */
+.snap-main{flex:1;min-height:0;display:flex;gap:12px;align-items:stretch}
+.snap-list-col{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px}
+/* 左栏（日历 + 最近快照）：日历贴内容高度，最近快照吃掉剩余高度（2026-09-13 第三轮：
+   原日历卡下方留 200px+ 空白，用户实测「左侧下方空闲太多」） */
+.snap-rail{flex:0 0 clamp(272px,25vw,336px);min-width:0;min-height:0;display:flex;flex-direction:column;gap:12px}
+.snap-hidden-note{display:inline-flex;align-items:center;gap:var(--space-2);color:var(--faint);min-width:0}
+.snap-hidden-note[hidden]{display:none}
+.snap-hidden-note .btn{padding:1px 8px;font-size:var(--fs-2xs)}
+.snap-calendar{flex:none;min-width:0;overflow-y:auto;max-height:100%}
+.snap-recent{flex:1;min-height:120px;display:flex;flex-direction:column;gap:var(--space-2);overflow:hidden}
+.recent-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--space-2);flex:none}
+.recent-sub{font-size:var(--fs-2xs);color:var(--faint)}
+.recent-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.recent-item{
+  display:flex;align-items:center;gap:var(--space-2);width:100%;padding:5px 8px;border:1px solid transparent;
+  border-radius:var(--radius-sm);background:transparent;color:var(--text);font:inherit;
+  font-size:var(--fs-xs);text-align:left;cursor:pointer;
+}
+.recent-item:hover{background:var(--row-alt);border-color:var(--border)}
+.recent-item.is-picked{background:var(--primary-soft);border-color:var(--primary-border);color:var(--primary)}
+.recent-time{flex:none;font-variant-numeric:var(--font-num);color:var(--muted)}
+.recent-drives{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.recent-size{flex:none;color:var(--faint);font-variant-numeric:var(--font-num)}
+.recent-empty{margin:0;font-size:var(--fs-xs);color:var(--faint)}
+/* 窄屏才上下堆叠：900px 是全书既有的「整页退化纵向滚动」断点（§3.4 规则 3）。
+   1000–1100px 宽仍保持左右两栏（日期栏收到 272px）——实测 1024×768 若堆叠，
+   列表只剩 199px，与修复前的「列表太小」同病。 */
+@media (max-width:900px){
+  .snap-main{flex-direction:column}
+  .snap-rail{flex:none}
+  .snap-calendar{flex:none;overflow:visible}
+  .snap-recent{flex:none;min-height:0;overflow:visible}
+  .recent-list{overflow:visible}
+}
+.snap-filter-bar{
+  flex:none;display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;
+  padding:var(--space-2) var(--space-3);border:1px solid var(--border);
+  border-radius:var(--radius-card);background:var(--card);box-shadow:var(--elev-1);
+}
+.snap-filter-bar select{
+  font-size:var(--fs-sm);padding:4px 8px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--card-soft);color:var(--text);cursor:pointer;
+}
+.snap-filter-bar input[type=search]{
+  flex:1;min-width:140px;font-size:var(--fs-sm);padding:5px 10px;
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card-soft);color:var(--text);
+}
+.snap-filter-bar input[type=search]:focus{outline:2px solid var(--primary);outline-offset:1px}
+.snap-check-all-wrap{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-xs);color:var(--muted);cursor:pointer;white-space:nowrap;user-select:none}
+.snap-check-all-wrap input{width:14px;height:14px;accent-color:var(--primary);cursor:pointer}
+#snap-btn-batch-del{margin-left:auto}
+/* 禁用态改中性灰（btn-danger 红底 + 全局 45% 透明在禁用态可读性太差） */
+#snap-btn-batch-del:disabled{background:var(--card-soft);color:var(--faint);border-color:var(--border);opacity:1}
+.snap-check{display:inline-flex;align-items:center;flex:none;cursor:pointer}
+.snap-check input{width:14px;height:14px;accent-color:var(--primary);cursor:pointer}
+
+/* ---- 快照日历（2026-09-13 用户实测反馈新增：月历热力图） ----
+   一眼看出「某一天有没有快照 / 有几个」：格子色深 = 当天份数（四档），
+   格内右下角 = 份数徽标；今天内描边、当前筛选日外发光；点日期 = 筛选下方列表。
+   与 .snap-filter-bar 同卡原语（--card/--border/--radius-card/--elev-1）。 */
+.snap-calendar{
+  flex:none;display:flex;flex-direction:column;gap:var(--space-2);
+  padding:var(--space-3);
+}
+.cal-head{display:flex;flex-direction:column;gap:var(--space-2)}
+.cal-title{margin:0;font-size:var(--fs-sm);font-weight:600;color:var(--text)}
+.cal-sub{margin:2px 0 0;font-size:var(--fs-2xs);color:var(--muted)}
+.cal-nav{display:flex;align-items:center;gap:var(--space-1);justify-content:space-between}
+.cal-nav-btn{padding:0 7px;line-height:1.3;font-size:var(--fs-md)}
+.cal-month{min-width:64px;text-align:center;font-size:var(--fs-xs);font-weight:600;font-variant-numeric:var(--font-num)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.cal-dow{text-align:center;font-size:var(--fs-2xs);color:var(--faint);padding-bottom:1px}
+.cal-cell{
+  position:relative;min-height:28px;display:flex;align-items:center;justify-content:center;
+  padding:0;font:inherit;font-size:var(--fs-xs);color:var(--faint);
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card-soft);cursor:default;
+}
+.cal-cell.is-blank{border-color:transparent;background:transparent}
+.cal-cell.is-empty{opacity:.7}
+.cal-cell.has-snap{
+  cursor:pointer;color:var(--text);font-weight:600;
+  border-color:color-mix(in srgb,var(--primary) 32%,var(--border));
+}
+.cal-cell.has-snap:hover{outline:2px solid var(--primary);outline-offset:1px}
+.cal-cell.is-today{box-shadow:inset 0 0 0 1px var(--primary)}
+.cal-cell.is-picked{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-border)}
+.cal-cell.lvl-1{background:color-mix(in srgb,var(--primary) 14%,var(--card))}
+.cal-cell.lvl-2{background:color-mix(in srgb,var(--primary) 32%,var(--card))}
+.cal-cell.lvl-3{background:color-mix(in srgb,var(--primary) 55%,var(--card));color:var(--on-primary)}
+.cal-cell.lvl-4{background:color-mix(in srgb,var(--primary) 80%,var(--card));color:var(--on-primary)}
+.cal-cell.lvl-3 .cal-count,.cal-cell.lvl-4 .cal-count{color:var(--on-primary)}
+.cal-day{line-height:1}
+.cal-count{
+  position:absolute;right:3px;bottom:2px;font-size:var(--fs-2xs);font-weight:700;
+  color:var(--primary);font-variant-numeric:var(--font-num);
+}
+.cal-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);flex-wrap:wrap;font-size:var(--fs-2xs);color:var(--muted)}
+.cal-picked{font-weight:600;color:var(--primary);font-variant-numeric:var(--font-num)}
+.cal-hint{color:var(--faint)}
+.cal-legend{display:inline-flex;align-items:center;gap:3px;color:var(--faint);margin-left:auto}
+.cal-swatch{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid var(--border)}
+.cal-swatch.lvl-1{background:color-mix(in srgb,var(--primary) 14%,var(--card))}
+.cal-swatch.lvl-2{background:color-mix(in srgb,var(--primary) 32%,var(--card))}
+.cal-swatch.lvl-3{background:color-mix(in srgb,var(--primary) 55%,var(--card))}
+.cal-swatch.lvl-4{background:color-mix(in srgb,var(--primary) 80%,var(--card))}
+.session-item.is-sel{border-color:var(--primary-border);box-shadow:0 0 0 1px var(--primary-border)}
+
+/* 会话列表（F17：会话分组 + 逐盘对比/标签/跳过原因 tooltip——红线 #7 SKIP_REASON_TEXT）
+   P6（D6-1）：卡片原语统一（--radius-card + --card + --border + --shadow-sm）；
+   .session-item 本体自「cards 分区」归位到本节（原列表样式与卡片样式分离两处）。 */
+.snapshots-list-wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-2);background:var(--card)}
+.snapshots-list-head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);font-size:var(--fs-xs);color:var(--muted);flex-wrap:wrap}
+.snapshots-list-hint{color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snapshots-list-scroll{flex:1;min-height:0;overflow-y:auto;padding-right:2px}
+.snapshot-list{list-style:none;margin:var(--space-2) 0 0;padding:0;display:flex;flex-direction:column;gap:var(--space-2)}
+.session-item{
+  display:flex;flex-direction:column;gap:4px;min-width:0;
+  padding:var(--space-2) var(--space-3);border:1px solid var(--border);
+  border-radius:var(--radius-card);background:var(--card);box-shadow:var(--elev-1);
+  font-size:var(--fs-sm);
+}
+/* 2026-09-13 第二轮排版：会话卡内动作按钮收紧凑档——
+   全局 .btn-sm 的 36px 触控高度会把每个盘行撑到 44px（实测），一行会话占 180px+，
+   列表同屏只能看到 2 个会话。只作用于会话卡内部，不动全局按钮尺寸。 */
+.session-root-row .btn-sm,
+.session-head .btn-sm{min-height:26px;padding:2px 9px;font-size:var(--fs-2xs)}
+.session-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);min-width:0}
+.session-title{display:flex;align-items:center;gap:var(--space-2);font-weight:600;min-width:0}
+.session-sub{font-size:var(--fs-xs);color:var(--faint);word-break:break-all}
+.session-roots{list-style:none;margin:var(--space-1) 0 0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:var(--fs-xs)}
+.session-roots li{display:flex;align-items:center;gap:var(--space-2);min-width:0;flex-wrap:wrap;padding:4px 14px;border-radius:var(--radius-md);min-height:30px}
+.session-roots li:hover{background:var(--row-alt)}
+/* R1：根路径 code 升级为彩色盘符徽标（primary-soft 底 + 主色字 + 圆角） */
+.session-roots code{font-size:var(--fs-xs);font-weight:600;background:var(--primary-soft);border:1px solid var(--primary-border);border-radius:var(--radius-sm);padding:2px var(--space-2);word-break:break-all;color:var(--primary)}
+.skip-reason{color:var(--warning);cursor:help}
+/* P6（D6-2/变更集3）：会话行 = 「盘符 · 大小」正文 + 行尾动作；原始文件名进「详情」 */
+.session-root-row{padding:var(--space-1) 0}
+/* R1：盘符彩色方块（24px、圆角 7px、--grad-brand 底白字加粗居中；第二盘起 alt 配色）
+   2026-09-13 第二轮：28→24px（会话行更紧凑，列表同屏可见更多会话） */
+.root-ic{
+  flex:none;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;
+  background:var(--grad-brand);color:var(--on-primary);font-size:var(--fs-2xs);font-weight:700;
+}
+.root-ic.alt{background:linear-gradient(135deg,var(--c3),var(--c5))}
+.session-root-row.is-skipped .root-ic{background:var(--border-strong)}
+/* R1：meta 后自由空间吃掉 → 行尾动作组钉右 */
+.session-root-row .session-root-meta{margin-right:auto}
+.session-root-name{font-weight:600;font-size:var(--fs-sm);color:var(--text);flex:none;white-space:nowrap}
+.session-root-meta{color:var(--muted);font-variant-numeric:var(--font-num);flex:none;white-space:nowrap}
+.session-root-row.is-skipped .session-root-name{color:var(--muted);font-weight:400}
+.session-tags{display:inline-flex;align-items:center;gap:var(--space-2);min-width:0;margin-left:auto}
+.session-meta{font-size:var(--fs-xs);color:var(--faint);white-space:nowrap}
+.session-detail{margin-top:var(--space-1);font-size:var(--fs-xs);color:var(--muted)}
+.session-detail > summary{cursor:pointer;color:var(--muted);width:fit-content;padding:2px 0}
+.session-detail > summary:hover{color:var(--primary)}
+.session-detail-list{list-style:none;margin:var(--space-1) 0 0;padding:0 0 0 var(--space-3);display:flex;flex-direction:column;gap:var(--space-1);border-left:2px solid var(--border)}
+.session-detail-list li{display:flex;align-items:baseline;gap:var(--space-2);min-width:0;flex-wrap:wrap}
+.session-detail-label{flex:none;min-width:56px;color:var(--faint)}
+.session-detail-list code{word-break:break-all}
+.session-detail-path{color:var(--faint);word-break:break-all}
+
+/* ============================================================ */
+/* U3.4 空间对比页（#/compare）：页头 64px（对比基准下拉 + 当前磁盘状态行 + 开始对比）
+   → 摘要 3 卡 96px（count-up L1-4）→ 红绿发散图 240px（L3-6）
+   → 对比表格 flex:1 面板内滚（列：变化/增速/路径/操作 F19）
+   P5（D5-1/D5-2）：原「基线 datalist + 目标只读」两控件改为
+   「对比基准（历史快照）下拉 + 当前磁盘状态只读文本行」。 */
+/* ============================================================ */
+.page-head-compare{min-height:0}
+/* R1：控件组面板化——独立卡片行（原散排在页头右侧，观感 demo） */
+.page-head-compare{flex-wrap:wrap}
+/* 2026-09-13 用户实测反馈：控件条原为水平居中（justify-content:center），
+   与页头左对齐的标题/副行形成两条视觉中轴，"不像成熟产品"。
+   现改为左对齐（flex-start）——控件从卡片左内边距起排，与标题同一左基准线。 */
+.page-head-compare .compare-controls{
+  flex:1 1 100%;justify-content:flex-start;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);
+  padding:var(--space-2) var(--space-4);box-shadow:var(--elev-1);
+}
+.page-head-compare .page-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px}
+.compare-controls{display:flex;align-items:center;gap:var(--space-3);flex:none;min-width:0;flex-wrap:wrap;justify-content:flex-end}
+.compare-ctl{display:flex;align-items:center;gap:var(--space-2);font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.compare-ctl input{width:220px;font-size:var(--fs-sm)}
+/* P5（D5-1）：当前磁盘状态 = 只读文本行（原 .compare-ctl-target 只读输入框已删除；
+   保底截断，长根路径不挤压页头控件行） */
+.compare-current{
+  flex:none;display:inline-flex;align-items:center;gap:var(--space-1);max-width:260px;
+  padding:5px var(--space-3);border:1px solid var(--border);border-radius:var(--radius-chip);
+  background:var(--card-soft);color:var(--muted);font-size:var(--fs-xs);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* P5（D5-2）→ P6（D6-5）：对比基准选择器 = 原生 <select multiple>（id 不变）
+   ——原单选下拉（240px）升级为可多选列表：3 行可视 + 面板内滚，
+   与页头 64px 预算同行（含 caption 与「已选 N 份」chip）。 */
+.compare-ctl-baseline{flex-direction:column;align-items:flex-start;gap:2px}
+.compare-ctl-line{display:flex;align-items:baseline;gap:var(--space-2);min-width:0;max-width:288px}
+.compare-ctl-caption{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.compare-ctl-baseline select{width:288px;max-width:288px}
+/* R1：原生 select 收为 sr-only（可视层 = 自定义下拉），宽度规则仅作历史保留 */
+.baseline-picker{position:relative;display:block}
+.baseline-trigger{
+  display:inline-flex;align-items:center;gap:8px;width:288px;min-height:34px;padding:5px 12px;
+  border:1px solid var(--border);border-radius:var(--radius-ctl);background:var(--card);
+  color:var(--text);font:inherit;font-size:var(--fs-sm);cursor:pointer;box-shadow:var(--shadow-sm);
+}
+.baseline-trigger:hover{border-color:var(--border-strong)}
+.baseline-trigger:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.baseline-trigger .icon-sm{margin-left:auto;color:var(--faint)}
+#baseline-trigger-text{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.baseline-panel{
+  position:absolute;top:calc(100% + 4px);left:0;z-index:820;width:100%;max-height:260px;overflow-y:auto;
+  padding:4px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);
+  box-shadow:var(--elev-3);animation:palette-in var(--dur-palette-open) var(--ease-out) both;
+}
+.baseline-panel[hidden]{display:none!important}
+.baseline-opt{
+  display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;border:0;border-radius:var(--radius-sm);
+  background:transparent;color:var(--text);font:inherit;font-size:var(--fs-xs);text-align:left;cursor:pointer;
+}
+.baseline-opt:hover{background:var(--row-alt)}
+.baseline-opt:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.baseline-opt.is-on{background:var(--primary-soft);color:var(--primary);font-weight:600}
+/* 2026-09-13 第三轮：基准按「一次保存」分组的组头（时间 · 该次保存含哪些盘） */
+.baseline-group{
+  padding:6px 10px 2px;font-size:var(--fs-2xs);color:var(--faint);
+  border-top:1px solid var(--row-border);margin-top:2px;
+}
+.baseline-panel > .baseline-group:first-child{border-top:0;margin-top:0;padding-top:2px}
+/* 对比盘范围（第三轮）：紧凑下拉，禁用态（只有一个盘）保持可见不跳版 */
+.compare-ctl-scope select{min-width:74px}
+.compare-ctl-scope select:disabled{opacity:.7;cursor:default}
+.baseline-check{flex:none;width:16px;height:16px;display:grid;place-items:center;border-radius:5px;
+  border:1px solid var(--border-strong);color:var(--on-primary);font-size:11px;line-height:1}
+.baseline-opt.is-on .baseline-check{background:var(--primary);border-color:var(--primary)}
+.baseline-opt-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:var(--font-num)}
+.baseline-empty{padding:14px 12px;font-size:var(--fs-xs);text-align:center}
+/* R1：原生 select 收为 sr-only（可视层 = 自定义下拉），原列表样式仅作历史保留 */
+.compare-baseline-list{
+  width:288px;height:64px;padding:var(--space-1);
+  border:1px solid var(--border);border-radius:var(--radius-ctl);
+  background:var(--card);color:var(--text);font:inherit;font-size:var(--fs-xs);
+  overflow-y:auto;box-shadow:var(--shadow-sm);
+}
+.sr-only.compare-baseline-list{width:1px;height:1px;padding:0;border:0;box-shadow:none}
+.compare-baseline-list option{padding:2px var(--space-1);border-radius:var(--radius-sm)}
+.compare-baseline-list option:checked{background:var(--primary-soft);color:var(--primary);font-weight:600}
+.compare-baseline-hint{font-size:var(--fs-2xs);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compare-baseline-hint.is-multi{color:var(--primary);font-weight:600}
+.compare-controls .btn{flex:none}
+/* P4（D4-2/D4-3）：深度选择器 + 隐藏零变化开关（页头控件；不动既有 .compare-ctl input 规则，
+   勾选框用更高一层的专用选择器收回 220px 宽度） */
+.compare-ctl select{
+  font:inherit;font-size:var(--fs-sm);color:var(--text);background:var(--card);
+  border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px var(--space-1);
+}
+.compare-ctl-zero{gap:var(--space-1);cursor:pointer}
+.compare-ctl-zero input{width:13px;height:13px;margin:0;accent-color:var(--primary);cursor:pointer}
+/* P4（D4-6）：下钻面包屑（未下钻 hidden 不占高；每级可点返回） */
+.compare-crumb{
+  flex:none;display:flex;align-items:center;gap:var(--space-1);flex-wrap:nowrap;min-height:0;
+  overflow:hidden;font-size:var(--fs-xs);
+}
+.compare-crumb[hidden]{display:none!important}
+.compare-crumb .crumb-item{
+  flex:none;max-width:320px;padding:2px var(--space-2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--card);color:var(--text-2);
+  font:inherit;font-size:var(--fs-xs);cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.compare-crumb .crumb-item:hover,.compare-crumb .crumb-item:focus-visible{background:var(--primary-soft)}
+.compare-crumb .crumb-item.is-current{color:var(--text);font-weight:600;border-color:var(--border-strong);cursor:default}
+.compare-crumb .crumb-sep{flex:none;color:var(--faint)}
+
+.page-compare-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-2)}
+/* 对比页空态（定稿 6.5「选择一份对比基准，开始对比两个时间点的空间变化。」）
+   P6（D6-1）：与 .empty-state 统一下沉为卡片原语（虚线边框 + 卡片底色 + 单一圆角） */
+.page-compare-empty{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;border:1px dashed var(--border-strong);border-radius:var(--radius-card);background:var(--card-soft)}
+.page-compare-empty[hidden]{display:none!important}
+/* L1-5 骨架屏（shimmer 复用 skel-* 类；reduced 经全局降级静止） */
+.compare-loading{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-3);justify-content:center;padding:var(--space-6);border:1px solid var(--border);border-radius:var(--radius-card);background:var(--card)}
+.compare-loading[hidden]{display:none!important}
+.compare-loading .muted{font-size:var(--fs-xs)}
+.compare-result{flex:1;min-height:0;display:flex;flex-direction:column;gap:var(--space-2)}
+.compare-result[hidden]{display:none!important}
+
+/* 摘要 3 卡（96px；▲/▼ 符号冗余 + --up/--down 双编码；数字 tabular-nums）
+   P6（D6-1）：与 .trend-card/.session-item 同源卡片原语（底色/边框/圆角/阴影） */
+.compare-summary-row{flex:none;height:96px;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2)}
+.compare-stat{display:flex;flex-direction:column;justify-content:center;gap:var(--space-1);min-width:0;padding:var(--space-2) var(--space-3);border:1px solid var(--border);border-radius:var(--radius-card);background:var(--card);box-shadow:var(--elev-1);overflow:hidden}
+.compare-stat-label{font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.compare-stat-value{display:flex;align-items:baseline;gap:var(--space-1);font-size:var(--fs-xl);font-weight:700;font-variant-numeric:var(--font-num);white-space:nowrap;min-width:0}
+.compare-stat-arrow{font-size:var(--fs-sm);flex:none}
+.compare-stat-num{overflow:hidden;text-overflow:ellipsis}
+.compare-stat-sub{font-size:var(--fs-xs);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compare-legacy{flex:none;margin:0;padding:var(--space-2) var(--space-3)}
+
+/* 2026-09-13 用户实测反馈：红绿发散图区（.compare-diverge / .diverge-*）与摘要卡+
+   明细表信息重复且稀疏，已整区移除——明细表承载同口径 Top 差异信息。 */
+
+/* P6（D6-4/D6-5）：多快照趋势折线卡（viz/line.js）。
+   · 空闲/错误态（选中 <2 份或数据不足）= **单行**原因条（禁止永久空白，不占版面）；
+   · 有值态 = 折线图（高度 --line-h，坐标轴 + 悬浮读数），此时分区图让高（见上）。 */
+.compare-trend-card{
+  flex:none;display:flex;flex-direction:column;gap:var(--space-1);
+  padding:var(--space-2) var(--space-4);min-height:0;
+}
+.compare-trend-card[data-state="idle"],
+.compare-trend-card[data-state="loading"],
+.compare-trend-card[data-state="empty"]{
+  flex-direction:row;align-items:baseline;gap:var(--space-2);
+  padding:var(--space-1) var(--space-4);
+}
+.compare-trend-card[data-state="idle"] .compare-trend-head,
+.compare-trend-card[data-state="loading"] .compare-trend-head,
+.compare-trend-card[data-state="empty"] .compare-trend-head{flex:none}
+.compare-trend-card[data-state="idle"] .line-host,
+.compare-trend-card[data-state="loading"] .line-host,
+.compare-trend-card[data-state="empty"] .line-host{flex:1;height:auto;display:flex;align-items:center}
+.compare-trend-head{display:flex;align-items:baseline;gap:var(--space-2);flex-wrap:wrap}
+.compare-trend-title{margin:0;font-size:var(--fs-sm);font-weight:600;white-space:nowrap}
+.compare-trend-sub{font-size:var(--fs-xs);color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.line-host{position:relative;height:var(--line-h);min-height:0;outline:none}
+.line-host:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:var(--radius-sm)}
+.line-svg{display:block;width:100%;height:100%}
+.line-grid-line{stroke:var(--border);stroke-width:1;stroke-dasharray:3 3}
+.line-path{stroke:var(--primary);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.line-dot{fill:var(--card);stroke:var(--primary);stroke-width:1.6}
+/* 2026-09-13 第四轮：折线点选（点中的点 = 对比基准）
+   - .line-dot.is-active：当前对比基准点（实心高亮）；
+   - .line-active-ring：基准环（比悬浮游标更大更显眼，二者可区分）；
+   - cursor:pointer 由 line.js 写在 svg 的表现属性上（可点选时）。 */
+.line-dot.is-active{fill:var(--primary);stroke:var(--primary)}
+.line-active-ring{fill:none;stroke:var(--primary);stroke-width:1.6;opacity:.55}
+.line-active-dot{fill:var(--primary)}
+.line-active-g[hidden]{display:none}
+.line-axis-text{fill:var(--muted);font-size:var(--fs-2xs);font-variant-numeric:var(--font-num)}
+.line-guide{stroke:var(--primary);stroke-width:1;stroke-dasharray:2 2;opacity:.7}
+.line-cursor{fill:var(--primary)}
+/* 2026-09-13：`[hidden]` 的 UA `display:none` 只对 HTML 元素生效——
+   SVG 的 .line-guide/.line-cursor 上写 hidden 属性无效（游标始终画在原点），
+   .line-readout 则被自身 display:flex 覆盖（左上角常驻一个空读数胶囊）。
+   三处一并显式收口。 */
+.line-guide[hidden],.line-cursor[hidden],.line-readout[hidden]{display:none}
+.line-readout{
+  position:absolute;top:0;left:0;display:flex;align-items:baseline;gap:var(--space-1);
+  padding:1px var(--space-2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card-glass);backdrop-filter:blur(8px);box-shadow:var(--shadow-sm);
+  font-size:var(--fs-2xs);white-space:nowrap;pointer-events:none;
+  /* 2026-09-13：水平落位由 line.js 按读数实际宽度夹取（不越出宿主）；
+     此处只兜「宿主比读数还窄」的极端：截在宿主编框内。 */
+  max-width:calc(100% - 8px);overflow:hidden;
+}
+.line-readout-time{color:var(--muted)}
+.line-readout-value{font-weight:600;font-variant-numeric:var(--font-num)}
+.line-readout-sub{color:var(--faint)}
+.line-empty{margin:0;display:flex;align-items:center;height:100%;color:var(--muted);font-size:var(--fs-xs)}
+.line-loading{margin:0;display:flex;align-items:center;height:100%;color:var(--muted);font-size:var(--fs-xs)}
+
+/* 对比表格（面板内滚；行 stagger L1-2 由 motion 驱动；F19 操作列 定位+复制路径）
+   P6（D6-1/变更集2）：列宽自页内内联 style 收口到本节的列类（.col-*），
+   页面模板不再出现任何内联尺寸。 */
+.compare-table-wrap{flex:1;min-height:0;overflow:auto}
+.compare-table .col-delta{width:120px}
+.compare-table .col-growth{width:90px}
+.compare-table .col-ops{width:80px}
+.compare-table .delta-cell{font-variant-numeric:var(--font-num);white-space:nowrap}
+.compare-table .cmp-ops{white-space:nowrap}
+.compare-table .cmp-ops .icon-btn{width:26px;height:26px}
+/* R1：数字列右对齐——表头与单元格同侧（修「表头一排与内容不对齐」的观感） */
+.compare-table th.col-delta,.compare-table th.col-growth,.compare-table th.col-ops{text-align:right}
+.compare-table td.delta-cell,.compare-table td:nth-child(2){text-align:right;font-variant-numeric:var(--font-num);white-space:nowrap}
+.compare-table td.cmp-ops{text-align:right}
+/* P4（D4-6）：明细行整行可点 = 页内下钻（行尾操作按钮仍是独立热区） */
+.compare-table .compare-row{cursor:pointer}
+.compare-table .compare-row:hover{background:var(--card-soft)}
+.compare-table .compare-row:focus-within{background:var(--card-soft)}
+
+/* ============================================================ */
+/* topbar：60px（品牌 + N13 导航标签位 + 右侧控件组）        */
+/* ============================================================ */
+
+.topbar{
+  flex:none;height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:0 24px;background:var(--topbar-bg);backdrop-filter:var(--topbar-blur);-webkit-backdrop-filter:var(--topbar-blur);
+  border-bottom:1px solid var(--border);box-shadow:var(--elev-1);position:relative;z-index:20;
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand-logo{
+  display:grid;place-items:center;width:36px;height:36px;border-radius:10px;flex:none;
+  background:var(--grad-brand);
+  color:var(--on-primary);box-shadow:var(--elev-1);
+}
+.brand h1{margin:0;font-size:var(--fs-lg);font-weight:650;letter-spacing:.2px;line-height:1.2;white-space:nowrap}
+.brand-sub{margin:0;font-size:var(--fs-2xs);color:var(--muted);white-space:nowrap}
+.topbar-right{display:flex;align-items:center;gap:8px;flex:none}
+/* [N13] 导航标签位：工作台 #/ · 对比 #/compare · 快照 #/snapshots（U2.1 接线；下划线 L2-11 U3.1）。
+   注意：display 规则会覆盖 [hidden] 属性，占位期必须显式隐藏 */
+.nav-tabs{position:relative;display:flex;align-items:center;gap:4px}
+.nav-tabs[hidden]{display:none!important}
+.nav-tab{position:relative;padding:6px 14px;border-radius:var(--radius-sm);color:var(--text-2);font-size:var(--fs-md);text-decoration:none}
+.nav-tab:hover{color:var(--text);background:var(--card-soft)}
+.nav-tab.is-active{color:var(--primary);font-weight:600}
+/* U3.1 L2-11 导航下划线：translateX+宽度 240ms ease-inout（--dur-nav-underline）——
+   仅 transform 动画（红线：动画只动 transform/opacity）：宽度差经 scaleX 补偿，
+   实现等价「translateX+width」滑动；reduced 由全局降级直切 */
+.nav-underline{
+  position:absolute;left:0;bottom:0;height:2.5px;width:0;border-radius:var(--radius-chip) var(--radius-chip) 0 0;
+  background:var(--grad-brand);transform-origin:left center;pointer-events:none;
+  transition:transform var(--dur-nav-underline) var(--ease-inout);
+}
+/* U3.1 N13 非活动标签圆点提醒（markNavDot 驱动；点击标签消除）：transform/opacity 入场 */
+.nav-dot{
+  display:inline-block;width:6px;height:6px;margin-left:5px;border-radius:50%;vertical-align:2px;
+  background:var(--primary);box-shadow:0 0 0 3px var(--primary-soft);
+  animation:nav-dot-in var(--dur-1) var(--ease-out) both;
+}
+.nav-dot[hidden]{display:none!important}
+@keyframes nav-dot-in{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+/* [N02] 搜索框（240×36 按钮态入口；kbd 徽标；点击/Ctrl⌘K 打开命令面板） */
+.topbar-search{
+  width:220px;height:32px;flex:none;display:inline-flex;align-items:center;gap:8px;
+  padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-ctl);
+  background:var(--card-soft);color:var(--text-2);font-size:var(--fs-sm);cursor:pointer;
+  /* U4.2 红线终核：hover 边框状态瞬时切换 */
+}
+.topbar-search:hover{border-color:var(--primary-border);box-shadow:var(--elev-1)}
+.topbar-search:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.topbar-search-icon{color:var(--muted)}
+.topbar-search-placeholder{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--faint)}
+.kbd{
+  flex:none;padding:1px 6px;border:1px solid var(--border-strong);border-bottom-width:2px;
+  border-radius:6px;background:var(--card-soft);color:var(--muted);
+  font-family:Consolas,"Microsoft YaHei",monospace;font-size:11px;line-height:1.4;
+}
+/* [N05 骨架] 顶栏开始扫描：空闲=按钮；扫描中=微型进度环（pds:scan 驱动；U3.2 状态机补） */
+.topbar-scan{min-height:36px}
+.topbar-scan .topbar-scan-label{display:inline-flex;align-items:center;gap:6px}
+.topbar-scan .topbar-scan-label[hidden]{display:none!important}
+.topbar-scan .topbar-scan-ring{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px}
+.topbar-scan .topbar-scan-ring[hidden]{display:none!important}
+.scan-ring-svg{width:20px;height:20px;transform:rotate(-90deg)}
+.scan-ring-track{fill:none;stroke:var(--border-strong);stroke-width:2.4}
+.scan-ring-arc{fill:none;stroke:var(--primary);stroke-width:2.4;stroke-linecap:round;transition:stroke-dashoffset var(--dur-2) ease}
+
+/* ============================================================ */
+/* cards：通用卡 + 概览卡 + 扫描卡 + 快照卡 + 对比卡          */
+/* ============================================================ */
+
+.card{
+  background:var(--card-glass);border:1px solid var(--border);border-radius:var(--radius-card);
+  padding:14px 16px;box-shadow:var(--elev-1);
+}
+/* P6（D6-1）：对比页/快照页的卡片一律用**不透明**卡片底色（--card）——
+   右栏的 .card 是玻璃底（--card-glass），两页新卡片原语以更高特异度收回，
+   保证「五类卡片计算样式全等」在实测里成立（p06 判据②）。 */
+.page-compare .card,.page-snapshots .card{background:var(--card)}
+.card-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding-bottom:var(--space-2);margin-bottom:var(--space-2);border-bottom:1px solid var(--row-border)}
+/* P3/D3-4：卡标题按「整词」断行（word-break:keep-all）——CJK 默认逐字可断，
+   标题被挤压时会竖排成每行 1–2 字；keep-all 后标题成为不可分单元，
+   配合各卡头的 flex-wrap 换取「换行而非竖排」
+   R1：卡标题收敛为 fs-md/650（面板标题层级，原 fs-lg 视觉过重） */
+.card-head h2{display:flex;align-items:center;gap:8px;margin:0;font-size:var(--fs-md);font-weight:650;word-break:keep-all}
+.card-head h2 .icon{color:var(--primary)}
+.card-sub{margin:2px 0 0;font-size:var(--fs-xs);color:var(--muted);width:100%}
+/* R1：卡头右侧状态摘要位（margin-left:auto 钉右；扫描卡 #scan-head-sub 默认空） */
+.panel-sub{font-size:var(--fs-xs);color:var(--muted)}
+.card-head .panel-sub{margin-left:auto}
+/* R1：右栏卡按钮行统一节奏（紧凑档的 4px 覆盖见响应式区，更高优先级不变） */
+.side-rail .card .row{margin:10px 0 4px}
+
+/* 首启引导（U3.1：hero 卡迁出为壳级弹层——.hero 死规则已删，见 overlays 分区 onboarding） */
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.step{display:flex;gap:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--card)}
+.step-num{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--primary-soft);color:var(--primary);font-weight:700;flex:none}
+
+/* 存储概览卡（U2.4 环形图卡：viz/donut.js + chips 图例 + 浏览此盘；
+   旧「目录占用排行」条形列表已被环形图+chips 取代（F05），死规则已删） */
+.overview-panel{
+  padding:14px 16px;border:1px solid var(--primary-border);border-radius:var(--radius-card);
+  background:var(--card-glass);box-shadow:var(--elev-2);
+}
+.overview-head{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2) var(--space-3);flex-wrap:wrap;
+  padding-bottom:var(--space-2);margin-bottom:var(--space-2);border-bottom:1px solid var(--row-border)}
+/* P3/D3-5：标题列可收缩但不逐字断行（word-break:keep-all 让「存储概览」成为
+   不可再分的最小单元 → flex 自动最小尺寸 = 整词宽，标题永不竖排成「存储概 / 览」）；
+   动作组 flex:none（按钮文本 nowrap，见 .btn——绝不被压窄到裁字），
+   一行放不下时整体换行到第二行，而不是挤压标题 */
+.overview-head > div:first-child{flex:1 1 auto;min-width:0}
+.overview-head h2{margin:0;font-size:var(--fs-lg);font-weight:650;word-break:keep-all}
+.overview-head p{margin:2px 0 0;color:var(--muted);font-size:var(--fs-xs);overflow-wrap:anywhere}
+.overview-actions{display:flex;flex-wrap:wrap;gap:6px;flex:none;margin-left:auto}
+.overview-roots{display:block;margin-top:var(--space-3)}
+.overview-roots-donut{min-height:180px}
+.overview-empty{
+  display:flex;flex-direction:column;gap:4px;padding:20px;text-align:center;color:var(--muted);
+  border:1px dashed var(--border-strong);border-radius:var(--radius-ctl);
+}
+.overview-empty b{color:var(--text);font-size:var(--fs-md)}
+.overview-open{margin-top:10px;width:100%}
+
+/* ---------- 环形图（viz/donut.js；L3-4 参数 token 化见 tokens.css U2.4 增补） ---------- */
+/* P3/D3-4：改 grid（donut 列 auto = 环形固定宽，图例列 minmax(0,1fr) 可收缩到 0）
+   ——flex 版下 `.donut-legend` 的 min-width:auto 会让图例列拒绝收缩并被
+   `.side-rail` 的 overflow-x:hidden 静默切掉右缘（基线实测：图例值右缘越界 19px） */
+.storage-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;margin-top:12px}
+.donut-host{flex:none}
+/* R1：112px（原 160）——与紧凑档同尺寸，右栏 ~280px 内容宽里让横向图例行
+   「标签 + 数值 + 百分比」完整成行（原 160px 时数值被 ellipsis 截断） */
+.donut-box{position:relative;width:112px;height:112px}
+.donut-svg{display:block;width:100%;height:100%}
+.donut-track{fill:none;stroke:var(--border-strong);stroke-width:10}
+.donut-arc-g{
+  transform-box:fill-box;transform-origin:center;
+  transition:transform var(--dur-2) var(--ease-out); /* 仅 transform 过渡（hover 外扩） */
+}
+.donut-arc{fill:none;stroke:url(#pds-donut-grad);stroke-width:10;stroke-linecap:round}
+.donut-grad-from{stop-color:var(--grad-brand-from)}
+.donut-grad-to{stop-color:var(--grad-brand-to)}
+/* hover 弧段外扩 ≈2px（r=52 显示半径随档位 48–69px，scale 1.035 居中带内近似；
+   光晕为静态 filter 状态变化（--glow-drop-sm，暗色有效/亮色 none），不参与过渡） */
+.donut-box.is-hover .donut-arc-g{transform:scale(1.035);filter:var(--glow-drop-sm)}
+/* 不确定弧（扫描中 22% 弧段旋转 1.2s：仅 transform；reduced 见 motion 区）。
+   阶段E（E-1）：transform-origin/transform-box 显式声明（viewBox 120×120 的
+   几何中心 60 60 = transform-box:view-box 下的 50% 50%；防浏览器默认值漂移
+   造成旋转中心偏移——与 SVG 属性 rotate(-90 60 60) 同源） */
+.donut-indet{display:none;fill:none;stroke:url(#pds-donut-grad);stroke-width:10;stroke-linecap:round}
+.donut-box.is-indet .donut-indet{
+  display:block;transform-box:view-box;transform-origin:60px 60px;will-change:transform;
+  animation:donut-spin var(--dur-donut-indeterminate,1200ms) linear infinite;
+}
+.donut-box.is-indet .donut-arc-g{display:none}
+.donut-center{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;pointer-events:none;text-align:center;
+}
+.donut-value{font-size:var(--fs-lg);font-weight:700;line-height:1.15;font-variant-numeric:var(--font-num)}
+.donut-sub{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-xs);color:var(--muted)}
+/* 图例两行（已使用 / 全部盘累计——「可用」因后端无总容量字段降级，见 storage.js 注记）
+   R1：每行横向单行——swatch + 标签 + 数值右对齐加粗（tabular-nums）；
+   全部文本显式「可换行」——标签与数值均 white-space:normal + overflow-wrap:anywhere，
+   禁止裸 nowrap（基线实测：`.donut-legend-value` nowrap 且无 overflow →
+   1920 下 scrollWidth 111 vs clientWidth 92 硬切 19px）。 */
+.donut-legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.donut-legend-row{display:flex;flex-direction:row;align-items:center;gap:8px;min-width:0}
+.donut-legend-label{display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--muted);white-space:normal;overflow-wrap:anywhere;min-width:0;flex:none}
+.donut-legend-value{margin-left:auto;font-size:var(--fs-sm);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto;text-align:right}
+.donut-legend-value em{font-style:normal;font-weight:400;font-size:var(--fs-xs);color:var(--muted);margin-left:4px;white-space:nowrap}
+.donut-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.donut-dot-used{background:var(--grad-brand)}
+.donut-dot-all{background:var(--border-strong)}
+.donut-legend-scan{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
+/* P-5（G-1）：口径标注（D5 裁定「逻辑尺寸，未计硬链接重叠」；图例追加行，仅文案样式） */
+.donut-legend-calibre{font-size:var(--fs-xs);color:var(--muted);line-height:1.4}
+.overview-chips{margin-top:12px}
+.chip.is-active{border-color:var(--primary);background:var(--primary-soft);color:var(--primary);font-weight:600}
+
+/* ---------- [N06] 快照迷你卡（U2.4；components/snapshot-mini.js） ---------- */
+.snapshot-mini-card .card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.snapshot-mini-entry{margin-top:4px}
+.snapshot-mini-item{
+  width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);
+  border-radius:var(--radius-ctl);background:var(--card-soft);color:var(--text);cursor:pointer;
+  text-align:left;font:inherit;
+}
+.snapshot-mini-item:hover,.snapshot-mini-item:focus-visible{border-color:var(--primary);background:var(--primary-soft)}
+.snapshot-mini-item:hover strong{color:var(--primary)}
+.snapshot-mini-icon{color:var(--faint);flex:none}
+.snapshot-mini-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.snapshot-mini-info strong{font-size:var(--fs-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snapshot-mini-sub{font-size:var(--fs-xs);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snapshot-mini-empty{display:flex;flex-direction:column;gap:2px;padding:2px 2px 8px;color:var(--muted)}
+.snapshot-mini-empty b{color:var(--text);font-size:var(--fs-sm)}
+.snapshot-mini-empty span{font-size:var(--fs-xs)}
+.snapshot-mini-open-btn{margin-top:6px;align-self:flex-start}
+
+/* ---------- 「最近对比」迷你卡（U2.4；state.compare.lastSummary） ---------- */
+.compare-mini-card .card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.compare-mini-body{margin-top:4px}
+.compare-mini-item,.compare-mini-empty{
+  width:100%;display:flex;flex-direction:column;gap:4px;padding:8px 10px;border:1px solid var(--border);
+  border-radius:var(--radius-ctl);background:var(--card-soft);color:var(--text);cursor:pointer;
+  text-align:left;font:inherit;
+}
+.compare-mini-item:hover,.compare-mini-item:focus-visible{border-color:var(--primary);background:var(--primary-soft)}
+.compare-mini-empty b{font-size:var(--fs-sm)}
+.compare-mini-empty span{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
+.compare-mini-line{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
+.compare-mini-label{font-size:var(--fs-xs);color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compare-mini-delta{font-size:var(--fs-md);font-weight:700;font-variant-numeric:var(--font-num);white-space:nowrap}
+.compare-mini-delta.grow{color:var(--up)}
+.compare-mini-delta.shrink{color:var(--down)}
+.compare-mini-delta.flat{color:var(--muted)}
+.compare-mini-at{font-size:var(--fs-xs);color:var(--faint);white-space:nowrap}
+
+
+/* 扫描卡（进度条 L2-3 效果层由 U3.2 接入，此处保留结构） */
+.progress-wrap{display:flex;align-items:center;gap:10px;margin:10px 0 4px}
+.progress{flex:1;height:10px;border-radius:var(--radius-chip);background:var(--track);border:1px solid var(--border);overflow:hidden}
+.progress-fill{height:100%;width:0;border-radius:var(--radius-chip);background:var(--grad-brand);transition:width .4s ease}
+.progress.running .progress-fill{
+  background-color:var(--primary);
+  background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.25) 0 8px,transparent 8px 16px);
+  animation:stripes 1.2s linear infinite;
+}
+.progress-pct{width:44px;text-align:right;font-size:var(--fs-xs);font-variant-numeric:var(--font-num)}
+
+/* ============================================================
+   U3.2：扫描控制卡状态机（L2-2 停止按钮 / L2-3 进度条完成态 / chips 三态 / 计时）
+   ——动画仅 transform/opacity；颜色只走既有 token（hex 0）；
+   时长全部读 token（--dur-scan-* 见 tokens.css U3.2 增补段）
+   ============================================================ */
+
+/* 停止按钮（扫描中显示；红描边 L2-2）——[hidden] 显隐双控（display 规则覆盖
+   [hidden] 属性，同 nav-tabs 类坑：.btn 自带 display:inline-flex） */
+.btn-stop[hidden]{display:none!important}
+.btn-stop{position:relative;overflow:hidden;border-color:var(--danger);background:var(--danger-soft);color:var(--danger)}
+.btn-stop:hover{border-color:var(--danger);background:var(--danger-soft)}
+.btn-stop .icon-sm{flex:none}
+/* L2-2 渐变流光（3s 循环；仅 transform——光带平移，底色为 danger-soft 静态） */
+.btn-stop.active::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--danger-border) 50%,transparent);
+  opacity:.4;transform:translateX(-100%);
+  animation:scan-flow var(--dur-scan-flow) linear infinite;
+  will-change:transform; /* 仅扫描期间存在（动画期间） */
+}
+/* L2-2 呼吸光环（2s 循环；仅 transform+opacity——描边环缩放呼吸，引用 --danger） */
+.btn-stop.active::after{
+  content:"";position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;
+  border:2px solid var(--danger);opacity:0;
+  animation:scan-halo var(--dur-scan-halo) ease-in-out infinite;
+  will-change:transform;
+}
+@keyframes scan-flow{to{transform:translateX(100%)}}
+@keyframes scan-halo{
+  0%{opacity:0;transform:scale(.96)}
+  50%{opacity:.6;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.06)}
+}
+
+/* L2-3 进度条：扫描中头部 8px 亮点 glow（跟随 pct 的 fill 右缘） */
+.progress{position:relative}
+.progress-fill{position:relative}
+.progress.running .progress-fill::after{
+  content:"";position:absolute;top:0;right:0;width:8px;height:100%;border-radius:999px;
+  background:var(--on-primary);opacity:.55;box-shadow:0 0 8px var(--primary);
+}
+/* L2-3 完成：绿光自左向右 600ms 单次（仅 transform+opacity；forwards 终态隐没）+
+   fill 转成功色（静态） */
+.progress.complete .progress-fill{background:var(--success);background-image:none}
+.progress.complete::after{
+  content:"";position:absolute;top:0;left:0;width:30%;height:100%;border-radius:999px;
+  background:var(--success);opacity:0;transform:translateX(-120%);pointer-events:none;
+  animation:scan-glow var(--dur-scan-glow) ease-out forwards;
+}
+@keyframes scan-glow{
+  0%{transform:translateX(-120%);opacity:0}
+  15%{opacity:.5}
+  85%{opacity:.45}
+  100%{transform:translateX(430%);opacity:0}
+}
+/* L2-3 条尾对勾（完成态；描边 400ms 由 motion.drawCheck 驱动 --dur-draw-check） */
+.scan-check{display:inline-flex;flex:none;color:var(--success);margin-left:-4px}
+.scan-check svg{width:20px;height:20px;display:block}
+.scan-check[hidden]{display:none!important}
+
+/* 耗时计时（前端 startTs + formatElapsed；P3/D3-3：随 `.scan-meta` 独立成第二行，
+   自身允许换行——原 white-space:nowrap 在有界宽右栏里必然越界被裁） */
+.scan-elapsed{font-variant-numeric:var(--font-num);white-space:normal;overflow-wrap:anywhere;min-width:0}
+.scan-elapsed[hidden]{display:none!important}
+
+/* 阶段B（B-12）：预计剩余（估算）——P3/D3-3：与耗时同处状态行第二层 */
+.scan-eta{font-variant-numeric:var(--font-num);white-space:normal;overflow-wrap:anywhere;color:var(--faint);min-width:0}
+.scan-eta[hidden]{display:none!important}
+
+/* P3/D3-3：扫描态状态行信息分层容器（耗时 + ETA 独占第二行；两个子项均 [hidden]
+   时由 scan.js 同步 data-empty 收起整行，见 components/scan.js renderFullscanState）。
+   不使用 :has()——显式状态类在无 :has 支持的宿主上同样成立。 */
+.scan-meta{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 6px;min-width:0;font-size:var(--fs-xs)}
+.scan-meta[data-empty="1"]{display:none}
+
+/* 阶段B（B-12）：「？」引导气泡按钮（扫描卡按钮行内；折叠/展开 #scan-progress-hint） */
+.scan-help-btn{flex:none;min-width:28px;border-radius:999px;font-weight:700}
+.scan-help-btn[hidden]{display:none!important}
+
+/* 阶段B（B-19）：扫描卡高亮脉动（顶栏「开始扫描」点击扫描中态时；仅 opacity，P7） */
+.scan-card-flash{animation:scan-card-pulse 1.2s ease-in-out 2}
+@keyframes scan-card-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* 盘符 chips 三态：✓已完成（可点击） / 进行中脉冲 / 待办灰（禁用态） */
+.chip-done{color:var(--success);border-color:var(--success-border)}
+.chip-done svg{width:12px;height:12px;flex:none}
+.chip-current{
+  border-color:var(--primary);color:var(--primary);background:var(--primary-soft);
+  animation:chip-pulse var(--dur-scan-halo) ease-in-out infinite; /* 脉冲周期复用光环 2s */
+}
+@keyframes chip-pulse{50%{opacity:.45}}
+.chip-pending{color:var(--faint);opacity:.75;cursor:default}
+
+/* 快照卡（U2.4 升级为迷你卡；U3.3：完整会话列表迁 #/snapshots 子页面——
+   列表不再限高，内滚由页面 .snapshots-list-scroll 承担）
+   P6（D6-1）：.snapshot-list / .session-item / .session-head / .session-title /
+   .session-sub 已归位到「U3.3 快照管理页」分区（原先卡片样式在 cards 分区、
+   列表样式在 list 分区，同一张卡两处定义）。 */
+.tag{display:inline-flex;padding:2px var(--space-2);border-radius:var(--radius-chip);font-size:var(--fs-2xs);font-weight:600}
+.tag-auto{background:var(--success-soft);color:var(--success)}
+.tag-manual{background:var(--primary-soft);color:var(--primary)}
+.tag-skip{background:var(--warning-soft);color:var(--warning)}
+.tag-added{background:var(--danger-soft);color:var(--danger)}
+.tag-removed{background:var(--success-soft);color:var(--success)}
+
+/* 对比卡（U3.4 迁 #/compare 整页——主页仅留「最近对比」迷你入口；旧卡样式死规则已删，
+   新版见下方「U3.4 对比工作台页」分区；.grow/.shrink/.flat 为 delta 配色，趋势卡共用保留） */
+.grow{color:var(--danger)}
+.shrink{color:var(--success)}
+.flat{color:var(--muted)}
+
+/* ============================================================ */
+/* list：面包屑 / 状态行 / 目录表 / 排行行 / 空态 / 筛选      */
+/* ============================================================ */
+
+/* R1：筛选行收薄（输入框定宽、select 紧凑，原为整行大通栏） */
+.browse-filters{display:flex;gap:8px;margin:4px 0}
+.browse-filters input,.browse-filters select{
+  padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius-ctl);
+  background:var(--card);color:var(--text);box-shadow:var(--shadow-sm);
+}
+.browse-filters input{flex:0 1 260px;min-width:120px}
+.browse-filters select{flex:none}
+
+.breadcrumb{
+  display:flex;align-items:center;gap:2px;flex-wrap:wrap;margin:2px 0;
+  padding:6px 12px;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-ctl);min-height:34px;box-shadow:var(--shadow-sm);
+}
+.crumb{padding:2px 6px;border:0;background:transparent;color:var(--text-2);cursor:pointer;border-radius:var(--radius-sm)}
+.crumb:hover{color:var(--primary);background:var(--primary-soft)}
+.crumb-current{padding:2px 6px;font-weight:600;color:var(--text)}
+.crumb-sep{color:var(--faint)}
+/* 阶段G（G-4，P-3）：面包屑 >6 层折叠「…」（键盘可聚焦；仅样式新类） */
+.crumb-ellipsis{font-weight:700;letter-spacing:.08em}
+.crumb-ellipsis:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:var(--radius-ctl)}
+
+/* P3/D3-3/D3-4：状态行改 flex-wrap 分层——文本子项允许换行（禁止裸 nowrap 硬挤：
+   基线实测扫描态被压成 30px 宽、每行 1–2 字竖排） */
+.status-line{display:flex;align-items:center;gap:var(--space-1) var(--space-2);flex-wrap:wrap;font-size:var(--fs-xs);color:var(--muted);margin:var(--space-1) 0;min-height:18px}
+.status-line > span:not(.dot){min-width:0;overflow-wrap:anywhere}
+.status-line .dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.status-line.ok{color:var(--success)}
+.status-line.ok .dot{background:var(--success)}
+.status-line.warn{color:var(--warning)}
+.status-line.warn .dot{background:var(--warning-mid)}
+.status-line.err{color:var(--danger)}
+.status-line.err .dot{background:var(--danger)}
+.status-line.busy .dot{background:var(--primary);animation:pulse 1.2s ease-in-out infinite}
+
+.notice{
+  display:flex;flex-direction:column;gap:8px;margin:10px 0;padding:10px 14px;
+  border:1px solid var(--border);border-left:4px solid var(--faint);
+  border-radius:var(--radius-md);background:var(--card-soft);font-size:var(--fs-sm);
+  overflow-wrap:anywhere; /* P1：自动保存失败原因可能含长路径/异常栈，允许词内换行防横向溢出 */
+}
+.notice-info{border-left-color:var(--primary);background:var(--primary-soft)}
+.notice-warn{border-left-color:var(--warning-mid);background:var(--warning-soft)}
+.notice-error{border-left-color:var(--danger);background:var(--danger-soft)}
+.notice-success{border-left-color:var(--success);background:var(--success-soft)} /* P1：自动保存成功态结果区 */
+
+.table-wrap{position:relative;border:1px solid var(--border);border-radius:var(--radius-card);overflow:auto;background:var(--card);box-shadow:var(--elev-1)}
+/* R1：未浏览空态占位（#dir-body 为空 = 从未浏览过任何目录时，在视区中央给引导文案，
+   替代原「大白空盒」首屏观感；纯 CSS 伪元素，零 JS 改动。挂在 .view-area 上——
+   默认矩形图视图下可见盒是 #treemap-wrap 而非 #table-wrap） */
+.view-area:not(.has-data)::after{
+  content:"输入盘符或路径点击「浏览」，或点右上「开始扫描」建立空间索引";
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:var(--faint);font-size:var(--fs-sm);pointer-events:none;letter-spacing:.02em;z-index:6;
+}
+.dir-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.dir-table th{
+  background:var(--th-bg);color:var(--muted);font-size:var(--fs-2xs);font-weight:650;letter-spacing:.4px;
+  text-align:left;padding:9px 12px;border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:1; /* 面板内滚时表头固定 */
+}
+/* P3（D3-6）：密度开关已整体删除——原阶段C（C-8）「紧凑档信息密度差异」
+   6 条 `.compact-list` 规则（行内 padding / 隐藏占比条与行图标 / 占比列 width:0）
+   同步移除：占比条与行图标为常驻信息（compact 会 display:none 掉它们 = 信息损失，
+   收益仅 1.38×），行高唯一 36px。 */
+.dir-table td{padding:7px 12px;border-bottom:1px solid var(--row-border);vertical-align:middle}
+.dir-table tbody:not(.v-virtual) tr:nth-child(even) td{background:var(--row-alt)}
+.dir-table tbody tr:hover td{background:var(--primary-soft)}
+.dir-table tbody tr:focus-visible td{background:var(--primary-soft);outline:2px solid var(--primary);outline-offset:-2px}
+/* U2.5 虚拟滚动：行号奇偶按数据索引着色（滚动窗口重渲染时位置奇偶不稳定，data-alt 为真值） */
+.dir-table tbody.v-virtual tr[data-alt="1"] td{background:var(--row-alt)}
+.dir-table tbody.v-virtual td{height:36px;padding:0 12px;border:0;box-shadow:inset 0 -1px var(--row-border);white-space:nowrap}
+/* 虚拟模式下行内容固定行高（36px 为虚拟窗口精确高度；实测值驱动窗口计算）；
+   行内操作区绝对定位（hover 浮现，不参与行高）。P3（D3-6）：原 26px 紧凑档规则已删。 */
+.dir-table tbody.v-virtual .ranking-row,
+.dir-table tbody.v-virtual .ranking-row-static{
+  position:relative;height:36px;box-sizing:border-box;
+  padding:6px 104px 6px 4px;
+}
+.dir-table tbody.v-virtual .row-actions{position:absolute;right:4px;top:50%;transform:translateY(-50%)}
+.dir-table tbody.v-virtual .row-actions .icon-btn{width:24px;height:24px}
+.dir-table tbody tr.v-spacer td{height:auto;padding:0;border:0;background:transparent!important;box-shadow:none}
+.dir-table tbody tr.v-spacer{pointer-events:none}
+.cell-name{display:flex;align-items:center;gap:8px;min-width:0}
+.cell-name .icon{color:var(--primary)}
+.cell-name .file{color:var(--faint)}
+.dir-link{display:inline-flex;align-items:center;gap:8px;color:var(--text);font-weight:500;cursor:pointer;min-width:0}
+.dir-link:hover{color:var(--primary)}
+.name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.col-size{width:110px;text-align:right;white-space:nowrap;font-variant-numeric:var(--font-num)}
+.col-share{width:140px}
+.col-type{width:64px;color:var(--muted)}
+.size-track{display:block;height:7px;border-radius:var(--radius-chip);background:var(--track);overflow:hidden}
+.size-bar{display:block;height:100%;border-radius:var(--radius-chip);background:var(--grad-brand);transition:width var(--dur-4) var(--ease-out)}
+.ranking-row{
+  display:grid;grid-template-columns:minmax(120px,1fr) minmax(100px,2fr) auto auto;
+  align-items:center;gap:10px;padding:8px 4px;cursor:pointer;
+}
+.ranking-row:hover,.ranking-row:focus-visible{background:var(--primary-soft);box-shadow:inset 3px 0 var(--primary)}
+.row-highlight td{background:var(--primary-soft)!important}
+.ranking-name{display:flex;align-items:center;gap:8px;min-width:0}
+.ranking-row strong{font-variant-numeric:var(--font-num)}
+/* P12·W1.4：静态文件行与行内操作区（点击/键盘不产生请求） */
+.ranking-row-static{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:var(--radius-ctl);cursor:default}
+.ranking-row-static:hover{background:rgba(127,127,127,.08)}
+/* U2.5：静态文件行 flex 内占比条需显式弹性宽度（否则 100% 子项导致轨道 0 宽，占比条不可见） */
+.ranking-row-static .size-track{flex:2 1 auto;min-width:96px}
+.row-actions{display:inline-flex;gap:6px;margin-left:auto;opacity:0;transition:opacity .15s ease}
+.ranking-row:hover .row-actions,.ranking-row:focus-within .row-actions,
+.ranking-row-static:hover .row-actions,tr:hover .row-actions{opacity:1}
+.empty-state{display:flex;flex-direction:column;align-items:center;gap:8px;padding:36px 16px;text-align:center;color:var(--muted)}
+.empty-state .icon{width:34px;height:34px;color:var(--faint)}
+.empty-state b{color:var(--text)}
+.empty-state p{margin:0;max-width:420px}
+
+/* ---- U2.5：N08 多选首列 checkbox + 页脚固定行（sticky bottom） ---- */
+.cell-check{width:34px;text-align:center}
+.cell-check input[type=checkbox]{width:15px;height:15px;vertical-align:middle;accent-color:var(--primary);cursor:pointer}
+.dir-table th.cell-check{padding:8px 6px}
+.list-footer{
+  display:flex;align-items:center;gap:14px;position:sticky;bottom:0;z-index:2;
+  padding:6px 12px;background:var(--card);border-top:1px solid var(--border);
+  font-size:var(--fs-xs);color:var(--muted);
+}
+/* 阶段C（C-7）：页脚显式 display 覆盖 [hidden] UA 默认（同
+   .list-footer-actions[hidden] 模式）——relate 树激活时页脚必须真正隐藏，
+   否则 sticky+z2 悬浮盖住树首行（命中测试实证：elementFromPoint 首行返回
+   list-footer） */
+.list-footer[hidden]{display:none!important}
+.list-stats{white-space:nowrap}
+.list-stats:last-child{margin-left:0}
+.list-footer-actions{display:inline-flex;gap:8px;margin-left:auto}
+.list-footer-actions[hidden]{display:none!important}
+.list-footer .btn-sm{min-height:24px;padding:2px 10px}
+
+/* ---- U2.5：F19 触屏长按呼出行操作（<900px 触屏场景） ---- */
+.row-actions-pin .row-actions{opacity:1}
+
+/* 阶段C（C-4）：趋势卡空态原因行 —— P6（D6-1）已归位到「U3.3 快照管理页」分区
+   （与 .trend-card 同节；原先定义在此处，距卡片 500+ 行）。 */
+
+/* ---- U2.5：L1-5 骨架屏（shimmer 1.4s 循环；仅 transform 扫光；reduced 经全局降级静止） ---- */
+.loading-overlay{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--card);font-size:var(--fs-xs);color:var(--muted)}
+.skel-list{display:flex;flex-direction:column;gap:8px}
+.skel-row{display:flex;align-items:center;gap:12px;height:28px}
+.skel-check{flex:none;width:14px;height:14px;border-radius:4px;background:var(--track)}
+.skel-block{position:relative;flex:none;height:14px;border-radius:999px;background:var(--track);overflow:hidden}
+.skel-block::before{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,var(--track-alt),transparent);animation:shimmer var(--dur-shimmer) ease-in-out infinite}
+.skel-name{flex:1;min-width:0;max-width:55%}
+.skel-bar{flex:2}
+.skel-size{width:76px}
+@keyframes shimmer{to{transform:translateX(100%)}}
+
+/* ---- U2.5：L2-9 缓存徽标入场（translateX(-8px)+fade 200ms；--dur-2） ---- */
+.cache-badge-in{animation:cache-badge-in var(--dur-2) var(--ease-out) both}
+@keyframes cache-badge-in{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+
+/* ============================================================ */
+/* treemap：矩形图视图（U2.2；hex=0，颜色一律 tokens 引用）      */
+/* ============================================================ */
+
+.treemap-wrap{
+  position:absolute;inset:0;min-width:0;z-index:1; /* P2：终态基值（交叉淡化层序见 .v-crossfade-* 规则） */
+  border:1px solid var(--border);border-radius:var(--radius-card);
+  background:var(--card);overflow:hidden;box-shadow:var(--elev-1);
+}
+/* U4.1：矩形图容器焦点环（键盘可达：聚焦后 ↑↓←→ 最近邻 + Enter 下钻；
+   与全局 :focus-visible 同参数 2px primary offset 2，此处显式声明便于逐元素核查） */
+.treemap-wrap:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+/* nav-tabs 坑：display 规则会覆盖 [hidden] 属性（作者样式 > UA），显式关闭 */
+.treemap-wrap[hidden]{display:none!important}
+.treemap-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.treemap-fx{pointer-events:none}
+/* Tooltip（§4.3：玻璃底 blur 12 / 圆角 10 / shadow-lg；fixed 定位由 JS 计算含边界翻转） */
+.treemap-tooltip{
+  position:fixed;z-index:1200;max-width:300px;padding:8px 12px;
+  background:var(--card-glass);backdrop-filter:blur(12px);
+  border:1px solid var(--border);border-radius:var(--radius-ctl);
+  box-shadow:var(--shadow-lg);color:var(--text);font-size:var(--fs-sm);
+  white-space:nowrap;pointer-events:none;
+}
+.treemap-tooltip[hidden]{display:none!important}
+.treemap-tooltip .tt-name{display:block;font-weight:600;margin-bottom:2px}
+.treemap-tooltip .tt-line{font-variant-numeric:var(--font-num)}
+.treemap-tooltip .tt-hint{margin-top:4px;color:var(--muted);font-size:var(--fs-xs)}
+
+/* ---- U2.3：迷你条带（L3-7 上级构成，48px；静态不动画，hover 提亮+title） ---- */
+.strip-bar{display:flex;width:100%;height:48px;border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden;background:var(--card);box-shadow:var(--elev-1)}
+.strip-block{flex:0 0 auto;min-width:2px;height:100%;position:relative;overflow:hidden;cursor:pointer}
+.strip-block:hover{filter:brightness(1.12)}
+.strip-block-static{cursor:default}
+.strip-block-static:hover{filter:none}
+/* U4.1：条带块键盘焦点（tabindex=0；inset 环——.strip-bar overflow:hidden 会裁剪外部 outline） */
+.strip-block:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--primary)}
+.strip-label{
+  position:absolute;left:6px;top:50%;transform:translateY(-50%);
+  max-width:calc(100% - 12px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  color:var(--on-primary);font-size:11px;line-height:1.3;pointer-events:none;
+}
+
+/* ---- U2.3：合并阈值 −/+（D11，仅矩形图视图）与全屏（L3-8） ---- */
+.merge-group{display:flex;align-items:center;gap:2px}
+.merge-group[hidden]{display:none!important}
+.merge-label{
+  min-width:28px;text-align:center;font-size:var(--fs-xs);color:var(--muted);
+  font-variant-numeric:var(--font-num);
+}
+/* 全屏：view-area fixed 铺满（z 800）+ 压暗 veil（z 795，FLIP 期间淡入）+ Esc/工具栏退出）；
+   全屏时工具行钉顶为控制条（Path 行 + 视图按钮保持在顶层可点） */
+.tool-row{position:relative;z-index:810}
+.view-fs .tool-row{
+  position:fixed;top:0;left:0;right:0;z-index:810;height:48px;padding:0 16px;
+  background:var(--card);border-bottom:1px solid var(--border);box-shadow:var(--shadow-sm);
+}
+.view-fullscreen{
+  position:fixed;inset:0;z-index:800;padding:60px 24px 16px;background:var(--bg);
+  border-radius:0;
+}
+.fullscreen-veil{position:fixed;inset:0;z-index:795;background:var(--veil);animation:fade-in var(--dur-1)}
+
+/* ---- U2.3：L2-5 行↔矩形联动（列表侧高亮；矩形侧描边由渲染器绘制） ---- */
+.ranking-row.row-linked{background:var(--primary-soft);box-shadow:inset 3px 0 var(--primary)}
+
+/* ============================================================ */
+/* overlays：弹窗族 / toast / 命令面板位                       */
+/* ============================================================ */
+
+.modal{
+  position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;
+  padding:16px;background:var(--veil);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);animation:fade-in .15s ease;
+}
+.modal-panel{
+  width:520px;max-width:100%;max-height:90vh;overflow:auto;background:var(--card);
+  border:1px solid var(--border);border-radius:var(--radius-card);box-shadow:var(--elev-3);animation:modal-in .18s ease;
+}
+.modal-panel-sm{width:420px}
+/* U3.5 [L2-10] 清空确认弹窗红描边脉动（2.4s --dur-breathe；仅 opacity——动画红线不破；
+   ::before 独立于 modal-in 入场动画；reduced 由全局降级截断为静态红描边=危险提示保留） */
+.wipe-panel{position:relative}
+.wipe-panel::before{
+  content:"";position:absolute;inset:0;border:2px solid var(--danger);
+  border-radius:var(--radius-card);pointer-events:none;opacity:1;
+  animation:wipe-pulse var(--dur-breathe) ease-in-out infinite;
+}
+@keyframes wipe-pulse{0%,100%{opacity:.25}50%{opacity:.9}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0}
+.modal-head h2{margin:0;font-size:var(--fs-lg);font-weight:650}
+.modal-body{padding:10px 20px}
+.modal-foot{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:14px 20px 18px}
+/* 阶段E（E-5）的 .modal-foot .modal-foot-left 规则已随设置分页删除：
+   一键清空按钮迁入「危险区」分页（不再是 foot 左侧按钮），全站无使用方。 */
+.divider{height:1px;background:var(--border);margin:16px 0 4px}
+
+/* 阶段E（E-5）：设置弹窗「扫描完成自动保存」行——label 左、开关右两列布局
+   （旧结构文案+开关同行挤压；.switch-row 原无样式）。开关列 flex:none 保证
+   控件不被文案挤压；窄屏（<420px）整行纵向换行（label 上、开关下）。 */
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 0;cursor:pointer}
+.switch-row .switch-label{display:flex;flex-direction:column;gap:3px;min-width:0}
+.switch-row .switch-label b{font-size:var(--fs-sm);color:var(--text);font-weight:600}
+.switch-row .switch-hint{font-size:var(--fs-xs);color:var(--muted);line-height:1.4}
+.switch-row .switch-control{flex:none;display:flex;align-items:center}
+.switch-row .switch{width:40px;height:22px;accent-color:var(--primary);cursor:pointer;margin:0}
+
+/* ---- 设置弹窗分页（2026-09-13 第二轮：原单页 1045px 高 → 三分页） ----
+   固定面板高度：内容区独立内滚（min-height 兜底），标题/分页条/底部按钮常驻可见。 */
+.settings-panel{display:flex;flex-direction:column;max-height:min(90vh,640px)}
+.settings-tabs{
+  display:flex;gap:4px;flex:none;margin:6px 20px 0;padding:3px;
+  border:1px solid var(--border);border-radius:var(--radius-ctl);background:var(--card-soft);
+}
+.settings-tab{
+  flex:1;min-width:0;padding:6px 10px;border:0;border-radius:var(--radius-sm);
+  background:transparent;color:var(--muted);font:inherit;font-size:var(--fs-xs);font-weight:600;
+  cursor:pointer;white-space:nowrap;
+}
+.settings-tab:hover{color:var(--text);background:var(--row-alt)}
+.settings-tab.is-active{background:var(--card);color:var(--primary);box-shadow:var(--shadow-sm)}
+.settings-tab:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.settings-body{flex:1;min-height:0;overflow-y:auto}
+.settings-pane[hidden]{display:none!important}
+.settings-pane.is-active{display:block}
+/* 危险区：红框提示 + 左对齐的危险按钮（原 modal-foot-left 位置随分页迁移） */
+.settings-pane .notice{margin-top:4px}
+.settings-pane #btn-wipe-open{margin-top:var(--space-3)}
+
+/* ---- 设置弹窗「使用偏好」区（2026-09-13 新增；注册表驱动，见 prefs.js） ----
+   行结构与 .switch-row 同构（左 label+hint / 右控件），但按分组归拢并允许
+   数值/下拉控件；窄屏复用 <420px 的纵向换行规则。 */
+.settings-prefs{display:flex;flex-direction:column;gap:10px;margin:10px 0 0}
+.pref-group{display:flex;flex-direction:column;gap:2px}
+.pref-group-title{font-size:var(--fs-2xs);font-weight:700;letter-spacing:.04em;color:var(--faint);text-transform:uppercase;margin:2px 0 2px}
+.pref-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:6px 0;cursor:pointer;border-bottom:1px dashed var(--row-border)}
+.pref-group .pref-row:last-child{border-bottom:0}
+.pref-label{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pref-label b{font-size:var(--fs-sm);color:var(--text);font-weight:600}
+.pref-hint{font-size:var(--fs-xs);color:var(--muted);line-height:1.4}
+.pref-control{flex:none;display:flex;align-items:center}
+.pref-input{
+  font:inherit;font-size:var(--fs-sm);color:var(--text);background:var(--card-soft);
+  border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 8px;min-width:132px;
+}
+.pref-input:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
+.pref-number{min-width:74px;width:74px;text-align:center;font-variant-numeric:var(--font-num)}
+.pref-control .switch{width:40px;height:22px;accent-color:var(--primary);cursor:pointer;margin:0}
+.settings-prefs-foot{display:flex;align-items:center;gap:var(--space-2);margin:10px 0 2px}
+.settings-prefs-foot .muted{font-size:var(--fs-xs)}
+
+/* U3.5 [F03/N03] 设置弹窗主题三态：分段单选（与顶栏按钮同源 state.theme；
+   选择即生效；checked=主色高亮，焦点环经 input:focus-visible 递达 span）。
+   ⚠️ 阶段E（E-5）回归修复：.theme-switch-group 规则在 E-5 排版编辑中被误删，
+   导致主题三档纵向堆叠（Luna 判读抓出）——恢复 display:flex 横向三列。 */
+.theme-switch-group{display:flex;gap:8px}
+
+/* 阶段E（E-5）：主题三项控件（.theme-opt）高度/圆角/字号统一——
+   旧实现 span 仅 padding:8px 6px，三档高度随文案行数不同；
+   现统一 min-height + 行高 + 内边距，三档视觉等高等宽。 */
+.theme-opt{position:relative;flex:1;min-width:0;cursor:pointer}
+.theme-opt input{position:absolute;opacity:0;pointer-events:none}
+.theme-opt span{
+  display:flex;align-items:center;justify-content:center;min-height:38px;padding:8px 10px;
+  text-align:center;border:1px solid var(--border);
+  border-radius:var(--radius-ctl);background:var(--card);color:var(--text-2);
+  font-size:var(--fs-sm);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.theme-opt:hover span{border-color:var(--border-strong)}
+.theme-opt input:checked + span{background:var(--primary-soft);border-color:var(--primary);color:var(--primary);font-weight:600}
+.theme-opt input:focus-visible + span{outline:2px solid var(--primary);outline-offset:2px}
+
+.toast-container{
+  position:fixed;top:16px;right:16px;z-index:1100;display:flex;flex-direction:column;gap:10px;
+  width:min(360px,calc(100vw - 32px));
+}
+.toast{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-card);
+  box-shadow:var(--elev-2);font-size:var(--fs-sm);
+  position:relative;overflow:hidden; /* U3.5：时间线/描边伪元素的裁切容器 */
+}
+/* R1：类型表达从「左侧色条」改为「图标徽章」——更产品化（色条是开发者工具语汇） */
+.toast-icon{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center}
+.toast-icon .icon{width:15px;height:15px}
+.toast-success .toast-icon{background:var(--success-soft);color:var(--success)}
+.toast-warn .toast-icon{background:var(--warning-soft);color:var(--warning)}
+.toast-error .toast-icon{background:var(--danger-soft);color:var(--danger)}
+.toast-info .toast-icon{background:var(--primary-soft);color:var(--primary)}
+.toast-text{flex:1;min-width:0;color:var(--text-2)}
+.toast-close{border:0;background:transparent;color:var(--faint);cursor:pointer;border-radius:var(--radius-sm)}
+.toast-close:hover{color:var(--text);background:var(--card-soft)}
+
+/* U3.5 [L2-6·F21] Toast 升级（驱动在 toast.js/WAAPI——参数可经 getAnimations
+   在 smoke 断言；本分区仅布局与配色：类型色 / 时间线 / 成功描边层 /
+   reduced 显隐。动画仅 transform/opacity；JS 侧 token 读时长） */
+.toast-success{border-color:var(--success-border)}
+.toast-warn{border-color:var(--warning-border)}
+.toast-error{border-color:var(--danger-border)}
+.toast-info{border-color:var(--border)}
+.toast-success .toast-timeline{background:var(--success)}
+.toast-warn .toast-timeline{background:var(--warning)}
+.toast-error .toast-timeline{background:var(--danger)}
+.toast-info .toast-timeline{background:var(--primary)}
+/* 时间线（自动消失进度条；scaleX 1→0 动画由 toast.js 驱动，时长=TTL 内联）
+   R1：更纤细低存在（3px→2px，透明度收敛） */
+.toast-timeline{
+  position:absolute;left:0;right:0;bottom:0;height:2px;
+  background:var(--primary);opacity:.45;transform-origin:left;
+}
+/* 成功描边层（300ms opacity 呈现由 toast.js 驱动；reduced 时 JS 跳过=保持透明） */
+.toast-stroke{
+  position:absolute;inset:0;border:2px solid var(--success);
+  border-radius:var(--radius-card);pointer-events:none;opacity:0;
+}
+/* reduced 降级：时间线隐藏（装饰性进度动画跳过；功能性保留=toast 仍出现/自动
+   消失，滑入 ≤120ms 由 toast.js 控制） */
+@media (prefers-reduced-motion:reduce){
+  .toast-timeline{opacity:0}
+}
+
+/* [N02] 命令面板（U3.1 装配；全路由可用；glass 居中 640px；
+   开合 80ms（--dur-palette-open——验收「面板打开 <100ms」专用 token）；
+   视作浮层入弹窗栈（红线 #9：Esc 逆序关栈顶/Tab 循环/R 守卫） */
+.palette-overlay{z-index:900;animation:fade-in var(--dur-palette-open) ease both}
+.palette-panel{
+  width:640px;max-width:calc(100vw - 32px);max-height:min(70vh,560px);
+  overflow:hidden;display:flex;flex-direction:column;padding:0;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-card);box-shadow:var(--elev-3);
+  animation:palette-in var(--dur-palette-open) var(--ease-out) both;
+}
+@keyframes palette-in{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.palette-input-row{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.palette-search-icon{color:var(--muted)}
+.palette-input-row input{flex:1;min-width:0;padding:0;border:none;background:transparent;color:var(--text);font:inherit;font-size:var(--fs-lg)}
+.palette-input-row input:focus{outline:none;border:none;box-shadow:none}
+.palette-input-row input::placeholder{color:var(--faint)}
+.palette-results{flex:1;min-height:0;overflow-y:auto;padding:6px 8px 8px}
+.palette-group-label{
+  padding:8px 10px 4px;font-size:var(--fs-xs);color:var(--faint);font-weight:600;
+  letter-spacing:.04em;
+}
+.palette-item{
+  display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-ctl);
+  cursor:pointer;color:var(--text);
+}
+.palette-item.is-active{background:var(--primary-soft);color:var(--primary)}
+.palette-item-label{flex:none;font-weight:600;font-variant-numeric:var(--font-num)}
+.palette-item-hint{
+  flex:1;min-width:0;font-size:var(--fs-xs);color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;
+}
+.palette-item .kbd{opacity:.7}
+.palette-empty{padding:26px 16px;text-align:center;font-size:var(--fs-sm)}
+
+/* U3.1 F01 健康徽章 popover：锚定顶栏右侧的小浮层（透明背板、点击外部关闭——走弹窗栈） */
+.health-popover{
+  z-index:905;align-items:flex-start;justify-content:flex-end;
+  padding:72px 24px 16px;background:transparent;animation:none;
+}
+.popover-panel{
+  width:360px;max-width:calc(100vw - 32px);background:var(--card);
+  border:1px solid var(--border);border-radius:var(--radius-card);
+  box-shadow:var(--elev-3);animation:popover-in var(--dur-2) var(--ease-out) both;overflow:hidden;
+}
+@keyframes popover-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.popover-body{padding:6px 20px 18px;display:flex;flex-direction:column;gap:10px}
+.popover-row{display:flex;align-items:baseline;gap:10px}
+.popover-label{flex:none;width:64px;font-size:var(--fs-xs);color:var(--muted)}
+.popover-value{flex:1;min-width:0;font-size:var(--fs-sm);word-break:break-all;color:var(--text)}
+.popover-sub{font-size:var(--fs-xs);margin:-4px 0 0 74px;word-break:break-all}
+.popover-body .btn{align-self:flex-start;margin-top:4px}
+
+/* [F02] 首启引导弹层（U3.1：纵排步骤 + 进度点；入弹窗栈）
+   P5（D5-3）：第 2 步「选择要分析的盘」的盘符选择器（选项由 drives.js 从
+   /api/roots 动态渲染；未就绪盘符置灰但**仍然可见**，不静默丢弃） */
+.onboarding-overlay{z-index:900}
+.onboarding-panel{
+  width:600px;max-width:calc(100vw - 32px);max-height:88vh;overflow:auto;
+  background:linear-gradient(180deg,var(--primary-soft),var(--card));
+  border:1px solid var(--primary-border);
+}
+.onboarding-sub{margin:0;padding:4px 20px 0;color:var(--muted);font-size:var(--fs-sm)}
+.onboarding-panel .steps{display:flex;flex-direction:column;padding:14px 20px;gap:8px}
+.onboarding-panel .step{background:var(--card-glass);border-color:var(--border)}
+.onboarding-panel .step p{margin:2px 0 0;font-size:var(--fs-sm);color:var(--text-2)}
+.onboarding-roots{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:26px}
+.onboarding-root{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 10px;
+  border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--card);
+  color:var(--text);font:inherit;font-size:var(--fs-sm);cursor:pointer;
+}
+.onboarding-root:hover,.onboarding-root:focus-visible{background:var(--primary-soft)}
+.onboarding-root.is-on{border-color:var(--primary);background:var(--primary-soft);font-weight:600}
+.onboarding-root[data-not-ready="1"]{opacity:.6}
+.onboarding-root-state{font-size:var(--fs-xs);color:var(--muted);font-weight:400}
+.onboarding-roots-hint{font-size:var(--fs-xs);color:var(--muted)}
+.onboarding-roots-foot{display:flex;justify-content:flex-end;margin-top:6px}
+.onboarding-dots{display:flex;justify-content:center;gap:8px;padding:0 20px 18px}
+.onboarding-dot{width:8px;height:8px;border-radius:50%;background:var(--border-strong)}
+.onboarding-dot.is-on{background:var(--primary)}
+
+/* ============================================================ */
+/* motion：loop 类 keyframes / reduced-motion / View Transitions */
+/* ============================================================ */
+
+@keyframes pulse{50%{opacity:.4;transform:scale(.7)}}
+@keyframes stripes{to{background-position:22px 0}}
+@keyframes fade-in{from{opacity:0}}
+@keyframes modal-in{from{transform:translateY(10px);opacity:0}}
+/* U2.4：环形图扫描中不确定弧旋转（仅 transform；reduced 经全局降级规则静止）。
+   阶段E（E-1）：from -90° → to 270° = 每循环整 360° 无回跳——旧写法仅 to{360°}
+   从元素 SVG 属性 rotate(-90 60 60) 的 -90° 插值到 360°，每 1.2s 转 450°、
+   循环结束回跳 90°（问题 2-6，u50 scan 段实测 -76° 跳变）；现首尾同姿态无缝衔接。 */
+@keyframes donut-spin{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}
+/* 未就绪/错误态徽章呼吸（就绪 badge-ok 静止；P12·W3.4 DEF-027） */
+@keyframes badge-breathe{0%,100%{opacity:1}50%{opacity:.72}}
+.badge:hover{filter:brightness(.95)}
+.badge:not(.badge-ok){animation:badge-breathe var(--dur-breathe) ease-in-out infinite}
+
+/* 全局降级：系统「减弱动态效果」时循环动画近乎静止（§3.5 降级总表） */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .badge{animation:none}
+}
+
+/* UI2·U1.1 主题体系（tokens.css 配套，L0-1）：VT 圆形扩散新旧快照取消默认动画 */
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+/* 无 View Transitions 的浏览器：主题切换走 200ms 颜色过渡兜底（不闪烁） */
+@supports not (view-transition-name:root){
+  body{transition:background-color var(--dur-2,200ms) ease,color var(--dur-2,200ms) ease}
+}
+@media (prefers-reduced-motion:reduce){
+  ::view-transition-old(root),::view-transition-new(root){animation:none!important}
+  body{transition:none!important}
+}
+
+/* ============================================================ */
+/* 响应式（§3.4 零滚动三规则 + §3.3 紧凑档）                  */
+/* ============================================================ */
+
+/* 紧凑档：视口高 <820px（覆盖 1366×768 主流笔记本）——右栏三卡总高收紧 */
+@media (max-height:820px){
+  .shell{gap:10px;padding:10px 16px}
+  .side-rail{gap:4px}
+  .card,.overview-panel{padding:6px 12px}
+  /* P3：把既有「紧凑档卡标题缩放」补全到概览卡标题——概览卡不是 .card 而是
+     .overview-panel，此前漏网：20px 标题 + 三动作按钮在 276px 内容宽里放不下，
+     逼出「动作组换行」（卡头 75px）。与 .card-head h2 同参数（--fs-md）后
+     标题与动作同行（卡头 36px），纵向省 39px。既有断言语义未变：
+     紧凑档环形 112px、卡 padding 6/12 均未触碰。 */
+  .card-head h2,.overview-head h2{font-size:var(--fs-md)}
+  /* P3：紧凑档小按钮纵向收紧（.btn 基准 min-height:36px 是常规档触控目标；
+     紧凑档右栏属高频低危次级动作，与既有 .side-rail .btn-sm{padding:3px 8px}
+     同段收口）。主 CTA（.btn-primary/.btn-success，非 btn-sm）保持 36px 不变。 */
+  .side-rail .btn-sm{min-height:28px}
+  .card-sub{display:none} /* 定稿 3.3：紧凑档隐藏副标题 */
+  /* -- U4.2 紧凑档收口（定稿 3.3「三卡总高 ≤520px · 768px 高屏右栏无内滚无溢出」）：
+       折叠次级文案/状态行（主文案与动作保留，DOM 文本不变——探针 textContent 口径不受影响） */
+  .overview-head p{display:none}                    /* 存储卡「最近扫描：…」副行 */
+  .overview-empty span{display:none}                /* 空态指引二行（主标题保留） */
+  .snapshot-mini-card .status-line{display:none}    /* 迷你快照「已加载/已保存 N 会话」状态行 */
+  .compare-mini-empty span{display:none}            /* 最近对比空态指引二行（主标题保留） */
+  /* 卡内纵向收紧（仅右栏；特异度与常规档 .side-rail .card .row 对齐才能覆盖） */
+  .side-rail .card .row{margin:4px 0}
+  /* P3：紧凑档通知块（扫描卡提示 #scan-progress-hint / 自动保存结果
+     #autosave-result / 保存提示 #save-prompt）纵向再收紧——文案与入口全保留 */
+  .side-rail .notice{margin:var(--space-1) 0;padding:6px var(--space-3);gap:var(--space-1)}
+  .side-rail .progress-wrap{margin:4px 0 2px}
+  .side-rail .status-line{margin:2px 0;font-size:11px}
+  .side-rail .chips-row{margin:4px 0 2px}
+  .side-rail .btn-sm{padding:3px 8px}
+  .side-rail .chip{padding:2px 8px}
+  .overview-roots{margin-top:4px}
+  .storage-row{margin-top:4px}
+  .overview-chips{margin-top:2px}
+  .overview-open{margin-top:6px}
+  .snapshot-mini-entry{margin-top:2px}
+  .compare-mini-body{margin-top:2px}
+  .donut-legend{gap:6px}
+  /* R1：图例基础档已横向单行（gap 收紧即可，信息不减：已使用/全部盘累计均保留） */
+  .donut-legend-row{gap:6px;white-space:nowrap}
+  /* 2026-09-13 第二轮修复：原此处有 `.snapshot-list{max-height:200px}`——该选择器
+     只命中**快照管理页**的会话列表（工作台迷你卡用 .snapshot-mini-*），
+     在 max-height:820px 的机器上把整页列表硬压到 200px，正是用户实测
+     「显示会话的地方太小了」的直接成因之一（另一成因：日历整宽独占 308px）。
+     列表高度应完全交给 .snapshots-list-scroll 的 flex:1，故删除该上限。 */
+  .session-item{padding:8px 10px}
+  .overview-roots-donut{min-height:140px}
+  .donut-box{width:112px;height:112px} /* 定稿 3.3：环形图直径 160→112px */
+  .donut-value{font-size:var(--fs-md)}
+  .snapshot-mini-sub{display:none} /* 定稿 3.3：迷你卡折叠为单行（图标+快照名+按钮） */
+  .snapshot-mini-item{padding:6px 10px}
+  .statusbar{font-size:11px}
+}
+
+/* 宽 <900px：声明过的例外——整页退化为传统纵向滚动（§3.4 规则 3） */
+@media (max-width:900px){
+  body{overflow:auto}
+  .app{height:auto;overflow:visible}
+  .shell{flex-direction:column;gap:12px;padding:12px 14px}
+  #route-view{flex-direction:column;gap:12px}
+  .main-col{overflow:visible}
+  .tool-row{height:auto;flex-wrap:wrap}
+  .path-row{min-width:0;flex-wrap:wrap}
+  .path-row input{min-width:160px}
+  .view-area{min-height:320px}
+  .side-rail{width:auto;overflow:visible}
+  .browse-filters{flex-wrap:wrap}
+  .browse-filters input{min-width:100%}
+  .overview-head{align-items:flex-start}
+  .overview-actions{width:100%}
+  .overview-actions .btn{width:100%}
+  .statusbar{height:auto;padding:6px 14px;flex-wrap:wrap}
+  .topbar{padding:0 14px;overflow-x:auto;gap:8px}
+  /* U3.1 <900px 声明例外内的顶栏收紧：八元素单行不换行（60px 不破）——
+     子项禁缩 + 标签 nowrap，超宽内容经顶栏横向滚动承载（不挤压竖排） */
+  .topbar > *{flex:none}
+  .topbar .nav-tab{white-space:nowrap}
+  .brand-sub{display:none}
+  /* U3.1 <900px 声明例外内的顶栏收紧：搜索框缩窄 + 隐藏 kbd 徽标，60px 高度不破 */
+  .topbar-search{width:170px}
+  .topbar-search .kbd{display:none}
+  .topbar-right{gap:6px}
+}
+
+/* 高 <640px：声明过的断点例外——恢复滚动，不做专门适配（风险登记） */
+@media (max-height:639px){
+  body{overflow:auto}
+  .app{height:auto;overflow:visible}
+}
+
+/* 阶段E（E-5）：窄屏（<420px）设置弹窗换行规则——
+   自动保存行纵向堆叠（label 上、开关下），modal-foot 按钮允许换行不溢出 */
+@media (max-width:419px){
+  .switch-row{flex-direction:column;align-items:flex-start;gap:8px}
+  .switch-row .switch-control{align-self:flex-end}
+  .pref-row{flex-direction:column;align-items:flex-start;gap:6px}
+  .pref-control{align-self:flex-end;width:100%}
+  .pref-input{width:100%;min-width:0}
+  .theme-opt span{min-height:34px;padding:6px 4px;font-size:var(--fs-xs)}
+  .modal-foot{flex-wrap:wrap}
+  .modal-foot .btn{flex:1;min-width:0}
+}
+
+/* ---- 阶段C（C-7）：关系目录树（父子层级；viz/relate.js；与表格互斥显示） ----
+   容器 = table-wrap 内独立块；行高与 list.js ROW_HEIGHT 同口径
+   （P3/D3-6 起固定 36px——原 26px 紧凑档规则已删——u24 断言面一致）；
+   动画仅 opacity/transform（P7）。 */
+.relate-tree{
+  position:absolute;inset:0;overflow:auto;padding:4px 0;
+  outline:none;background:var(--card);display:flex;flex-direction:column;
+}
+/* 阶段C（C-7）防回归：relate-tree 显式 display:flex 覆盖 [hidden] UA 默认
+   （nav-tabs 类坑）——非 relate 模式下 hideRelate() 必须真正隐藏，否则
+   透明 flex 容器铺满 table-wrap 覆盖表格（elementFromPoint 实证：表格行
+   位置命中 relate-tree，截图全白） */
+.relate-tree[hidden]{display:none!important}
+.relate-tree:focus-visible{box-shadow:inset 0 0 0 2px var(--primary)}
+.relate-row{
+  display:flex;align-items:center;gap:8px;min-height:36px;box-sizing:border-box;
+  padding:6px 12px 6px 8px;cursor:pointer;border-bottom:1px solid var(--row-border);
+  white-space:nowrap;transition:opacity var(--dur-1) var(--ease-out);
+}
+.relate-row:hover{background:var(--primary-soft)}
+.relate-row:focus-visible,.relate-row.is-focus{background:var(--primary-soft);outline:2px solid var(--primary);outline-offset:-2px}
+.relate-caret{flex:none;width:14px;color:var(--muted);font-size:10px;transition:transform var(--dur-2) var(--ease-out)}
+.relate-dir .relate-caret{transform:rotate(90deg)}
+.relate-caret-leaf{visibility:hidden}
+.relate-icon{flex:none;color:var(--primary);display:inline-flex}
+.relate-icon .icon{width:16px;height:16px}
+.relate-file .relate-icon{color:var(--faint)}
+.relate-name{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:var(--font-num)}
+.relate-size{flex:none;color:var(--muted);font-size:var(--fs-xs);font-variant-numeric:var(--font-num)}
+.relate-actions{flex:none;display:inline-flex;gap:6px;opacity:0;transition:opacity var(--dur-2) var(--ease-out)}
+.relate-row:hover .relate-actions,.relate-row:focus-within .relate-actions{opacity:1}
+.relate-tree.v-virtual .relate-row{height:36px;border:0;box-shadow:inset 0 -1px var(--row-border)}
+.relate-spacer{flex:none;pointer-events:none}
+.relate-empty{padding:36px 16px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:8px;align-items:center}
+.relate-empty b{color:var(--text)}
+.relate-empty p{margin:0;max-width:420px}
