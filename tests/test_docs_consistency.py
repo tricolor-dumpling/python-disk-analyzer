@@ -38,6 +38,7 @@ DOC_FILES = (
     "docs/排查手册.md",
     "docs/legacy 快照迁移指引.md",
     "docs/架构决策记录.md",
+    "docs/部署与运维.md",
     "docs/CHANGELOG.md",
     "scripts/dev/README.md",
     "web/static/assets/来源清单.md",
