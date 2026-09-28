@@ -46,6 +46,12 @@ Desktop.ini
 # Local Python virtual environment
 .venv/
 
+# 临时工作区（开发过程产物统一落点，可随时整体删除；目录内 README.md 说明可放什么）
+# 用 tmp/* + !tmp/README.md 而非忽略整个目录，保证「目录与说明」本身在版本控制里可见，
+# 又让目录内任何新增临时文件默认不入库。
+tmp/*
+!tmp/README.md
+
 # DSH tooling scratch output（与项目无关的生成图像）
 dsh-image-gen/
 
