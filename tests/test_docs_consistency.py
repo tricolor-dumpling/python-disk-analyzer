@@ -36,6 +36,7 @@ DOC_FILES = (
     "docs/开发规范.md",
     "docs/API 契约.md",
     "docs/排查手册.md",
+    "docs/legacy 快照迁移指引.md",
     "docs/CHANGELOG.md",
     "scripts/dev/README.md",
     "web/static/assets/来源清单.md",
